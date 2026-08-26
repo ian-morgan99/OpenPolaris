@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
@@ -21,6 +23,7 @@ import dev.openpolaris.core.domain.Connection
 fun OpenPolarisApp(
     windowSizeClass: WindowSizeClass,
     connectionFactory: () -> Connection,
+    onFindWifi: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm = AppViewModel(scope, connectionFactory)
@@ -29,8 +32,10 @@ fun OpenPolarisApp(
         Surface(Modifier.fillMaxSize()) {
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Compact -> {
-                    Column(Modifier.fillMaxSize()) {
-                        ConnectionPane(vm, Modifier.fillMaxWidth())
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    ) {
+                        ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi)
                         StatusPane(vm, Modifier.fillMaxWidth())
                         JogPane(vm, Modifier.fillMaxWidth())
                         GotoPane(vm, Modifier.fillMaxWidth())
@@ -39,7 +44,7 @@ fun OpenPolarisApp(
                     }
                 }
                 else -> {
-                    Row(Modifier.fillMaxSize()) {
+                    Row(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         Column(Modifier.weight(1f)) {
                             ConnectionPane(vm, Modifier.fillMaxWidth())
                             StatusPane(vm, Modifier.fillMaxWidth())

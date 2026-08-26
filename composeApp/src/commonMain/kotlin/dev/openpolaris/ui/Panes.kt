@@ -24,9 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.format2
 
-/** Connection pane: host entry, connect/demo buttons, status line. */
+/**
+ * Connection pane: host entry, connect/demo buttons, status line.
+ * [onFindWifi], when provided, opens a platform Wi-Fi picker so the user can
+ * join the mount's access point without leaving the app.
+ */
 @Composable
-fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: (() -> Unit)? = null) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Open Polaris", style = MaterialTheme.typography.headlineSmall)
@@ -41,6 +45,11 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Button(onClick = vm::connect) { Text("Connect") }
                 OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+            }
+            if (onFindWifi != null) {
+                OutlinedButton(onClick = onFindWifi) {
+                    Text("Find mount Wi-Fi…")
+                }
             }
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
         }

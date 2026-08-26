@@ -49,3 +49,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+// Always emit per-class XML results (CI evidence + screenshot-friendly HTML reports).
+tasks.withType<Test>().configureEach {
+    reports.html.required = true
+    reports.junitXml.required = true
+    testLogging {
+        events("passed", "failed", "skipped")
+        showStandardStreams = false
+    }
+}

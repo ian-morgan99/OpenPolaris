@@ -4,6 +4,7 @@ import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -79,7 +80,9 @@ class MountSession(
                 withTimeout(timeoutMs) {
                     while (matched == null) {
                         val n = conn.read(buf, timeoutMs.toInt())
-                        if (n <= 0) continue
+                        // n <= 0 means no data yet; suspend briefly so the
+                        // timeout can fire instead of busy-spinning the CPU.
+                        if (n <= 0) { delay(READ_RETRY_MS); continue }
                         val combined = carry + buf.copyOf(n)
                         val (frames, consumed) = parser.parse(combined)
                         for (f in frames) {
@@ -124,5 +127,9 @@ class MountSession(
         connection?.close()
         connection = null
         _state.value = _state.value.copy(connected = false)
+    }
+
+    private companion object {
+        const val READ_RETRY_MS = 10L
     }
 }

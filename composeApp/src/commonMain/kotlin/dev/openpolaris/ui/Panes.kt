@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -101,31 +103,98 @@ private fun JogButton(label: String, code: Int, vm: AppViewModel) {
     OutlinedButton(onClick = { vm.jog(code) }) { Text(label) }
 }
 
-/** Goto pane: az/alt entry, slew button, position reset. */
+/** Goto pane: az/alt or RA/Dec entry, observer location, slew/cancel, alignment, auto-level. */
 @Composable
 fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Slew to Az/Alt", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Slew", style = MaterialTheme.typography.titleMedium)
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Observer location:", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(
-                    value = vm.gotoAz,
-                    onValueChange = { vm.gotoAz = it },
-                    label = { Text("Azimuth °") },
+                    value = vm.latDeg,
+                    onValueChange = vm::updateLat,
+                    label = { Text("Lat ° (N+)") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
                 OutlinedTextField(
-                    value = vm.gotoAlt,
-                    onValueChange = { vm.gotoAlt = it },
-                    label = { Text("Altitude °") },
+                    value = vm.lngEastDeg,
+                    onValueChange = vm::updateLng,
+                    label = { Text("Lng ° (E+)") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
             }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !vm.raDecMode, onClick = { vm.setRaDecMode(false) }, label = { Text("Az/Alt") })
+                FilterChip(selected = vm.raDecMode, onClick = { vm.setRaDecMode(true) }, label = { Text("RA/Dec") })
+            }
+
+            if (vm.raDecMode) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = vm.gotoRa,
+                        onValueChange = vm::updateRa,
+                        label = { Text("RA (HH MM SS)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = vm.gotoDec,
+                        onValueChange = vm::updateDec,
+                        label = { Text("Dec (±DD MM SS)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = vm.gotoAz,
+                        onValueChange = { vm.gotoAz = it },
+                        label = { Text("Azimuth °") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = vm.gotoAlt,
+                        onValueChange = { vm.gotoAlt = it },
+                        label = { Text("Altitude °") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::goto) { Text("Slew") }
+                OutlinedButton(onClick = vm::cancelSlew) { Text("Cancel slew") }
                 OutlinedButton(onClick = vm::resetPosition) { Text("Reset position") }
+            }
+
+            HorizontalDivider()
+
+            Text("Star alignment (${vm.alignmentStars} stars)", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Center a bright star with the jog controls, then record it. 2–3 stars spread across the sky give the best pointing model.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = vm::submitAlignmentStar) { Text("Record star") }
+                OutlinedButton(onClick = vm::resetAlignment) { Text("Reset alignment") }
+            }
+
+            HorizontalDivider()
+
+            Text("Auto-level", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = vm::runAutoLevel) { Text("Level now") }
+                Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
+                Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
+                OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
             }
         }
     }

@@ -3,12 +3,15 @@ package dev.openpolaris.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.openpolaris.core.domain.AlignmentController
+import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.TrackingController
+import dev.openpolaris.core.protocol.CommandTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -118,20 +121,119 @@ class AppViewModel(
     var gotoAz by mutableStateOf("0.0")
     var gotoAlt by mutableStateOf("0.0")
 
-    /** Slew to entered az/alt (code 519). Reports result in statusMessage. */
+    // ---- observer location & RA/Dec goto ---------------------------------
+
+    var latDeg by mutableStateOf("51.5")
+    var lngEastDeg by mutableStateOf("-0.12")
+
+    /** When true, Slew converts RA/Dec (J2000) to az/alt using location + clock. */
+    var raDecMode: Boolean by mutableStateOf(false)
+        private set
+    var gotoRa by mutableStateOf("05 34 31")   // M42
+    var gotoDec by mutableStateOf("-05 27")
+
+    /**
+     * Advanced/experimental Alpaca-derived features (dither, settle time,
+     * lunar-rate tracking). Off by default until hardware-validated.
+     */
+    var advancedMode by mutableStateOf(false)
+
+    fun updateLat(v: String) { latDeg = v }
+    fun updateLng(v: String) { lngEastDeg = v }
+    @JvmName("toggleRaDecMode")
+    fun setRaDecMode(on: Boolean) { raDecMode = on }
+    fun updateRa(v: String) { gotoRa = v }
+    fun updateDec(v: String) { gotoDec = v }
+
+    private fun parsedLocation(): Pair<Double, Double>? {
+        val lat = latDeg.toDoubleOrNull() ?: return null
+        val lng = lngEastDeg.toDoubleOrNull() ?: return null
+        if (lat < -90 || lat > 90) return null
+        return lat to lng
+    }
+
+    /** Slew to entered coordinates (code 519). Reports result in statusMessage. */
     fun goto() {
-        val az = gotoAz.toDoubleOrNull()
-        val alt = gotoAlt.toDoubleOrNull()
-        if (az == null || alt == null) {
-            statusMessage = "Invalid coordinates"
-            return
-        }
-        scope.launch {
-            when (controller?.gotoAzAlt(az, alt)) {
-                null -> statusMessage = "Not connected"
-                else -> statusMessage = "Slewing to az $az°, alt $alt°"
+        if (raDecMode) {
+            val loc = parsedLocation() ?: run { statusMessage = "Invalid latitude/longitude"; return }
+            val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA (use HH MM SS or H.h)"; return }
+            val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use ±DD MM SS or ±D.d)"; return }
+            val altAz = AstroMath.toHorizontalAt(ra, dec, loc.first, loc.second, AstroMath.julianDateNow())
+            scope.launch {
+                when (controller?.gotoAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)) {
+                    null -> statusMessage = "Not connected"
+                    else -> statusMessage = "Slewing to RA $gotoRa Dec $gotoDec (az %.1f°, alt %.1f°)"
+                        .format(altAz.azimuthDeg, altAz.altitudeDeg)
+                }
+            }
+        } else {
+            val az = gotoAz.toDoubleOrNull()
+            val alt = gotoAlt.toDoubleOrNull()
+            if (az == null || alt == null) {
+                statusMessage = "Invalid coordinates"
+                return
+            }
+            scope.launch {
+                when (controller?.gotoAzAlt(az, alt)) {
+                    null -> statusMessage = "Not connected"
+                    else -> statusMessage = "Slewing to az $az°, alt $alt°"
+                }
             }
         }
+    }
+
+    /** Cancel an in-progress slew (519 state:0). */
+    fun cancelSlew() = scope.launch {
+        session?.send(dev.openpolaris.core.protocol.Codes.SET_GOTO_AU_STATE, "state:0;")
+        statusMessage = "Slew cancelled"
+    }
+
+    // ---- alignment ---------------------------------------------------------
+
+    var alignmentStars by mutableStateOf(0)
+        private set
+
+    /** Record current pointing as alignment star [alignmentStars] (code 530). */
+    fun submitAlignmentStar() {
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        val pos = position ?: run { statusMessage = "No mount position yet"; return }
+        val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
+        scope.launch {
+            AlignmentController(s).submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
+            alignmentStars++
+            statusMessage = "Alignment star ${alignmentStars} recorded"
+        }
+    }
+
+    fun resetAlignment() { alignmentStars = 0; statusMessage = "Alignment reset" }
+
+    // ---- auto-level ----------------------------------------------------------
+
+    var autoLevelEnabled by mutableStateOf<Boolean?>(null)
+        private set
+
+    fun refreshAutoLevel() {
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        scope.launch {
+            autoLevelEnabled = when (val r = s.request(CommandTable.AUTO_LEVEL_GET_EN.code) { f ->
+                f.int("en")
+            }) {
+                is MountSession.CmdResult.Ok -> r.value == 1
+                else -> null
+            }
+        }
+    }
+
+    fun setAutoLevelEnabled(on: Boolean) = scope.launch {
+        session?.send(CommandTable.AUTO_LEVEL_SET_EN.code, CommandTable.AUTO_LEVEL_SET_EN.payload(on))
+        autoLevelEnabled = on
+        statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
+    }
+
+    /** Trigger one auto-level cycle (code 549). */
+    fun runAutoLevel() = scope.launch {
+        session?.send(CommandTable.AUTO_LEVEL_TRIGGER.code)
+        statusMessage = "Auto-level started"
     }
 
     /** Reset gimbal position reference (code 523). */

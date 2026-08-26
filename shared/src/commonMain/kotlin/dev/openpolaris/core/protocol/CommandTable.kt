@@ -64,6 +64,44 @@ object CommandTable {
 
     val POS_RESET = Descriptor<Unit>(Codes.POS_RESET, "position reset")
 
+    // ---- alignment / calibration ----------------------------------------------
+
+    /**
+     * Star-alignment step (530). Firmware format:
+     * `step:%d;yaw:%f;pitch:%f;lat:%f;num:%d;lng:%f;`
+     * The stock app sends step=2 with the target alt/az computed client-side;
+     * num is the star index for multi-star alignment.
+     */
+    data class AlignmentStar(
+        val yawDeg: Double,
+        val pitchDeg: Double,
+        val latDeg: Double,
+        val lngEastDeg: Double,
+        val starIndex: Int = 0,
+    )
+    val ALIGN_STAR = Descriptor<AlignmentStar>(
+        Codes.CALIBRATE_START, "star alignment",
+        payload = { s ->
+            "step:2;yaw:${s.yawDeg.format4()};pitch:${s.pitchDeg.format4()};" +
+                "lat:${s.latDeg.format4()};num:${s.starIndex};lng:${s.lngEastDeg.format4()};"
+        },
+    )
+
+    /** Cancel an in-progress goto (519 `state:0`). */
+    val GOTO_CANCEL = Descriptor<Unit>(Codes.SET_GOTO_AU_STATE, "goto cancel", payload = { "state:0;" })
+
+    // ---- astro helper settings --------------------------------------------------
+
+    val DITHER_GET = Descriptor<Int?>(Codes.GET_DITHER_STATE, "dither get", parse = { it.int("state") })
+    val DITHER_SET = Descriptor<Boolean>(Codes.SET_DITHER_STATE, "dither set", payload = { "state:${if (it) 1 else 0};" })
+
+    val AUTO_LEVEL_GET_EN = Descriptor<Int?>(Codes.GET_AUTO_LEVEL_EN, "auto level en get", parse = { it.int("en") })
+    val AUTO_LEVEL_SET_EN = Descriptor<Boolean>(Codes.SET_AUTO_LEVEL_EN, "auto level en set", payload = { "en:${if (it) 1 else 0};" })
+    val AUTO_LEVEL_TRIGGER = Descriptor<Unit>(Codes.SET_AUTO_LEVEL_STATE, "auto level trigger")
+
+    val SETTLING_TIME_GET = Descriptor<Int?>(Codes.GET_SETTLING_TIME, "settling time get", parse = { it.int("time") })
+    val SETTLING_TIME_SET = Descriptor<Int>(Codes.SET_SETTLING_TIME, "settling time set", payload = { "time:$it;" })
+
     // ---- jog -------------------------------------------------------------------
 
     val JOG_H_SPEED = Descriptor<Int>(Codes.GIMBAL_HADJ_SPEED, "jog yaw speed", payload = { "time:$it;" })
@@ -105,7 +143,9 @@ object CommandTable {
 
     val ALL: Map<Int, List<Descriptor<*>>> =
         listOf(MODE_STATE, GIMBAL_POS, TRACK_START, TRACK_STOP, TRACK_HALF_SPEED, AHRS,
-            GOTO_AZ_ALT, POS_RESET, JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
+            GOTO_AZ_ALT, GOTO_CANCEL, ALIGN_STAR, POS_RESET, JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
+            DITHER_GET, DITHER_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
+            SETTLING_TIME_GET, SETTLING_TIME_SET,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
             CAM_GET_EV, CAM_SET_EV, CAM_GET_STATE, CAM_CAPTURE)
             .groupBy { it.code }

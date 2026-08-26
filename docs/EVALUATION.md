@@ -50,3 +50,19 @@ Date: end of overnight build session. Status: all three target platforms build; 
 2. Refactor to `CommandTable` before adding camera settings commands.
 3. iOS app shell (macOS required).
 4. Replace icon, dedupe gradle.properties, restore expect/actual Connection.
+
+## Phase 2 review (goto, CommandTable, camera)
+
+- **CommandTable refactor paid off immediately**: camera descriptors slotted in with zero
+  changes to session plumbing; the table is now the single registry PROTOCOL.md mirrors.
+- **Camera breakthrough**: `bin/polestar_app` inside the firmware appfs is unstripped —
+  `strings` recovered exact payload formats (`iso:%d;ret:%d;`, `state:%d;bulb:%d;c:%d;`,
+  timelapse step payloads) and the index-based set semantics (SP_SetCameraIsoIndex,
+  eSortIso/Shutter/FNum). This replaces guesswork with firmware ground truth.
+- **Honest limitation kept visible**: numeric codes 258–311 are inferred (built dynamically
+  in firmware; APK unavailable). The CameraPane shows an experimental warning and Codes.kt
+  documents the uncertainty. Do not remove the warning until hardware-validated.
+- **Simulator extended** to answer camera codes, so demo mode exercises the full request/
+  response path end-to-end without hardware.
+- Tests: 27 green across 5 suites (4 new camera tests: set payloads, get parsers, tolerant
+  capture-state parsing, code-range guard).

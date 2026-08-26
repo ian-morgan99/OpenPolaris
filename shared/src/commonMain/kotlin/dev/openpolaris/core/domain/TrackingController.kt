@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 
@@ -25,10 +26,7 @@ class TrackingController(private val session: MountSession) {
     }
 
     suspend fun gotoAzAlt(azimuthDeg: Double, altitudeDeg: Double) {
-        session.send(
-            Codes.SET_GOTO_AU_STATE,
-            "az:${azimuthDeg.format4()};alt:${altitudeDeg.format4()};"
-        )
+        session.send(Codes.SET_GOTO_AU_STATE, CommandTable.GOTO_AZ_ALT.payload(azimuthDeg to altitudeDeg))
     }
 
     suspend fun enableAhrs(on: Boolean) {
@@ -53,5 +51,15 @@ private fun Double.format4(): String {
     val scaled = (abs * 10000.0 + 0.5).toLong()
     val whole = scaled / 10000
     val frac = (scaled % 10000).toString().padStart(4, '0')
+    return (if (neg) "-" else "") + "$whole.$frac"
+}
+
+/** Common-main 2-decimal fixed formatting for UI display. */
+fun Double.format2(): String {
+    val neg = this < 0
+    val abs = if (neg) -this else this
+    val scaled = (abs * 100.0 + 0.5).toLong()
+    val whole = scaled / 100
+    val frac = (scaled % 100).toString().padStart(2, '0')
     return (if (neg) "-" else "") + "$whole.$frac"
 }

@@ -51,6 +51,7 @@ class AppViewModel(
         val s = MountSession(connectionFactory, host, 9090)
         session = s
         controller = TrackingController(s)
+        cameraController = dev.openpolaris.core.domain.CameraController(s)
         scope.launch {
             statusMessage = "Connecting to $host…"
             if (s.connect()) {
@@ -69,6 +70,7 @@ class AppViewModel(
         val sim = SimulatedMount(scope)
         session = sim.session
         controller = TrackingController(sim.session)
+        cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
         scope.launch {
             sim.session.connect()
             statusMessage = "Demo mode (simulated mount)"
@@ -81,6 +83,7 @@ class AppViewModel(
         session?.disconnect()
         session = null
         controller = null
+        cameraController = null
         mount = MountState()
         position = null
         if (!demoMode) statusMessage = "Disconnected"
@@ -111,4 +114,64 @@ class AppViewModel(
     fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
     fun jog(code: Int) = scope.launch { controller?.jog(code) }
+
+    var gotoAz by mutableStateOf("0.0")
+    var gotoAlt by mutableStateOf("0.0")
+
+    /** Slew to entered az/alt (code 519). Reports result in statusMessage. */
+    fun goto() {
+        val az = gotoAz.toDoubleOrNull()
+        val alt = gotoAlt.toDoubleOrNull()
+        if (az == null || alt == null) {
+            statusMessage = "Invalid coordinates"
+            return
+        }
+        scope.launch {
+            when (controller?.gotoAzAlt(az, alt)) {
+                null -> statusMessage = "Not connected"
+                else -> statusMessage = "Slewing to az $az°, alt $alt°"
+            }
+        }
+    }
+
+    /** Reset gimbal position reference (code 523). */
+    fun resetPosition() = scope.launch {
+        session?.send(dev.openpolaris.core.protocol.Codes.POS_RESET)
+        statusMessage = "Position reset sent"
+    }
+
+    // ---- camera ----------------------------------------------------------
+    // Codes are INFERRED (see Codes.kt) — controls stay disabled until validated
+    // on hardware. Demo mode exercises the full path.
+
+    var camera by mutableStateOf(dev.openpolaris.core.domain.CameraController.Params())
+        private set
+
+    private var cameraController: dev.openpolaris.core.domain.CameraController? = null
+
+    fun refreshCamera() {
+        val cc = cameraController ?: run { statusMessage = "Not connected"; return }
+        scope.launch {
+            val p = dev.openpolaris.core.domain.CameraController.Params(
+                isoIndex = cc.queryIso(),
+                wbIndex = cc.queryWb(),
+                fNumIndex = cc.queryFNum(),
+                evIndex = cc.queryEv(),
+            )
+            camera = p
+            statusMessage = if (p.isoIndex != null || p.wbIndex != null ||
+                p.fNumIndex != null || p.evIndex != null)
+                "Camera parameters refreshed" else "Camera did not respond"
+        }
+    }
+
+    fun setIso(index: Int) { camera = camera.copy(isoIndex = index); scope.launch { cameraController?.setIso(index) } }
+    fun setWb(index: Int) { camera = camera.copy(wbIndex = index); scope.launch { cameraController?.setWb(index) } }
+    fun setFNum(index: Int) { camera = camera.copy(fNumIndex = index); scope.launch { cameraController?.setFNum(index) } }
+    fun setEv(index: Int) { camera = camera.copy(evIndex = index); scope.launch { cameraController?.setEv(index) } }
+    fun capture() = scope.launch {
+        if (cameraController == null) { statusMessage = "Not connected"; return@launch }
+        cameraController?.capture()
+        statusMessage = "Capture sent"
+    }
 }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.openpolaris.core.domain.format2
 
 /** Connection pane: host entry, connect/demo buttons, status line. */
 @Composable
@@ -76,7 +77,7 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Position", style = MaterialTheme.typography.titleMedium)
-            Text("Az/Yaw: ${p?.let { "%.2f°".format(it.yaw) } ?: "—"}   Alt/Pitch: ${p?.let { "%.2f°".format(it.pitch) } ?: "—"}")
+            Text("Az/Yaw: ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt/Pitch: ${p?.pitch?.toDouble()?.format2() ?: "—"}°")
             Spacer(Modifier.height(4.dp))
             JogPad(vm, Codes.GIMBAL_HADJ_SPEED, Codes.GIMBAL_HADJ_ANGLE, Codes.GIMBAL_VADJ_SPEED, Codes.GIMBAL_VADJ_ANGLE)
         }
@@ -98,4 +99,70 @@ private fun JogPad(vm: AppViewModel, yawUp: Int, yawDown: Int, pitchUp: Int, pit
 @Composable
 private fun JogButton(label: String, code: Int, vm: AppViewModel) {
     OutlinedButton(onClick = { vm.jog(code) }) { Text(label) }
+}
+
+/** Goto pane: az/alt entry, slew button, position reset. */
+@Composable
+fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Slew to Az/Alt", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = vm.gotoAz,
+                    onValueChange = { vm.gotoAz = it },
+                    label = { Text("Azimuth °") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = vm.gotoAlt,
+                    onValueChange = { vm.gotoAlt = it },
+                    label = { Text("Altitude °") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = vm::goto) { Text("Slew") }
+                OutlinedButton(onClick = vm::resetPosition) { Text("Reset position") }
+            }
+        }
+    }
+}
+
+/**
+ * Camera pane: ISO / WB / aperture / EV index steppers plus capture.
+ * Codes are inferred — a warning banner says so until hardware-validated.
+ */
+@Composable
+fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val c = vm.camera
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Camera", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Experimental — command codes unverified; enable only in Demo mode or after hardware validation.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            StepperRow("ISO", c.isoIndex, vm::setIso)
+            StepperRow("WB", c.wbIndex, vm::setWb)
+            StepperRow("Aperture", c.fNumIndex, vm::setFNum)
+            StepperRow("EV", c.evIndex, vm::setEv)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = vm::capture) { Text("Capture") }
+                OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("$label: ${value?.toString() ?: "—"}", modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = { if (value != null && value > 0) onChange(value - 1) else onChange(0) }) { Text("−") }
+        OutlinedButton(onClick = { onChange((value ?: -1) + 1) }) { Text("+") }
+    }
 }

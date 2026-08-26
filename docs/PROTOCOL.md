@@ -93,9 +93,37 @@ The open client may use them as fine rate trims during tracking (subject to hard
 
 Full end-to-end support requires camera control. Codes 258–311 cover capture modes, exposure
 triangle (ISO/aperture/shutter), white balance, bulb time, RAW/JPEG selection, and capture
-triggers, each with get/set pairs. Senders are documented in `PolarisOrderCommunication.java`.
-Caution: camera commands can interrupt a running capture sequence — validate against ranges
-per model before sending, and disable controls while a sequence is active.
+triggers, each with get/set pairs. Caution: camera commands can interrupt a running capture
+sequence — disable controls while a sequence is active.
+
+**Ground truth recovered from `bin/polestar_app` (firmware appfs, unstripped symbols):**
+
+Payload formats (requests and `<key>:<val>;ret:<code>;` responses):
+
+| Parameter | Get response | Set request |
+|---|---|---|
+| ISO | `iso:%d;ret:%d;` | `iso:%d;` |
+| White balance | `wb:%*d;ret:%d;` | `wb:%d;` |
+| Aperture | `fNum:%d;ret:%d;` | `fNum:%d;` |
+| EV | `ev:%d;ret:%d;` | `ev:%d;` |
+| Shutter | `s:%d;ret:%d;` | (no literal request format) |
+| Direction | `dir:%d;` | `dir:%d;` |
+| Capture state push | `state:%d;bulb:%d;c:%d;` | — |
+| Focus | `focus:%d;leve:%d;` / combined `state:%d;focus:%d;leve:%d;b:%d;path:%s;c:%d;` | — |
+
+Timelapse step payloads: `step:%*d;bulb:%d;num:%d;`, `step:6;state:%d;iso:%d,%d;`,
+`step:7;state:%d;num:%d;remainNum:%d;`, `step:4;priority:%d,%d,%d;`, `step:13;runTime:%d;`.
+
+Semantics: values are **indices into firmware-sorted option lists** (`SP_SetCameraIsoIndex`,
+`eSortIso/eSortShutter/eSortFNum`), not raw numbers. Firmware validates per-model ranges
+("iso max/min limit at:%d;", "shutter range limit at max/min:%d;"). Capture runs through a
+CableRelease task (`SP_CreateCableReleaseTask`, `SP_CableReleaseMakePhoto`). Battery:
+`capacity:%d;charge:%d;`.
+
+**Status of numeric codes:** the exact code numbers within 258–311 are INFERRED (built
+dynamically in firmware; APK unavailable). Open Polaris implements the payload formats as
+ground truth with named GET/SET constants in `Codes.kt`; camera controls carry an
+experimental warning and must be validated on hardware before trusting the code mapping.
 
 ### 3.5 Out of scope (documented for completeness)
 

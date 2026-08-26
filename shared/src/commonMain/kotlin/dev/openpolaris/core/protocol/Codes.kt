@@ -34,9 +34,28 @@ object Codes {
     const val SET_AUTO_LEVEL_EN = 548
     const val SET_AUTO_LEVEL_STATE = 549
 
-    // Camera parameter family (258–311), get/set pairs. Detailed per-model ranges TBD (Phase 3).
+    // Camera parameter family (258–311), get/set pairs.
+    //
+    // IMPORTANT: the exact numeric codes below are INFERRED, not confirmed. The firmware
+    // builds them dynamically (no literals in polestar_app) and the APK is unavailable.
+    // What IS ground truth (from polestar_app strings): the payload formats and the
+    // index-based set semantics (SP_SetCameraIsoIndex etc.). Keep all camera controls
+    // disabled until validated on hardware; see PROTOCOL.md §3.4.
     const val CAMERA_BASE = 258
     const val CAMERA_END = 311
+
+    const val CAM_GET_ISO = 258
+    const val CAM_SET_ISO = 259
+    const val CAM_GET_WB = 260
+    const val CAM_SET_WB = 261
+    const val CAM_GET_FNUM = 262
+    const val CAM_SET_FNUM = 263
+    const val CAM_GET_EV = 264
+    const val CAM_SET_EV = 265
+    const val CAM_GET_STATE = 266
+    const val CAM_CAPTURE = 267
+    const val CAM_GET_FOCUS = 268
+    const val CAM_SET_DIR = 269
 }
 
 /** Literal payload used when a command carries no content. */

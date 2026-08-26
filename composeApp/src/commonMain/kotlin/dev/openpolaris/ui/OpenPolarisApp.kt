@@ -33,6 +33,8 @@ fun OpenPolarisApp(
                         ConnectionPane(vm, Modifier.fillMaxWidth())
                         StatusPane(vm, Modifier.fillMaxWidth())
                         JogPane(vm, Modifier.fillMaxWidth())
+                        GotoPane(vm, Modifier.fillMaxWidth())
+                        CameraPane(vm, Modifier.fillMaxWidth())
                     }
                 }
                 else -> {
@@ -40,9 +42,11 @@ fun OpenPolarisApp(
                         Column(Modifier.weight(1f)) {
                             ConnectionPane(vm, Modifier.fillMaxWidth())
                             StatusPane(vm, Modifier.fillMaxWidth())
+                            GotoPane(vm, Modifier.fillMaxWidth())
                         }
                         Column(Modifier.weight(1f)) {
                             JogPane(vm, Modifier.fillMaxWidth())
+                            CameraPane(vm, Modifier.fillMaxWidth())
                         }
                     }
                 }

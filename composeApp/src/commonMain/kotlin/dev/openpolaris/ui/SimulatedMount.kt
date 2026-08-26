@@ -19,6 +19,12 @@ class SimulatedMount(private val scope: CoroutineScope) {
     var yaw = 0f
     var pitch = 0f
 
+    // Simulated camera parameter indices (demo mode).
+    var isoIndex = 5
+    var wbIndex = 2
+    var fNumIndex = 3
+    var evIndex = 4
+
     private val conn = SimConnection()
     val session = dev.openpolaris.core.domain.MountSession({ conn })
 
@@ -52,6 +58,16 @@ class SimulatedMount(private val scope: CoroutineScope) {
                     pitch = fields["alt"]?.toFloatOrNull() ?: pitch
                     queue("1&519&2&result:ok;#")
                 }
+                258 -> queue("1&258&2&iso:$isoIndex;ret:0;#")
+                259 -> { isoIndex = fields["iso"]?.toIntOrNull() ?: isoIndex; queue("1&259&2&ret:0;#") }
+                260 -> queue("1&260&2&wb:$wbIndex;ret:0;#")
+                261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
+                262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
+                263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
+                264 -> queue("1&264&2&ev:$evIndex;ret:0;#")
+                265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
+                266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")
+                267 -> queue("1&267&2&state:1;bulb:0;c:1;#")
             }
         }
 

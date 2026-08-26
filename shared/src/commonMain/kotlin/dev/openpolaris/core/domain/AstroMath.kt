@@ -81,6 +81,33 @@ object AstroMath {
         return d
     }
 
+    /**
+     * Current Julian Date from the platform clock. Isolated here so tests can
+     * use [julianDate] with fixed components instead.
+     */
+    fun julianDateNow(): Double {
+        val epochMillis = currentEpochMillis()
+        val secs = kotlin.math.floor(epochMillis / 1000.0)
+        val millis = (epochMillis % 1000).toInt()
+        val days = floor(secs / 86400.0)
+        val remSecs = secs - days * 86400.0
+        // Civil date from days since Unix epoch (1970-01-01 = JD 2440587.5).
+        var z = (days + 719468).toInt()
+        val era = z / 146097
+        val doe = z - era * 146097
+        val yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
+        val yr = yoe + era * 400
+        val doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+        val mp = (5 * doy + 2) / 153
+        val day = doy - (153 * mp + 2) / 5 + 1
+        val month = if (mp < 10) mp + 3 else mp - 9
+        val year = if (month <= 2) yr + 1 else yr
+        val hour = (remSecs / 3600).toInt()
+        val minute = ((remSecs % 3600) / 60).toInt()
+        val second = (remSecs % 60).toInt()
+        return julianDate(year, month, day, hour, minute, second, millis)
+    }
+
     /** Parse "HH MM SS.s" or "H.h" into decimal degrees of RA. */
     fun parseRa(text: String): Double? {
         val t = text.trim()

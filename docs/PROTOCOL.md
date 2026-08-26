@@ -53,7 +53,7 @@ with extended firmware payloads.
 | 520 | SP_SET_AHRS_STATE | C→M | `state:%d;` | 1 = enable quaternion stream, 0 = disable. Response value `0` = success |
 | 527 | SP_SET_YAW | C→M | `compass:%s;lat:%f;lng:%f;` | Set yaw reference from compass + location |
 | 530 | SP_CALIBRATE_START | C→M | `step:%d;yaw:%f;pitch:%f;lat:%f;num:%d;lng:%f;` | Star alignment. App uses step=2 with target alt/az computed client-side; num = star index for multi-star |
-| 531 | SP_SET_TRACK_AU_STATE | C→M | `state:%d;speed:%d;` | Start/stop tracking. speed: 0 = sidereal, 2 = lunar |
+| 531 | SP_SET_TRACK_AU_STATE | C→M | `state:%d;speed:%d;` | Start/stop tracking. speed: 0 = sidereal, 2 = lunar (per ogecko/alpaca driver, hardware-verified). Firmware format string `state:%d;speed:%d;` confirmed in polestar_app. Minimal `state:1;` (no speed) also accepted — firmware defaults the rate. |
 | 536 | SP_SET_TRACK_HALF_SPEED | C→M | `halfSpeed:%d;` | ⚠️ **INVERTED**: app sends `halfSpeed:0` to ENABLE half-speed, `halfSpeed:1` for full speed |
 
 ### 3.2 Manual jog (rate/angle adjust)

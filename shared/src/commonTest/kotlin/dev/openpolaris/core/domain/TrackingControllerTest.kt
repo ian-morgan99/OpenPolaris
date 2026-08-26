@@ -45,6 +45,15 @@ class TrackingControllerTest {
     }
 
     @Test
+    fun startWithSpeedIncludesSpeedField() = runTest {
+        val conn = FakeConnection()
+        val (s, t) = newSession(conn)
+        s.connect()
+        t.start(speed = 2)
+        assertEquals("1&531&2&state:1;speed:2;#", String(conn.written[1], Charsets.US_ASCII))
+    }
+
+    @Test
     fun stopSendsTrackOff() = runTest {
         val conn = FakeConnection()
         val (s, t) = newSession(conn)

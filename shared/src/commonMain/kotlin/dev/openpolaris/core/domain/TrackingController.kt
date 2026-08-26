@@ -11,8 +11,17 @@ import dev.openpolaris.core.protocol.EMPTY_CONTENT
  */
 class TrackingController(private val session: MountSession) {
 
-    suspend fun start() {
-        session.send(Codes.SET_TRACK_AU_STATE, "state:1;")
+    /**
+     * Start tracking. Firmware format string for 531 is `state:%d;speed:%d;`
+     * (recovered from polestar_app). The semantic range of `speed` is not
+     * hardware-verified; the Benro app exposes star/sun/moon rates which map
+     * to small integer indices. When [speed] is null we send the minimal
+     * `state:1;` frame (verified working); pass an explicit index to include
+     * the speed field.
+     */
+    suspend fun start(speed: Int? = null) {
+        val payload = if (speed != null) "state:1;speed:$speed;" else "state:1;"
+        session.send(Codes.SET_TRACK_AU_STATE, payload)
     }
 
     suspend fun stop() {

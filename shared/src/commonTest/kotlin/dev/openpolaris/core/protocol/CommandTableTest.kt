@@ -34,6 +34,15 @@ class CommandTableTest {
     }
 
     @Test
+    fun trackingStartWithSpeedMatchesFirmwareFormat() {
+        // Firmware format string: state:%d;speed:%d;
+        assertEquals(
+            "1&531&2&state:1;speed:2;#",
+            wire(CommandTable.TRACK_START_WITH_SPEED, 2),
+        )
+    }
+
+    @Test
     fun allDescriptorsHaveCodesAndNames() {
         for ((code, descs) in CommandTable.ALL) {
             assertTrue(code in 100..1000, "suspicious code $code")

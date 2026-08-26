@@ -35,6 +35,11 @@ object CommandTable {
     val TRACK_START = Descriptor<Unit>(
         Codes.SET_TRACK_AU_STATE, "tracking start", payload = { "state:1;" },
     )
+    /** Tracking start with explicit speed index (see TrackingController.start doc). */
+    val TRACK_START_WITH_SPEED = Descriptor<Int>(
+        Codes.SET_TRACK_AU_STATE, "tracking start (with speed)",
+        payload = { speed -> "state:1;speed:$speed;" },
+    )
     val TRACK_STOP = Descriptor<Unit>(
         Codes.SET_TRACK_AU_STATE, "tracking stop", payload = { "state:0;" },
     )

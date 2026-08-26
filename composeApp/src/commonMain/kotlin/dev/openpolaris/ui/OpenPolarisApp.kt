@@ -25,7 +25,7 @@ fun OpenPolarisApp(
     val scope = rememberCoroutineScope()
     val vm = AppViewModel(scope, connectionFactory)
 
-    MaterialTheme {
+    OpenPolarisTheme {
         Surface(Modifier.fillMaxSize()) {
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Compact -> {
@@ -35,6 +35,7 @@ fun OpenPolarisApp(
                         JogPane(vm, Modifier.fillMaxWidth())
                         GotoPane(vm, Modifier.fillMaxWidth())
                         CameraPane(vm, Modifier.fillMaxWidth())
+                        ReadmePane(Modifier.fillMaxWidth())
                     }
                 }
                 else -> {
@@ -47,6 +48,7 @@ fun OpenPolarisApp(
                         Column(Modifier.weight(1f)) {
                             JogPane(vm, Modifier.fillMaxWidth())
                             CameraPane(vm, Modifier.fillMaxWidth())
+                            ReadmePane(Modifier.fillMaxWidth())
                         }
                     }
                 }

@@ -27,7 +27,7 @@ class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
 ) {
-    var host by mutableStateOf("192.168.0.1")
+    var host by mutableStateOf("192.168.43.1")
         private set
 
     var mount by mutableStateOf(MountState())

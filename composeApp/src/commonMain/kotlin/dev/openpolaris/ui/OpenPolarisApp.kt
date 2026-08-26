@@ -4,15 +4,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -23,18 +28,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
-
-enum class FitMode { Scroll, Fit }
+import dev.openpolaris.core.domain.format2
 
 /**
- * Root app surface. Compact (phone portrait) stacks panes in a scrollable
- * column; wide/landscape arranges panes side-by-side. A Scroll/Fit toggle lets
- * the user either scroll normally or scale everything down so it fits the
- * screen with no scrolling (useful in landscape).
+ * Root app surface, modelled on the original Benro Connect layout: a fixed
+ * "operating" screen — status strip, position readout and jog pad always
+ * visible — with small call-out buttons that open dialogs for less-used
+ * functions (Connection, Slew/align, Camera, Guide).
+ *
+ * Phone portrait: everything fits without scrolling.
+ * Wide/landscape: same fixed view with a vertical call-out rail on the right.
  */
 @Composable
 fun OpenPolarisApp(
@@ -44,125 +50,134 @@ fun OpenPolarisApp(
 ) {
     val scope = rememberCoroutineScope()
     val vm = AppViewModel(scope, connectionFactory)
-    var fitMode by remember { mutableStateOf(FitMode.Scroll) }
+    var dialog by remember { mutableStateOf<Callout?>(null) }
     val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
     OpenPolarisTheme {
         Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize()) {
-                FitModeBar(fitMode, wide, Modifier.fillMaxWidth()) { fitMode = it }
-                when {
-                    wide && fitMode == FitMode.Fit -> ScaledLandscape(vm, onFindWifi)
-                    wide -> LandscapeColumns(vm, onFindWifi)
-                    fitMode == FitMode.Fit -> ScaledColumn(vm, onFindWifi)
-                    else -> ScrollingColumn(vm, onFindWifi)
+            if (wide) {
+                Row(
+                    Modifier.fillMaxSize().padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatusStrip(vm, Modifier.fillMaxWidth())
+                        PositionReadout(vm, Modifier.fillMaxWidth())
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            JogPane(vm, Modifier.width(260.dp))
+                        }
+                    }
+                    CalloutRail(vertical = true, Modifier.fillMaxHeight()) { dialog = it }
+                }
+            } else {
+                Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusStrip(vm, Modifier.fillMaxWidth())
+                    PositionReadout(vm, Modifier.fillMaxWidth())
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        JogPane(vm, Modifier.width(220.dp))
+                    }
+                    CalloutRail(vertical = false, Modifier.fillMaxWidth()) { dialog = it }
                 }
             }
+
+            when (dialog) {
+                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
+                Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
+                null -> {}
+            }
+        }
+    }
+}
+
+private enum class Callout(val glyph: String) {
+    Connection("Wi-Fi"),
+    Slew("Slew"),
+    Camera("Cam"),
+    Readme("?"),
+}
+
+/** Row (portrait) or column (landscape rail) of small call-out buttons. */
+@Composable
+private fun CalloutRail(vertical: Boolean, modifier: Modifier = Modifier, onSelect: (Callout) -> Unit) {
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Readme)
+    if (vertical) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            items.forEach { c -> CalloutButton(c, onSelect) }
+        }
+    } else {
+        Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
+            items.forEach { c -> CalloutButton(c, onSelect) }
         }
     }
 }
 
 @Composable
-private fun FitModeBar(mode: FitMode, wide: Boolean, modifier: Modifier = Modifier, onChange: (FitMode) -> Unit) {
-    Row(modifier.padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(selected = mode == FitMode.Scroll, onClick = { onChange(FitMode.Scroll) }, label = { Text("Scroll") })
-        FilterChip(
-            selected = mode == FitMode.Fit,
-            onClick = { onChange(FitMode.Fit) },
-            label = { Text(if (wide) "Fit screen" else "Fit (shrink)") },
-        )
+private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
+    TextButton(onClick = { onSelect(c) }) {
+        Text(c.glyph, style = MaterialTheme.typography.labelMedium)
     }
 }
 
-/** Phone portrait, scroll mode. */
+/** Compact always-visible status line. */
 @Composable
-private fun ScrollingColumn(vm: AppViewModel, onFindWifi: (() -> Unit)?) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi)
-        StatusPane(vm, Modifier.fillMaxWidth())
-        JogPane(vm, Modifier.fillMaxWidth())
-        GotoPane(vm, Modifier.fillMaxWidth())
-        CameraPane(vm, Modifier.fillMaxWidth())
-        ReadmePane(Modifier.fillMaxWidth())
-    }
-}
-
-/** Landscape / wide, scroll mode: two columns of panes. */
-@Composable
-private fun LandscapeColumns(vm: AppViewModel, onFindWifi: (() -> Unit)?) {
-    Row(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(Modifier.weight(1f)) {
-            ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi)
-            StatusPane(vm, Modifier.fillMaxWidth())
-            GotoPane(vm, Modifier.fillMaxWidth())
-        }
-        Column(Modifier.weight(1f)) {
-            JogPane(vm, Modifier.fillMaxWidth())
-            CameraPane(vm, Modifier.fillMaxWidth())
-            ReadmePane(Modifier.fillMaxWidth())
-        }
-    }
-}
-
-/**
- * Renders [content] at natural size, measures its height against the available
- * container height, then draws it scaled down to fit exactly — no scrolling.
- */
-@Composable
-private fun FitToScreen(content: @Composable () -> Unit) {
-    var contentHeightPx by remember { mutableStateOf(0f) }
-    var containerHeightPx by remember { mutableStateOf(0f) }
-    val scaleFactor =
-        if (contentHeightPx > 0f && containerHeightPx > 0f) {
-            minOf(1f, containerHeightPx / contentHeightPx)
-        } else 1f
-
-    Box(
-        Modifier
-            .fillMaxSize()
-            .onGloballyPositioned { containerHeightPx = it.size.height.toFloat() },
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { contentHeightPx = it.size.height.toFloat() }
-                .scale(scaleFactor)
-                .align(Alignment.TopCenter),
+private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val s = vm.mount
+    Card(modifier) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            content()
+            Text("Open Polaris", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            Text(
+                buildString {
+                    append(s.batteryPercent?.toString() ?: "—")
+                    append("%")
+                    if (s.charging) append("+")
+                    if (s.tracking == true) append("  TRK")
+                    if (s.halfSpeed) append("  ½×")
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
 
-/** Phone portrait, fit mode: single column shrunk to fit. */
+/** Az/Alt readout + tracking / half-speed / AHRS chips, compact. */
 @Composable
-private fun ScaledColumn(vm: AppViewModel, onFindWifi: (() -> Unit)?) {
-    FitToScreen {
-        ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi)
-        StatusPane(vm, Modifier.fillMaxWidth())
-        JogPane(vm, Modifier.fillMaxWidth())
-        GotoPane(vm, Modifier.fillMaxWidth())
-        CameraPane(vm, Modifier.fillMaxWidth())
-        ReadmePane(Modifier.fillMaxWidth())
-    }
-}
-
-/** Landscape, fit mode: two columns shrunk to fit — everything visible at once. */
-@Composable
-private fun ScaledLandscape(vm: AppViewModel, onFindWifi: (() -> Unit)?) {
-    FitToScreen {
-        Row(Modifier.fillMaxWidth()) {
-            Column(Modifier.weight(1f)) {
-                ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi)
-                StatusPane(vm, Modifier.fillMaxWidth())
-                GotoPane(vm, Modifier.fillMaxWidth())
-            }
-            Column(Modifier.weight(1f)) {
-                JogPane(vm, Modifier.fillMaxWidth())
-                CameraPane(vm, Modifier.fillMaxWidth())
-                ReadmePane(Modifier.fillMaxWidth())
+private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val p = vm.position
+    Card(modifier) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Az ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt ${p?.pitch?.toDouble()?.format2() ?: "—"}°",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = vm.mount.tracking == true, onClick = {
+                    if (vm.mount.tracking == true) vm.stopTracking() else vm.startTracking()
+                }, label = { Text("Track") })
+                FilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
+                FilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
             }
         }
     }
 }
 
+/** Call-out dialog wrapper with scrollable body. */
+@Composable
+private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        title = { Text(title) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                content()
+            }
+        },
+    )
+}

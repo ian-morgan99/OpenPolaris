@@ -338,7 +338,16 @@ class AppViewModel(
                     jdUtc = jdUtc ?: AstroMath.julianDateNow(),
                 )
                 if (result == null) {
-                    statusMessage = "Plate-solve failed (no confident match)"
+                    // If the mount dropped mid-solve, surface that rather
+                    // than the generic "no confident match" — users were
+                    // being told the *solver* failed when the real cause
+                    // was a broken link. See PLAN-CRITICAL-REVIEW §H.
+                    val mountErr = s.lastError
+                    statusMessage = if (mountErr is MountSession.CmdResult.ProtocolError) {
+                        "Plate-solve failed (mount error: ${mountErr.message})"
+                    } else {
+                        "Plate-solve failed (no confident match)"
+                    }
                 } else {
                     lastSolveResult = SolveResult(
                         raDeg = result.first,

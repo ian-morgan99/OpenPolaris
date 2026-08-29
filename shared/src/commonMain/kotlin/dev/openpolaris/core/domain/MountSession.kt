@@ -27,11 +27,44 @@ class MountSession(
         data class ProtocolError(val message: String) : CmdResult<Nothing>
     }
 
+    data class MountState(
+        val connected: Boolean = false,
+        /**
+         * The last protocol-level error observed on this session, or null.
+         *
+         * Set by [request] / [send] whenever they return
+         * [CmdResult.ProtocolError] (including the "not connected"
+         * sentinel). Cleared on a successful [tryConnect] so callers
+         * can tell "the mount came back" from "no error has happened
+         * yet".
+         *
+         * Observing this lets the plate-solver distinguish "the
+         * solver found no match" from "the mount is unreachable"
+         * — the two are otherwise conflated in user-visible
+         * error text.
+         */
+        val lastError: CmdResult<Nothing>? = null,
+    )
+
     private val _state = MutableStateFlow(MountState())
     val state: StateFlow<MountState> = _state
 
     private val _frames = MutableStateFlow<ResponseParser.Frame?>(null)
     val frames: StateFlow<ResponseParser.Frame?> = _frames
+
+    /**
+     * Last [CmdResult.ProtocolError] observed by [request] or [send], or
+     * null. Cleared on a successful [connect] so callers can tell "the
+     * mount came back" from "no error has happened yet" (PLAN-CRITICAL-
+     * REVIEW §H). Mirrors [MountState.lastError] which is kept in sync
+     * for the [state] flow.
+     */
+    val lastError: CmdResult<Nothing>?
+        get() = _state.value.lastError
+
+    private fun recordError(err: CmdResult<Nothing>) {
+        _state.value = _state.value.copy(lastError = err)
+    }
 
     private val sendMutex = Mutex()
     private var connection: Connection? = null
@@ -49,7 +82,9 @@ class MountSession(
         return try {
             conn.connect(host, port, timeoutMs = 5000)
             connection = conn
-            _state.value = _state.value.copy(connected = true)
+            // Clear any previous protocol error so observers can tell
+            // "the mount came back" from "no error has happened yet".
+            _state.value = _state.value.copy(connected = true, lastError = null)
             // Lifecycle handshake: poll status once (PROTOCOL.md §4).
             send(Codes.PUSH_MODE_STATE)
             true
@@ -69,7 +104,12 @@ class MountSession(
         timeoutMs: Long = 2000,
         parse: (ResponseParser.Frame) -> T?,
     ): CmdResult<T> {
-        val conn = connection ?: return CmdResult.ProtocolError("not connected")
+        val conn = connection
+        if (conn == null) {
+            val err = CmdResult.ProtocolError("not connected")
+            recordError(err)
+            return err
+        }
         return sendMutex.withLock {
             try {
                 conn.write(command(code) { putRaw(payload) })
@@ -99,7 +139,9 @@ class MountSession(
                 CmdResult.Timeout
             } catch (e: Exception) {
                 handleDisconnect(e)
-                CmdResult.ProtocolError(e.message ?: "connection lost")
+                val err: CmdResult<Nothing> = CmdResult.ProtocolError(e.message ?: "connection lost")
+                recordError(err)
+                err
             }
         }
     }
@@ -112,12 +154,17 @@ class MountSession(
 
     /** Fire-and-forget send (e.g., jog commands); no response awaited. */
     suspend fun send(code: Int, payload: String = EMPTY_CONTENT) {
-        val conn = connection ?: return
+        val conn = connection
+        if (conn == null) {
+            recordError(CmdResult.ProtocolError("not connected"))
+            return
+        }
         sendMutex.withLock {
             try {
                 conn.write(command(code) { putRaw(payload) })
             } catch (e: Exception) {
                 handleDisconnect(e)
+                recordError(CmdResult.ProtocolError(e.message ?: "connection lost"))
             }
         }
     }

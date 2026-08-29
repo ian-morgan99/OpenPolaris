@@ -66,6 +66,11 @@ reader coroutine dispatching responses/pushes to flows. All screens observe `Mou
 Reconnect is automatic with exponential backoff (1→2→4…30 s cap); on reconnect, session re-runs the
 lifecycle handshake (284 poll; re-enable AHRS if astro mode was active — PROTOCOL.md §4).
 
+`MountSession.lastError: CmdResult<Nothing>?` mirrors the most recent `ProtocolError` from `request` or
+`send`; cleared on a successful `connect`. Lets the plate-solver (and any other caller) distinguish
+"the mount dropped" from "the solver found no match" without re-querying the state flow
+(PLAN-CRITICAL-REVIEW §H).
+
 ### 3.2 Command layer = generated from one table
 A single `CommandTable` maps code → builder/parser pair. PROTOCOL.md is the human mirror of this table;
 a unit test asserts every documented command has an entry (docs can't rot silently).

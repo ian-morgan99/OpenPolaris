@@ -16,6 +16,9 @@ java {
 
 dependencies {
     implementation(project(":shared"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 application {
@@ -30,4 +33,11 @@ tasks.register<JavaExec>("runFakeMount") {
     // Default port; override with -PfakeMountPort=NNNN.
     val port = (project.findProperty("fakeMountPort") as String?)?.toIntOrNull() ?: 9090
     args(port.toString())
+}
+
+tasks.test {
+    useJUnit()
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
 }

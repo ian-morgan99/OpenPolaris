@@ -40,6 +40,15 @@ class FakeMount(private val port: Int, private val host: String = "127.0.0.1") {
 
     fun isRunning(): Boolean = running.get()
 
+    /**
+     * The port the server is bound to. Returns the explicitly-requested port, or the
+     * ephemeral port assigned by the OS when [port] was 0. Throws if [start] was not
+     * called or failed to bind.
+     */
+    val localPort: Int
+        get() = server?.localPort
+            ?: error("FakeMount not started")
+
     private fun acceptLoop() {
         while (running.get()) {
             val client = runCatching { server?.accept() }.getOrNull() ?: break

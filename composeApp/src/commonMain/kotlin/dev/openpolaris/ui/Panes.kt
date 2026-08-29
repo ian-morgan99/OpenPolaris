@@ -186,6 +186,31 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             HorizontalDivider()
 
+            Text("Plate solve", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Detect stars in the current preview frame and nudge the mount to centre the entered RA/Dec target. Requires a connected camera and a valid observer location.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = vm::solveNow,
+                    enabled = !vm.solveInProgress,
+                ) {
+                    Text(if (vm.solveInProgress) "Solving…" else "Solve now")
+                }
+            }
+            val solve = vm.lastSolveResult
+            if (solve != null) {
+                Text(
+                    "Last solve: RA %.4f°  Dec %.4f°  (matched=%d, conf=%.2f)".format(
+                        solve.raDeg, solve.decDeg, solve.matchedStars, solve.confidence,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            HorizontalDivider()
+
             Text("Star alignment (${vm.alignmentStars} stars)", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Center a bright star with the jog controls, then record it. 2–3 stars spread across the sky give the best pointing model.",

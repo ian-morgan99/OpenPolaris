@@ -9,6 +9,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlin.time.Duration
@@ -41,13 +42,28 @@ class AutoLevelController(
     private val session: MountSession,
     /**
      * Source of tilt samples for the settling loop. Returns the next sample, or
-     * null if the source is exhausted. Default collects from `session.frames`
-     * filtered to the 538 tilt push. Tests override with a queue-based source
-     * because the production reader loop is driven by `request()`, not by a
-     * background reader.
+     * null if the source is exhausted. The default is the [_tilt] StateFlow
+     * populated by the [start] collector: production callers do not need to
+     * override this. Tests override with a queue-based source because they
+     * need deterministic, time-controlled sample delivery without spinning
+     * up a real session.frames reader (see PLAN-CRITICAL-REVIEW §F).
      */
-    private val sampleSource: suspend () -> Tilt? = ::defaultSampleSource,
+    sampleSource: suspend () -> Tilt? = DefaultSampleSource,
 ) {
+
+    /**
+     * Backing field for the constructor's [sampleSource] parameter. If the
+     * caller used the default placeholder, it is rebound in [init] to a
+     * real reader that closes over [_tilt] (which is only visible once
+     * the class body has run, not at default-argument evaluation time).
+     */
+    private var sampleSource: suspend () -> Tilt? = sampleSource
+
+    init {
+        if (sampleSource === DefaultSampleSource) {
+            this.sampleSource = { _tilt.first { it != null } }
+        }
+    }
 
     data class Tilt(val pitchDeg: Double, val rollDeg: Double) {
         val withinTolerance: Boolean get() = kotlin.math.abs(pitchDeg) <= TOLERANCE_DEG && kotlin.math.abs(rollDeg) <= TOLERANCE_DEG
@@ -201,12 +217,12 @@ class AutoLevelController(
         const val SETTLE_WINDOW: Int = 10
 
         /**
-         * Production default for [AutoLevelController.sampleSource]. The
-         * production code path drives settling via the [start] collector, so
-         * this default is intentionally a no-op sink; production callers that
-         * want a non-default source should pass one explicitly.
+         * Sentinel value used as the default for the primary-constructor
+         * [sampleSource] parameter. Compared with `===` in the [init] block
+         * to detect that the caller did not pass an explicit source, so we
+         * can rebind to a real reader that closes over [_tilt].
          */
-        private suspend fun defaultSampleSource(): Tilt? = null
+        private val DefaultSampleSource: suspend () -> AutoLevelController.Tilt? = { null }
     }
 }
 

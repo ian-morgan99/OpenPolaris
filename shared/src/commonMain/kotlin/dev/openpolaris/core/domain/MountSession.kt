@@ -34,6 +34,17 @@ class MountSession(
     val frames: StateFlow<ResponseParser.Frame?> = _frames
 
     /**
+     * Test-only seam: directly publish a frame on [frames] without going
+     * through the reader loop. The real reader loop drives this from the
+     * socket, but tests need to inject frames deterministically to cover
+     * the 517/538 demux (PLAN-CRITICAL-REVIEW §F). Marked `internal` so
+     * production callers cannot accidentally rely on it.
+     */
+    internal fun publishFrameForTest(f: ResponseParser.Frame) {
+        _frames.value = f
+    }
+
+    /**
      * Last [CmdResult.ProtocolError] observed by [request] or [send], or
      * null. Cleared on a successful [connect] so callers can tell "the
      * mount came back" from "no error has happened yet" (PLAN-CRITICAL-

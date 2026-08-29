@@ -13,6 +13,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import dev.openpolaris.core.protocol.Codes
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AutoLevelControllerTest {
@@ -220,5 +221,64 @@ class AutoLevelControllerTest {
         val result = a.runAndAwait(2.seconds)
 
         assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
+    }
+
+    // -------------------------------------------------------------------------
+    // PLAN-CRITICAL-REVIEW §F / issue #5 — 517/538 frame-id demux contract
+    // -------------------------------------------------------------------------
+    //
+    // The original spec referenced "the 517 position push" for auto-level
+    // settling, but 517 is GET_GIMBAL_POS (RA/Dec) — it has no pitch/roll
+    // fields. The actual tilt push is 538 (SET_TILT_STATE). AutoLevelController
+    // must demux on frame id: 538 frames feed `tilt` and the settling loop;
+    // 517 frames must be ignored entirely. These two tests pin that contract
+    // using the test-only `publishFrameForTest` seam on MountSession so the
+    // demux is exercised without a real socket.
+
+    @Test
+    fun gimbalPosFrame517DoesNotFeedTilt() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conn = FakeConnection()
+        val (s, a) = newSession(conn)
+        s.connect()
+        val scope = CoroutineScope(dispatcher)
+        a.start(scope)
+
+        // 517 = GET_GIMBAL_POS push: RA/Dec reply, no tilt fields.
+        // Even if a hostile reply tried to inject pitch/roll under this code,
+        // the demux must drop it.
+        s.publishFrameForTest(
+            dev.openpolaris.core.protocol.ResponseParser.Frame(
+                code = Codes.GET_GIMBAL_POS,
+                fields = mapOf("pitch" to "99.9", "roll" to "99.9"),
+            )
+        )
+        advanceUntilIdle()
+
+        assertNull(a.tilt.value, "517 frame must not update the tilt StateFlow")
+    }
+
+    @Test
+    fun tiltStateFrame538DoesFeedTilt() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conn = FakeConnection()
+        val (s, a) = newSession(conn)
+        s.connect()
+        val scope = CoroutineScope(dispatcher)
+        a.start(scope)
+
+        // 538 = SET_TILT_STATE push: the real tilt source.
+        s.publishFrameForTest(
+            dev.openpolaris.core.protocol.ResponseParser.Frame(
+                code = Codes.SET_TILT_STATE,
+                fields = mapOf("pitch" to "0.12", "roll" to "-0.05"),
+            )
+        )
+        advanceUntilIdle()
+
+        val tilt = a.tilt.value
+        assertNotNull(tilt, "538 frame must populate the tilt StateFlow")
+        assertEquals(0.12, tilt.pitchDeg, 1e-6)
+        assertEquals(-0.05, tilt.rollDeg, 1e-6)
     }
 }

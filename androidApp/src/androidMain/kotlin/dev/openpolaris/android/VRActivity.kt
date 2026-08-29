@@ -226,16 +226,25 @@ class VRActivity : ComponentActivity() {
         hudTickHandler = Handler(Looper.getMainLooper())
         hudTickHandler?.post(hudTick)
 
+        // 3f. Create the preview controller ONCE here. onResume calls
+        // startPreview() to re-arm the collect loop after a pause; the
+        // controller itself is reused (start() is idempotent) so we don't
+        // reset its state to Idle/Connecting on every foreground transition.
         preview = PreviewController(parent = lifecycleScope.coroutineContext[Job])
-        preview.start(hudHost, 8080)
-        collectJob = lifecycleScope.launch {
-            preview.bytes.collect { jpeg -> if (jpeg != null) renderer.submitFrame(jpeg) }
-        }
+        startPreview()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         rotationVector = sensorManager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
     }
 
+    /**
+     * 3f. Re-arm the preview pipeline after the activity returns to the
+     * foreground. Mirrors [MainActivity.onResume] (which guards
+     * `tryReconnectIfMarkerExists` with an `isInitialized` check): here
+     * the guard is `collectJob?.isActive != true` so a no-op rotation
+     * (onResume fired twice without an onPause in between) doesn't kick
+     * the controller back to Connecting when it's already Streaming.
+     */
     override fun onResume() {
         super.onResume()
         glView.onResume()
@@ -243,20 +252,59 @@ class VRActivity : ComponentActivity() {
             sensorManager?.registerListener(headListener, it, SensorManager.SENSOR_DELAY_GAME)
         }
         hudTickHandler?.post(hudTick)
+        if (::preview.isInitialized) startPreview()
     }
 
+    /**
+     * 3f. Cancel the collect job and stop the transport so a backgrounded
+     * activity doesn't keep the socket open. The controller itself is
+     * reused on the next onResume — see [startPreview].
+     */
     override fun onPause() {
         sensorManager?.unregisterListener(headListener)
         glView.onPause()
-        collectJob?.cancel()
-        preview.stop()
+        stopPreview()
         hudTickHandler?.removeCallbacks(hudTick)
         super.onPause()
+    }
+
+    /**
+     * 3f. Release the controller's own [SupervisorJob]. lifecycleScope
+     * cancels its own children on destroy, but the controller's job is
+     * parented on the lifecycleScope's Job (not lifecycleScope itself),
+     * so we have to do it explicitly.
+     */
+    override fun onDestroy() {
+        if (::preview.isInitialized) preview.shutdown()
+        super.onDestroy()
     }
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         finish()
+    }
+
+    /**
+     * 3f. Start the MJPEG collect loop and (idempotently) the transport.
+     * Called from onCreate and onResume. Safe to call when already running
+     * — the `collectJob?.isActive` guard makes it a no-op.
+     */
+    private fun startPreview() {
+        if (collectJob?.isActive == true) return
+        preview.start(hudHost, 8080)
+        collectJob = lifecycleScope.launch {
+            preview.bytes.collect { jpeg -> if (jpeg != null) renderer.submitFrame(jpeg) }
+        }
+    }
+
+    /**
+     * 3f. Cancel the collect job and stop the transport. Idempotent —
+     * called from onPause and from onDestroy's shutdown path.
+     */
+    private fun stopPreview() {
+        collectJob?.cancel()
+        collectJob = null
+        if (::preview.isInitialized) preview.stop()
     }
 
     companion object {

@@ -139,4 +139,44 @@ class PreviewControllerTest {
         assertEquals(1, firstStops, "first transport must be stopped on restart")
         c.shutdown()
     }
+
+    /**
+     * 3f. After stop+start, the controller must NOT leak the prior
+     * transport: a fresh start should produce exactly one new transport
+     * instance (the old one stopped cleanly). Regression guard for the
+     * "after onPause/onResume, VRActivity sees a duplicate frame" bug.
+     */
+    @Test
+    fun stopAndStartProducesExactlyOneTransport() = runTest {
+        var starts = 0
+        var stops = 0
+        val factory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport =
+            { onFrame, _ ->
+                FakePreviewTransport(
+                    onFrame = onFrame,
+                    onError = {},
+                    onStart = { t ->
+                        starts++
+                        // Emit one frame so the controller transitions to Streaming.
+                        t.onFrame("frame".toByteArray())
+                    },
+                    onStop = { stops++ },
+                )
+            }
+        val c = PreviewController(
+            transportFactory = factory,
+            parent = SupervisorJob(),
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        c.start("192.168.0.1")
+        c.stop()
+        c.start("192.168.0.1")
+        assertEquals(2, starts, "stop+start must open exactly two transports")
+        assertEquals(1, stops, "the first transport must be stopped before the second starts")
+        assertTrue(
+            c.state.value is PreviewController.State.Streaming,
+            "expected Streaming after second start, was ${c.state.value}",
+        )
+        c.shutdown()
+    }
 }

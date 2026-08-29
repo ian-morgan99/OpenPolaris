@@ -22,13 +22,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Tests [AppViewModel]'s 3c.3 session-marker integration:
+ * Tests [AppViewModel]'s 3c.3 + 3c.5 session-marker integration:
  *  - [AppViewModel.tryReconnectIfMarkerExists] populates [AppViewModel.reconnectPrompt]
  *    from a valid on-disk marker, no-ops for missing/corrupt/wrong-version.
  *  - [AppViewModel.acceptReconnect] / [AppViewModel.dismissReconnect] /
  *    [AppViewModel.forgetMarker] behave per their contracts.
  *  - [AppViewModel.connect] / [AppViewModel.connectDemo] persist a marker
  *    on success and not on failure.
+ *  - 3c.5: [AppViewModel.reconnecting] / [AppViewModel.draftHost] /
+ *    [AppViewModel.cancelReconnect] / [AppViewModel.updateDraftHost]
+ *    behave per their contracts (in-flight flag, host-edit buffer, re-prompt
+ *    guard, idempotent cancel, completion-path clearing).
  *
  * All tests use a temp-file-backed [SessionStore] so the real
  * `~/.openpolaris/session.json` is never touched.
@@ -405,6 +409,263 @@ class AppViewModelSessionMarkerTest {
             val readBack = store.read()
             assertNotNull(readBack)
             assertEquals(99_999L, readBack.lastConnectedAtEpochMs)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3c.5 reconnect UX: in-flight state, host edit, cancel
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun tryReconnectSeedsDraftHostFromMarker() = runTest(UnconfinedTestDispatcher()) {
+        // The host field in the dialog should be pre-populated with the
+        // marker's host so the user can edit it without re-typing.
+        store = newStore()
+        writeMarker(host = "192.168.43.42")
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value)
+            assertEquals("192.168.43.42", vm.draftHost.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun tryReconnectDoesNotClobberNonBlankDraftHost() = runTest(UnconfinedTestDispatcher()) {
+        // If the user already typed a host (in the current launch session,
+        // e.g. they edited it, backgrounded the app, and resumed), a fresh
+        // marker prompt must NOT re-prompt — that would clobber their edit.
+        // (Background-then-resume re-runs tryReconnectIfMarkerExists, so
+        // the re-prompt guard is the fix for this case.)
+        store = newStore()
+        writeMarker(host = "10.0.0.1")
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            // Simulate the user editing the host in the dialog.
+            vm.updateDraftHost("user-typed.example")
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            // The prompt must NOT appear (it would clobber the edit).
+            assertNull(
+                vm.reconnectPrompt.value,
+                "non-blank draftHost must suppress the re-prompt",
+            )
+            // The user's edit is preserved.
+            assertEquals("user-typed.example", vm.draftHost.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptReconnectWithBlankDraftHostUsesPromptHost() = runTest(UnconfinedTestDispatcher()) {
+        // Edge case: if draftHost somehow ended up blank (e.g. cleared
+        // by a code path we haven't thought through) at accept time, we
+        // must fall back to the prompt's persisted host rather than
+        // launching connect() with an empty host.
+        store = newStore()
+        writeMarker(host = "10.20.30.40")
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            // Force the draft to blank (it was seeded by tryReconnect).
+            vm.updateDraftHost("")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            assertEquals("10.20.30.40", vm.host, "must fall back to prompt.host when draft is blank")
+            // No fresh marker write expected (targetHost == prompt.host).
+            // The existing marker should still be intact.
+            assertTrue(tempFile.exists())
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptReconnectWithEditedDraftHostWritesFreshMarker() = runTest(UnconfinedTestDispatcher()) {
+        // The whole point of the host-edit field: the user can change
+        // the host without dismissing the dialog. acceptReconnect must
+        // persist the new host so the next launch's prompt is consistent
+        // with what they just connected to.
+        store = newStore()
+        writeMarker(host = "10.20.30.40", epochMs = 1_000L)
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        vm.nowMs = { 2_000L }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.updateDraftHost("new-host.example")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            val readBack = store.read()
+            assertNotNull(readBack)
+            assertEquals("new-host.example", readBack.host)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptReconnectSetsReconnectingTrue() = runTest(UnconfinedTestDispatcher()) {
+        // The dialog uses vm.reconnecting to swap from three actions to
+        // a single Cancel action. This test pins the contract that
+        // acceptReconnect flips the flag to true synchronously (before
+        // the launched connect() coroutine actually starts, let alone
+        // completes).
+        store = newStore()
+        writeMarker()
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertFalse(vm.reconnecting.value, "precondition: not reconnecting before accept")
+            vm.acceptReconnect()
+            assertTrue(vm.reconnecting.value, "reconnecting must be true right after accept")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun cancelReconnectIsIdempotentAndClearsReconnecting() = runTest(UnconfinedTestDispatcher()) {
+        // Two assertions:
+        //  1. cancelReconnect with nothing in flight is a no-op (does
+        //     not throw, does not change statusMessage to "Reconnect
+        //     cancelled").
+        //  2. cancelReconnect with a connect in flight clears the flag
+        //     and surfaces a status message.
+        store = newStore()
+        writeMarker()
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            // (1) No connect in flight.
+            val beforeStatus = vm.statusMessage
+            vm.cancelReconnect()
+            assertEquals(beforeStatus, vm.statusMessage, "no-op cancel must not touch statusMessage")
+            assertFalse(vm.reconnecting.value)
+
+            // (2) Connect in flight.
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.acceptReconnect()
+            assertTrue(vm.reconnecting.value)
+            vm.cancelReconnect()
+            assertFalse(vm.reconnecting.value, "cancel must clear the in-flight flag")
+            assertEquals("Reconnect cancelled", vm.statusMessage)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun connectClearsReconnectingOnSuccess() = runTest(UnconfinedTestDispatcher()) {
+        // The connect() launched from acceptReconnect must clear the
+        // reconnecting flag in its completion path (success branch).
+        // Otherwise the dialog would stay in its "Cancel"-only state
+        // forever, even though the connect succeeded.
+        store = newStore()
+        writeMarker()
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.acceptReconnect()
+            assertTrue(vm.reconnecting.value, "flag set after accept")
+            advanceUntilIdle()
+            assertFalse(
+                vm.reconnecting.value,
+                "flag must clear after the launched connect() completes",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun connectClearsReconnectingOnFailure() = runTest(UnconfinedTestDispatcher()) {
+        // Same as the success test, but the underlying connect throws
+        // (mount powered off, link down). The flag must still clear in
+        // the failure branch so the user can see the failure status
+        // and retry from the dialog.
+        store = newStore()
+        writeMarker()
+        val conn = MarkerFakeConnection(failConnect = true)
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.acceptReconnect()
+            assertTrue(vm.reconnecting.value, "flag set after accept")
+            advanceUntilIdle()
+            assertFalse(
+                vm.reconnecting.value,
+                "flag must clear even when the underlying connect throws",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun disconnectClearsReconnecting() = runTest(UnconfinedTestDispatcher()) {
+        // If a connect is in flight when the user navigates away (or the
+        // OS tears down the activity for memory pressure), disconnect()
+        // must collapse the in-flight flag so a fresh launch does not
+        // see a stale "connecting" state.
+        store = newStore()
+        writeMarker()
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.acceptReconnect()
+            assertTrue(vm.reconnecting.value)
+            vm.disconnect()
+            assertFalse(vm.reconnecting.value, "disconnect must clear the in-flight flag")
+        } finally {
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun forgetMarkerClearsDraftHost() = runTest(UnconfinedTestDispatcher()) {
+        // If the user typed a host, then "Forget" instead of reconnect,
+        // the draft must clear so a future fresh marker (post-success)
+        // can re-seed it. Otherwise the re-prompt guard from
+        // tryReconnectDoesNotClobberNonBlankDraftHost would suppress
+        // the prompt forever.
+        store = newStore()
+        writeMarker(host = "10.0.0.1")
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertEquals("10.0.0.1", vm.draftHost.value, "precondition: draft seeded by prompt")
+            vm.forgetMarker()
+            advanceUntilIdle()
+            assertEquals("", vm.draftHost.value, "forget must clear the host edit buffer")
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

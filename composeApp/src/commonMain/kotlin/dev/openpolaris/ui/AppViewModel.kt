@@ -107,6 +107,30 @@ class AppViewModel(
     private val _reconnectPrompt = MutableStateFlow<ReconnectPrompt?>(null)
     val reconnectPrompt: StateFlow<ReconnectPrompt?> = _reconnectPrompt.asStateFlow()
 
+    // 3c.5: in-flight indicator. True between [acceptReconnect] and the
+    // connect coroutine's final outcome. UI swaps the dialog's action row
+    // to a single "Cancel" button while this is true so a hung
+    // `s.connect()` (mount powered off) cannot strand the user staring at
+    // a non-interactive modal.
+    private val _reconnecting = MutableStateFlow(false)
+    val reconnecting: StateFlow<Boolean> = _reconnecting.asStateFlow()
+
+    // 3c.5: host-edit buffer for the ReconnectDialog. Populated by
+    // [tryReconnectIfMarkerExists] from the saved marker, and read by
+    // [acceptReconnect] so the user can override the saved host without
+    // first dismissing the dialog. A non-blank [draftHost] also
+    // short-circuits [tryReconnectIfMarkerExists] so a re-prompt
+    // (MainActivity.onResume) cannot clobber the user's edit.
+    private val _draftHost = MutableStateFlow("")
+    val draftHost: StateFlow<String> = _draftHost.asStateFlow()
+
+    fun updateDraftHost(h: String) { _draftHost.value = h }
+
+    // 3c.5: handle to the in-flight connect coroutine so [cancelReconnect]
+    // can interrupt a hung `s.connect()`. Null between connects. Set by
+    // [connect] immediately before launching.
+    private var connectJob: Job? = null
+
     /**
      * Wall-clock provider for the marker-age calculation. Overridable from
      * tests so `ReconnectPrompt.ageMs` is deterministic regardless of the
@@ -132,6 +156,12 @@ class AppViewModel(
             // Re-check inside the launched coroutine: the user may have
             // dismissed the prompt between the call site and here.
             if (_reconnectPrompt.value != null) return@launch
+            // 3c.5: a non-blank draftHost means the user has started
+            // editing the saved host on this surface. Do not clobber
+            // their edit with a re-prompt driven by onResume. The next
+            // time the app is *freshly* launched (cold start) the
+            // draftHost is empty and the prompt returns as normal.
+            if (_draftHost.value.isNotBlank()) return@launch
             _reconnectPrompt.value = ReconnectPrompt(
                 host = marker.host,
                 port = marker.port,
@@ -141,27 +171,74 @@ class AppViewModel(
                 lastRollDeg = marker.lastRollDeg,
                 lastPitchDeg = marker.lastPitchDeg,
             )
+            // Seed the host-edit field with the saved host so the
+            // OutlinedTextField in the dialog has something to show.
+            _draftHost.value = marker.host
         }
     }
 
     /**
-     * User accepted the prompt. Sets [host] to the persisted host and calls
-     * [connect] using the persisted port. Clears the prompt synchronously
-     * so the dialog closes before the connection attempt begins. The new
-     * successful connect will overwrite the marker with fresh state.
+     * User accepted the prompt. Sets [host] to the persisted host (or the
+     * user's edited [draftHost] if non-blank) and calls [connect] using the
+     * persisted port. Clears the prompt synchronously so the dialog closes
+     * before the connection attempt begins. Sets [reconnecting] true so the
+     * (now-closed) dialog swap-in spinner and the dedicated "Cancel" path
+     * become active. A successful connect will overwrite the marker with
+     * fresh state; a cancelled connect leaves the marker untouched so the
+     * next resume still offers the same prompt.
      */
     fun acceptReconnect() {
         val prompt = _reconnectPrompt.value ?: return
+        val targetHost = _draftHost.value.trim().ifBlank { prompt.host }
         _reconnectPrompt.value = null
-        host = prompt.host
+        host = targetHost
+        // If the user typed a different host, the existing marker is now
+        // stale. Persist a fresh one BEFORE launching connect so a
+        // successful connect-time saveMarker() does not race with a
+        // user-visible "still pointing at the old host" prompt on the
+        // next launch.
+        if (targetHost != prompt.host) {
+            val pos = position
+            sessionStore.write(
+                SessionMarker(
+                    host = targetHost,
+                    port = prompt.port,
+                    lastConnectedAtEpochMs = nowMs(),
+                    lastMountMode = prompt.mountMode,
+                    lastTrackingStarted = prompt.trackingStarted,
+                    lastRollDeg = pos?.roll?.toDouble() ?: 0.0,
+                    lastPitchDeg = pos?.pitch?.toDouble() ?: 0.0,
+                ),
+            )
+        }
+        _reconnecting.value = true
         connect()
+    }
+
+    /**
+     * User cancelled an in-flight reconnect (the dialog's single "Cancel"
+     * action while [reconnecting] is true). Cancels the connect coroutine
+     * and clears the in-flight flag. Does NOT clear the prompt or the
+     * marker — the prompt is already gone (we cleared it on accept); the
+     * marker stays so the next launch can offer the same prompt.
+     *
+     * Idempotent: safe to call when no connect is in flight (no-op).
+     */
+    fun cancelReconnect() {
+        if (!_reconnecting.value) return
+        connectJob?.cancel()
+        _reconnecting.value = false
+        statusMessage = "Reconnect cancelled"
     }
 
     /**
      * User dismissed the prompt ("Different mount"). Clears the prompt for
      * this launch but does NOT delete the marker file — the prompt will
      * return on the next launch until the user accepts, or explicitly
-     * chooses "Forget this mount" via [forgetMarker].
+     * chooses "Forget this mount" via [forgetMarker]. If the user edited
+     * the host field before dismissing, the edit is preserved in
+     * [draftHost] so the next resume's [tryReconnectIfMarkerExists] does
+     * not clobber it.
      */
     fun dismissReconnect() {
         _reconnectPrompt.value = null
@@ -177,6 +254,10 @@ class AppViewModel(
         scope.launch {
             val removed = withContext(ioDispatcher) { sessionStore.forget() }
             _reconnectPrompt.value = null
+            // 3c.5: clear the host-edit buffer so the next launch (or
+            // the next successful connect that writes a new marker) can
+            // re-seed it from the fresh marker's host.
+            _draftHost.value = ""
             statusMessage = if (removed) "Forgot saved mount" else "No saved mount to forget"
         }
     }
@@ -225,15 +306,21 @@ class AppViewModel(
         cameraController = dev.openpolaris.core.domain.CameraController(s)
         wireHelpers(s)
         startAutoLevel(s)
-        scope.launch {
+        // 3c.5: capture the launched coroutine so [cancelReconnect] can
+        // interrupt a hung `s.connect()` (mount powered off, link down).
+        // Also reset the in-flight flag in the completion path so the
+        // spinner collapses to a status message either way.
+        connectJob = scope.launch {
             statusMessage = "Connecting to $host…"
             if (s.connect()) {
                 statusMessage = "Connected"
+                _reconnecting.value = false
                 saveMarker()
                 startPolling(s)
                 startPreview()
             } else {
                 statusMessage = "Could not reach $host — try Demo mode"
+                _reconnecting.value = false
             }
         }
     }
@@ -265,6 +352,10 @@ class AppViewModel(
 
     fun disconnect() {
         pollJob?.cancel()
+        // 3c.5: if a reconnect was in flight, tear it down too so the
+        // spinner does not stay up after the user navigates away.
+        connectJob?.cancel()
+        _reconnecting.value = false
         stopAutoLevel()
         cancelHelpersJobs()
         preview.stop()

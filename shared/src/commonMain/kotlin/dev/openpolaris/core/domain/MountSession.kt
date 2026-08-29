@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -421,6 +422,16 @@ class MountSession(
         connection?.close()
         connection = null
         _state.value = _state.value.copy(connected = false)
+        // Cancel any coroutines still hanging off the reader scope
+        // (e.g. a still-suspended request() waiter, or a poll loop
+        // like SimulatedMount's). We use cancelChildren() rather than
+        // cancel() so the scope itself stays valid for subsequent
+        // reconnects on a long-lived MountSession — the same scope is
+        // reused by [startReader] on the next [connect]. The child
+        // cancellation is also what makes JVM tests exit cleanly: a
+        // Dispatchers.Default-backed readerScope would otherwise keep
+        // the JVM alive past runTest().
+        readerScope.coroutineContext.cancelChildren()
     }
 
     private companion object {

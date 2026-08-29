@@ -16,6 +16,9 @@ import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.session.SessionMarker
+import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.path.defaultSessionPath
 import dev.openpolaris.core.solver.NullStarDetector
 import dev.openpolaris.core.solver.OnDevicePlateSolver
 import dev.openpolaris.core.solver.PlateSolver
@@ -23,11 +26,14 @@ import dev.openpolaris.core.solver.SolveHint
 import dev.openpolaris.core.solver.SolveResult
 import dev.openpolaris.core.solver.StarDetector
 import dev.openpolaris.core.solver.SyntheticTestCatalog
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,12 +43,26 @@ import kotlinx.coroutines.withContext
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
  * state for Compose. `connectionFactory` is injected so tests and the desktop
  * simulator can substitute a fake connection.
+ *
+ * [sessionStore] persists the "last connected mount" [SessionMarker] so the
+ * next launch can offer an auto-reconnect prompt via [reconnectPrompt].
+ * Callers (e.g. `OpenPolarisApp` and tests) supply the store explicitly;
+ * production wires `SessionStore(defaultSessionPath())` (JVM:
+ * `~/.openpolaris/session.json`, Android: `${filesDir}/openpolaris/session.json`
+ * once issue #6's `Context` wiring lands in 3c.4). Tests pass a temp-dir-backed
+ * `SessionStore` so the real home directory is never touched.
  */
 class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
     private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
     private val starDetector: StarDetector = NullStarDetector,
+    private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
+    // The dispatcher used for session-marker I/O. Tests inject the
+    // unconfined test dispatcher so marker reads complete synchronously
+    // inside [tryReconnectIfMarkerExists]; production callers use the
+    // default Dispatchers.IO to keep the main thread off the filesystem.
+    internal val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     var host by mutableStateOf("192.168.43.1")
         private set
@@ -62,7 +82,14 @@ class AppViewModel(
     private var session: MountSession? = null
     private var controller: TrackingController? = null
     private var autoLevelController: AutoLevelController? = null
-    private var autoLevelJob: Job? = null
+    private val autoLevelJobs: MutableList<Job> = mutableListOf()
+    // The 3 helper-state collectors (dither/settling/limits) launched by
+    // [wireHelpers] subscribe to never-completing StateFlows. Track them
+    // in a list (mirroring [autoLevelJobs]) so [disconnect] can cancel
+    // every one. Without this the test `connectDoesNotWriteMarkerOnFailure`
+    // (issue #7 3c.3) sees 3 active child coroutines after the test scope
+    // tears down.
+    private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
 
     // Live preview of the camera MJPEG stream. Independent of the control
@@ -73,7 +100,121 @@ class AppViewModel(
     var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
         private set
 
+    // 3c.3: session-pause UX surface. Non-null while the UI is expected to
+    // render the "Reconnect to <host>?" AlertDialog. Populated by
+    // [tryReconnectIfMarkerExists] when a valid marker is found; cleared by
+    // [acceptReconnect], [dismissReconnect], or [forgetMarker].
+    private val _reconnectPrompt = MutableStateFlow<ReconnectPrompt?>(null)
+    val reconnectPrompt: StateFlow<ReconnectPrompt?> = _reconnectPrompt.asStateFlow()
+
+    /**
+     * Wall-clock provider for the marker-age calculation. Overridable from
+     * tests so `ReconnectPrompt.ageMs` is deterministic regardless of the
+     * real system clock. Production callers should not touch this.
+     */
+    internal var nowMs: () -> Long = { dev.openpolaris.core.domain.currentEpochMillis() }
+
     fun updateHost(h: String) { host = h }
+
+    /**
+     * Read the persisted [SessionMarker] (if any) and, if valid, set
+     * [reconnectPrompt] so the UI can show the "Reconnect?" dialog. Called
+     * once at startup from `MainActivity.onResume` (3c.4). No-op when the
+     * store has no usable marker, or when [reconnectPrompt] is already set
+     * (e.g. the user dismissed it and we do not want to re-prompt this
+     * launch). All I/O is on [Dispatchers.IO] so the calling coroutine
+     * (typically the main dispatcher) is not blocked.
+     */
+    fun tryReconnectIfMarkerExists() {
+        scope.launch {
+            val marker = withContext(ioDispatcher) { sessionStore.read() }
+            if (marker == null) return@launch
+            // Re-check inside the launched coroutine: the user may have
+            // dismissed the prompt between the call site and here.
+            if (_reconnectPrompt.value != null) return@launch
+            _reconnectPrompt.value = ReconnectPrompt(
+                host = marker.host,
+                port = marker.port,
+                mountMode = marker.lastMountMode,
+                trackingStarted = marker.lastTrackingStarted,
+                ageMs = (nowMs() - marker.lastConnectedAtEpochMs).coerceAtLeast(0L),
+                lastRollDeg = marker.lastRollDeg,
+                lastPitchDeg = marker.lastPitchDeg,
+            )
+        }
+    }
+
+    /**
+     * User accepted the prompt. Sets [host] to the persisted host and calls
+     * [connect] using the persisted port. Clears the prompt synchronously
+     * so the dialog closes before the connection attempt begins. The new
+     * successful connect will overwrite the marker with fresh state.
+     */
+    fun acceptReconnect() {
+        val prompt = _reconnectPrompt.value ?: return
+        _reconnectPrompt.value = null
+        host = prompt.host
+        connect()
+    }
+
+    /**
+     * User dismissed the prompt ("Different mount"). Clears the prompt for
+     * this launch but does NOT delete the marker file — the prompt will
+     * return on the next launch until the user accepts, or explicitly
+     * chooses "Forget this mount" via [forgetMarker].
+     */
+    fun dismissReconnect() {
+        _reconnectPrompt.value = null
+    }
+
+    /**
+     * Permanently forget the persisted mount. Called from a settings
+     * "Forget this mount" action. After this, [tryReconnectIfMarkerExists]
+     * will be a no-op until a new [connect] succeeds and writes a new
+     * marker. Surfaces the result in [statusMessage].
+     */
+    fun forgetMarker() {
+        scope.launch {
+            val removed = withContext(ioDispatcher) { sessionStore.forget() }
+            _reconnectPrompt.value = null
+            statusMessage = if (removed) "Forgot saved mount" else "No saved mount to forget"
+        }
+    }
+
+    /**
+     * Persist a fresh [SessionMarker] for the just-connected mount. Called
+     * from inside [connect] / [connectDemo] on a successful `s.connect()`,
+     * capturing the mode + tracking + tilt at that moment. A future slice
+     * could re-write the marker on every state change (so a long-running
+     * session's marker reflects the final mode), but v1 captures the
+     * connect-time state which is the minimum the reconnect prompt needs.
+     *
+     * If [position] is still null at connect time (a real race for the first
+     * connect, since 517 is the second poll) we record 0.0/0.0 — the
+     * "freshest known" value. The next `connect` will overwrite this once
+     * the first 517 lands.
+     */
+    private fun saveMarker() {
+        val pos = position
+        val marker = SessionMarker(
+            host = host,
+            port = 9090,
+            lastConnectedAtEpochMs = nowMs(),
+            lastMountMode = mount.mode,
+            lastTrackingStarted = mount.tracking == true,
+            lastRollDeg = pos?.roll?.toDouble() ?: 0.0,
+            lastPitchDeg = pos?.pitch?.toDouble() ?: 0.0,
+        )
+        scope.launch {
+            val result = withContext(ioDispatcher) { sessionStore.write(marker) }
+            if (result.isFailure) {
+                // Best-effort: a failed write does not break the live
+                // session, but the user should know the reconnect prompt
+                // will not appear next launch.
+                statusMessage = "Connected (could not save session: ${result.exceptionOrNull()?.message ?: "unknown"})"
+            }
+        }
+    }
 
     fun connect() {
         disconnect()
@@ -88,6 +229,7 @@ class AppViewModel(
             statusMessage = "Connecting to $host…"
             if (s.connect()) {
                 statusMessage = "Connected"
+                saveMarker()
                 startPolling(s)
                 startPreview()
             } else {
@@ -108,6 +250,11 @@ class AppViewModel(
         startAutoLevel(sim.session)
         scope.launch {
             sim.session.connect()
+            // SimulatedMount's connect() always returns true; treat as
+            // success for the marker-save path. (A future slice that
+            // simulates intermittent failure should gate this on the
+            // return value the same way `connect()` does.)
+            saveMarker()
             statusMessage = "Demo mode (simulated mount)"
             startPolling(sim.session)
             // No preview in demo mode: there is no MJPEG endpoint in the
@@ -119,6 +266,7 @@ class AppViewModel(
     fun disconnect() {
         pollJob?.cancel()
         stopAutoLevel()
+        cancelHelpersJobs()
         preview.stop()
         previewFrame = null
         session?.disconnect()
@@ -445,21 +593,34 @@ class AppViewModel(
         val c = AutoLevelController(s, sampleSource)
         autoLevelController = c
         c.start(scope)
-        autoLevelJob?.cancel()
-        autoLevelJob = scope.launch {
+        // Track all collector jobs in a list (NOT a single field) — three
+        // collectors are launched and every one must be cancellable from
+        // [stopAutoLevel]. A single `Job?` reference would be overwritten
+        // three times and orphan the first two (see PR for issue #7 3c.3).
+        cancelAutoLevelJobs()
+        autoLevelJobs += scope.launch {
             c.isEnabled.collect { autoLevelEnabled = it }
         }
-        autoLevelJob = scope.launch {
+        autoLevelJobs += scope.launch {
             c.tilt.collect { autoLevelTilt = it }
         }
-        autoLevelJob = scope.launch {
+        autoLevelJobs += scope.launch {
             c.isRunning.collect { autoLevelRunning = it }
         }
     }
 
+    private fun cancelAutoLevelJobs() {
+        for (j in autoLevelJobs) j.cancel()
+        autoLevelJobs.clear()
+    }
+
+    private fun cancelHelpersJobs() {
+        for (j in helpersJobs) j.cancel()
+        helpersJobs.clear()
+    }
+
     private fun stopAutoLevel() {
-        autoLevelJob?.cancel()
-        autoLevelJob = null
+        cancelAutoLevelJobs()
         autoLevelController?.stop()
         autoLevelController = null
         autoLevelEnabled = null
@@ -557,10 +718,10 @@ class AppViewModel(
         val h = HelpersController(s)
         helpersController = h
         h.start(scope)
-        scope.launch {
+        helpersJobs += scope.launch {
             h.ditherEnabled.collect { ditherEnabled = it }
         }
-        scope.launch {
+        helpersJobs += scope.launch {
             h.settlingSeconds.collect {
                 settlingSeconds = it
                 // Refresh the input draft only when empty or out-of-sync so the
@@ -570,9 +731,11 @@ class AppViewModel(
                 }
             }
         }
-        scope.launch {
+        helpersJobs += scope.launch {
             h.limitsEnabled.collect { limitsEnabled = it }
         }
+        // refreshAll() completes on its own (one-shot request) so it does
+        // not need to be tracked.
         scope.launch { h.refreshAll() }
     }
 

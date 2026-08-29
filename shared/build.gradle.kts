@@ -31,7 +31,12 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
+            // `api` so downstream modules (composeApp) can name Json in
+            // their call sites without re-declaring the dependency. The
+            // exposure is intentional: SessionStore's public default
+            // parameter is `Json = DEFAULT_JSON`, so callers that want to
+            // pass a custom Json must be able to reference the type.
+            api(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

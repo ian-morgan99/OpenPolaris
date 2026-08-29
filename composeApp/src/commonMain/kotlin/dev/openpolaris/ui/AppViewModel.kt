@@ -10,13 +10,18 @@ import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
+import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.protocol.CommandTable
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
@@ -46,6 +51,14 @@ class AppViewModel(
     private var controller: TrackingController? = null
     private var pollJob: Job? = null
 
+    // Live preview of the camera MJPEG stream. Independent of the control
+    // socket so a slow preview frame can never block the mount poll loop.
+    // Decoded JPEGs land in [previewFrame] on Dispatchers.Default.
+    val preview = PreviewController(parent = scope.coroutineContext[Job])
+    val previewState: StateFlow<PreviewController.State> get() = preview.state
+    var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+        private set
+
     fun updateHost(h: String) { host = h }
 
     fun connect() {
@@ -60,6 +73,7 @@ class AppViewModel(
             if (s.connect()) {
                 statusMessage = "Connected"
                 startPolling(s)
+                startPreview()
             } else {
                 statusMessage = "Could not reach $host — try Demo mode"
             }
@@ -78,11 +92,16 @@ class AppViewModel(
             sim.session.connect()
             statusMessage = "Demo mode (simulated mount)"
             startPolling(sim.session)
+            // No preview in demo mode: there is no MJPEG endpoint in the
+            // simulator. PreviewController stays Idle, which the pane
+            // renders as "Stream unavailable".
         }
     }
 
     fun disconnect() {
         pollJob?.cancel()
+        preview.stop()
+        previewFrame = null
         session?.disconnect()
         session = null
         controller = null
@@ -90,6 +109,28 @@ class AppViewModel(
         mount = MountState()
         position = null
         if (!demoMode) statusMessage = "Disconnected"
+    }
+
+    /**
+     * Open the MJPEG preview stream on the current host. Each frame
+     * is decoded off the main thread and published to [previewFrame].
+     */
+    private fun startPreview() {
+        scope.launch {
+            preview.bytes.collect { jpeg ->
+                if (jpeg == null) {
+                    previewFrame = null
+                    return@collect
+                }
+                // Drop-on-late: if the user closes the pane, the next
+                // decode will simply replace a stale bitmap.
+                val decoded = withContext(Dispatchers.Default) {
+                    runCatching { decodeJpegToImageBitmap(jpeg) }
+                }
+                decoded.getOrNull()?.let { previewFrame = it }
+            }
+        }
+        preview.start(host, 8080)
     }
 
     private fun startPolling(s: MountSession) {

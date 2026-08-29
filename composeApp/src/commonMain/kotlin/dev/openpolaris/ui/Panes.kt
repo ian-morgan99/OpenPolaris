@@ -244,3 +244,37 @@ private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
         OutlinedButton(onClick = { onChange((value ?: -1) + 1) }) { Text("+") }
     }
 }
+
+/**
+ * Live MJPEG preview of the camera. Best-effort: a slow or absent
+ * stream shows a "Stream unavailable" placeholder and never blocks
+ * the control pane. The frame is decoded off the main thread by
+ * AppViewModel; this composable just renders whatever's latest.
+ */
+@Composable
+fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val frame = vm.previewFrame
+    val state = vm.previewState
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Camera preview", style = MaterialTheme.typography.titleMedium)
+            when {
+                frame != null -> androidx.compose.foundation.Image(
+                    bitmap = frame,
+                    contentDescription = "Live camera preview",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                state is dev.openpolaris.core.domain.PreviewController.State.Connecting ->
+                    Text("Connecting…", style = MaterialTheme.typography.bodyMedium)
+                state is dev.openpolaris.core.domain.PreviewController.State.Error ->
+                    Text("Stream unavailable: ${state.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                else ->
+                    Text("Stream unavailable — connect to the mount or check Wi-Fi.", style = MaterialTheme.typography.bodySmall)
+            }
+            Text(
+                "Streamed from http://${vm.host}:8080/?action=stream. 16:9, best-effort, frames are dropped when stale.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}

@@ -19,7 +19,9 @@ import kotlinx.coroutines.withContext
  * platform-free and unit-testable on the JVM).
  *
  * The controller itself is "dumb" on purpose:
- *  - the network read runs on [Dispatchers.IO];
+ *  - the network read runs on [Dispatchers.Default] (we cannot use
+ *    [Dispatchers.IO] from commonMain; it's JVM/Native-only in
+ *    kotlinx-coroutines 1.9.x);
  *  - the latest frame is published via [bytes], conflated to the
  *    freshest value if a slow consumer falls behind;
  *  - [state] reports connection lifecycle so the UI can show
@@ -32,7 +34,17 @@ class PreviewController(
     private val transportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     parent: Job? = null,
 ) {
-    private val scope = CoroutineScope(SupervisorJob(parent) + Dispatchers.IO)
+    // We use `Dispatchers.Default` because `Dispatchers.IO` is not exposed in
+    // commonMain (it's JVM/Native-only in kotlinx-coroutines 1.9.x). The
+    // preview loop is CPU-bound (sockets on JVM map to Default just fine) and
+    // JPEG decode is also CPU-bound and runs on Default in the ViewModel.
+    // We construct the SupervisorJob explicitly to avoid the deprecated
+    // `SupervisorJob(parent) + Dispatcher` pattern; the explicit
+    // SupervisorJob is preserved on the LHS of the `+` operator.
+    private val scope = run {
+        val sj: Job = if (parent != null) SupervisorJob(parent) else SupervisorJob()
+        CoroutineScope(sj + Dispatchers.Default)
+    }
 
     private val _bytes = MutableStateFlow<ByteArray?>(null)
     val bytes: StateFlow<ByteArray?> = _bytes.asStateFlow()
@@ -40,8 +52,14 @@ class PreviewController(
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
-    @Volatile private var transport: PreviewTransport? = null
-    @Volatile private var job: Job? = null
+    // `transport` and `job` are written in `start()` and read in `stop()` and
+    // `shutdown()`. All three are called from the caller's coroutine context
+    // (typically the UI thread on Android, the main scope on JVM), and they
+    // never suspend between read and write. We do not annotate them as
+    // `@Volatile` because that annotation is JVM-only and we want to stay in
+    // commonMain. The StateFlows above carry all cross-coroutine state.
+    private var transport: PreviewTransport? = null
+    private var job: Job? = null
 
     /**
      * Begin streaming from `http://host:port`. Any prior stream is
@@ -59,7 +77,7 @@ class PreviewController(
         )
         transport = t
         job = scope.launch {
-            withContext(Dispatchers.IO) { t.start(host, port) }
+            withContext(Dispatchers.Default) { t.start(host, port) }
             if (_state.value is State.Connecting) {
                 // start() returned without producing an error — caller stopped it.
                 _state.value = State.Stopped

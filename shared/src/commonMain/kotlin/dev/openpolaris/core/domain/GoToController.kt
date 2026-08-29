@@ -1,6 +1,9 @@
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.solver.PlateSolver
+import dev.openpolaris.core.solver.SolveHint
+import dev.openpolaris.core.solver.StarDetection
 import kotlinx.coroutines.delay
 
 /**
@@ -106,6 +109,47 @@ class GoToController(
     suspend fun cancel() {
         session.send(Codes.SET_GOTO_AU_STATE, "state:0;")
         slewing = false
+    }
+
+    /**
+     * Plate-solve and refine in one step. Builds a localized [SolveHint] from
+     * the current gimbal position (via [Codes.GET_GIMBAL_POS]) and the
+     * observer site, hands the detections to the [solver], and on a
+     * confident solve feeds the result into [refine].
+     *
+     * Returns the solve's RA/Dec on success, or null on no-solve / no
+     * gimbal position feedback.
+     */
+    suspend fun solveAndRefine(
+        solver: PlateSolver,
+        detections: List<StarDetection>,
+        frameWidth: Int,
+        frameHeight: Int,
+        targetRaDeg: Double,
+        targetDecDeg: Double,
+        latDeg: Double,
+        lngEastDeg: Double,
+        jdUtc: Double,
+    ): Pair<Double, Double>? {
+        val pos = (session.request(Codes.GET_GIMBAL_POS, parse = GimbalPosition::fromFrame517) as? MountSession.CmdResult.Ok)?.value
+            ?: return null
+        val hint = SolveHint(
+            azAltDeg = pos.yaw.toDouble() to pos.pitch.toDouble(),
+            latDeg = latDeg,
+            lngEastDeg = lngEastDeg,
+            jdUtc = jdUtc,
+        )
+        val result = solver.solve(detections, frameWidth, frameHeight, hint) ?: return null
+        refine(
+            measuredRaDeg = result.raDeg,
+            measuredDecDeg = result.decDeg,
+            targetRaDeg = targetRaDeg,
+            targetDecDeg = targetDecDeg,
+            latDeg = latDeg,
+            lngEastDeg = lngEastDeg,
+            jdUtc = jdUtc,
+        )
+        return result.raDeg to result.decDeg
     }
 
     companion object {

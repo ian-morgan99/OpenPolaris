@@ -19,6 +19,9 @@ object AstroMath {
     /** Result of an RA/Dec → Alt/Az transform. */
     data class Horizontal(val azimuthDeg: Double, val altitudeDeg: Double)
 
+    /** Result of an Alt/Az → RA/Dec transform. */
+    data class Equatorial(val raDeg: Double, val decDeg: Double)
+
     /**
      * Julian Date from a civil UTC timestamp.
      * @param year..millisecond UTC components.
@@ -73,6 +76,42 @@ object AstroMath {
         latDeg: Double, lngEastDeg: Double,
         jd: Double,
     ): Horizontal = toHorizontal(raDeg, decDeg, latDeg, localSiderealTimeDeg(jd, lngEastDeg))
+
+    /**
+     * Convert horizontal to equatorial coordinates (Meeus 13.6).
+     *
+     * @param azDeg azimuth, degrees, measured from North through East (0..360)
+     * @param altDeg altitude, degrees, +90 = zenith
+     * @param latDeg observer latitude, north positive
+     * @param lstDeg local sidereal time, degrees
+     */
+    fun toEquatorial(azDeg: Double, altDeg: Double, latDeg: Double, lstDeg: Double): Equatorial {
+        val azR = Math.toRadians(azDeg)
+        val altR = Math.toRadians(altDeg)
+        val latR = Math.toRadians(latDeg)
+
+        // Meeus 13.6, expressed in N-based azimuth.  Derived from the S-based
+        // form by substituting cos(azS) = -cos(azN) and sin(azS) = -sin(azN)
+        // (since azN = (azS + 180) mod 360).
+        val sinDec = cos(altR) * cos(azR) * cos(latR) + sin(altR) * sin(latR)
+        val dec = Math.toDegrees(asin(sinDec.coerceIn(-1.0, 1.0)))
+
+        val ha = Math.toDegrees(
+            atan2(
+                -cos(altR) * sin(azR),
+                -cos(altR) * cos(azR) * sin(latR) + sin(altR) * cos(latR),
+            )
+        )
+        val ra = normalizeDeg(lstDeg - ha)
+        return Equatorial(ra, dec)
+    }
+
+    /** Convenience: Alt/Az → RA/Dec given observer location and UTC time parts. */
+    fun toEquatorialAt(
+        azDeg: Double, altDeg: Double,
+        latDeg: Double, lngEastDeg: Double,
+        jd: Double,
+    ): Equatorial = toEquatorial(azDeg, altDeg, latDeg, localSiderealTimeDeg(jd, lngEastDeg))
 
     /** Normalize angle into [0, 360). */
     fun normalizeDeg(deg: Double): Double {

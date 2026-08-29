@@ -86,6 +86,7 @@ fun OpenPolarisApp(
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
@@ -99,6 +100,7 @@ private enum class Callout(val glyph: String) {
     Slew("Slew"),
     Camera("Cam"),
     Preview("Preview"),
+    Helpers("Helpers"),
     VR("VR"),
     Readme("?"),
 }
@@ -111,7 +113,7 @@ private fun CalloutRail(
     onLaunchVr: (() -> Unit)?,
     onSelect: (Callout) -> Unit,
 ) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.VR, Callout.Readme)
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.VR, Callout.Readme)
     val handle: (Callout) -> Unit = { c ->
         if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
     }

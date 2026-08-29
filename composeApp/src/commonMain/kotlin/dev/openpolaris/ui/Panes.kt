@@ -309,3 +309,66 @@ fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Ti
         Text(badge, style = MaterialTheme.typography.labelMedium, color = color)
     }
 }
+
+/**
+ * Astro helpers pane: dithering, settling time, mechanical limits. Shown only
+ * when [vm.advancedMode] is on (these codes are derived from the Alpaca
+ * protocol and have not been hardware-validated on every Benro firmware).
+ */
+@Composable
+fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    if (!vm.advancedMode) return
+    val dither = vm.ditherEnabled
+    val settling = vm.settlingSeconds
+    val limits = vm.limitsEnabled
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Astro helpers", style = MaterialTheme.typography.titleMedium)
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Switch(
+                    checked = dither == true,
+                    enabled = dither != null,
+                    onCheckedChange = vm::setDither,
+                )
+                Text(
+                    if (dither == null) "Dithering: —" else "Dithering: ${if (dither) "on" else "off"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = vm.settlingInput,
+                    onValueChange = vm::updateSettlingInput,
+                    label = { Text("Settling (s)") },
+                    singleLine = true,
+                    enabled = settling != null,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = vm::applySettling,
+                    enabled = settling != null,
+                ) { Text("Apply") }
+                Text(
+                    if (settling == null) "now: —" else "now: ${settling}s",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Switch(
+                    checked = limits == true,
+                    enabled = limits != null,
+                    onCheckedChange = vm::setLimits,
+                )
+                Text(
+                    if (limits == null) "Limits: —" else "Limits: ${if (limits) "enforce" else "allow over-slew"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+        }
+    }
+}

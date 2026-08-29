@@ -8,6 +8,7 @@ import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
+import dev.openpolaris.core.domain.HelpersController
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
@@ -71,6 +72,7 @@ class AppViewModel(
         session = s
         controller = TrackingController(s)
         cameraController = dev.openpolaris.core.domain.CameraController(s)
+        wireHelpers(s)
         startAutoLevel(s)
         scope.launch {
             statusMessage = "Connecting to $host…"
@@ -92,6 +94,7 @@ class AppViewModel(
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
+        wireHelpers(sim.session)
         startAutoLevel(sim.session)
         scope.launch {
             sim.session.connect()
@@ -112,6 +115,11 @@ class AppViewModel(
         session = null
         controller = null
         cameraController = null
+        helpersController = null
+        ditherEnabled = null
+        settlingSeconds = null
+        limitsEnabled = null
+        settlingInput = ""
         mount = MountState()
         position = null
         if (!demoMode) statusMessage = "Disconnected"
@@ -349,5 +357,75 @@ class AppViewModel(
         if (cameraController == null) { statusMessage = "Not connected"; return@launch }
         cameraController?.capture()
         statusMessage = "Capture sent"
+    }
+
+    // ---- astro helpers ----------------------------------------------------
+    // Codes 539/540 (dither), 543/544 (settling), 541/542 (limits) are
+    // best-effort ports from the Alpaca driver and have not been
+    // hardware-validated on every Benro firmware. Only shown when
+    // [advancedMode] is on; the panel refreshes after connect.
+
+    private var helpersController: HelpersController? = null
+
+    var ditherEnabled by mutableStateOf<Boolean?>(null)
+        private set
+    var settlingSeconds by mutableStateOf<Int?>(null)
+        private set
+    var limitsEnabled by mutableStateOf<Boolean?>(null)
+        private set
+
+    /** Local draft for the settling-time text field; committed via [applySettling]. */
+    var settlingInput by mutableStateOf("")
+        private set
+
+    private fun wireHelpers(s: MountSession) {
+        val h = HelpersController(s)
+        helpersController = h
+        h.start(scope)
+        scope.launch {
+            h.ditherEnabled.collect { ditherEnabled = it }
+        }
+        scope.launch {
+            h.settlingSeconds.collect {
+                settlingSeconds = it
+                // Refresh the input draft only when empty or out-of-sync so the
+                // user can type freely without us stomping their value.
+                if (it != null && (settlingInput.isBlank() || settlingInput.toIntOrNull() != it)) {
+                    settlingInput = it.toString()
+                }
+            }
+        }
+        scope.launch {
+            h.limitsEnabled.collect { limitsEnabled = it }
+        }
+        scope.launch { h.refreshAll() }
+    }
+
+    fun refreshHelpers() {
+        val h = helpersController ?: run { statusMessage = "Not connected"; return }
+        scope.launch {
+            h.refreshAll()
+            statusMessage = "Helpers refreshed"
+        }
+    }
+
+    fun setDither(on: Boolean) {
+        // Optimistic local update so the switch feels snappy on real hardware.
+        ditherEnabled = on
+        scope.launch { helpersController?.setDither(on) }
+    }
+
+    fun setLimits(on: Boolean) {
+        limitsEnabled = on
+        scope.launch { helpersController?.setLimits(on) }
+    }
+
+    fun updateSettlingInput(v: String) { settlingInput = v.filter { it.isDigit() }.take(3) }
+
+    fun applySettling() {
+        val secs = settlingInput.toIntOrNull() ?: run { statusMessage = "Invalid settling seconds"; return }
+        val clamped = secs.coerceIn(0, 99)
+        settlingSeconds = clamped
+        scope.launch { helpersController?.setSettling(clamped) }
     }
 }

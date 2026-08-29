@@ -31,40 +31,76 @@ import kotlin.test.assertTrue
  */
 class ProbeSmokeTest {
 
-    private lateinit var harness: FakeMountHarness
+    private lateinit var harness: MountHarness
+    private var harnessFailure: Throwable? = null
+
+    /**
+     * Each test should call this first (or access [h] instead) so a
+     * failed `setUp` (e.g. real mount unreachable) surfaces as the real
+     * cause instead of `lateinit property harness has not been initialized`.
+     */
+    private val h: MountHarness
+        get() = harnessFailure?.let { throw it } ?: harness
 
     @BeforeTest
     fun setUp() {
-        harness = FakeMountHarness().also { it.start() }
+        // Capture startup failures (e.g. real mount unreachable) so every
+        // test reports the real cause rather than the downstream
+        // `lateinit property harness has not been initialized` symptom.
+        try {
+            harness = newHarness().also { it.start() }
+        } catch (t: Throwable) {
+            harnessFailure = t
+        }
     }
 
     @AfterTest
     fun tearDown() {
-        harness.stop()
+        if (this::harness.isInitialized) {
+            harness.stop()
+        }
+    }
+
+    /**
+     * Returns a [FakeMountHarness] (default) or a [RealMountHarness] when
+     * `-Popenpolaris.realMount=true` is passed. The real-mount path is
+     * exercised by `./gradlew smokeReal` and requires a physical Polaris
+     * reachable at `openpolaris.realMount.host:openpolaris.realMount.port`
+     * (defaults `192.168.0.1:9090`).
+     */
+    private fun newHarness(): MountHarness {
+        val real = System.getProperty("openpolaris.realMount")?.toBoolean() == true
+        return if (real) {
+            val host = System.getProperty("openpolaris.realMount.host") ?: "192.168.0.1"
+            val port = (System.getProperty("openpolaris.realMount.port") ?: "9090").toInt()
+            RealMountHarness(host, port)
+        } else {
+            FakeMountHarness()
+        }
     }
 
     @Test
     fun mount_session_connect_succeeds() = runTest {
-        val ok = harness.session.connect()
+        val ok = h.session.connect()
         assertTrue(ok, "MountSession.connect() should succeed against FakeMount")
-        assertTrue(harness.session.state.value.connected, "state should report connected")
+        assertTrue(h.session.state.value.connected, "state should report connected")
     }
 
     @Test
     fun tracking_round_trip() = runTest {
-        harness.session.connect()
-        val tracking = TrackingController(harness.session)
+        h.session.connect()
+        val tracking = TrackingController(h.session)
         tracking.start(speed = 2) // 2 == solar-like index
         tracking.setHalfSpeed(on = false)
         tracking.gotoAzAlt(azimuthDeg = 180.0, altitudeDeg = 45.0)
         // No exceptions thrown ⇒ round-trip ok; verify state still healthy.
-        assertTrue(harness.session.state.value.connected)
+        assertTrue(h.session.state.value.connected)
     }
 
     @Test
     fun auto_level_toggle_persists() = runTest {
-        harness.session.connect()
-        val autoLevel = AutoLevelController(harness.session)
+        h.session.connect()
+        val autoLevel = AutoLevelController(h.session)
         autoLevel.start(this)
         try {
             autoLevel.setEnabled(true)
@@ -78,8 +114,8 @@ class ProbeSmokeTest {
 
     @Test
     fun auto_level_read_tilt_round_trip() = runBlocking {
-        harness.session.connect()
-        val autoLevel = AutoLevelController(harness.session)
+        h.session.connect()
+        val autoLevel = AutoLevelController(h.session)
         val scope = CoroutineScope(Dispatchers.Default)
         autoLevel.start(scope)
         try {
@@ -95,9 +131,9 @@ class ProbeSmokeTest {
 
     @Test
     fun goto_acknowledged() = runTest {
-        harness.session.connect()
+        h.session.connect()
         // GoToController requires a TrackingController; harness wires one.
-        harness.goto.goToRaDec(
+        h.goto.goToRaDec(
             raDeg = 0.0,
             decDeg = 0.0,
             latDeg = 0.0,
@@ -107,23 +143,23 @@ class ProbeSmokeTest {
             timeoutMs = 1_000,
         )
         // cancel() sends 519; FakeMount acks with `1&519&2&ack:1;#`.
-        harness.goto.cancel()
-        assertTrue(harness.session.state.value.connected)
+        h.goto.cancel()
+        assertTrue(h.session.state.value.connected)
     }
 
     @Test
     fun jog_acknowledged() = runTest {
-        harness.session.connect()
+        h.session.connect()
         // Code 513 = X jog; FakeMount echoes dir:X;lvl:1; ack.
-        harness.tracking.jog(code = 513, durationMs = 100)
-        assertTrue(harness.session.state.value.connected)
+        h.tracking.jog(code = 513, durationMs = 100)
+        assertTrue(h.session.state.value.connected)
     }
 
     @Test
     fun alignment_controller_constructs() = runTest {
-        harness.session.connect()
-        assertNotNull(harness.alignment, "AlignmentController should be constructable against a live session")
-        assertEquals(0, harness.alignment.starCount, "no stars submitted yet")
+        h.session.connect()
+        assertNotNull(h.alignment, "AlignmentController should be constructable against a live session")
+        assertEquals(0, h.alignment.starCount, "no stars submitted yet")
     }
 
     @Test
@@ -136,31 +172,54 @@ class ProbeSmokeTest {
 }
 
 /**
+ * Per-test fixture: spins up a `MountSession` wired to *something* on
+ * `127.0.0.1:<port>` and exposes the five controllers used by the
+ * smoke tests. Two implementations:
+ *  - [FakeMountHarness]: in-process [FakeMount] on an ephemeral port.
+ *  - [RealMountHarness]: a real Polaris on `host:port`. Used by
+ *    `./gradlew smokeReal` after the user turns the mount on and
+ *    installs the polkit rule.
+ *
+ * `stop()` tears the whole stack down. Backed by a [SupervisorJob] so
+ * one failed controller doesn't poison the rest.
+ */
+abstract class MountHarness {
+    abstract val session: MountSession
+    abstract val tracking: TrackingController
+    abstract val goto: GoToController
+    abstract val autoLevel: AutoLevelController
+    abstract val alignment: AlignmentController
+    abstract val preview: PreviewController
+    abstract fun start()
+    abstract fun stop()
+}
+
+/**
  * Per-test fixture: starts [FakeMount] on an ephemeral port, opens a real
  * [JvmConnection] via [MountSession], and exposes all five controllers. Tears
  * the whole stack down in [stop]. Run on a [SupervisorJob] so one failed
  * controller doesn't poison the rest.
  */
-class FakeMountHarness {
+class FakeMountHarness : MountHarness() {
     private lateinit var mount: FakeMount
     private lateinit var scope: CoroutineScope
     private lateinit var connection: JvmConnection
 
-    lateinit var session: MountSession
+    override lateinit var session: MountSession
         private set
 
-    lateinit var tracking: TrackingController
+    override lateinit var tracking: TrackingController
         private set
-    lateinit var goto: GoToController
+    override lateinit var goto: GoToController
         private set
-    lateinit var autoLevel: AutoLevelController
+    override lateinit var autoLevel: AutoLevelController
         private set
-    lateinit var alignment: AlignmentController
+    override lateinit var alignment: AlignmentController
         private set
-    lateinit var preview: PreviewController
+    override lateinit var preview: PreviewController
         private set
 
-    fun start() {
+    override fun start() {
         // 0 → ephemeral port assigned by the OS; the real port is exposed via
         // `mount.localPort` after start().
         mount = FakeMount(port = 0)
@@ -184,10 +243,68 @@ class FakeMountHarness {
         preview = PreviewController()
     }
 
-    fun stop() {
+    override fun stop() {
         runCatching { session.disconnect() }
         runCatching { connection.close() }
         runCatching { mount.stop() }
+        runCatching { scope.cancel() }
+    }
+}
+
+/**
+ * Per-test fixture: connects to a **real** Polaris at [host]:[port]. Same
+ * controller surface as [FakeMountHarness] so the smoke tests can run
+ * unchanged. The real mount is left in whatever state the tests leave it
+ * (e.g. tracking on, half-speed off) — callers are expected to follow up
+ * with a manual reset.
+ *
+ * Used by `./gradlew smokeReal -Popenpolaris.realMount=true`.
+ */
+class RealMountHarness(
+    private val host: String,
+    private val port: Int,
+) : MountHarness() {
+    private lateinit var scope: CoroutineScope
+    private lateinit var connection: JvmConnection
+
+    override lateinit var session: MountSession
+        private set
+
+    override lateinit var tracking: TrackingController
+        private set
+    override lateinit var goto: GoToController
+        private set
+    override lateinit var autoLevel: AutoLevelController
+        private set
+    override lateinit var alignment: AlignmentController
+        private set
+    override lateinit var preview: PreviewController
+        private set
+
+    override fun start() {
+        connection = JvmConnection()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        session = MountSession(
+            connectionFactory = { connection },
+            host = host,
+            port = port,
+        )
+        // Connect up front. `connect()` issues the 519 lifecycle handshake
+        // and surfaces connection failures before any test fires a command.
+        runBlocking(Dispatchers.IO) {
+            val ok = session.connect()
+            check(ok) { "real mount at $host:$port is unreachable" }
+        }
+        tracking = TrackingController(session)
+        goto = GoToController(session, tracking)
+        autoLevel = AutoLevelController(session)
+        alignment = AlignmentController(session)
+        preview = PreviewController()
+    }
+
+    override fun stop() {
+        runCatching { session.disconnect() }
+        runCatching { connection.close() }
         runCatching { scope.cancel() }
     }
 }

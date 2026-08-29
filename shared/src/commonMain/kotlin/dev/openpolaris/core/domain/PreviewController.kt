@@ -110,6 +110,19 @@ class PreviewController(
         return true
     }
 
+    /**
+     * Test seam: directly publish a frame as if it had arrived from
+     * the [PreviewTransport]. Named `_ForTest` so it is clearly an
+     * internal helper, but `public` because it has to be visible
+     * from other modules' test code (e.g. `composeApp:commonTest`
+     * reaches in via `AppViewModel.testSetPreview`). The public
+     * surface of [PreviewController] in production code is unchanged
+     * — this is only ever called from tests.
+     */
+    fun publishForTest(jpeg: ByteArray) {
+        consumeFrame(jpeg)
+    }
+
     sealed class State {
         data object Idle : State()
         data object Connecting : State()

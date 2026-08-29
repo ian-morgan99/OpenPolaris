@@ -8,6 +8,7 @@ import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
+import dev.openpolaris.core.domain.GoToController
 import dev.openpolaris.core.domain.HelpersController
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
@@ -15,6 +16,13 @@ import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.solver.NullStarDetector
+import dev.openpolaris.core.solver.OnDevicePlateSolver
+import dev.openpolaris.core.solver.PlateSolver
+import dev.openpolaris.core.solver.SolveHint
+import dev.openpolaris.core.solver.SolveResult
+import dev.openpolaris.core.solver.StarDetector
+import dev.openpolaris.core.solver.SyntheticTestCatalog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,6 +41,8 @@ import kotlinx.coroutines.withContext
 class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
+    private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
+    private val starDetector: StarDetector = NullStarDetector,
 ) {
     var host by mutableStateOf("192.168.43.1")
         private set
@@ -122,6 +132,8 @@ class AppViewModel(
         settlingInput = ""
         mount = MountState()
         position = null
+        lastSolveResult = null
+        solveInProgress = false
         if (!demoMode) statusMessage = "Disconnected"
     }
 
@@ -247,6 +259,138 @@ class AppViewModel(
 
     var alignmentStars by mutableStateOf(0)
         private set
+
+    // ---- plate-solve -------------------------------------------------------
+
+    /**
+     * Most recent successful plate-solve. Null until the user has
+     * pressed "Solve now" and the solver returned a confident
+     * match. The pane surfaces RA/Dec / confidence / matched-star
+     * count for the operator to decide whether to "Sync to target".
+     */
+    var lastSolveResult by mutableStateOf<SolveResult?>(null)
+        private set
+
+    /** True while [solveNow] is running. Gates the "Solve now" button. */
+    var solveInProgress by mutableStateOf(false)
+        private set
+
+    /**
+     * Plate-solve the current camera frame and, when localized,
+     * nudge the mount to centre the currently-entered RA/Dec
+     * target. Mirrors the [submitAlignmentStar] / [goto] flow:
+     * the work runs on [scope] so the UI stays responsive.
+     *
+     * The flow is:
+     *  1. detect stars in the latest preview JPEG (Android-only;
+     *     JVM/Desktop get an empty list from [NullStarDetector]),
+     *  2. build a localized [SolveHint] from the current mount
+     *     position + observer site,
+     *  3. call [solver]; on a confident result, refine the slew
+     *     and remember the solved RA/Dec in [lastSolveResult].
+     *
+     * No-op with a status message when the prerequisites (session,
+     * preview frame, location) are missing.
+     */
+    fun solveNow(
+        frameWidth: Int = 1280,
+        frameHeight: Int = 960,
+        /**
+         * Optional Julian Date (UTC) override. When `null`, the call uses
+         * [AstroMath.julianDateNow] — i.e. "now". Tests inject a fixed
+         * JD so the horizon→equatorial conversion in the solver is
+         * reproducible; the production UI does not pass a value.
+         */
+        jdUtc: Double? = null,
+    ) {
+        if (solveInProgress) return
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
+        if (!raDecMode) {
+            statusMessage = "Switch to RA/Dec mode to plate-solve"
+            return
+        }
+        val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA"; return }
+        val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec"; return }
+        val jpeg = preview.bytes.value
+        if (jpeg == null) {
+            statusMessage = "No preview frame — wait for the live view"
+            return
+        }
+        solveInProgress = true
+        statusMessage = "Solving…"
+        scope.launch {
+            try {
+                val detections = starDetector.detect(jpeg, frameWidth, frameHeight)
+                if (detections.isEmpty()) {
+                    statusMessage = "No stars detected in preview frame"
+                    return@launch
+                }
+                val result = GoToController(s, controller ?: TrackingController(s)).solveAndRefine(
+                    solver = solver,
+                    detections = detections,
+                    frameWidth = frameWidth,
+                    frameHeight = frameHeight,
+                    targetRaDeg = ra,
+                    targetDecDeg = dec,
+                    latDeg = loc.first,
+                    lngEastDeg = loc.second,
+                    jdUtc = jdUtc ?: AstroMath.julianDateNow(),
+                )
+                if (result == null) {
+                    statusMessage = "Plate-solve failed (no confident match)"
+                } else {
+                    lastSolveResult = SolveResult(
+                        raDeg = result.first,
+                        decDeg = result.second,
+                        // Confidence and matched-star count aren't returned by
+                        // solveAndRefine — they live in the raw solver
+                        // result, which solveAndRefine currently drops. The
+                        // pane shows "solved" without those fields for now;
+                        // a follow-up PR will thread them through. The
+                        // placeholder values below are the v1 "good enough"
+                        // floor (0.6 confidence, 3-star minimum) so the
+                        // SolveResult init contract is satisfied.
+                        confidence = 0.6,
+                        matchedStars = 3,
+                    )
+                    statusMessage = "Solved RA %.4f° Dec %.4f° — mount refined to target"
+                        .format(result.first, result.second)
+                }
+            } finally {
+                solveInProgress = false
+            }
+        }
+    }
+
+    /**
+     * Test seam: install a [MountSession] on this viewmodel without
+     * going through [connect] (which would also launch a poll loop and
+     * a preview fetch that we don't want interfering with
+     * determinism in unit tests).
+     */
+    internal fun testInstallSession(s: MountSession) {
+        this.session = s
+    }
+
+    /**
+     * Test seam: simulate a prior successful [solveNow] by writing
+     * a [SolveResult] into [lastSolveResult]. Used by tests that
+     * need to assert [disconnect] clears the cached solve.
+     */
+    internal fun testSetLastSolve(raDeg: Double, decDeg: Double) {
+        lastSolveResult = SolveResult(raDeg, decDeg, 0.6, 3)
+    }
+
+    /**
+     * Test seam: publish a synthetic JPEG preview frame to the
+     * [PreviewController] without having to go through a real
+     * camera/feed. Mirrors `PreviewController.publishForTest` from
+     * the test module boundary.
+     */
+    internal fun testSetPreview(jpeg: ByteArray) {
+        preview.publishForTest(jpeg)
+    }
 
     /** Record current pointing as alignment star [alignmentStars] (code 530). */
     fun submitAlignmentStar() {

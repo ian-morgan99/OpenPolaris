@@ -72,6 +72,15 @@ class FakeMount(private val port: Int, private val host: String = "127.0.0.1") {
                     out.write(reply)
                     out.newLine()
                     out.flush()
+                    // Mirror the real mount: an auto-level trigger (549) eventually
+                    // surfaces a tilt push (538) on the wire. Send one so the
+                    // controller's `isRunning` flag can drop back to false.
+                    if (parsed.code == 549) {
+                        Thread.sleep(50)
+                        out.write("1&538&2&pitch:0.10;roll:-0.05;#")
+                        out.newLine()
+                        out.flush()
+                    }
                 }
             }
         } catch (_: Exception) {
@@ -105,6 +114,11 @@ class FakeMount(private val port: Int, private val host: String = "127.0.0.1") {
             523 -> "ack:1;"
             535 -> "ack:1;"
             536 -> "state:${f.payload.substringAfter("state:", "0").substringBefore(';').take(1)};"
+            537 -> "pitch:0.10;roll:-0.05;"
+            538 -> "pitch:0.10;roll:-0.05;"
+            547 -> "en:1;"
+            548 -> "en:${f.payload.substringAfter("en:", "1").substringBefore(';').take(1)};"
+            549 -> "ack:1;"
             258, 268, 269 -> "ack:1;"
             else -> "ack:1;"
         }

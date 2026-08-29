@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -9,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Best-effort live-preview stream. Wraps the per-platform
@@ -33,17 +33,22 @@ import kotlinx.coroutines.withContext
 class PreviewController(
     private val transportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     parent: Job? = null,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     // We use `Dispatchers.Default` because `Dispatchers.IO` is not exposed in
     // commonMain (it's JVM/Native-only in kotlinx-coroutines 1.9.x). The
     // preview loop is CPU-bound (sockets on JVM map to Default just fine) and
     // JPEG decode is also CPU-bound and runs on Default in the ViewModel.
-    // We construct the SupervisorJob explicitly to avoid the deprecated
-    // `SupervisorJob(parent) + Dispatcher` pattern; the explicit
-    // SupervisorJob is preserved on the LHS of the `+` operator.
+    // Tests can inject a `TestDispatcher` via the `ioDispatcher` parameter so
+    // the launched transport hop advances in lockstep with `runTest`'s
+    // virtual time, which removes a long-standing dispatcher-contention
+    // race in `surfacesTransportError`. The SupervisorJob is constructed
+    // explicitly to avoid the deprecated `SupervisorJob(parent) + Dispatcher`
+    // pattern; the explicit SupervisorJob is preserved on the LHS of the
+    // `+` operator.
     private val scope = run {
         val sj: Job = if (parent != null) SupervisorJob(parent) else SupervisorJob()
-        CoroutineScope(sj + Dispatchers.Default)
+        CoroutineScope(sj + ioDispatcher)
     }
 
     private val _bytes = MutableStateFlow<ByteArray?>(null)
@@ -77,7 +82,7 @@ class PreviewController(
         )
         transport = t
         job = scope.launch {
-            withContext(Dispatchers.Default) { t.start(host, port) }
+            t.start(host, port)
             if (_state.value is State.Connecting) {
                 // start() returned without producing an error — caller stopped it.
                 _state.value = State.Stopped

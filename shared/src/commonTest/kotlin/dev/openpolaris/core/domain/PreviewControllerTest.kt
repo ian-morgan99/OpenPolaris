@@ -1,12 +1,14 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PreviewControllerTest {
 
     /**
@@ -46,12 +48,17 @@ class PreviewControllerTest {
                     onStop = {},
                 )
             }
-        val c = PreviewController(transportFactory = factory, parent = SupervisorJob())
+        // Inject the test scheduler as the controller's dispatcher so the
+        // launched transport hop advances in lockstep with the test, instead
+        // of racing on the real `Dispatchers.Default` pool.
+        val c = PreviewController(
+            transportFactory = factory,
+            parent = SupervisorJob(),
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
         c.start("192.168.0.1")
-        for (i in 0 until 5) {
-            delay(10)
-            if (c.state.value is PreviewController.State.Streaming) break
-        }
+        // With UnconfinedTestDispatcher, transport.start() and its onStart
+        // callback have already run by the time start() returns.
         assertEquals(3, consumed, "all frames should have been forwarded")
         assertTrue(
             c.state.value is PreviewController.State.Streaming,
@@ -74,15 +81,18 @@ class PreviewControllerTest {
                     onStop = {},
                 )
             }
-        val c = PreviewController(transportFactory = factory, parent = SupervisorJob())
+        // Same dispatcher injection as above: the launched `t.start(...)`
+        // now runs in the test coroutine, so the `onError` callback fires
+        // and updates the StateFlow before `c.start()` returns. This
+        // removes the long-standing "expected Error, was Connecting"
+        // failure caused by `Dispatchers.Default` contention in the full
+        // test suite.
+        val c = PreviewController(
+            transportFactory = factory,
+            parent = SupervisorJob(),
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
         c.start("192.168.0.1")
-        // 200ms total — the error fires from inside the transport's
-        // onStart callback, but the StateFlow update + runTest dispatcher
-        // can need a few yield passes. 5*10ms was too tight under load.
-        for (i in 0 until 20) {
-            delay(10)
-            if (c.state.value is PreviewController.State.Error) break
-        }
         val s = c.state.value
         assertTrue(s is PreviewController.State.Error, "expected Error, was $s")
         assertEquals("404", (s as PreviewController.State.Error).message)
@@ -93,6 +103,12 @@ class PreviewControllerTest {
      * Calling [PreviewController.start] twice in a row must stop the
      * first transport before opening the second. Regression guard
      * against the "I now have two threads fighting over one port" bug.
+     *
+     * This test cannot use the UnconfinedTestDispatcher trick because its
+     * `onStart` deliberately blocks the thread for 60s to prove the
+     * controller can interrupt it. We stick with the real dispatcher
+     * here, drive the test with real `Thread.sleep` calls, and accept
+     * the real-time cost.
      */
     @Test
     fun restartStopsPriorTransport() = runTest {

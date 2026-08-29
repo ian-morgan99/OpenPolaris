@@ -3,6 +3,7 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.TiltCodec
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -171,8 +172,22 @@ class AutoLevelController(
             withTimeout(timeout) { awaitSettling() }
         } catch (_: TimeoutCancellationException) {
             AutoLevelResult.TimedOut
+        } catch (_: CancellationException) {
+            // The *calling* coroutine was cancelled mid-settle. We must
+            // surface this as a result (not propagate) so callers that
+            // have already moved on from `runAndAwait` don't see a
+            // throw, and we must not flip _isRunning in the `finally`
+            // when the calling coroutine is gone (the parent scope is
+            // shutting down). Contract: see issue #7 3b.1.
+            AutoLevelResult.Failed("cancelled")
         } finally {
-            _isRunning.value = false
+            // Suppress finally cleanup when the caller itself was
+            // cancelled — touching any state from a cancelled coroutine
+            // is a side effect we want to avoid. We detect this by
+            // checking if our own coroutine is still active.
+            if (kotlinx.coroutines.currentCoroutineContext()[Job]?.isActive == true) {
+                _isRunning.value = false
+            }
         }
     }
 

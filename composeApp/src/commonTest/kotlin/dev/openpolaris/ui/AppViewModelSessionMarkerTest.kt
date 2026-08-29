@@ -4,8 +4,11 @@ import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.session.SessionMarker
 import dev.openpolaris.core.session.SessionStore
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -46,12 +49,21 @@ import kotlin.test.assertTrue
  */
 private class MarkerFakeConnection(
     var failConnect: Boolean = false,
+    var hangConnect: Boolean = false,
 ) : Connection {
     val written = mutableListOf<ByteArray>()
     val responses = mutableListOf<ByteArray>()
 
     override suspend fun connect(host: String, port: Int, timeoutMs: Int) {
         if (failConnect) throw java.io.IOException("refused")
+        if (hangConnect) {
+            // Suspend forever so the AppViewModel's connectJob stays in
+            // flight. Tests that drive this must cancel the VM scope
+            // (or call vm.disconnect()) to unwind. Used by the 3e tests
+            // for E1 (status-message not clobbered before connect
+            // outcome) and E2 (in-flight flag reset on cancel/throw).
+            awaitCancellation()
+        }
     }
 
     override suspend fun write(data: ByteArray) {
@@ -862,6 +874,151 @@ class AppViewModelSessionMarkerTest {
         } finally {
             vm.disconnect()
             vm.preview.shutdown()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3e E1: host-edit write-failure statusMessage must not be clobbered
+    //        by connect()'s intermediate "Connecting to …" assignment.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun acceptReconnectWithHostEditWriteFailureKeepsStatusUntilConnectOutcome() = runTest(UnconfinedTestDispatcher()) {
+        // 3e E1: in 3d D2 we set
+        //   statusMessage = "Could not save updated host: …"
+        // synchronously in acceptReconnect, then immediately called
+        // connect(). Pre-3e, connect() then immediately overwrote
+        // statusMessage with "Connecting to $host…", so the user
+        // never saw the save-failure error. The fix removes the
+        // intermediate "Connecting to …" line — the spinner already
+        // communicates "in flight" via the dialog, and the status
+        // line is more useful showing the write-failure error until
+        // the connect reaches its terminal state.
+        //
+        // We use a hung Connection.connect() so the connectJob never
+        // reaches a terminal state; the assert is that the save-failure
+        // status survives an advanceUntilIdle() that exercises the
+        // write-failure path.
+        store = newStore()
+        writeMarker(host = "192.168.0.10", port = 9090)
+        val conn = MarkerFakeConnection(hangConnect = true)
+        val vm = newViewModel(this) { conn }
+        val parent = tempFile.parentFile
+        assertNotNull(parent)
+        try {
+            parent.setWritable(false)
+
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value, "precondition: prompt should be populated")
+
+            vm.updateDraftHost("192.168.0.99")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+
+            // The save-failure path in acceptReconnect runs on the
+            // UnconfinedTestDispatcher, so the statusMessage has
+            // already been set when advanceUntilIdle returns. The
+            // connect() coroutine is still hung in conn.connect(), so
+            // no terminal status has been emitted. With the 3e fix
+            // the previous error message survives.
+            assertTrue(
+                vm.statusMessage.contains("could not save", ignoreCase = true),
+                "3e E1: the host-edit write-failure message must survive " +
+                    "until the connect reaches a terminal state; got '${vm.statusMessage}'",
+            )
+            assertFalse(
+                vm.statusMessage.contains("Connecting to", ignoreCase = true),
+                "3e E1: connect() must NOT clobber the write-failure status " +
+                    "with an intermediate 'Connecting to …' line; got '${vm.statusMessage}'",
+            )
+        } finally {
+            parent.setWritable(true)
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3e E2: `_reconnecting` must be reset on every exit path of connect().
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun cancellingInFlightConnectClearsReconnectingFlag() = runTest(UnconfinedTestDispatcher()) {
+        // 3e E2: pre-3e, the `_reconnecting` flag was only reset on
+        // the explicit if/else branches in connect(). If the
+        // connectJob was cancelled (here by vm.disconnect()), the
+        // finally block did not run and the flag stayed true forever,
+        // wedging the dialog's spinner UX. The fix wraps the body in
+        // try/finally so the flag is reset on every exit path.
+        store = newStore()
+        writeMarker(host = "192.168.0.10", port = 9090)
+        val conn = MarkerFakeConnection(hangConnect = true)
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value, "precondition: prompt should be populated")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            assertTrue(
+                vm.reconnecting.value,
+                "precondition: reconnecting must be true while the connect is in flight",
+            )
+
+            // Disconnect cancels the in-flight connectJob. Pre-3e this
+            // left _reconnecting stuck at true; post-3e the try/finally
+            // resets it.
+            vm.disconnect()
+            advanceUntilIdle()
+            assertFalse(
+                vm.reconnecting.value,
+                "3e E2: _reconnecting must be cleared after the in-flight connect is cancelled",
+            )
+        } finally {
+            // vm.disconnect() was already called above; calling it
+            // again is idempotent (it short-circuits if session is null).
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun throwingConnectionFactoryLeavesReconnectingFalse() = runTest(UnconfinedTestDispatcher()) {
+        // 3e E2 (companion): the same try/finally must also catch the
+        // case where the user's connectionFactory itself throws
+        // synchronously (rather than returning a Connection whose
+        // connect() fails). Pre-3e the throw propagated out of the
+        // coroutine and left _reconnecting stuck at true.
+        store = newStore()
+        writeMarker(host = "192.168.0.10", port = 9090)
+        val vm = newViewModel(this) {
+            throw java.io.IOException("factory boom")
+        }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value, "precondition: prompt should be populated")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+
+            // The exception is caught by MountSession.tryConnect (it
+            // wraps conn.connect() / startReader() in try/catch), so
+            // the throw surfaces as a connect() == false, not as an
+            // unhandled throw. The important property is that the
+            // _reconnecting flag drops to false regardless. We assert
+            // on that flag; whether the terminal status is "Could not
+            // reach" or something else is incidental to E2.
+            assertFalse(
+                vm.reconnecting.value,
+                "3e E2: _reconnecting must be cleared even when the connectionFactory throws",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
         }
     }
 }

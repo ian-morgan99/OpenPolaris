@@ -244,6 +244,11 @@ class AppViewModel(
     fun cancelReconnect() {
         if (!_reconnecting.value) return
         connectJob?.cancel()
+        // 3e: explicit reset is still needed for the "connect already
+        // completed" race — the connectJob's finally block will also
+        // reset the flag, but it may run on a different dispatcher and
+        // we want the flag to drop synchronously with the cancel call
+        // so the dialog action row swaps back immediately.
         _reconnecting.value = false
         statusMessage = "Reconnect cancelled"
     }
@@ -327,18 +332,33 @@ class AppViewModel(
         startAutoLevel(s)
         // 3c.5: capture the launched coroutine so [cancelReconnect] can
         // interrupt a hung `s.connect()` (mount powered off, link down).
-        // Also reset the in-flight flag in the completion path so the
-        // spinner collapses to a status message either way.
+        // 3e: wrap the whole body in try/finally so the in-flight flag
+        // is reset on every exit path (success, failure, cancellation,
+        // unhandled throw). Previously the flag was only reset in the
+        // success/failure branches, so cancelling via [scope.cancel()]
+        // (e.g. test teardown, Activity destroyed) would leave
+        // `_reconnecting` stuck at true forever, wedging the spinner UX.
+        // 3e: also drop the intermediate "Connecting to $host…" status
+        // line. It was a real first-class race against the 3d D2
+        // "Could not save updated host: …" message — the latter was set
+        // synchronously inside [acceptReconnect] immediately before
+        // [connect] was invoked, so the "Connecting to" line clobbered
+        // the error before the user could see it. The in-flight spinner
+        // already communicates "in progress" via the dialog; the
+        // status line is more useful showing only the terminal state
+        // ("Connected" or "Could not reach…"), or the preserved
+        // write-failure message until the next terminal status lands.
         connectJob = scope.launch {
-            statusMessage = "Connecting to $host…"
-            if (s.connect()) {
-                statusMessage = "Connected"
-                _reconnecting.value = false
-                saveMarker()
-                startPolling(s)
-                startPreview()
-            } else {
-                statusMessage = "Could not reach $host — try Demo mode"
+            try {
+                if (s.connect()) {
+                    statusMessage = "Connected"
+                    saveMarker()
+                    startPolling(s)
+                    startPreview()
+                } else {
+                    statusMessage = "Could not reach $host — try Demo mode"
+                }
+            } finally {
                 _reconnecting.value = false
             }
         }

@@ -89,6 +89,12 @@ test nights if phases 1–2 are AI-accelerated.
 iOS build (architecture permits later), firmware flashing, cellular/cloud remote, panorama stitching,
 accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sync points).
 
+## Plan reviews
+
+- [PLAN-CRITICAL-REVIEW.md](./PLAN-CRITICAL-REVIEW.md) — first-class review, identifies 10 blockers
+  (Stream 2 staleness, no non-functional bars, no CI gate, undefined iOS test surface, unowned
+  `MountSession.lastError` / MJPEG-decode / session-lifecycle traps) and proposes the next 3 slices.
+
 ## Immediate next actions
 
 1. Scaffold repo structure per ARCHITECTURE.md §2.

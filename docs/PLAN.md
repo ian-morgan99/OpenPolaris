@@ -167,6 +167,25 @@ cleared. Without these, a mergeable commit can still leave the plan stalled:
 
 A blocked unblockable does not block merge — it blocks the gate.
 
+## Definition of next-slice-ready
+
+The agent self-picks the next slice when **all** of the following hold, and pauses for a reviewing
+agent otherwise:
+
+1. **The previous slice shipped clean.** All 6 merge conditions green; the issue it claimed to close
+   is in fact closed on GitHub at the time of commit (mirror-honesty bar).
+2. **The current top-of-list issue is action-ready.** Its acceptance criteria are unambiguous from
+   the issue body and a code site exists (or is named). No "design first" steps needed before
+   the first commit.
+3. **No new high-priority issue has been posted by the reviewing agent.** If the reviewing agent
+   has filed a P0/P1 issue, that preempts the queue regardless of position.
+4. **The slice is bounded.** A single issue's acceptance is one PR-sized commit. A slice that would
+   span two or more issues must be split.
+
+**If any condition fails, the agent pauses** and writes a one-paragraph note explaining which
+condition failed and what the next step is (refine the spec, ask the user, wait for the review
+agent, etc.). The plan is the source of truth for this rule.
+
 ## Current stream priorities
 
 Open issues, in priority order. Tracked in the session todo mirror and on
@@ -177,8 +196,10 @@ Open issues, in priority order. Tracked in the session todo mirror and on
 - **#5 — AutoLevel settling condition quantified** ([PLAN-CRITICAL-REVIEW.md §F](./PLAN-CRITICAL-REVIEW.md#f-stream-11-settling-condition-not-quantified)).
   3 JVM tests + a `timeout` parameter on the controller. Code, not docs.
 - **#3 — session pause/resume hardening** ([PLAN-CRITICAL-REVIEW.md §J](./PLAN-CRITICAL-REVIEW.md#j-there-is-no-pause-and-resume-session-story-for-the-controllers)).
-  `Session.shutdown()` symmetric to `Session.connect()`. JVM test for lifecycle. Defer until #5
-  lands so the mount contract is stable first.
+  Four sub-tasks: (9.1) `Session.shutdown()` symmetric to `Session.connect()`, (9.2) `AppViewModel.disconnect()`,
+  (9.3) `onResume` reconnect, (9.4) JVM test for lifecycle. Defer until #5 lands so the mount
+  contract is stable first. The sub-task list above is the slice-boundary contract — shipping #3
+  means shipping 9.1-9.4, not just `shutdown()`.
 
 Known follow-up tickets (not yet filed): the MJPEG-decode-on-GL-thread issue
 ([PLAN-CRITICAL-REVIEW.md §I](./PLAN-CRITICAL-REVIEW.md#i-mjpeg-decode-on-the-gl-thread-is-unowned))
@@ -196,6 +217,7 @@ to be made explicit in the VR workstream or §I will silently slip.
 | KMP/Compose learning curve | Low–Med | Slowdown | Fallback: plain Android (Kotlin) single-target — architecture isolates this choice to ui/ |
 | Scope creep into v2 enhancements | Medium | Delay | Feature flags hide hooks; v1 acceptance = SPEC.md §7 only |
 | Benro firmware update changes protocol | Low | Breakage | cli-probe regression script re-runs golden frames after any mount update |
+| **50 fps VR bar silently slips** (§I deferral) | Medium | VR bar violated, no early warning | Either (a) the VR scene-graph workstream (§G) explicitly pulls §I onto its critical path with an owner, or (b) the bar is downgraded. Currently neither is decided. |
 
 ## Out of scope (v1)
 

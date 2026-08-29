@@ -14,6 +14,15 @@ data class MountState(
     val tracking: Boolean? = null,
     val halfSpeed: Boolean = false,
     val ahrsEnabled: Boolean = false,
+    /**
+     * Human-readable message of the last protocol-level error observed
+     * by [MountSession], or null. Stored as a string on the flow type
+     * so the top-level [MountState] has no compile-time dependency on
+     * [MountSession.CmdResult]. Cleared on a successful
+     * [MountSession.connect]. Use [MountSession.lastError] for the
+     * typed `CmdResult?` view (PLAN-CRITICAL-REVIEW §H).
+     */
+    val lastErrorMessage: String? = null,
 ) {
     companion object {
         /** Derive state from a 284 push frame. Tolerant of missing fields. */

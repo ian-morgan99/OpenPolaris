@@ -27,25 +27,6 @@ class MountSession(
         data class ProtocolError(val message: String) : CmdResult<Nothing>
     }
 
-    data class MountState(
-        val connected: Boolean = false,
-        /**
-         * The last protocol-level error observed on this session, or null.
-         *
-         * Set by [request] / [send] whenever they return
-         * [CmdResult.ProtocolError] (including the "not connected"
-         * sentinel). Cleared on a successful [tryConnect] so callers
-         * can tell "the mount came back" from "no error has happened
-         * yet".
-         *
-         * Observing this lets the plate-solver distinguish "the
-         * solver found no match" from "the mount is unreachable"
-         * — the two are otherwise conflated in user-visible
-         * error text.
-         */
-        val lastError: CmdResult<Nothing>? = null,
-    )
-
     private val _state = MutableStateFlow(MountState())
     val state: StateFlow<MountState> = _state
 
@@ -56,14 +37,17 @@ class MountSession(
      * Last [CmdResult.ProtocolError] observed by [request] or [send], or
      * null. Cleared on a successful [connect] so callers can tell "the
      * mount came back" from "no error has happened yet" (PLAN-CRITICAL-
-     * REVIEW §H). Mirrors [MountState.lastError] which is kept in sync
-     * for the [state] flow.
+     * REVIEW §H). Synthesised from [MountState.lastErrorMessage] on the
+     * shared [state] flow so the typed API matches the spec (Stream 8.1)
+     * without giving the top-level [MountState] a compile-time
+     * dependency on [MountSession.CmdResult].
      */
     val lastError: CmdResult<Nothing>?
-        get() = _state.value.lastError
+        get() = _state.value.lastErrorMessage?.let { CmdResult.ProtocolError(it) }
 
     private fun recordError(err: CmdResult<Nothing>) {
-        _state.value = _state.value.copy(lastError = err)
+        val msg = (err as? CmdResult.ProtocolError)?.message
+        _state.value = _state.value.copy(lastErrorMessage = msg)
     }
 
     private val sendMutex = Mutex()
@@ -84,7 +68,7 @@ class MountSession(
             connection = conn
             // Clear any previous protocol error so observers can tell
             // "the mount came back" from "no error has happened yet".
-            _state.value = _state.value.copy(connected = true, lastError = null)
+            _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
             // Lifecycle handshake: poll status once (PROTOCOL.md §4).
             send(Codes.PUSH_MODE_STATE)
             true

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.domain.AstroMath
+import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountMode
@@ -49,6 +50,8 @@ class AppViewModel(
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
+    private var autoLevelController: AutoLevelController? = null
+    private var autoLevelJob: Job? = null
     private var pollJob: Job? = null
 
     // Live preview of the camera MJPEG stream. Independent of the control
@@ -68,6 +71,7 @@ class AppViewModel(
         session = s
         controller = TrackingController(s)
         cameraController = dev.openpolaris.core.domain.CameraController(s)
+        startAutoLevel(s)
         scope.launch {
             statusMessage = "Connecting to $host…"
             if (s.connect()) {
@@ -88,6 +92,7 @@ class AppViewModel(
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
+        startAutoLevel(sim.session)
         scope.launch {
             sim.session.connect()
             statusMessage = "Demo mode (simulated mount)"
@@ -100,6 +105,7 @@ class AppViewModel(
 
     fun disconnect() {
         pollJob?.cancel()
+        stopAutoLevel()
         preview.stop()
         previewFrame = null
         session?.disconnect()
@@ -253,27 +259,54 @@ class AppViewModel(
     var autoLevelEnabled by mutableStateOf<Boolean?>(null)
         private set
 
-    fun refreshAutoLevel() {
-        val s = session ?: run { statusMessage = "Not connected"; return }
-        scope.launch {
-            autoLevelEnabled = when (val r = s.request(CommandTable.AUTO_LEVEL_GET_EN.code) { f ->
-                f.int("en")
-            }) {
-                is MountSession.CmdResult.Ok -> r.value == 1
-                else -> null
-            }
+    var autoLevelTilt by mutableStateOf<AutoLevelController.Tilt?>(null)
+        private set
+
+    var autoLevelRunning by mutableStateOf(false)
+        private set
+
+    private fun startAutoLevel(s: MountSession) {
+        autoLevelController?.stop()
+        val c = AutoLevelController(s)
+        autoLevelController = c
+        c.start(scope)
+        autoLevelJob?.cancel()
+        autoLevelJob = scope.launch {
+            c.isEnabled.collect { autoLevelEnabled = it }
+        }
+        autoLevelJob = scope.launch {
+            c.tilt.collect { autoLevelTilt = it }
+        }
+        autoLevelJob = scope.launch {
+            c.isRunning.collect { autoLevelRunning = it }
         }
     }
 
+    private fun stopAutoLevel() {
+        autoLevelJob?.cancel()
+        autoLevelJob = null
+        autoLevelController?.stop()
+        autoLevelController = null
+        autoLevelEnabled = null
+        autoLevelTilt = null
+        autoLevelRunning = false
+    }
+
+    fun refreshAutoLevel() {
+        val c = autoLevelController ?: run { statusMessage = "Not connected"; return }
+        scope.launch { c.refreshEnabled() }
+    }
+
     fun setAutoLevelEnabled(on: Boolean) = scope.launch {
-        session?.send(CommandTable.AUTO_LEVEL_SET_EN.code, CommandTable.AUTO_LEVEL_SET_EN.payload(on))
-        autoLevelEnabled = on
+        val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
+        c.setEnabled(on)
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
     }
 
     /** Trigger one auto-level cycle (code 549). */
     fun runAutoLevel() = scope.launch {
-        session?.send(CommandTable.AUTO_LEVEL_TRIGGER.code)
+        val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
+        c.run()
         statusMessage = "Auto-level started"
     }
 

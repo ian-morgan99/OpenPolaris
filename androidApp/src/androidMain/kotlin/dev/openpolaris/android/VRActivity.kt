@@ -15,6 +15,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import dev.openpolaris.core.domain.PreviewController
+import dev.openpolaris.core.domain.VrStereoShaders
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.microedition.khronos.egl.EGLConfig
@@ -166,35 +167,11 @@ class StereoRenderer : GLSurfaceView.Renderer {
 
     override fun onSurfaceCreated(gl: GLES20?, config: EGLConfig?) {
         GLES20.glClearColor(0f, 0f, 0f, 1f)
-        val vsh = """
-            attribute vec2 aPos;
-            attribute vec2 aUV;
-            uniform mat4 uMVP;
-            uniform vec2 uEyeOffset;
-            uniform float uYawPan;
-            uniform float uPitchPan;
-            varying vec2 vUV;
-            void main() {
-                float k1 = 0.34;
-                float k2 = 0.55;
-                vec2 pos = aPos + uEyeOffset;
-                float r2 = dot(pos, pos);
-                float warp = 1.0 + k1 * r2 + k2 * r2 * r2;
-                vec2 warped = pos * warp;
-                vec2 pan = vec2(tan(uYawPan) * 0.18, tan(uPitchPan) * 0.18);
-                vec2 unwarped = (warped + pan) / warp;
-                gl_Position = uMVP * vec4(unwarped, 0.0, 1.0);
-                vUV = aUV;
-            }
-        """.trimIndent()
-        val fsh = """
-            precision mediump float;
-            varying vec2 vUV;
-            uniform sampler2D uTex;
-            void main() {
-                gl_FragColor = texture2D(uTex, vUV);
-            }
-        """.trimIndent()
+        // Shader source lives in `commonMain` (`VrStereoShaders`) so its
+        // constants can be cross-checked from a JVM unit test. The
+        // corrected mapping is: flat quad per eye, pan lives in vUV.
+        val vsh = VrStereoShaders.VERTEX_SHADER_SRC.trimIndent()
+        val fsh = VrStereoShaders.FRAGMENT_SHADER_SRC.trimIndent()
         program = linkProgram(vsh, fsh)
         val tex = IntArray(1)
         GLES20.glGenTextures(1, tex, 0)

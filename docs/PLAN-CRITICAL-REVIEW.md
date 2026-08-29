@@ -480,3 +480,159 @@ bars (§B), and own the known traps (§H, §I, §J).
 
 Filed as a document. Will be referenced in the next
 checkpoint (123) and the Stream 7 work that follows.
+
+---
+
+# Second-pass review (2026-05, post-§J-and-§F ship)
+
+**Reviewer:** Autopilot session `23f3b179`, checkpoint 128
+**Inputs:** The above review, the 10-blocker status table in `PLAN.md`,
+issues #1–#6 in `ian-morgan99/OpenPolaris`, commits `4cb24bf` /
+`4683ebf` / `7a1c3ec`, the shipped `AutoLevelController.runAndAwait`.
+
+The 10-blocker review above was tractable. Seven of the ten are now shipped
+or filed (§B/§C/§D/§F/§H/§J — closed issues #2, #4, #5; §J filed as #3;
+the §F follow-up `MountSession` background reader filed as #6). But the
+plan's *process* — the rules that decide which slice the next agent
+picks — has not kept up with reality. This second pass identifies seven
+new first-class gaps the original review missed because they only become
+visible *after* the mergeable/unblockable/next-slice-ready rules are
+exercised against a real slice.
+
+## §K - `next-slice-ready` rule 4 (slice bounded) is violated by issue #3
+
+**Problem.** `PLAN.md` §"Definition of next-slice-ready" condition 4 says
+"A slice that would span two or more issues must be split." Issue #3
+("Session pause/resume leaks coroutines", §J) declares four sub-tasks
+(9.1 `Session.shutdown`, 9.2 `disconnect()` calls `shutdown`, 9.3
+`onResume` reconnect, 9.4 JVM no-leak test). That is *one* issue spanning
+four PRs. If the next agent picks #3 as a single slice, it violates the
+plan's own rule.
+
+**Refinement.** Re-slice #3. Each sub-task is its own mergeable gate:
+
+- **#3a** (`Session.shutdown` + 9.2 + 9.4 JVM test) — 60-80 LoC,
+  low risk, lands without real hardware. Closes "leaked coroutines on
+  explicit disconnect."
+- **#3b** (`onResume` reconnect) — depends on #6 (background reader)
+  and on real-hardware Android lifecycle validation. Hard-blocked on
+  the user running an Android lifecycle harness.
+- **#3c** (re-establish the *controllers* — re-attach `AutoLevelController`,
+  `helpers`, preview subscription to a freshly-reconnected session) —
+  depends on #6 and on `MountSession` having a stable `tilt: Flow<...>`
+  contract.
+
+File as a single sub-issue: **#7 "Re-slice #3 into 3a/3b/3c"**, then
+update issue #3's body to point at #7.
+
+## §L - The 517/538 spec error has no contract test
+
+**Problem.** `PLAN.md` and `PLAN-CRITICAL-REVIEW.md` §F both flag the
+spec error: the auto-level controller must consume `SET_TILT_STATE = 538`,
+not `GET_GIMBAL_POS = 517`. The shipped implementation is correct — but
+the test suite does not assert it. `AutoLevelControllerTest` injects
+samples via `QueueSampleSource`, so a future refactor that swaps the
+sample source back to `session.frames` without re-applying the 538
+filter would silently pass all 12 tests. The 517/538 callout is
+documentation, not a guard.
+
+**Refinement.** Add a JVM test that drives the *production* sample source
+(`start(scope)` → push a 538 → expect tilt updated; push a 517 → expect
+tilt *unchanged*). The existing test infrastructure (`FakeConnection`)
+can answer a 537 request to get the controller started, then the test
+injects a `ResponseParser`-shaped 517 and 538 frame into
+`session.frames` and asserts on `a.tilt.value`.
+
+Land in the same docs-refinement commit so the next agent doesn't lose
+the context.
+
+## §M - `ask_user` budget has no enforcement and no timeout
+
+**Problem.** `PLAN.md` §"Definition of unblockable" lists four
+user-gated items (wifi polkit rule, real-mount smoke, Android
+lifecycle harness, full assembleDebug on beast). The plan says the
+agent may proceed "if a slice is bounded and doesn't depend on the
+gated item" — but it never says what to do when the user never
+answers. Currently the four items are unowned indefinitely.
+
+**Refinement.** Add a fifth condition: *if a user-gated item has
+been "blocked" for more than 14 days without the user confirming
+they will action it, the agent downgrades it from "blocked" to
+"deferred" in the todo and proceeds.* Cite the date in the todo
+description so the next agent can see the timeline.
+
+## §N - "Previous slice clean" is circular
+
+**Problem.** `Definition of next-slice-ready` condition 1 says "the
+previous slice is clean." But the next agent discovers regressions
+*during* the new slice's own work, not by reading the previous
+slice's diff. A clean close does not guarantee a clean surface.
+
+**Refinement.** Add condition 1.b: *if the agent discovers a
+regression in shipped work, it pauses the new slice and files a
+regression issue before proceeding.* The regression issue gets P1
+priority and preempts the queue. The agent can then either fix the
+regression in a small commit (≤50 LoC) or hand it back to the user.
+
+## §O - The reviewing-agent rule has no severity labels
+
+**Problem.** `next-slice-ready` condition 3 says "if the reviewing
+agent has filed a P0/P1 issue, that preempts the queue." But no
+issues on `ian-morgan99/OpenPolaris` use priority labels (only
+`enhancement`, `bug`, `documentation`, etc. exist). The rule
+references a label scheme that has not been defined.
+
+**Refinement.** Either (a) add `priority/p0` and `priority/p1` labels
+to the repo and use them in the rule, or (b) drop the P-numbers and
+say "any new issue from the reviewing agent preempts the queue,
+unless the agent explicitly marks it `good first issue` or
+`help wanted`." Option (b) is cheaper and matches the existing label
+taxonomy.
+
+## §P - §I "MJPEG-on-GL-thread deferred-to-forever" is now stale
+
+**Problem.** `PLAN.md` risk-register entry for §I says the fix is
+"deferred-to-forever; needs explicit VR follow-up." But the user has
+explicitly asked for VR (Quest/Cardboard, optional). The deferral
+predates that scope change. The "no owner" cell is a gap that
+will silently fail the 50 fps VR bar.
+
+**Refinement.** Promote §I from "deferred" to Stream 7 sub-task
+**7.11** with an owner (the next agent that picks up Stream 7 work).
+The risk-register cell should say "tracked as Stream 7.11, owned
+by whichever agent picks it up."
+
+## §Q - The 10-blocker status table is no longer self-evidencing
+
+**Problem.** `PLAN.md` "Status of the 10 blockers" lists each
+blocker as "addressed organically" or "shipped in this file" but
+does not cite a commit SHA, an issue number, or a date. A future
+reader cannot tell which "addressed organically" entry corresponds
+to which commit, so they have to re-derive the status by reading
+the git log.
+
+**Refinement.** Re-cite each row with a `commit:` SHA, `issue:` link,
+or both. Use a table column. This is a one-pass edit but it
+prevents the next critical-review pass from having to re-derive
+what this one already knew.
+
+## Action items from this second pass
+
+1. Re-slice issue #3 → file issue #7 with 3a/3b/3c boundaries.
+2. Add the 517/538 contract test → 1 commit, lands with #7.
+3. Bump §I from deferred to Stream 7.11 in `PLAN.md` risk register.
+4. Add `priority/p0` and `priority/p1` labels to the repo (or drop
+   the P-numbers from the rule, per §O option b).
+5. Add the "regression-in-shipped-work" rule to `next-slice-ready`
+   condition 1.b.
+6. Add the "14-day user-gated timeout" to `unblockable` condition 5.
+7. Re-cite the 10-blocker status table with SHAs and issue links.
+8. Update `PLAN.md` "Immediate next actions" to: do #6 first
+   (it unblocks #3 and is on the critical path), then do #7 + the
+   517/538 test, then #3a.
+
+These eight items are all < 200 LoC of combined code and docs; they
+land in two commits (one docs, one code). The plan becomes
+first-class when the eight items are shipped, and the
+"Definition of next-slice-ready" rule is exercised end-to-end
+on the next slice.

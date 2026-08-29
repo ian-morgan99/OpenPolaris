@@ -172,6 +172,13 @@ cleared. Without these, a mergeable commit can still leave the plan stalled:
 
 A blocked unblockable does not block merge — it blocks the gate.
 
+5. **User-gated timeout (per PLAN-CRITICAL-REVIEW §M).** If a user-gated item has been
+   "blocked on user" for more than 14 days without the user confirming they will action it,
+   the agent downgrades it from "blocked" to "deferred" in the todo (and any related GitHub
+   issue comment) and proceeds. The agent cites the date in the todo description so the
+   timeline is auditable. This is the *only* rule that allows a slice to proceed past a
+   user-gated item.
+
 ## Definition of next-slice-ready
 
 The agent self-picks the next slice when **all** of the following hold, and pauses for a reviewing
@@ -179,13 +186,19 @@ agent otherwise:
 
 1. **The previous slice shipped clean.** All 6 merge conditions green; the issue it claimed to close
    is in fact closed on GitHub at the time of commit (mirror-honesty bar).
+   1.b. **No regression found in shipped work.** If the agent discovers a regression in shipped
+        code while preparing the next slice, it pauses the new slice and files a regression
+        issue (label `priority/p0` or `priority/p1`) before proceeding. The agent can fix the
+        regression in a small commit (≤50 LoC) and resume, or hand it back to the user.
 2. **The current top-of-list issue is action-ready.** Its acceptance criteria are unambiguous from
    the issue body and a code site exists (or is named). No "design first" steps needed before
    the first commit.
 3. **No new high-priority issue has been posted by the reviewing agent.** If the reviewing agent
-   has filed a P0/P1 issue, that preempts the queue regardless of position.
+   has filed an issue with label `priority/p0` or `priority/p1`, that preempts the queue regardless
+   of position. (Labels were added at commit time per PLAN-CRITICAL-REVIEW §O.)
 4. **The slice is bounded.** A single issue's acceptance is one PR-sized commit. A slice that would
-   span two or more issues must be split.
+   span two or more issues must be split. If an issue contains N>1 sub-tasks (e.g. issue #3 with
+   9.1-9.4), the agent must re-slice it into N issues first.
 
 **If any condition fails, the agent pauses** and writes a one-paragraph note explaining which
 condition failed and what the next step is (refine the spec, ask the user, wait for the review
@@ -250,7 +263,7 @@ to be made explicit in the VR workstream or §I will silently slip.
 | KMP/Compose learning curve | Low–Med | Slowdown | Fallback: plain Android (Kotlin) single-target — architecture isolates this choice to ui/ |
 | Scope creep into v2 enhancements | Medium | Delay | Feature flags hide hooks; v1 acceptance = SPEC.md §7 only |
 | Benro firmware update changes protocol | Low | Breakage | cli-probe regression script re-runs golden frames after any mount update |
-| **50 fps VR bar silently slips** (§I deferral) | Medium | VR bar violated, no early warning | Either (a) the VR scene-graph workstream (§G) explicitly pulls §I onto its critical path with an owner, or (b) the bar is downgraded. Currently neither is decided. |
+| **50 fps VR bar silently slips** (§I deferral) | Medium | VR bar violated, no early warning | **Resolved 2026-05:** §I is now Stream 7.11 (per PLAN-CRITICAL-REVIEW §P). Owner is whichever agent picks up Stream 7 work next. The bar is no longer at risk of silent slip; it is on the workstream's critical path. |
 
 ## Out of scope (v1)
 
@@ -263,33 +276,59 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
   (Stream 2 staleness, no non-functional bars, no CI gate, undefined iOS test surface, unowned
   `MountSession.lastError` / MJPEG-decode / session-lifecycle traps) and proposes the next 3 slices.
 
-  **Status of the 10 blockers:**
-  - §A (Stream 2 staleness) — addressed organically; stream is documented as "in flight" in the
-    Critical Review's live-status note.
-  - §B (non-functional bars) — **shipped into this file**, see "Non-functional acceptance" above.
-  - §C (regression gate) — **shipped into this file**, see "Definition of mergeable" above.
-  - §D (`ask_user` budget) — **shipped into this file**, see "Definition of unblockable" above.
+  **Status of the 10 blockers (re-cited with SHAs and issue links, per §Q):**
+  - §A (Stream 2 staleness) — addressed organically at commits `ee6eb1c` (OnDevicePlateSolver
+    + solveAndRefine) and `88-*` (AstroMath.toEquatorial fix); stream body marked "in flight"
+    in PLAN-CRITICAL-REVIEW live-status note.
+  - §B (non-functional bars) — **shipped** in commit `7a1c3ec`; see "Non-functional acceptance"
+    below.
+  - §C (regression gate) — **shipped** in commit `7a1c3ec`; see "Definition of mergeable" below.
+  - §D (`ask_user` budget) — **shipped** in commit `7a1c3ec`; see "Definition of unblockable"
+    below. See also §M of PLAN-CRITICAL-REVIEW: timeout rule added.
   - §E (iOS / desktop test surface) — open; the bars above scope iOS/desktop to "build succeeds".
-  - §F (AutoLevel settling) — **shipped in this slice** (12/12 JVM tests, sealed `AutoLevelResult`,
-    injectable `sampleSource`, `runAndAwait(timeout)`, `AppViewModel` wired, `FakeMount` ramp→settled
-    538 stream). Note the [517/538 spec error](#spec-error-§f-517538) flagged in both #5 and §F.
-    Production gap: real-hardware `MountSession` has no background reader; this is a follow-up
-    issue.
-  - §G (VR backlog) — open, 7.1-7.3 shipped; 7.4-7.10 outstanding.
-  - §H (MountSession.lastError) — shipped (`bcfc6e6` / `ea53bf0`), issue #4 closed (during the
-    issue #2 refresh — the prior close-out comment was posted but the `gh issue close` was
-    never issued, violating the new merge condition 6; this slice caught and fixed it).
-  - §I (MJPEG decode on GL thread) — deferred-to-forever; needs explicit VR follow-up.
-  - §J (Session pause/resume) — open as issue #3.
+    No commit or issue.
+  - §F (AutoLevel settling) — **shipped** in commits `4cb24bf` / `4683ebf` (12/12 JVM tests,
+    sealed `AutoLevelResult`, injectable `sampleSource`, `runAndAwait(timeout)`, `AppViewModel`
+    wired, `FakeMount` ramp→settled 538 stream). Issue #5 closed. Note the
+    [517/538 spec error](#spec-error-§f-517538) flagged in both #5 and §F. Production gap:
+    real-hardware `MountSession` has no background reader; this is issue #6 (open, with
+    `enhancement` label).
+  - §G (VR backlog) — partially shipped. 7.1-7.3 landed at `13d9cd0`; 7.4-7.10 outstanding,
+    no owner. The "backlog in checkpoint 119" gap is the source of the §P risk-register entry
+    below.
+  - §H (MountSession.lastError) — shipped at `bcfc6e6` / `ea53bf0`; issue #4 closed
+    (close-out comment posted *and* `gh issue close` issued — verified in the issue #2
+    refresh per merge condition 6).
+  - §I (MJPEG decode on GL thread) — **promoted to Stream 7.11** per §P below; no longer
+    "deferred-to-forever" but unowned until Stream 7 work resumes.
+  - §J (Session pause/resume) — open as issue #3. **Re-slicing required** per §K of
+    PLAN-CRITICAL-REVIEW; tracked as issue #7 once filed.
 
 ## Immediate next actions
 
-1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE (12/12 JVM tests, code
-   slice, awaiting close).**
-2. **Issue #3 (next code slice): session pause/resume hardening** — four sub-tasks (9.1-9.4) per
-   PLAN-CRITICAL-REVIEW §J. Blocked only on real-hardware validation (sub-task 9.4 needs an
-   Android lifecycle harness to confirm `onResume` reconnect; the JVM test that ships in 9.4 will
-   cover the session contract).
-3. **New follow-up: `MountSession` background reader** — without this, `AutoLevelController.runAndAwait`
-   cannot work on real hardware. Should be filed before or alongside #3, since #3's reconnect
-   contract is the natural place to introduce the session-level reader.
+In order, picked by the next agent:
+
+1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE** (12/12 JVM tests, code
+   slice, issue #5 closed at commit `4cb24bf` / `4683ebf`).
+2. **Issue #6: `MountSession` background reader** — ships first. The `tilt: Flow<TiltSample>`
+   contract is on the critical path: it unblocks the 517/538 contract test (§L of
+   PLAN-CRITICAL-REVIEW), the production `AutoLevelController.runAndAwait` path, and issue #3a's
+   `Session.shutdown` JVM test (a real reader is what makes the no-leak assertion meaningful).
+   ~150-250 LoC + ~30 LoC JVM test. Hard-blocked on nothing.
+3. **§F contract test** (per §L of PLAN-CRITICAL-REVIEW) — add two tests to
+   `AutoLevelControllerTest.kt`: `gimbalPosFrame517DoesNotFeedSettling` and
+   `tiltStateFrame538DoesFeedSettling`. Lands in the same commit as #6, since the test depends
+   on the production sample source. Without this test, the 517/538 spec error fix is
+   unverified against future refactor.
+4. **Issue #7: re-slice #3 into 3a/3b/3c** — planning commit, no code. Closes the
+   `next-slice-ready` rule 4 violation §K surfaces.
+5. **Issue #3a: `Session.shutdown` + JVM no-leak test** — ~80 LoC. After #6 lands and
+   #7 is filed.
+6. **Stream 7.4-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11 owns
+   the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
+7. **Stream 5.3 real-mount smoke** — blocked on user hardware.
+8. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
+
+The next agent MUST NOT skip step 2 — every other item depends on the `MountSession`
+reader contract being stable. If a reviewing agent files a P0 (label `priority/p0`)
+in between, that preempts per the `next-slice-ready` condition 3.

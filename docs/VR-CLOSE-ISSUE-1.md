@@ -1,5 +1,10 @@
 # VR view for the camera preview (closes issue #1)
 
+> Issue: https://github.com/ian-morgan99/OpenPolaris/issues/1
+> "Small screens are hard to read in the field" —
+> request: immersive VR headset mode for full visualisation of the
+> phone screen in a Cardboard-class viewer.
+
 ## What is it
 
 A landscape, full-screen, stereoscopic view of the live camera preview.
@@ -41,13 +46,37 @@ MJPEG from the mount's `:8080` endpoint into the GL view.
 
 ## Tested on
 
-- _Hardware: <fill in>_
-- _Android version: <fill in>_
-- _Viewer: <fill in>_
+### Code-level (CI)
+
+- `shared:jvmTest` — `VrStereoShadersTest` cross-checks the GLSL barrel
+  distortion and pan math against `CardboardWarp.kt` (Kotlin reference).
+  All four cases pass.
+- `:cli-probe:test` — `cli-probe --fake` boots `FakeMount`, exercises the
+  preview pipeline, and exits 0.
+- All 94 JVM tests pass.
+
+### Device-level (awaiting owner)
+
+- **Hardware:** the owner's device (TBD — will be added in a follow-up
+  comment on issue #1 once a field test is run).
+- **Android version:** TBD.
+- **Viewer:** the owner is testing a Cardboard-class viewer; specifics
+  will be added in a follow-up comment.
 
 ## Screenshot
 
-_<attach your screenshot here>_
+The owner will attach a screenshot in a follow-up comment on issue #1.
+Until then, the doc above describes the entry point, the in-VR HUD
+(crosshair, status banner, connection-loss banner), and the recenter
+hint.
+
+## Status
+
+- This doc is the source of truth for the VR close-out comment.
+- The GitHub close-out comment lives on issue #1 and links here.
+- VR slice 1 (crosshair + status HUD + connection-loss banner) shipped
+  in commit `13d9cd0`. VR slice 2 (plate-solve target marker) is the
+  next item and is tracked in `vr-issue-1` follow-up.
 
 ## Source
 

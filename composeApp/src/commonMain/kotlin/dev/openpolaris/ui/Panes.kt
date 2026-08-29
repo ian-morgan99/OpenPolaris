@@ -200,11 +200,14 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::runAutoLevel) { Text("Level now") }
+                Button(onClick = vm::runAutoLevel, enabled = !vm.autoLevelRunning) {
+                    Text(if (vm.autoLevelRunning) "Leveling…" else "Level now")
+                }
                 Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
                 Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
                 OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
             }
+            AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
         }
     }
 }
@@ -276,5 +279,33 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+    }
+}
+
+/**
+ * Tilt envelope read-out. Shows the latest pitch/roll whenever the controller
+ * has a value, and a color-coded level badge against [AutoLevelController.TOLERANCE_DEG].
+ * Compact enough to live inside the Auto-level card.
+ */
+@Composable
+fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Tilt?) {
+    if (tilt == null) {
+        Text(
+            "Tilt: unknown — tap Refresh or run Level now to poll.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        return
+    }
+    val pitch = tilt.pitchDeg.format2()
+    val roll = tilt.rollDeg.format2()
+    val badge = if (tilt.withinTolerance) "Level" else "Tilt detected"
+    val color = if (tilt.withinTolerance) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.error
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Tilt: pitch $pitch°  roll $roll°", style = MaterialTheme.typography.bodySmall)
+        Text(badge, style = MaterialTheme.typography.labelMedium, color = color)
     }
 }

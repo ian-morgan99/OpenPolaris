@@ -25,8 +25,8 @@ class SessionMarkerCodecTest {
         lastConnectedAtEpochMs: Long = 1_700_000_000_000L,
         lastMountMode: MountMode = MountMode.ASTRO,
         lastTrackingStarted: Boolean = true,
-        lastRollDeg: Double = 0.5,
-        lastPitchDeg: Double = -0.25,
+        lastRollDeg: Double? = 0.5,
+        lastPitchDeg: Double? = -0.25,
         schemaVersion: Int = SessionMarker.SCHEMA_VERSION,
         checksum: Long = 0L,
     ) = SessionMarker(
@@ -124,6 +124,44 @@ class SessionMarkerCodecTest {
             SessionMarkerCodec.checksumOf(mk(lastTrackingStarted = true)),
             SessionMarkerCodec.checksumOf(mk(lastTrackingStarted = false)),
         )
+    }
+
+    // -------- 3d: nullable tilt (null must NOT be aliased to 0.0) --------
+
+    @Test
+    fun nullRollHasDifferentDigestThanZeroRoll() {
+        // 3d: a fresh marker with no 517 frame yet (lastRollDeg = null) must
+        // produce a different digest from the legacy "we wrote 0.0" case,
+        // otherwise the on-disk marker can't distinguish "the user's last
+        // known tilt was 0°" from "we have no tilt data at all".
+        assertNotEquals(
+            SessionMarkerCodec.checksumOf(mk(lastRollDeg = null)),
+            SessionMarkerCodec.checksumOf(mk(lastRollDeg = 0.0)),
+        )
+    }
+
+    @Test
+    fun nullPitchHasDifferentDigestThanZeroPitch() {
+        assertNotEquals(
+            SessionMarkerCodec.checksumOf(mk(lastPitchDeg = null)),
+            SessionMarkerCodec.checksumOf(mk(lastPitchDeg = 0.0)),
+        )
+    }
+
+    @Test
+    fun nullTiltChecksumIsStable() {
+        val a = SessionMarkerCodec.checksumOf(mk(lastRollDeg = null, lastPitchDeg = null))
+        val b = SessionMarkerCodec.checksumOf(mk(lastRollDeg = null, lastPitchDeg = null))
+        assertEquals(a, b, "null must hash to a stable string (kotlin null.toString() == \"null\")")
+    }
+
+    @Test
+    fun fieldsForHashingRendersNullAsLiteralNull() {
+        val f = SessionMarkerCodec.fieldsForHashing(mk(lastRollDeg = null, lastPitchDeg = null))
+        val roll = f.first { (k, _) -> k == "lastRollDeg" }.second
+        val pitch = f.first { (k, _) -> k == "lastPitchDeg" }.second
+        assertEquals("null", roll, "null must hash as the literal string \"null\"")
+        assertEquals("null", pitch)
     }
 
     // -------- checksum ignores its own field (re-running is stable) --------

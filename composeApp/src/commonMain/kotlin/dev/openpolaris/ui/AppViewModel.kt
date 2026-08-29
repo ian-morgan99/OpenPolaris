@@ -64,7 +64,16 @@ class AppViewModel(
     // default Dispatchers.IO to keep the main thread off the filesystem.
     internal val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    var host by mutableStateOf("192.168.43.1")
+    // 3d: default host is the Polaris AP (192.168.0.1) when the user's
+    // phone is joined to the mount's WiFi network. The pre-3d default
+    // (192.168.43.1) is the Android USB-tethered gateway — useful in
+    // dev rigs that tether the PC to a phone's hotspot, but wrong as a
+    // first-class default for a real Polaris. The host is only a
+    // starting value anyway — once a successful connect writes a
+    // [SessionMarker], the next launch offers a reconnect prompt
+    // pre-filled with the actual host, so the default rarely matters
+    // beyond the very first connect.
+    var host by mutableStateOf("192.168.0.1")
         private set
 
     var mount by mutableStateOf(MountState())
@@ -199,17 +208,25 @@ class AppViewModel(
         // next launch.
         if (targetHost != prompt.host) {
             val pos = position
-            sessionStore.write(
+            val writeResult = sessionStore.write(
                 SessionMarker(
                     host = targetHost,
                     port = prompt.port,
                     lastConnectedAtEpochMs = nowMs(),
                     lastMountMode = prompt.mountMode,
                     lastTrackingStarted = prompt.trackingStarted,
-                    lastRollDeg = pos?.roll?.toDouble() ?: 0.0,
-                    lastPitchDeg = pos?.pitch?.toDouble() ?: 0.0,
+                    lastRollDeg = pos?.roll?.toDouble(),
+                    lastPitchDeg = pos?.pitch?.toDouble(),
                 ),
             )
+            // 3d: if the write fails, the on-disk marker still points at
+            // the OLD host, so the next launch would re-prompt the user
+            // with the wrong host. Surface the failure so the user
+            // understands the discrepancy, and still proceed with the
+            // live connect (the session itself is not affected).
+            if (writeResult.isFailure) {
+                statusMessage = "Could not save updated host: ${writeResult.exceptionOrNull()?.message ?: "unknown"}"
+            }
         }
         _reconnecting.value = true
         connect()
@@ -271,9 +288,11 @@ class AppViewModel(
      * connect-time state which is the minimum the reconnect prompt needs.
      *
      * If [position] is still null at connect time (a real race for the first
-     * connect, since 517 is the second poll) we record 0.0/0.0 — the
-     * "freshest known" value. The next `connect` will overwrite this once
-     * the first 517 lands.
+     * connect, since 517 is the second poll) we record `null` for
+     * roll/pitch — meaning "no 517 frame had landed yet". The next
+     * `connect` will overwrite this once the first 517 lands. Pre-3d we
+     * wrote 0.0 here, which the UI then displayed as "you were at roll
+     * 0.0°" — a real first-class bug (data was invented out of thin air).
      */
     private fun saveMarker() {
         val pos = position
@@ -283,8 +302,8 @@ class AppViewModel(
             lastConnectedAtEpochMs = nowMs(),
             lastMountMode = mount.mode,
             lastTrackingStarted = mount.tracking == true,
-            lastRollDeg = pos?.roll?.toDouble() ?: 0.0,
-            lastPitchDeg = pos?.pitch?.toDouble() ?: 0.0,
+            lastRollDeg = pos?.roll?.toDouble(),
+            lastPitchDeg = pos?.pitch?.toDouble(),
         )
         scope.launch {
             val result = withContext(ioDispatcher) { sessionStore.write(marker) }

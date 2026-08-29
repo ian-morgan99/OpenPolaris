@@ -83,8 +83,8 @@ internal object SessionMarkerCodec {
             lastConnectedAtEpochMs = lastConnectedAtEpochMs,
             lastMountMode = MountMode.UNKNOWN,
             lastTrackingStarted = false,
-            lastRollDeg = 0.0,
-            lastPitchDeg = 0.0,
+            lastRollDeg = null,
+            lastPitchDeg = null,
             schemaVersion = SessionMarker.SCHEMA_VERSION,
             checksum = 0L,
         )

@@ -119,4 +119,48 @@ class SessionMarkerJsonTest {
         assertNotNull(parsed)
         assertTrue(SessionMarkerCodec.verify(parsed))
     }
+
+    // -------- 3d: nullable tilt (no schema bump) --------
+
+    @Test
+    fun nullTiltRoundTrips() {
+        val m = sample().copy(lastRollDeg = null, lastPitchDeg = null)
+        val signed = SessionMarkerCodec.withChecksum(m)
+        val text = json.encodeToString(signed)
+        val parsed = json.decodeFromString<SessionMarker>(text)
+        assertEquals(signed, parsed)
+        assertNull(parsed.lastRollDeg, "null must round-trip as null, not default to 0.0")
+        assertNull(parsed.lastPitchDeg)
+        assertTrue(SessionMarkerCodec.verify(parsed))
+    }
+
+    @Test
+    fun legacyV1MarkerWithZeroTiltStillDeserializesCleanly() {
+        // 3d: a v1 marker written before nullability (lastRollDeg = 0.0)
+        // must still parse into the new nullable type without losing its
+        // checksum — no schema bump. The legacy "0.0" value maps to a
+        // non-null Double? slot, exactly as it always did; the type
+        // loosening is purely a Kotlin-level improvement.
+        val legacy = sample().copy(lastRollDeg = 0.0, lastPitchDeg = 0.0)
+        val signed = SessionMarkerCodec.withChecksum(legacy)
+        val text = json.encodeToString(signed)
+        val parsed = json.decodeFromString<SessionMarker>(text)
+        assertEquals(0.0, parsed.lastRollDeg)
+        assertEquals(0.0, parsed.lastPitchDeg)
+        assertTrue(SessionMarkerCodec.verify(parsed))
+    }
+
+    @Test
+    fun encodeDefaultsIncludesAllFieldsForNullTilt() {
+        // `encodeDefaults = true` must still emit the tilt fields when they're
+        // null, otherwise a v1 reader (with `ignoreUnknownKeys = true`) would
+        // see a marker missing the field and (in this codebase) the codec
+        // would still produce a stable digest because the field order is
+        // pinned, but the explicit "field is present, value is null" form is
+        // what makes on-disk markers round-trippable.
+        val m = sample().copy(lastRollDeg = null, lastPitchDeg = null)
+        val text = json.encodeToString(m)
+        assertTrue("\"lastRollDeg\":null" in text, "expected 'lastRollDeg':null in: $text")
+        assertTrue("\"lastPitchDeg\":null" in text, "expected 'lastPitchDeg':null in: $text")
+    }
 }

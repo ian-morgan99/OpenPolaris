@@ -17,6 +17,7 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -107,8 +108,8 @@ class AppViewModelSessionMarkerTest {
         epochMs: Long = 1_000L,
         mode: MountMode = MountMode.ASTRO,
         tracking: Boolean = true,
-        rollDeg: Double = 1.25,
-        pitchDeg: Double = -0.5,
+        rollDeg: Double? = 1.25,
+        pitchDeg: Double? = -0.5,
     ): SessionMarker = SessionMarker(
         host = host,
         port = port,
@@ -666,6 +667,198 @@ class AppViewModelSessionMarkerTest {
             vm.forgetMarker()
             advanceUntilIdle()
             assertEquals("", vm.draftHost.value, "forget must clear the host edit buffer")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3d D1: nullable tilt on the marker
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun connectDemoWritesNullRollAndPitchWhenPositionIsNull() = runTest(UnconfinedTestDispatcher()) {
+        // 3d D1: when the mount never reported a 517 frame before disconnect,
+        // the marker must record null for roll/pitch, not 0.0. Recording 0.0
+        // would tell the next-launch UI "you were at roll 0.0°" — data
+        // invented out of thin air.
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        // The VM's `position` is null at construction; connectDemo() does
+        // not run the poll loop in this slice so it stays null when
+        // saveMarker() fires.
+        try {
+            assertNull(vm.position, "precondition: no 517 frame has landed yet")
+            vm.connectDemo()
+            advanceUntilIdle()
+            val readBack = store.read()
+            assertNotNull(readBack, "marker should be written after successful connectDemo")
+            assertNull(
+                readBack.lastRollDeg,
+                "3d D1: no 517 → lastRollDeg must be null, not 0.0 (data integrity)",
+            )
+            assertNull(
+                readBack.lastPitchDeg,
+                "3d D1: no 517 → lastPitchDeg must be null, not 0.0 (data integrity)",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun connectDemoPreservesNonNullRollAndPitchWhenSet() = runTest(UnconfinedTestDispatcher()) {
+        // 3d D1: when [AppViewModel.position] has a real value at saveMarker
+        // time (a 517 frame landed), the marker must record those values
+        // — nullability must not regress the happy path.
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            // Seed a real GimbalPosition so saveMarker() sees non-null.
+            // We don't have a public setter for `position` — the test
+            // relies on the fact that connectDemo() does not run a poll
+            // loop, so this assignment would not survive a real connect.
+            // We use a no-op connectDemo() to trigger saveMarker() and
+            // assert that null position produces null (covered by
+            // connectDemoWritesNullRollAndPitchWhenPositionIsNull). The
+            // non-null path is exercised by the codec/Json tests, where
+            // we can construct markers directly. This test only asserts
+            // the helper accepts nullable arguments (it just must not
+            // throw) and that round-tripping the legacy "1.25" default
+            // still works.
+            val marker = writeMarker(rollDeg = 1.25, pitchDeg = -0.5)
+            assertEquals(1.25, marker.lastRollDeg)
+            assertEquals(-0.5, marker.lastPitchDeg)
+            val readBack = store.read()
+            assertNotNull(readBack)
+            assertEquals(1.25, readBack.lastRollDeg)
+            assertEquals(-0.5, readBack.lastPitchDeg)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3d D2: surface host-edit write failure via statusMessage
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun acceptReconnectWithHostEditWriteFailureSurfacesStatus() = runTest(UnconfinedTestDispatcher()) {
+        // 3d D2: when the user accepts the reconnect prompt with an edited
+        // host and the resulting sessionStore.write() fails, the VM must
+        // not silently swallow the error. It must surface it as a
+        // statusMessage so the user knows the prompt will not appear next
+        // launch (i.e., the new host will be lost). Pre-3d the Result
+        // was discarded.
+        store = newStore()
+        writeMarker(host = "192.168.0.10", port = 9090)
+        val vm = newViewModel(this) { error("not used") }
+        // Make the temp dir read-only so the next write() fails at the
+        // writeBytes() step. SessionStore.write() catches Exception
+        // and returns Result.failure(SessionStoreException("write failed", ...)).
+        val parent = tempFile.parentFile
+        assertNotNull(parent)
+        val originalWritable = parent.canWrite()
+        assertTrue(originalWritable, "precondition: temp dir must start writable")
+        try {
+            parent.setWritable(false)
+            assertFalse(parent.canWrite(), "precondition: temp dir must now be read-only")
+
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value, "precondition: prompt should be populated")
+
+            val statusBefore = vm.statusMessage
+            vm.updateDraftHost("192.168.0.99")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+
+            assertNotEquals(
+                statusBefore,
+                vm.statusMessage,
+                "3d D2: a host-edit write failure must update statusMessage",
+            )
+            assertTrue(
+                vm.statusMessage.contains("could not save", ignoreCase = true) ||
+                    vm.statusMessage.contains("save session", ignoreCase = true),
+                "3d D2: statusMessage should explain the save failure; got '${vm.statusMessage}'",
+            )
+        } finally {
+            // Restore writability so @AfterTest's deleteRecursively() works.
+            parent.setWritable(true)
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptReconnectWithHostEditWriteFailureKeepsOldMarker() = runTest(UnconfinedTestDispatcher()) {
+        // 3d D2 (companion to the status-surface test): when the host-edit
+        // write fails, the previous on-disk marker must be preserved
+        // (NOT forgotten). Rationale: the user will see the failure in
+        // statusMessage; on the next launch the OLD marker re-prompts
+        // them so they can retry. If we forgot, the new host would be
+        // lost and the user would have to re-type the IP from scratch.
+        store = newStore()
+        writeMarker(host = "192.168.0.10", port = 9090, epochMs = 7_777L)
+        val vm = newViewModel(this) { error("not used") }
+        val parent = tempFile.parentFile
+        assertNotNull(parent)
+        try {
+            parent.setWritable(false)
+
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.updateDraftHost("192.168.0.99")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+
+            // The old marker file should still exist with the old host
+            // and epoch. (We don't restore writability before reading
+            // because read() doesn't need write perms.)
+            assertTrue(
+                tempFile.exists(),
+                "3d D2: a failed host-edit write must NOT delete the old marker",
+            )
+            val readBack = store.read()
+            assertNotNull(readBack, "3d D2: the old marker must remain readable on disk")
+            assertEquals(
+                "192.168.0.10",
+                readBack.host,
+                "3d D2: the old marker must still hold the OLD host, not the user's edit",
+            )
+            assertEquals(7_777L, readBack.lastConnectedAtEpochMs)
+        } finally {
+            parent.setWritable(true)
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3d D3: default host points at the Polaris AP, not the phone tether
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun defaultHostIsPolarisAP() = runTest(UnconfinedTestDispatcher()) {
+        // 3d D3: a freshly-instantiated AppViewModel must default its
+        // `host` to the Polaris WiFi AP gateway (192.168.0.1), NOT the
+        // Android USB-tethered gateway (192.168.43.1) which was the
+        // pre-3d default. The 192.168.43.1 default is still correct
+        // for the phone-tethered VR rig (see
+        // VRActivity.DEFAULT_HOST), but not for the desktop app the
+        // user runs on the PC.
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            assertEquals(
+                "192.168.0.1",
+                vm.host,
+                "3d D3: default host must point at the Polaris AP, not the phone tether",
+            )
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

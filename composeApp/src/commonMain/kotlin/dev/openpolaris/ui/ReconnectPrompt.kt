@@ -23,8 +23,10 @@ import dev.openpolaris.core.domain.MountMode
  * underlying [kotlinx.coroutines.flow.MutableStateFlow] only fires
  * updates when this value changes.
  *
- * @param host The host string last seen in the marker (typically a
- *   phone-tethered IP like `192.168.43.1`).
+ * @param host The host string last seen in the marker (typically the
+ *   Polaris AP at `192.168.0.1`; a phone-tethered USB gateway like
+ *   `192.168.43.1` is the dev-rig variant, see
+ *   [dev.openpolaris.android.VRActivity]).
  * @param port The TCP port the mount was last addressed on. Hard-coded
  *   to `9090` today but carried in the marker so a future port change
  *   is forward-compatible.

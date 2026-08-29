@@ -28,7 +28,7 @@ fun ReadmePane(modifier: Modifier = Modifier) {
             Text("1. Connect", style = h)
             Text(
                 "Join the mount's Wi-Fi network (Polaris_XXXX), then tap Connect. " +
-                    "The host is usually 192.168.43.1. No hardware? Tap Demo mode to explore.",
+                    "The host is usually 192.168.0.1. No hardware? Tap Demo mode to explore.",
                 style = body,
             )
 

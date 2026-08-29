@@ -1,5 +1,6 @@
 package dev.openpolaris.core.protocol
 
+import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountState
 
@@ -95,6 +96,26 @@ object CommandTable {
     val DITHER_GET = Descriptor<Int?>(Codes.GET_DITHER_STATE, "dither get", parse = { it.int("state") })
     val DITHER_SET = Descriptor<Boolean>(Codes.SET_DITHER_STATE, "dither set", payload = { "state:${if (it) 1 else 0};" })
 
+    /**
+     * Tilt envelope payload (537 GET reply / 538 push). Format on the wire:
+     * `pitch:%f;roll:%f;` (degrees). Decoded by [TiltCodec.parse].
+     */
+    val TILT_GET = Descriptor<AutoLevelController.Tilt?>(
+        Codes.GET_TILT_STATE, "tilt get",
+        parse = { f -> TiltCodec.parse(f) },
+    )
+    /** Tilt envelope is read-only — no firmware TILT_SET in Polaris protocol. */
+
+    /**
+     * Limits enable flag (541 GET reply / 542 SET). Payload format is
+     * best-effort mirrored from the TILT pattern: `limit:0|1;`. Verify against
+     * the real mount before treating 542 as verified.
+     */
+    val LIMITS_GET = Descriptor<Boolean?>(Codes.GET_LIMIT_STATE, "limits get",
+        parse = { f -> f.int("limit")?.let { it != 0 } })
+    val LIMITS_SET = Descriptor<Boolean>(Codes.SET_LIMIT_STATE, "limits set",
+        payload = { "limit:${if (it) 1 else 0};" })
+
     val AUTO_LEVEL_GET_EN = Descriptor<Int?>(Codes.GET_AUTO_LEVEL_EN, "auto level en get", parse = { it.int("en") })
     val AUTO_LEVEL_SET_EN = Descriptor<Boolean>(Codes.SET_AUTO_LEVEL_EN, "auto level en set", payload = { "en:${if (it) 1 else 0};" })
     val AUTO_LEVEL_TRIGGER = Descriptor<Unit>(Codes.SET_AUTO_LEVEL_STATE, "auto level trigger")
@@ -144,7 +165,8 @@ object CommandTable {
     val ALL: Map<Int, List<Descriptor<*>>> =
         listOf(MODE_STATE, GIMBAL_POS, TRACK_START, TRACK_STOP, TRACK_HALF_SPEED, AHRS,
             GOTO_AZ_ALT, GOTO_CANCEL, ALIGN_STAR, POS_RESET, JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
-            DITHER_GET, DITHER_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
+            DITHER_GET, DITHER_SET, TILT_GET, LIMITS_GET, LIMITS_SET,
+            AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
             SETTLING_TIME_GET, SETTLING_TIME_SET,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
             CAM_GET_EV, CAM_SET_EV, CAM_GET_STATE, CAM_CAPTURE)

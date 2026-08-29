@@ -54,7 +54,7 @@ class AutoLevelController(private val session: MountSession) {
             session.frames.collect { f ->
                 if (f == null) return@collect
                 if (f.code == Codes.SET_TILT_STATE) {
-                    parseTilt(f)?.let { parsed ->
+                    dev.openpolaris.core.protocol.TiltCodec.parse(f)?.let { parsed ->
                         _tilt.value = parsed
                         _isRunning.value = false
                     }
@@ -97,19 +97,13 @@ class AutoLevelController(private val session: MountSession) {
 
     /** Read the current tilt envelope on demand (537). */
     suspend fun readTilt(): Tilt? {
-        val result = session.request(Codes.GET_TILT_STATE) { parseTilt(it) }
+        val result = session.request(Codes.GET_TILT_STATE) { dev.openpolaris.core.protocol.TiltCodec.parse(it) }
         return when (result) {
             is MountSession.CmdResult.Ok -> {
                 result.value?.also { _tilt.value = it }
             }
             else -> null
         }
-    }
-
-    private fun parseTilt(f: dev.openpolaris.core.protocol.ResponseParser.Frame): Tilt? {
-        val pitch = f.float("pitch")?.toDouble() ?: f.fields["pitch"]?.toDoubleOrNull()
-        val roll = f.float("roll")?.toDouble() ?: f.fields["roll"]?.toDoubleOrNull()
-        return if (pitch != null && roll != null) Tilt(pitch, roll) else null
     }
 
     companion object {

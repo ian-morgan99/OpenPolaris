@@ -63,19 +63,15 @@ class MountSessionReaderTest {
         // After connect, the 284 frame is the most recent.
         assertEquals(Codes.PUSH_MODE_STATE, s.frames.value?.code)
 
-        // Queue a 538 (SET_TILT_STATE) push. The reader will publish it
-        // on the next virtual-time tick.
-        conn.responses += "1&538&2&pitch:0.10;roll:-0.05;#".toByteArray(Charsets.US_ASCII)
+        // Queue a non-538 push (285) to exercise the generic path on
+        // `frames`. 538 is intentionally demuxed to the tilt flow (issue
+        // #6) so it is NOT published here — see [tiltStreamRoutes538].
+        conn.responses += "1&285&2&state:running;#".toByteArray(Charsets.US_ASCII)
         // Reader waits READ_RETRY_MS (10ms) between read attempts.
         advanceTimeBy(50)
 
-        assertEquals(
-            Codes.SET_TILT_STATE,
-            s.frames.value?.code,
-            "538 push should be published to session.frames by the reader",
-        )
-        assertEquals("0.10", s.frames.value?.fields?.get("pitch"))
-        assertEquals("-0.05", s.frames.value?.fields?.get("roll"))
+        assertEquals(285, s.frames.value?.code)
+        assertEquals("running", s.frames.value?.fields?.get("state"))
         s.disconnect()
     }
 

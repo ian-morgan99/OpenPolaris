@@ -428,7 +428,21 @@ class AppViewModel(
 
     private fun startAutoLevel(s: MountSession) {
         autoLevelController?.stop()
-        val c = AutoLevelController(s)
+        // Wire the AutoLevel controller's settling loop to the session's
+        // non-conflating tilt push stream (issue #6). The default sample
+        // source reads from a StateFlow that conflates identical samples
+        // and drops intermediate ones — fatal for AHRS settling, which
+        // needs every 538 push in arrival order.
+        val pushSource = dev.openpolaris.core.domain.MountSessionTiltSampleSource(s)
+        val sampleSource: suspend () -> dev.openpolaris.core.domain.AutoLevelController.Tilt? = {
+            pushSource.next()?.let {
+                dev.openpolaris.core.domain.AutoLevelController.Tilt(
+                    pitchDeg = it.pitchDeg,
+                    rollDeg = it.rollDeg,
+                )
+            }
+        }
+        val c = AutoLevelController(s, sampleSource)
         autoLevelController = c
         c.start(scope)
         autoLevelJob?.cancel()

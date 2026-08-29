@@ -3,6 +3,7 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.protocol.TiltCodec
 import dev.openpolaris.core.protocol.command
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -11,8 +12,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
@@ -66,6 +70,50 @@ class MountSession(
     val frames: StateFlow<ResponseParser.Frame?> = _frames
 
     /**
+     * Hot push of decoded 538 (SET_TILT_STATE) samples. This is the
+     * authoritative source of tilt data for
+     * [AutoLevelController.runAndAwait] on real hardware (issue #6):
+     *
+     *  - **Every** 538 frame the reader parses is delivered, in arrival
+     *    order, to every active collector, with no conflation. A
+     *    [StateFlow] mirror of 538 would drop intermediate samples when
+     *    they arrive faster than the controller samples; a buffered
+     *    [kotlinx.coroutines.flow.MutableSharedFlow] does not.
+     *  - 538 frames do **not** appear in [frames] and do **not** complete
+     *    a [pending] waiter. 538 is a push, not a response — there is no
+     *    inflight [request] for it.
+     *  - Malformed 538 frames (TiltCodec returns null) are silently
+     *    dropped: the flow stays open, the reader keeps reading, no
+     *    caller crashes on a bad payload.
+     *  - The flow is **never** closed — a `SharedFlow` survives
+     *    reconnects. Disconnect only stops new emissions. Collectors from
+     *    a previous session that are still active will see an idle flow
+     *    until the next session emits; collectors should cancel their
+     *    own [kotlinx.coroutines.Job] on disconnect.
+     *  - The buffer is `Channel.BUFFERED` (64 by default) with
+     *    `SUSPEND` overflow so a slow consumer back-pressures the
+     *    reader rather than dropping samples silently. In practice the
+     *    only consumer is the AutoLevel controller, which samples far
+     *    faster than 538 frames arrive (every ~100 ms).
+     *
+     * Use [TiltSampleSource]-style adapters to bridge between this hot
+     * [Flow] and the `suspend () -> Tilt?` shape [AutoLevelController]
+     * expects.
+     */
+    private val _tilt = MutableSharedFlow<TiltSample>(
+        replay = 0,
+        // 538 frames arrive at ~10 Hz on the Polaris. Channel.BUFFERED is a
+        // Channel-specific sentinel (-2), not a number, so we use an explicit
+        // 64 here. 64 gives ~6 seconds of headroom for a slow consumer
+        // (e.g. UI thread doing a plate-solve) before SUSPEND back-pressure
+        // kicks in. Going lower risks losing samples; going higher wastes
+        // memory for no practical benefit.
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.SUSPEND,
+    )
+    val tilt: Flow<TiltSample> = _tilt
+
+    /**
      * Test-only seam: directly publish a frame on [frames] without going
      * through the reader loop. The real reader loop drives this from the
      * socket, but tests need to inject frames deterministically to cover
@@ -74,6 +122,19 @@ class MountSession(
      */
     internal fun publishFrameForTest(f: ResponseParser.Frame) {
         _frames.value = f
+    }
+
+    /**
+     * Test-only seam: directly publish a [TiltSample] on [tilt] without
+     * going through the reader loop's 538 demux. Mirrors
+     * [publishFrameForTest] for the new flow — tests for the tilt
+     * channel can drive it without standing up a [ResponseParser] frame.
+     */
+    internal fun publishTiltForTest(sample: TiltSample) {
+        // tryEmit is non-suspending; returns false if the buffer is
+        // full. We ignore the failure in tests — the test scope owns
+        // its own collector lifecycle.
+        _tilt.tryEmit(sample)
     }
 
     /**
@@ -201,6 +262,39 @@ class MountSession(
                     val (frames, consumed) = parser.parse(combined)
                     carry = combined.drop(consumed).toByteArray()
                     for (f in frames) {
+                        // Demux by code (issue #6 / PLAN-CRITICAL-REVIEW §F):
+                        // 538 is a push, not a response. Route it to the
+                        // tilt channel and skip both the StateFlow mirror
+                        // and the per-code waiter map.
+                        //
+                        // Why not also publish 538 to `_frames`? Doing so
+                        // would re-create the StateFlow-drop problem the
+                        // channel solves — a StateFlow conflates, and the
+                        // conflated value is the LAST frame observed, not
+                        // every one in order. Anyone who needs every 538
+                        // must collect from `tilt` instead.
+                        if (f.code == Codes.SET_TILT_STATE) {
+                            val tilt = TiltCodec.parse(f)
+                            if (tilt != null) {
+                                // tryEmit returns false only if the
+                                // SharedFlow buffer is full AND onBufferOverflow
+                                // is SUSPEND. With Channel.BUFFERED (64)
+                                // capacity this is effectively impossible in
+                                // practice — the controller samples on a
+                                // millisecond cadence while 538s arrive at
+                                // ~10 Hz. If it ever does happen we lose
+                                // exactly one sample, which is preferable to
+                                // blocking the socket reader.
+                                _tilt.tryEmit(
+                                    TiltSample(
+                                        pitchDeg = tilt.pitchDeg,
+                                        rollDeg = tilt.rollDeg,
+                                        timestampMs = currentEpochMillis(),
+                                    ),
+                                )
+                            }
+                            continue
+                        }
                         _frames.value = f
                         val waiter = synchronized(pending) { pending.remove(f.code) }
                         if (waiter != null) {

@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.format2
+import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.path.defaultSessionPath
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -41,6 +43,14 @@ import dev.openpolaris.core.domain.format2
  *
  * Phone portrait: everything fits without scrolling.
  * Wide/landscape: same fixed view with a vertical call-out rail on the right.
+ *
+ * @param viewModel optional pre-built [AppViewModel]. Production Android
+ *   hosts (3c.4) build the VM in `MainActivity.onCreate` so they can hold a
+ *   reference for `onResume` (to fire [AppViewModel.tryReconnectIfMarkerExists])
+ *   and pass the same instance into the composable. Desktop / tests omit
+ *   this argument; a fresh VM is constructed from [sessionStore] +
+ *   [connectionFactory] (or the default
+ *   `SessionStore(defaultSessionPath())` if [sessionStore] is also null).
  */
 @Composable
 fun OpenPolarisApp(
@@ -48,9 +58,16 @@ fun OpenPolarisApp(
     connectionFactory: () -> Connection,
     onFindWifi: (() -> Unit)? = null,
     onLaunchVr: (() -> Unit)? = null,
+    viewModel: AppViewModel? = null,
+    sessionStore: SessionStore? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val vm = AppViewModel(scope, connectionFactory)
+    val vm: AppViewModel = viewModel
+        ?: AppViewModel(
+            scope = scope,
+            connectionFactory = connectionFactory,
+            sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
+        )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
@@ -91,6 +108,12 @@ fun OpenPolarisApp(
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
+
+            // 3c.4: surface the "Reconnect to last mount?" prompt whenever the
+            // ViewModel populates `reconnectPrompt`. Hosted at the root surface
+            // so the dialog floats above the call-out stack and survives
+            // navigation between Connection/Slew/Helpers dialogs.
+            ReconnectDialog(vm)
         }
     }
 }

@@ -9,9 +9,16 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import dev.openpolaris.core.domain.PreviewController
@@ -77,8 +84,57 @@ class VRActivity : ComponentActivity() {
             setEGLContextClientVersion(2)
             setRenderer(renderer)
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+            // GLSurfaceView is not clickable by default; explicit isClickable=false
+            // ensures touches pass through to the FrameLayout's onClickListener
+            // (and not to this view, which has no listener and would otherwise
+            // swallow the event).
+            isClickable = false
         }
-        setContentView(glView)
+        val root = FrameLayout(this).apply {
+            addView(
+                glView,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            // Tap anywhere on the VR view to exit. Useful when the screen
+            // is inside a Cardboard-class viewer and the back button is
+            // hard to find. The GL view is the click target; the hint
+            // TextView is not (it would dismiss the hint the moment the
+            // user tried to tap-to-exit).
+            isClickable = true
+            setOnClickListener { finish() }
+        }
+        val hint = TextView(this).apply {
+            text = "Tilt your head to recenter — tap to exit"
+            setTextColor(Color.WHITE)
+            setShadowLayer(6f, 0f, 0f, Color.BLACK)
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            // Translucent black background so the hint is legible over
+            // arbitrary camera content (e.g. a bright sky).
+            setBackgroundColor(0x66000000.toInt())
+            setPadding(48, 24, 48, 24)
+        }
+        root.addView(
+            hint,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            ),
+        )
+        setContentView(root)
+
+        // Fade the hint out after 2 seconds. We don't remove it from the
+        // view tree — the user can still see it briefly if they re-enter
+        // the activity. A delayed alpha animation is enough.
+        Handler(Looper.getMainLooper()).postDelayed({
+            hint.animate().alpha(0f).setDuration(400L).withEndAction {
+                hint.visibility = View.GONE
+            }.start()
+        }, 2_000L)
 
         preview = PreviewController(parent = lifecycleScope.coroutineContext[Job])
         preview.start(host, 8080)

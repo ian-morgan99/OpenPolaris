@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,8 +19,8 @@ import dev.openpolaris.core.protocol.Codes
 @OptIn(ExperimentalCoroutinesApi::class)
 class AutoLevelControllerTest {
 
-    private fun newSession(conn: FakeConnection): Pair<MountSession, AutoLevelController> {
-        val s = MountSession({ conn })
+    private fun newSession(conn: FakeConnection, scope: kotlinx.coroutines.CoroutineScope): Pair<MountSession, AutoLevelController> {
+        val s = MountSession({ conn }, readerScope = scope)
         return s to AutoLevelController(s)
     }
 
@@ -27,77 +28,84 @@ class AutoLevelControllerTest {
     fun refreshEnabledParsesEnField() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&547&2&en:1;#".toByteArray(Charsets.US_ASCII)
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val v = a.refreshEnabled()
         assertEquals(true, v)
         assertEquals(true, a.isEnabled.value)
+        s.disconnect()
     }
 
     @Test
     fun refreshEnabledParsesZero() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&547&2&en:0;#".toByteArray(Charsets.US_ASCII)
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val v = a.refreshEnabled()
         assertEquals(false, v)
+        s.disconnect()
     }
 
     @Test
     fun refreshEnabledTimeoutYieldsNull() = runTest {
         val conn = FakeConnection()
         // no responses queued
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val v = a.refreshEnabled()
         assertNull(v)
+        s.disconnect()
     }
 
     @Test
     fun setEnabledSendsExpectedPayload() = runTest {
         val conn = FakeConnection()
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         a.setEnabled(true)
         a.setEnabled(false)
         assertEquals("1&548&2&en:1;#", String(conn.written[1], Charsets.US_ASCII))
         assertEquals("1&548&2&en:0;#", String(conn.written[2], Charsets.US_ASCII))
         assertEquals(false, a.isEnabled.value)
+        s.disconnect()
     }
 
     @Test
     fun runSendsTrigger() = runTest {
         val conn = FakeConnection()
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         a.run()
         assertEquals("1&549&2&-100#", String(conn.written[1], Charsets.US_ASCII))
         assertTrue(a.isRunning.value)
+        s.disconnect()
     }
 
     @Test
     fun readTiltParsesPitchAndRoll() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&537&2&pitch:0.25;roll:-0.10;#".toByteArray(Charsets.US_ASCII)
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val t = a.readTilt()
         assertNotNull(t)
         assertEquals(0.25, t.pitchDeg, 1e-6)
         assertEquals(-0.10, t.rollDeg, 1e-6)
         assertTrue(t.withinTolerance)
+        s.disconnect()
     }
 
     @Test
     fun tiltOutOfToleranceFlagged() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&537&2&pitch:1.20;roll:0.00;#".toByteArray(Charsets.US_ASCII)
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val t = a.readTilt()
         assertNotNull(t)
         assertFalse(t.withinTolerance)
+        s.disconnect()
     }
 
     @Test
@@ -108,13 +116,18 @@ class AutoLevelControllerTest {
         // would have emitted this through its reader loop; for the test we
         // just feed the parser response and rely on the controller's collect
         // to update the StateFlow when frames change.
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val scope = CoroutineScope(dispatcher)
         a.start(scope)
         // Force a frame via session.frames by responding to a request first.
         conn.responses += "1&537&2&pitch:0.10;roll:0.05;#".toByteArray(Charsets.US_ASCII)
         a.readTilt()
+        // Disconnect BEFORE advanceUntilIdle so the reader hot-loop is cancelled;
+        // otherwise advanceUntilIdle would never return (it waits for the
+        // continuously-rescheduling reader to quiesce, which it never does).
+        a.stop()
+        s.disconnect()
         advanceUntilIdle()
         assertNotNull(a.tilt.value)
         assertTrue(a.tilt.value!!.withinTolerance)
@@ -123,7 +136,7 @@ class AutoLevelControllerTest {
     @Test
     fun runClearsWhenTiltArrives() = runTest {
         val conn = FakeConnection()
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         a.run()
         assertTrue(a.isRunning.value)
@@ -132,6 +145,7 @@ class AutoLevelControllerTest {
         // so this just confirms that calling run() flips isRunning on; the
         // full happy-path is exercised on hardware.
         assertTrue(a.isRunning.value)
+        s.disconnect()
     }
 
     // -------------------------------------------------------------------------
@@ -161,8 +175,9 @@ class AutoLevelControllerTest {
     private fun newSessionWithSource(
         conn: FakeConnection,
         source: QueueSampleSource,
+        scope: kotlinx.coroutines.CoroutineScope,
     ): Pair<MountSession, AutoLevelController> {
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = scope)
         return s to AutoLevelController(s, sampleSource = { source.next() })
     }
 
@@ -172,7 +187,7 @@ class AutoLevelControllerTest {
         val samples = List(AutoLevelController.SETTLE_WINDOW) {
             AutoLevelController.Tilt(pitchDeg = 0.001 * it, rollDeg = 0.0)
         }
-        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples))
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples), this)
         s.connect()
 
         val result = a.runAndAwait(5.seconds)
@@ -187,6 +202,7 @@ class AutoLevelControllerTest {
         assertTrue(conn.written.isNotEmpty(), "expected the 549 trigger to be sent")
         val trigger = String(conn.written.last(), Charsets.US_ASCII)
         assertTrue(trigger.contains("549"), "expected a 549 frame, got: $trigger")
+        s.disconnect()
     }
 
     @Test
@@ -199,12 +215,13 @@ class AutoLevelControllerTest {
         val samples = (0 until 50).map {
             AutoLevelController.Tilt(pitchDeg = 0.5 + 0.01 * it, rollDeg = -0.3)
         }
-        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples, step = 100.milliseconds))
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples, step = 100.milliseconds), this)
         s.connect()
 
         val result = a.runAndAwait(2.seconds)
 
         assertEquals(AutoLevelController.AutoLevelResult.TimedOut, result)
+        s.disconnect()
     }
 
     @Test
@@ -215,12 +232,13 @@ class AutoLevelControllerTest {
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
         )
-        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples))
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples), this)
         s.connect()
 
         val result = a.runAndAwait(2.seconds)
 
         assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
+        s.disconnect()
     }
 
     // -------------------------------------------------------------------------
@@ -239,7 +257,7 @@ class AutoLevelControllerTest {
     fun gimbalPosFrame517DoesNotFeedTilt() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val conn = FakeConnection()
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val scope = CoroutineScope(dispatcher)
         a.start(scope)
@@ -253,6 +271,9 @@ class AutoLevelControllerTest {
                 fields = mapOf("pitch" to "99.9", "roll" to "99.9"),
             )
         )
+        runCurrent()
+        a.stop()
+        s.disconnect()
         advanceUntilIdle()
 
         assertNull(a.tilt.value, "517 frame must not update the tilt StateFlow")
@@ -262,7 +283,7 @@ class AutoLevelControllerTest {
     fun tiltStateFrame538DoesFeedTilt() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val conn = FakeConnection()
-        val (s, a) = newSession(conn)
+        val (s, a) = newSession(conn, this)
         s.connect()
         val scope = CoroutineScope(dispatcher)
         a.start(scope)
@@ -274,6 +295,11 @@ class AutoLevelControllerTest {
                 fields = mapOf("pitch" to "0.12", "roll" to "-0.05"),
             )
         )
+        // Let the collect block fire on the test scheduler before tearing down;
+        // otherwise the StateFlow update is cancelled mid-flight.
+        runCurrent()
+        a.stop()
+        s.disconnect()
         advanceUntilIdle()
 
         val tilt = a.tilt.value

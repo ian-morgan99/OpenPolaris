@@ -50,7 +50,7 @@ class MountSessionTest {
     @Test
     fun requestBeforeConnectRecordsLastError() = runTest {
         val conn = FakeConnection()
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = this)
         val result = s.request(517) { f -> ResponseParser().parseFrame("1&517&2&yaw:0;pitch:0;roll:0;")?.let { GimbalPosition.fromFrame517(it) } }
         assertIs<MountSession.CmdResult.ProtocolError>(result)
         val err = assertIs<MountSession.CmdResult.ProtocolError>(s.lastError)
@@ -60,7 +60,7 @@ class MountSessionTest {
     @Test
     fun successfulConnectClearsLastError() = runTest {
         val conn = FakeConnection()
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = this)
         // First, record an error
         s.request(517) { _ -> null }
         assertEquals(false, s.lastError == null)
@@ -70,12 +70,13 @@ class MountSessionTest {
         val ok = s.connect()
         assertEquals(true, ok)
         assertNull(s.lastError)
+        s.disconnect()
     }
 
     @Test
     fun socketDropSetsLastErrorOnNextRequest() = runTest {
         val conn = FakeConnection()
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = this)
         // Connect successfully
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         s.connect()
@@ -87,12 +88,13 @@ class MountSessionTest {
         val err = assertIs<MountSession.CmdResult.ProtocolError>(s.lastError)
         // The FakeConnection's IOException message is "socket closed"
         assertEquals("socket closed", err.message)
+        s.disconnect()
     }
 
     @Test
     fun reconnectAfterDropClearsLastError() = runTest {
         val conn = FakeConnection()
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         s.connect()
         conn.dropped = true
@@ -105,12 +107,13 @@ class MountSessionTest {
         s.disconnect()
         s.connect()
         assertNull(s.lastError)
+        s.disconnect()
     }
 
     @Test
     fun sendBeforeConnectAlsoRecordsLastError() = runTest {
         val conn = FakeConnection()
-        val s = MountSession({ conn })
+        val s = MountSession({ conn }, readerScope = this)
         s.send(500, "dir:1;speed:1;")
         val err = assertIs<MountSession.CmdResult.ProtocolError>(s.lastError)
         assertEquals("not connected", err.message)

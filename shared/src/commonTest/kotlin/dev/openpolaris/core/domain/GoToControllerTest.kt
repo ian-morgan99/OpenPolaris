@@ -8,9 +8,9 @@ import kotlin.test.assertTrue
 
 class GoToControllerTest {
 
-    private fun newRig(): Triple<FakeConnection, MountSession, GoToController> {
+    private fun newRig(scope: kotlinx.coroutines.CoroutineScope): Triple<FakeConnection, MountSession, GoToController> {
         val conn = FakeConnection()
-        val session = MountSession({ conn })
+        val session = MountSession({ conn }, readerScope = scope)
         val tracking = TrackingController(session)
         return Triple(conn, session, GoToController(session, tracking))
     }
@@ -32,7 +32,7 @@ class GoToControllerTest {
 
     @Test
     fun `goToRaDec sends corrected az alt frame`() = runTest {
-        val (conn, session, c) = newRig()
+        val (conn, session, c) = newRig(this)
         session.connect()
 
         // Known transform: RA=LST (HA=0), Dec=+30 at lat 0 ->
@@ -48,6 +48,7 @@ class GoToControllerTest {
         assertTrue(frame.contains("&519&"), "expected goto 519 frame, got $frame")
         assertTrue(frame.contains("alt:60."), "altitude should be ~60, got $frame")
         assertTrue(frame.contains("az:0."), "azimuth should be ~0, got $frame")
+        session.disconnect()
     }
 
     @Test

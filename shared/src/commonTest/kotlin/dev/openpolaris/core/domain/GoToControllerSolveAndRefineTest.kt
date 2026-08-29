@@ -71,7 +71,7 @@ class GoToControllerSolveAndRefineTest {
     @Test
     fun solveAndRefineSendsGotoFrame() = runTest {
         val conn = FakeConnection()
-        val session = MountSession({ conn })
+        val session = MountSession({ conn }, readerScope = this)
         val tracking = TrackingController(session)
         val controller = GoToController(session, tracking)
         session.connect()
@@ -107,7 +107,12 @@ class GoToControllerSolveAndRefineTest {
         // A 519 frame must have been written. Since the mount is
         // already at the cluster, the corrective nudge should be near
         // zero — but the frame still must be emitted.
-        val gotoFrames = conn.written.map { it.decodeToString() }.filter { it.contains("&519&") }
-        assertTrue(gotoFrames.isNotEmpty(), "expected a 519 goto frame, got ${conn.written.size} writes")
+        val allWrites = conn.written.map { it.decodeToString() }
+        val gotoFrames = allWrites.filter { it.contains("&519&") }
+        assertTrue(
+            gotoFrames.isNotEmpty(),
+            "expected a 519 goto frame, got ${conn.written.size} writes: $allWrites",
+        )
+        session.disconnect()
     }
 }

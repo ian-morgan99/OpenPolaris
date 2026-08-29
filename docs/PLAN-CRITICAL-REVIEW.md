@@ -278,6 +278,13 @@ A first-class implementation needs:
 
 This makes "first class" measurable.
 
+> **Spec error (flagged at implementation time, 2026-05).** The
+> `subscribes to the existing position push (517)` line above is **wrong** per
+> [`Codes.kt`](../shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt):
+> `517 = GET_GIMBAL_POS` (RA/Dec), not tilt. The auto-level controller must consume the
+> tilt-state push, which is `SET_TILT_STATE = 538`. The implementation reads 538; this
+> paragraph should be corrected when §F is next touched.
+
 ---
 
 ## §G - VR backlog lives in checkpoint 119, not in the plan

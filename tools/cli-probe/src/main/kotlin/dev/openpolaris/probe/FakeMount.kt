@@ -19,11 +19,28 @@ import kotlin.concurrent.thread
  * to send a newline. We still use a small `BufferedReader` for line-oriented
  * clients, but tolerate the absence of a `\n` and split on `#` ourselves.
  *
+ * Auto-level trigger (code 549) emulation: when the controller starts an
+ * auto-level cycle, the real mount starts streaming 538 push frames as the
+ * head physically settles. To exercise the controller's settling predicate
+ * end-to-end we mirror that here by emitting a `ramp → settled → done`
+ * sequence of 538 frames spaced ~100ms apart over [timeToSettleMs]
+ * milliseconds. The settled phase keeps the tilt within ±0.01° so the
+ * controller's `SETTLE_WINDOW=10` predicate triggers cleanly.
+ *
  * This is for offline self-test of the probe only. Real payloads for codes
  * 537..548 are not implemented here — those should run against the physical
  * mount.
+ *
+ * @param timeToSettleMs How long the simulated auto-level cycle should take
+ *   to settle, in milliseconds. Total 538 push frames ≈
+ *   `timeToSettleMs / 100`; the first third is the ramp (drifting tilt),
+ *   the rest is the settled phase (tilt within ±0.01°).
  */
-class FakeMount(private val port: Int, private val host: String = "127.0.0.1") {
+class FakeMount(
+    private val port: Int,
+    private val host: String = "127.0.0.1",
+    private val timeToSettleMs: Long = 5000,
+) {
     private val running = AtomicBoolean(false)
     private var server: ServerSocket? = null
 
@@ -81,14 +98,34 @@ class FakeMount(private val port: Int, private val host: String = "127.0.0.1") {
                     out.write(reply)
                     out.newLine()
                     out.flush()
-                    // Mirror the real mount: an auto-level trigger (549) eventually
-                    // surfaces a tilt push (538) on the wire. Send one so the
-                    // controller's `isRunning` flag can drop back to false.
+                    // Mirror the real mount: an auto-level trigger (549) starts a
+                    // sustained push of 538 frames as the gimbal physically
+                    // settles. Emit a ramp → settled sequence so the controller's
+                    // settling predicate (SETTLE_WINDOW=10 samples within
+                    // ±0.01° of the running mean) can converge end-to-end.
                     if (parsed.code == 549) {
-                        Thread.sleep(50)
-                        out.write("1&538&2&pitch:0.10;roll:-0.05;#")
-                        out.newLine()
-                        out.flush()
+                        val total = (timeToSettleMs / 100L).toInt().coerceAtLeast(1)
+                        val rampCutoff = total / 3
+                        for (i in 0 until total) {
+                            Thread.sleep(100)
+                            val (pitch, roll) = if (i < rampCutoff) {
+                                // Ramp: start with a large offset and let the
+                                // controller observe a clearly-drifting signal.
+                                val t = i.toDouble() / rampCutoff.coerceAtLeast(1)
+                                val pitch = 0.5 - 0.5 * t
+                                val roll = -0.3 + 0.3 * t
+                                pitch to roll
+                            } else {
+                                // Settled: jitter within ±0.005° of zero.
+                                val jitter = ((i * 37) % 7).toDouble() / 1000.0 - 0.003
+                                val pitch = jitter
+                                val roll = -jitter
+                                pitch to roll
+                            }
+                            out.write("1&538&2&pitch:${"%.3f".format(pitch)};roll:${"%.3f".format(roll)};#")
+                            out.newLine()
+                            out.flush()
+                        }
                     }
                 }
             }

@@ -464,11 +464,19 @@ class AppViewModel(
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
     }
 
-    /** Trigger one auto-level cycle (code 549). */
+    /** Trigger one auto-level cycle (code 549) and surface the settling result. */
     fun runAutoLevel() = scope.launch {
         val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
-        c.run()
-        statusMessage = "Auto-level started"
+        statusMessage = "Auto-level started…"
+        val result = c.runAndAwait()
+        statusMessage = when (result) {
+            is dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.Completed ->
+                "Auto-level settled at roll=${"%.3f".format(result.rollDeg)}°, pitch=${"%.3f".format(result.pitchDeg)}°"
+            is dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.Failed ->
+                "Auto-level failed: ${result.reason}"
+            dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.TimedOut ->
+                "Auto-level timed out before settling"
+        }
     }
 
     /** Reset gimbal position reference (code 523). */

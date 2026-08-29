@@ -11,6 +11,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AutoLevelControllerTest {
@@ -129,5 +131,94 @@ class AutoLevelControllerTest {
         // so this just confirms that calling run() flips isRunning on; the
         // full happy-path is exercised on hardware.
         assertTrue(a.isRunning.value)
+    }
+
+    // -------------------------------------------------------------------------
+    // Issue #5 settling tests
+    // -------------------------------------------------------------------------
+    //
+    // The production reader loop in MountSession is driven by `request()`, not
+    // by a background reader, so we cannot inject 538 frames into
+    // `session.frames` without sending a real command. To exercise the
+    // settling predicate end-to-end on the JVM we pass a queue-based
+    // sampleSource to AutoLevelController and assert against
+    // AutoLevelResult. The trigger frame is still observed on the wire via
+    // `conn.written` to prove the controller called 549.
+
+    /** Queue-backed sample source that returns the next tilt or null when drained. */
+    private class QueueSampleSource(
+        samples: List<AutoLevelController.Tilt>,
+        private val step: kotlin.time.Duration = 0.seconds,
+    ) {
+        private val q = ArrayDeque(samples)
+        suspend fun next(): AutoLevelController.Tilt? {
+            if (step > 0.seconds) kotlinx.coroutines.delay(step)
+            return q.removeFirstOrNull()
+        }
+    }
+
+    private fun newSessionWithSource(
+        conn: FakeConnection,
+        source: QueueSampleSource,
+    ): Pair<MountSession, AutoLevelController> {
+        val s = MountSession({ conn })
+        return s to AutoLevelController(s, sampleSource = { source.next() })
+    }
+
+    @Test
+    fun runSettlesWhenTiltIsSteady() = runTest {
+        val conn = FakeConnection()
+        val samples = List(AutoLevelController.SETTLE_WINDOW) {
+            AutoLevelController.Tilt(pitchDeg = 0.001 * it, rollDeg = 0.0)
+        }
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples))
+        s.connect()
+
+        val result = a.runAndAwait(5.seconds)
+
+        assertTrue(result is AutoLevelController.AutoLevelResult.Completed)
+        result as AutoLevelController.AutoLevelResult.Completed
+        // All 10 samples have roll == 0 so the mean roll must be 0.0 exactly.
+        assertEquals(0.0, result.rollDeg, 1e-9)
+        // Pitch samples step by 0.001 deg; mean of 0..0.009 is 0.0045.
+        assertEquals(0.0045, result.pitchDeg, 1e-9)
+        // The 549 trigger must have been sent on the wire.
+        assertTrue(conn.written.isNotEmpty(), "expected the 549 trigger to be sent")
+        val trigger = String(conn.written.last(), Charsets.US_ASCII)
+        assertTrue(trigger.contains("549"), "expected a 549 frame, got: $trigger")
+    }
+
+    @Test
+    fun runTimesOutWhenTiltKeepsMoving() = runTest {
+        val conn = FakeConnection()
+        // Emit samples that keep drifting so the predicate can never settle.
+        // Step the source 100ms between samples; with a 2s timeout the
+        // 2.0-second budget will elapse long before all 50 samples drain,
+        // exercising the withTimeout branch.
+        val samples = (0 until 50).map {
+            AutoLevelController.Tilt(pitchDeg = 0.5 + 0.01 * it, rollDeg = -0.3)
+        }
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples, step = 100.milliseconds))
+        s.connect()
+
+        val result = a.runAndAwait(2.seconds)
+
+        assertEquals(AutoLevelController.AutoLevelResult.TimedOut, result)
+    }
+
+    @Test
+    fun runFailsWhenSourceIsExhausted() = runTest {
+        val conn = FakeConnection()
+        // Fewer samples than the window; the source dries up.
+        val samples = listOf(
+            AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
+            AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
+        )
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples))
+        s.connect()
+
+        val result = a.runAndAwait(2.seconds)
+
+        assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
     }
 }

@@ -98,7 +98,8 @@ slice, and the user runs the hardware ones at each gate.
 - Every controller has a JVM test that runs without hardware.
 - `./gradlew :shared:jvmTest :composeApp:jvmTest` is green on every PR; the `smoke` task is the
   gate.
-- `cli-probe --fake` runs every controller end-to-end and exits 0 in < 30 s.
+- `cli-probe` smoke tests (`:tools:cli-probe:test`) run every controller end-to-end through a
+  real socket against `FakeMount` on an ephemeral port and exit 0 in < 30 s.
 - `cli-probe --real` is runnable by the user manually and produces a clean PASS/FAIL report per
   command.
 
@@ -127,7 +128,8 @@ slice, and the user runs the hardware ones at each gate.
 
 ### Platform coverage
 - JVM target: full controller test coverage.
-- Android target: smoke-tested in `cli-probe --fake` plus a manual on-device test plan.
+- Android target: smoke-tested via `cli-probe` JVM tests (which use a real socket against
+  `FakeMount`) plus a manual on-device test plan.
 - iOS / desktop targets: build succeeds; controllers compile; no runtime validation needed for
   v1 (out of scope).
 
@@ -136,8 +138,11 @@ slice, and the user runs the hardware ones at each gate.
 A commit is mergeable when **all six** of these hold:
 
 1. `./gradlew :shared:jvmTest :composeApp:jvmTest` is green.
-2. `./gradlew :tools:cli-probe:test` is green (FakeMount end-to-end).
-3. `./gradlew :tools:cli-probe:run --args="--fake"` exits 0 (the 30-command scripted smoke).
+2. `./gradlew :tools:cli-probe:test` is green (FakeMount end-to-end over a real socket — the
+   `ProbeSmokeTest` harness starts `FakeMount` on an ephemeral port and drives every controller
+   through the production `MountSession` API).
+3. `./gradlew :tools:cli-probe:run` runs cleanly in every supported mode
+   (`status|send|burst|listen|preview-smoke`); no syntactic mode rename / flag drift.
 4. If the change touches `androidApp/`, the user has confirmed `:androidApp:assembleDebug` on
    `beast`.
 5. The commit message names the stream / todo it advances.
@@ -191,15 +196,43 @@ agent, etc.). The plan is the source of truth for this rule.
 Open issues, in priority order. Tracked in the session todo mirror and on
 [GitHub issues](https://github.com/ian-morgan99/OpenPolaris/issues):
 
-- **#2 — non-functional acceptance bars** *(this commit)*. Folds §B + §C + §D into the live
-  plan.
-- **#5 — AutoLevel settling condition quantified** ([PLAN-CRITICAL-REVIEW.md §F](./PLAN-CRITICAL-REVIEW.md#f-stream-11-settling-condition-not-quantified)).
-  3 JVM tests + a `timeout` parameter on the controller. Code, not docs.
+- **#5 — AutoLevel settling condition quantified** ([PLAN-CRITICAL-REVIEW.md §F](./PLAN-CRITICAL-REVIEW.md#f-stream-11-settling-condition-not-quantified))
+  *(shipped, awaiting close)*. `AutoLevelController.run(timeout: Duration = 60.seconds)` returns
+  `AutoLevelResult = Completed(rollDeg, pitchDeg) | Failed(reason) | TimedOut`. Settling predicate
+  is **10 consecutive samples within ±0.01° of the running mean of (roll, pitch) on the tilt-state
+  push (538)**, not the RA/Dec position push (517) — see [Spec error §F](#spec-error-§f-517538)
+  below. 12 JVM tests, all green; `FakeMount` now emits a sustained ramp→settled 538 stream
+  (configurable via `timeToSettleMs`).
 - **#3 — session pause/resume hardening** ([PLAN-CRITICAL-REVIEW.md §J](./PLAN-CRITICAL-REVIEW.md#j-there-is-no-pause-and-resume-session-story-for-the-controllers)).
   Four sub-tasks: (9.1) `Session.shutdown()` symmetric to `Session.connect()`, (9.2) `AppViewModel.disconnect()`,
-  (9.3) `onResume` reconnect, (9.4) JVM test for lifecycle. Defer until #5 lands so the mount
-  contract is stable first. The sub-task list above is the slice-boundary contract — shipping #3
-  means shipping 9.1-9.4, not just `shutdown()`.
+  (9.3) `onResume` reconnect, (9.4) JVM test for lifecycle. Ready to start now that #5's mount
+  contract is stable. The sub-task list above is the slice-boundary contract — shipping #3 means
+  shipping 9.1-9.4, not just `shutdown()`.
+
+**Closed (recent):**
+- **#2 — non-functional acceptance bars** (shipped `4683ebf`): folds §B + §C + §D into the live
+  plan.
+- **#4 — `MountSession.lastError` ownership** (shipped `bcfc6e6` / `ea53bf0`, closed during the
+  #2 refresh).
+
+### Spec error §F (517/538)
+
+Both issue #5 and [PLAN-CRITICAL-REVIEW §F](./PLAN-CRITICAL-REVIEW.md#f-stream-11-settling-condition-not-quantified)
+spec the settling source as "the existing 517 position push." **This is wrong.** Per
+[`Codes.kt`](../../shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt), `517` is
+`GET_GIMBAL_POS` (RA/Dec gimbal position), not tilt. The auto-level controller must consume the
+tilt-state push, which is `SET_TILT_STATE = 538`. The implementation reads 538. This error does
+not block #5, but the spec wording in #5 and §F should be corrected when the issue is next
+touched.
+
+### Production gap: `MountSession` has no background reader
+
+`AutoLevelController.runAndAwait(timeout)` works in tests (the test source injects frames
+directly) and in `cli-probe` (the harness's per-call `request()` is the reader). On real
+hardware, `MountSession.request()` owns a per-call reader loop and there is no background reader
+that would let `runAndAwait` consume the 538 push frames. The settling predicate is correct;
+the data path from socket → controller still needs a session-level background reader. This is
+a new follow-up issue (likely the first item of #3, or a new #6), not part of #5's scope.
 
 Known follow-up tickets (not yet filed): the MJPEG-decode-on-GL-thread issue
 ([PLAN-CRITICAL-REVIEW.md §I](./PLAN-CRITICAL-REVIEW.md#i-mjpeg-decode-on-the-gl-thread-is-unowned))
@@ -237,7 +270,11 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
   - §C (regression gate) — **shipped into this file**, see "Definition of mergeable" above.
   - §D (`ask_user` budget) — **shipped into this file**, see "Definition of unblockable" above.
   - §E (iOS / desktop test surface) — open; the bars above scope iOS/desktop to "build succeeds".
-  - §F (AutoLevel settling) — open as issue #5.
+  - §F (AutoLevel settling) — **shipped in this slice** (12/12 JVM tests, sealed `AutoLevelResult`,
+    injectable `sampleSource`, `runAndAwait(timeout)`, `AppViewModel` wired, `FakeMount` ramp→settled
+    538 stream). Note the [517/538 spec error](#spec-error-§f-517538) flagged in both #5 and §F.
+    Production gap: real-hardware `MountSession` has no background reader; this is a follow-up
+    issue.
   - §G (VR backlog) — open, 7.1-7.3 shipped; 7.4-7.10 outstanding.
   - §H (MountSession.lastError) — shipped (`bcfc6e6` / `ea53bf0`), issue #4 closed (during the
     issue #2 refresh — the prior close-out comment was posted but the `gh issue close` was
@@ -247,8 +284,12 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
 
 ## Immediate next actions
 
-1. Scaffold repo structure per ARCHITECTURE.md §2.
-2. Implement protocol layer + golden tests (Phase 0).
-3. Build cli-probe and book the first hardware session for Gate G1.
-4. Issue #5: ship the AutoLevel settling condition with tests; this unblocks issue #3 (session
-   pause/resume) and is the next code change.
+1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE (12/12 JVM tests, code
+   slice, awaiting close).**
+2. **Issue #3 (next code slice): session pause/resume hardening** — four sub-tasks (9.1-9.4) per
+   PLAN-CRITICAL-REVIEW §J. Blocked only on real-hardware validation (sub-task 9.4 needs an
+   Android lifecycle harness to confirm `onResume` reconnect; the JVM test that ships in 9.4 will
+   cover the session contract).
+3. **New follow-up: `MountSession` background reader** — without this, `AutoLevelController.runAndAwait`
+   cannot work on real hardware. Should be filed before or alongside #3, since #3's reconnect
+   contract is the natural place to introduce the session-level reader.

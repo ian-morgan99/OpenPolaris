@@ -307,4 +307,115 @@ class AutoLevelControllerTest {
         assertEquals(0.12, tilt.pitchDeg, 1e-6)
         assertEquals(-0.05, tilt.rollDeg, 1e-6)
     }
+
+    // -------------------------------------------------------------------------
+    // Issue #7 slice 3a — stop() + restart contract
+    // -------------------------------------------------------------------------
+    //
+    // AutoLevelController owns a single `observeJob` over session.frames and
+    // exposes `start(scope)` / `stop()`. The contract is:
+    //   * `stop()` is idempotent — calling it twice must not throw and must
+    //     leave `isRunning == false`.
+    //   * `_tilt.value` is a long-lived cache of the last-known envelope. It
+    //     must survive a `stop()` so observers (UI, plateau logic) can keep
+    //     showing the last reading even after unsubscribing.
+    //   * After `stop()` the controller must be re-startable: a fresh
+    //     `start(newScope)` must install a new collector and a subsequent 538
+    //     frame must update `_tilt`. There must be no leaked frameJob from
+    //     the first subscription (only one collector should be live).
+
+    @Test
+    fun stopIsIdempotent() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conn = FakeConnection()
+        val (s, a) = newSession(conn, this)
+        s.connect()
+        val scope = CoroutineScope(dispatcher)
+        a.start(scope)
+        a.run() // flips isRunning → true
+
+        a.stop()
+        a.stop() // second call must not throw
+
+        assertFalse(a.isRunning.value, "isRunning must be false after stop()")
+        runCurrent()
+        a.stop() // a third call, after the scheduler has caught up, is also safe
+        assertFalse(a.isRunning.value)
+        s.disconnect()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun tiltValueSurvivesStop() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conn = FakeConnection()
+        val (s, a) = newSession(conn, this)
+        s.connect()
+        val scope = CoroutineScope(dispatcher)
+        a.start(scope)
+
+        s.publishFrameForTest(
+            dev.openpolaris.core.protocol.ResponseParser.Frame(
+                code = Codes.SET_TILT_STATE,
+                fields = mapOf("pitch" to "0.30", "roll" to "0.10"),
+            )
+        )
+        runCurrent()
+        val captured = a.tilt.value
+        assertNotNull(captured, "538 frame must populate tilt before stop()")
+        assertEquals(0.30, captured.pitchDeg, 1e-6)
+
+        a.stop()
+        // After stop() the last-known tilt must still be readable.
+        val afterStop = a.tilt.value
+        assertNotNull(afterStop, "_tilt.value must survive stop() — UI observers may still read it")
+        assertEquals(0.30, afterStop.pitchDeg, 1e-6)
+        assertEquals(0.10, afterStop.rollDeg, 1e-6)
+
+        s.disconnect()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun restartAfterStopReceivesNewFrame() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conn = FakeConnection()
+        val (s, a) = newSession(conn, this)
+        s.connect()
+        val scopeA = CoroutineScope(dispatcher + kotlinx.coroutines.Job())
+        a.start(scopeA)
+
+        // First 538 under scopeA: pitch=0.10
+        s.publishFrameForTest(
+            dev.openpolaris.core.protocol.ResponseParser.Frame(
+                code = Codes.SET_TILT_STATE,
+                fields = mapOf("pitch" to "0.10", "roll" to "0.00"),
+            )
+        )
+        runCurrent()
+        assertEquals(0.10, a.tilt.value!!.pitchDeg, 1e-6)
+
+        a.stop()
+        // The collector for scopeA is cancelled. Now reopen with a fresh scope
+        // and publish a new frame — the controller must see it.
+        val scopeB = CoroutineScope(dispatcher + kotlinx.coroutines.Job())
+        a.start(scopeB)
+
+        s.publishFrameForTest(
+            dev.openpolaris.core.protocol.ResponseParser.Frame(
+                code = Codes.SET_TILT_STATE,
+                fields = mapOf("pitch" to "0.55", "roll" to "-0.20"),
+            )
+        )
+        runCurrent()
+
+        val afterRestart = a.tilt.value
+        assertNotNull(afterRestart, "restart must re-establish the 538 observer")
+        assertEquals(0.55, afterRestart.pitchDeg, 1e-6)
+        assertEquals(-0.20, afterRestart.rollDeg, 1e-6)
+
+        a.stop()
+        s.disconnect()
+        advanceUntilIdle()
+    }
 }

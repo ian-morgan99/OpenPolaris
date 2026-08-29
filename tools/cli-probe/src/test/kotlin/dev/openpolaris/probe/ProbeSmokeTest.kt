@@ -3,6 +3,7 @@ package dev.openpolaris.probe
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.GoToController
+import dev.openpolaris.core.domain.HelpersController
 import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.PreviewController
@@ -169,6 +170,43 @@ class ProbeSmokeTest {
         val preview = PreviewController()
         assertEquals(PreviewController.State.Idle, preview.state.value)
     }
+
+    @Test
+    fun helpers_round_trip() = runBlocking {
+        h.session.connect()
+
+        // refresh* uses MountSession.request() which does a blocking conn.read() and
+        // a coroutine `delay()` retry — that needs a real dispatcher, not runTest's
+        // virtual time. Same pattern as auto_level_read_tilt_round_trip.
+        withTimeout(5_000) {
+            h.helpers.refreshAll()
+            assertEquals(true, h.helpers.ditherEnabled.value, "FakeMount DITHER_GET should report enabled")
+            assertEquals(2, h.helpers.settlingSeconds.value, "FakeMount SETTLING_TIME_GET should report 2s")
+            assertEquals(true, h.helpers.limitsEnabled.value, "FakeMount LIMITS_GET should report enabled")
+        }
+
+        // Dither toggle — FakeMount echoes state:0|1; HelpersController is optimistic,
+        // updating the local flow from the input.
+        h.helpers.setDither(false)
+        assertEquals(false, h.helpers.ditherEnabled.value)
+        h.helpers.setDither(true)
+        assertEquals(true, h.helpers.ditherEnabled.value)
+
+        // Settling seconds — FakeMount SETTLING_TIME_SET echoes time:N; for any N.
+        h.helpers.setSettling(5)
+        assertEquals(5, h.helpers.settlingSeconds.value)
+        h.helpers.setSettling(0)
+        assertEquals(0, h.helpers.settlingSeconds.value)
+        // Negative input must be clamped to 0 before going on the wire.
+        h.helpers.setSettling(-1)
+        assertEquals(0, h.helpers.settlingSeconds.value)
+
+        // Limits toggle — FakeMount LIMITS_SET echoes limit:0|1;.
+        h.helpers.setLimits(false)
+        assertEquals(false, h.helpers.limitsEnabled.value)
+        h.helpers.setLimits(true)
+        assertEquals(true, h.helpers.limitsEnabled.value)
+    }
 }
 
 /**
@@ -190,6 +228,7 @@ abstract class MountHarness {
     abstract val autoLevel: AutoLevelController
     abstract val alignment: AlignmentController
     abstract val preview: PreviewController
+    abstract val helpers: HelpersController
     abstract fun start()
     abstract fun stop()
 }
@@ -218,6 +257,8 @@ class FakeMountHarness : MountHarness() {
         private set
     override lateinit var preview: PreviewController
         private set
+    override lateinit var helpers: HelpersController
+        private set
 
     override fun start() {
         // 0 → ephemeral port assigned by the OS; the real port is exposed via
@@ -241,6 +282,7 @@ class FakeMountHarness : MountHarness() {
         // PreviewController is independent of the control socket; the harness
         // exposes it for symmetry but tests may also construct their own.
         preview = PreviewController()
+        helpers = HelpersController(session)
     }
 
     override fun stop() {
@@ -280,6 +322,8 @@ class RealMountHarness(
         private set
     override lateinit var preview: PreviewController
         private set
+    override lateinit var helpers: HelpersController
+        private set
 
     override fun start() {
         connection = JvmConnection()
@@ -300,6 +344,7 @@ class RealMountHarness(
         autoLevel = AutoLevelController(session)
         alignment = AlignmentController(session)
         preview = PreviewController()
+        helpers = HelpersController(session)
     }
 
     override fun stop() {

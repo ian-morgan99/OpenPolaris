@@ -4,7 +4,8 @@
     <application
         android:label="Open Polaris"
         android:icon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.OpenPolaris">
+        android:theme="@style/Theme.OpenPolaris"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -15,5 +16,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".VRActivity"
+            android:exported="false"
+            android:label="Open Polaris VR"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|uiMode" />
     </application>
 </manifest>

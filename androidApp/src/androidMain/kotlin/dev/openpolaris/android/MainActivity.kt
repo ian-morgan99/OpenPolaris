@@ -16,10 +16,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val wsc = calculateWindowSizeClass(this)
-            OpenPolarisApp(wsc, { JvmConnection() }) {
-                // Opens the system Wi-Fi picker so the user can join Polaris_XXXX.
-                startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-            }
+            OpenPolarisApp(
+                windowSizeClass = wsc,
+                connectionFactory = { JvmConnection() },
+                onFindWifi = {
+                    // Opens the system Wi-Fi picker so the user can join Polaris_XXXX.
+                    startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                },
+                onLaunchVr = {
+                    startActivity(Intent(this, VRActivity::class.java))
+                },
+            )
         }
     }
 }

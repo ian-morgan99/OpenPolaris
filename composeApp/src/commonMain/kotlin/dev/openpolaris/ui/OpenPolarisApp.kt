@@ -47,6 +47,7 @@ fun OpenPolarisApp(
     windowSizeClass: WindowSizeClass,
     connectionFactory: () -> Connection,
     onFindWifi: (() -> Unit)? = null,
+    onLaunchVr: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm = AppViewModel(scope, connectionFactory)
@@ -67,7 +68,7 @@ fun OpenPolarisApp(
                             JogPane(vm, Modifier.width(260.dp))
                         }
                     }
-                    CalloutRail(vertical = true, Modifier.fillMaxHeight()) { dialog = it }
+                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { dialog = it }
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -76,7 +77,7 @@ fun OpenPolarisApp(
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         JogPane(vm, Modifier.width(220.dp))
                     }
-                    CalloutRail(vertical = false, Modifier.fillMaxWidth()) { dialog = it }
+                    CalloutRail(vertical = false, Modifier.fillMaxWidth(), onLaunchVr) { dialog = it }
                 }
             }
 
@@ -84,6 +85,8 @@ fun OpenPolarisApp(
                 Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
+                Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
@@ -95,20 +98,30 @@ private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
     Slew("Slew"),
     Camera("Cam"),
+    Preview("Preview"),
+    VR("VR"),
     Readme("?"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
 @Composable
-private fun CalloutRail(vertical: Boolean, modifier: Modifier = Modifier, onSelect: (Callout) -> Unit) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Readme)
+private fun CalloutRail(
+    vertical: Boolean,
+    modifier: Modifier = Modifier,
+    onLaunchVr: (() -> Unit)?,
+    onSelect: (Callout) -> Unit,
+) {
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.VR, Callout.Readme)
+    val handle: (Callout) -> Unit = { c ->
+        if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
+    }
     if (vertical) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            items.forEach { c -> CalloutButton(c, onSelect) }
+            items.forEach { c -> CalloutButton(c, handle) }
         }
     } else {
         Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-            items.forEach { c -> CalloutButton(c, onSelect) }
+            items.forEach { c -> CalloutButton(c, handle) }
         }
     }
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -434,21 +435,25 @@ class AutoLevelControllerTest {
     }
 
     // -------------------------------------------------------------------------
-    // Issue #7 3b — runAndAwait coroutine-cancellation contract
+    // Issue #7 3b.5 — runAndAwait coroutine-cancellation contract (revised)
     // -------------------------------------------------------------------------
     //
-    // When the *calling* coroutine is cancelled mid-settle, runAndAwait must
-    // return AutoLevelResult.Failed("cancelled") rather than propagating the
-    // CancellationException. This is the difference between "the user pressed
-    // Stop / the AppViewModel scope was cancelled" (expected to surface as a
-    // result the UI can display) and "the runAndAwait timeout elapsed"
-    // (TimedOut, distinct reason). It also lets callers that have already
-    // moved on (e.g. an Android UI that called launch{} then a new action)
-    // see a normal return value, not a throw.
+    // Revised contract (per issue #7 reviewer comment 5464953376):
+    //   - CancellationException from the *calling* coroutine propagates to
+    //     the caller. Coroutine cancellation is control flow, not an
+    //     application error; converting it to Failed("cancelled") would
+    //     swallow structured cancellation that the rest of the codebase
+    //     relies on.
+    //   - TimeoutCancellationException is still mapped to TimedOut — the
+    //     timeout budget is a domain concept, not coroutine cancellation.
+    //   - _isRunning is ALWAYS cleared in `finally`. MutableStateFlow
+    //     assignment is non-suspending, so cancellation is not a reason to
+    //     suppress this state update.
     //
-    // The contract (issue #7 3b.1): return Failed("cancelled") within 1 s of
-    // the calling coroutine being cancelled.
-    // The contract (issue #7 3b.2): no leftover coroutines after the cancel.
+    // The original 3b contract (Failed("cancelled") on caller cancel) is
+    // explicitly NOT in effect: the tests in this block assert the 3b.5
+    // contract. The contract docstring on runAndAwait
+    // (AutoLevelController.kt) is the source of truth.
 
     /** A sample source that suspends forever until cancelled. */
     private class HangingSampleSource {
@@ -456,80 +461,221 @@ class AutoLevelControllerTest {
     }
 
     /**
-     * Issue #7 3b.1 — cancel mid-runAndAwait must surface as
-     * Failed("cancelled") within 1 second of the calling coroutine being
-     * cancelled, and must NOT throw CancellationException.
+     * Wait until the runner reaches a suspended steady state (active but
+     * not yet completed), or fail the test if the runner exits before
+     * reaching the suspend point.
      *
-     * Uses runBlocking + a real wall-clock withTimeout, because the 1s
-     * contract is about real time, not virtual scheduler time.
+     * Polls `runner.isActive` with `yield()` between checks. The
+     * [maxIterations] bound is a safety net; in practice the runner
+     * reaches the suspend point within a few iterations. This is a
+     * *test-helper* polling loop, not a contract assertion — the 1s/5s
+     * budget assertions in the individual tests below are the real
+     * contract checks.
      */
-    @Test
-    fun runAndAwaitReturnsFailedCancelledWhenCallingScopeIsCancelled() = runBlocking {
-        val conn = FakeConnection()
-        val scope = CoroutineScope(Dispatchers.Default + Job())
-        val s = MountSession({ conn }, readerScope = scope)
-        s.connect()
-        val ctrl = AutoLevelController(s, sampleSource = { HangingSampleSource().next() })
-
-        val outcome = CompletableDeferred<AutoLevelController.AutoLevelResult>()
-        val runner = scope.launch {
-            try {
-                outcome.complete(ctrl.runAndAwait(60.seconds))
-            } catch (e: Throwable) {
-                outcome.completeExceptionally(e)
-            }
-        }
-        // Wait until runAndAwait is actively suspended in awaitSettling.
-        // The hanging source never resumes, so the runner is in a steady state.
-        // We give it a small real-time window to reach the await point.
-        var suspended = false
-        val startedAt = System.currentTimeMillis()
-        while (System.currentTimeMillis() - startedAt < 2_000) {
-            if (!runner.isActive) {
+    private suspend fun waitForSuspend(
+        runner: kotlinx.coroutines.Job,
+        outcome: CompletableDeferred<*>,
+        maxIterations: Int = 1_000,
+    ) {
+        repeat(maxIterations) {
+            if (outcome.isCompleted) {
                 fail("runner exited before reaching the suspend point: $outcome")
             }
-            // Heuristic: yield so the dispatcher runs the runner up to the suspend.
+            if (runner.isActive) return
             kotlinx.coroutines.yield()
-            // If outcome is already completed, the runner never suspended.
-            if (outcome.isCompleted) continue
-            // Check that the runner is now in the cancelling=false, isActive=true,
-            // and not-yet-completed steady state.
-            if (runner.isActive && !outcome.isCompleted) {
-                suspended = true
-                break
-            }
         }
-        assertTrue(suspended, "runner should be suspended on the hanging source")
-
-        val cancelledAtNs = System.nanoTime()
-        runner.cancel()
-        val elapsedMs = measureTimeMillis {
-            val result = withTimeout(1_000) { outcome.await() }
-            assertTrue(
-                result is AutoLevelController.AutoLevelResult.Failed,
-                "expected Failed, got $result",
-            )
-            result as AutoLevelController.AutoLevelResult.Failed
-            assertEquals(
-                "cancelled", result.reason,
-                "Failed.reason should be exactly \"cancelled\"",
-            )
-        }
-        assertTrue(
-            elapsedMs < 1_000,
-            "runAndAwait should return within 1s of cancel; took ${elapsedMs}ms",
-        )
-        // The runner job must have completed (not still cancelling).
-        runner.join()
-        assertTrue(runner.isCompleted, "runner should be completed after cancel")
-
-        s.disconnect()
-        scope.cancel()
+        fail("runner did not reach a suspended state within $maxIterations yield iterations")
     }
 
     /**
-     * Issue #7 3b.2 — after the calling scope is cancelled, runAndAwait must
+     * Issue #7 3b.5 — cancel mid-runAndAwait must propagate
+     * CancellationException to the caller (NOT be swallowed and converted to
+     * Failed("cancelled")). The propagation must complete within 1 second of
+     * the calling coroutine being cancelled.
+     *
+     * Uses [runTest] with virtual time. The runner is launched on a
+     * dedicated [CoroutineScope] (not the [TestScope]) so the
+     * [HangingSampleSource] does not prevent [runTest] from returning —
+     * `runTest` would otherwise throw `UncompletedCoroutinesError` because
+     * the runner is designed to suspend forever until cancelled. The
+     * dedicated scope's job is cancelled explicitly at the end of the test
+     * to clean up the hanging coroutine.
+     *
+     * `runTest(timeout = 60.seconds)` is required: kotlinx-coroutines-test
+     * 1.9.0 has a hard 5-second wall-clock default, which fires long before
+     * the 1s assertion can complete under any scheduling pressure. The
+     * `1_000` ms contract budget is about cancellation latency, not
+     * scheduling jitter: under virtual time the round-trip is effectively
+     * instantaneous.
+     *
+     * Virtual time makes the 1s budget deterministic: it is not at the
+     * mercy of the JVM's `DefaultExecutor` (which is shared across the
+     * entire JVM and is the timer executor for `runBlocking`-based
+     * `withTimeout` calls). The 1s budget is expressed as virtual-time
+     * advancement via `advanceUntilIdle()`.
+     */
+    @Test
+    fun cancelMidRunAndAwaitPropagatesCancellationException() = runTest(timeout = 60.seconds) {
+        val conn = FakeConnection()
+        val mountScope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
+        val s = MountSession({ conn }, readerScope = mountScope)
+        s.connect()
+        runCurrent()
+        val ctrl = AutoLevelController(s, sampleSource = { HangingSampleSource().next() })
+
+        // Dedicated runner scope, separate from TestScope, so the hanging
+        // source doesn't make runTest fail with UncompletedCoroutinesError.
+        val runnerJob = Job()
+        val runnerScope = CoroutineScope(StandardTestDispatcher(testScheduler) + runnerJob)
+        val outcome = CompletableDeferred<kotlinx.coroutines.CancellationException>()
+        val runner = runnerScope.launch {
+            try {
+                // Hanging source never returns, so this only completes via
+                // the cancellation catch arm below.
+                ctrl.runAndAwait(60.seconds)
+                fail("runAndAwait returned on a hanging source; expected it to suspend until cancelled")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // 3b.5 contract: this catch MUST fire. The previous 3b
+                // contract swallowed this and returned Failed("cancelled"),
+                // which the reviewer flagged as swallowing structured
+                // cancellation.
+                outcome.complete(e)
+            } catch (e: Throwable) {
+                fail("runAndAwait threw non-cancellation throwable: $e")
+            }
+        }
+        // Run the runner until it suspends in HangingSampleSource.next().
+        // We use runCurrent() NOT advanceUntilIdle(): advanceUntilIdle
+        // would advance virtual time to the 60s runAndAwait timeout, which
+        // would fire the timeout and complete runAndAwait with TimedOut
+        // before the cancel arrives, leaving the test's contract assertion
+        // meaningless.
+        runCurrent()
+        assertTrue(
+            runner.isActive,
+            "runner should be active and suspended in the sample source; " +
+                "isActive=${runner.isActive}, completed=${runner.isCompleted}",
+        )
+        assertFalse(
+            outcome.isCompleted,
+            "outcome should still be pending; got $outcome",
+        )
+
+        // Cancel and assert CancellationException propagates. With virtual
+        // time, this round-trips immediately on advanceUntilIdle() — no
+        // 5s real-time withTimeout safety net needed.
+        //
+        // We cancel the reader first (via s.disconnect) before
+        // advanceUntilIdle so the reader's delay(READ_RETRY_MS=10ms) loop
+        // doesn't keep virtual time alive forever (the reader schedules
+        // a fresh delay on every read that returns -1, which is an
+        // infinite virtual-time spin under advanceUntilIdle).
+        val elapsedMs = measureTimeMillis {
+            runner.cancel()
+            s.disconnect()
+            mountScope.cancel()
+            advanceUntilIdle()
+            val cancellation = outcome.await()
+            assertNotNull(
+                cancellation,
+                "runAndAwait should have thrown CancellationException to the caller",
+            )
+        }
+        // 1s budget is a *contract* assertion. measureTimeMillis reports
+        // real wall-clock time, so it is at most a few ms under virtual
+        // time scheduling.
+        assertTrue(
+            elapsedMs < 1_000,
+            "CancellationException should propagate within 1s of cancel; took ${elapsedMs}ms",
+        )
+        assertTrue(runner.isCancelled, "runner should be in cancelled state after cancel")
+
+        runnerJob.cancel()
+    }
+
+    /**
+     * Issue #7 3b.5 — _isRunning must be cleared to false after a mid-settle
+     * cancellation. The previous 3b `finally` guarded the state write on
+     * `currentCoroutineContext()[Job]?.isActive`, so it was skipped
+     * precisely when the coroutine was cancelled, leaving observers seeing
+     * `isRunning == true` even though the operation was gone.
+     *
+     * This test does NOT assert `isRunning == true` mid-settle (it is a
+     * scheduled-coroutine race, and not the contract under test). It
+     * asserts the *post*-cancel state: regardless of what `isRunning` was
+     * at the moment of cancellation, it must be `false` once the runner
+     * has finished unwinding, because `_isRunning` is unconditionally
+     * cleared in `finally` under the 3b.5 contract.
+     *
+     * Uses [runTest] with virtual time. See the comment on
+     * [cancelMidRunAndAwaitPropagatesCancellationException] for why the
+     * runner is on a dedicated scope rather than the [TestScope].
+     */
+    @Test
+    fun cancelMidSettleClearsIsRunning() = runTest(timeout = 60.seconds) {
+        val conn = FakeConnection()
+        val mountScope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
+        val s = MountSession({ conn }, readerScope = mountScope)
+        s.connect()
+        runCurrent()
+        val ctrl = AutoLevelController(s, sampleSource = { HangingSampleSource().next() })
+
+        val runnerJob = Job()
+        val runnerScope = CoroutineScope(StandardTestDispatcher(testScheduler) + runnerJob)
+        val outcome = CompletableDeferred<Unit>()
+        val runner = runnerScope.launch {
+            try {
+                ctrl.runAndAwait(60.seconds)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                outcome.complete(Unit)
+                throw e
+            } catch (e: Throwable) {
+                fail("runAndAwait threw non-cancellation throwable: $e")
+            }
+        }
+        // Use runCurrent() NOT advanceUntilIdle(): the MountSession
+        // reader loop is on the same TestDispatcher and schedules a
+        // delay(READ_RETRY_MS=10ms) continuation on every read that
+        // returns -1, which advanceUntilIdle would process forever
+        // (an infinite virtual-time spin). runCurrent() only dispatches
+        // currently-ready tasks, so the runner reaches the
+        // HangingSampleSource suspend point and the reader parks.
+        runCurrent()
+        assertTrue(
+            runner.isActive,
+            "runner should be active and suspended in the sample source",
+        )
+        assertFalse(outcome.isCompleted, "outcome should still be pending")
+
+        runner.cancel()
+        // Cancel the reader first so advanceUntilIdle can drain without
+        // the reader's delay(10ms) loop keeping virtual time alive.
+        s.disconnect()
+        mountScope.cancel()
+        advanceUntilIdle()
+        assertTrue(outcome.isCompleted, "outcome should complete after cancel")
+        runner.join()
+        // The previous contract would leave isRunning == true here because
+        // the `finally` guard skipped the state write on cancellation.
+        assertFalse(
+            ctrl.isRunning.value,
+            "isRunning should be false after mid-settle cancellation; " +
+                "got isRunning=${ctrl.isRunning.value}",
+        )
+
+        s.disconnect()
+        runnerJob.cancel()
+        mountScope.cancel()
+    }
+
+    /**
+     * Issue #7 3b.5 — after the calling scope is cancelled, runAndAwait must
      * leave no leftover coroutines behind (the audit §F "no leaks" check).
+     *
+     * Note: this is unchanged in spirit from 3b.2 — the 3b.5 contract still
+     * requires the cleanup to be complete — but the result is now a
+     * CancellationException that propagates to the caller, not a result
+     * value, so this test asserts the throwable instead of a Failed result.
      *
      * Uses runBlocking rather than runTest because runTest insists on all
      * coroutines completing before the body returns, and the
@@ -547,24 +693,18 @@ class AutoLevelControllerTest {
         // via the parent Job's children.
         val parent = Job()
         val childScope = CoroutineScope(Dispatchers.Default + parent)
-        val outcome = CompletableDeferred<AutoLevelController.AutoLevelResult>()
+        val outcome = CompletableDeferred<Unit>()
         val runner = childScope.launch {
             try {
-                outcome.complete(ctrl.runAndAwait(60.seconds))
+                ctrl.runAndAwait(60.seconds)
+                fail("runAndAwait should have thrown CancellationException")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                outcome.complete(Unit)
             } catch (e: Throwable) {
-                outcome.completeExceptionally(e)
+                fail("runAndAwait threw non-cancellation throwable: $e")
             }
         }
-        // Wait until the runner is suspended in awaitSettling.
-        val startedAt = System.currentTimeMillis()
-        while (System.currentTimeMillis() - startedAt < 2_000) {
-            if (outcome.isCompleted) {
-                fail("runner exited before reaching the suspend point: $outcome")
-            }
-            if (runner.isActive) break
-            kotlinx.coroutines.yield()
-        }
-        assertTrue(runner.isActive, "runner should be suspended on the hanging source")
+        waitForSuspend(runner, outcome)
 
         val childrenBeforeCancel = parent.children.toList()
         assertTrue(
@@ -583,12 +723,14 @@ class AutoLevelControllerTest {
             "expected no live children after cancel, found ${liveChildren.size}: $liveChildren",
         )
 
-        // The result is still Failed("cancelled") — cancellation contract holds.
-        val result = outcome.await()
-        assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
-        assertEquals(
-            "cancelled",
-            (result as AutoLevelController.AutoLevelResult.Failed).reason,
+        // The runner must have completed by throwing CancellationException.
+        assertTrue(
+            outcome.isCompleted,
+            "outcome should be completed; runner did not propagate cancellation",
+        )
+        assertTrue(
+            runner.isCancelled,
+            "runner should be in cancelled state, not completed normally",
         )
 
         parent.cancel()
@@ -597,54 +739,35 @@ class AutoLevelControllerTest {
     }
 
     /**
-     * Issue #7 3b.1 (no-throw half) — runAndAwait must NEVER throw a
-     * CancellationException out to the caller. The result is
-     * Failed("cancelled"), but a caller using
-     * `try { runAndAwait() } catch (e: CancellationException) {…}` must
-     * never see that catch fire when they themselves cancel the call.
+     * Issue #7 3b.5 — regression for the timeout path. The 3b.5 contract
+     * rewords the cancellation behaviour, but the timeout path
+     * (TimeoutCancellationException → AutoLevelResult.TimedOut) must remain
+     * unchanged. This test uses a tiny real-time timeout to make sure the
+     * path still resolves to TimedOut, not to a propagated
+     * CancellationException (the 3b.5 contract distinguishes the two).
      */
     @Test
-    fun runAndAwaitCancellationDoesNotThrow() = runBlocking {
+    fun timeoutStillMapsToTimedOut() = runBlocking {
         val conn = FakeConnection()
-        val mountScope = CoroutineScope(Dispatchers.Default + Job())
-        val s = MountSession({ conn }, readerScope = mountScope)
+        val scope = CoroutineScope(Dispatchers.Default + Job())
+        val s = MountSession({ conn }, readerScope = scope)
         s.connect()
         val ctrl = AutoLevelController(s, sampleSource = { HangingSampleSource().next() })
 
-        val outcome = CompletableDeferred<AutoLevelController.AutoLevelResult>()
-        val runner = mountScope.launch {
-            try {
-                outcome.complete(ctrl.runAndAwait(60.seconds))
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // Per contract, this catch must NOT fire. If it does,
-                // runAndAwait propagated a cancellation, which violates 3b.1.
-                outcome.completeExceptionally(AssertionError("runAndAwait threw CancellationException: $e"))
-            } catch (e: Throwable) {
-                outcome.completeExceptionally(e)
-            }
-        }
-        // Wait for the runner to reach the suspend point.
-        val startedAt = System.currentTimeMillis()
-        while (System.currentTimeMillis() - startedAt < 2_000) {
-            if (outcome.isCompleted) {
-                fail("runner exited before reaching the suspend point: $outcome")
-            }
-            if (runner.isActive) break
-            kotlinx.coroutines.yield()
-        }
-        assertTrue(runner.isActive, "runner should be suspended on the hanging source")
-
-        runner.cancelAndJoin()
-        kotlinx.coroutines.yield()
-
-        val result = outcome.await()
-        assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
+        val result = ctrl.runAndAwait(timeout = 100.milliseconds)
         assertEquals(
-            "cancelled",
-            (result as AutoLevelController.AutoLevelResult.Failed).reason,
+            AutoLevelController.AutoLevelResult.TimedOut,
+            result,
+            "timeout must still map to AutoLevelResult.TimedOut",
+        )
+        // The 3b.5 contract also requires _isRunning to be cleared on the
+        // timeout path.
+        assertFalse(
+            ctrl.isRunning.value,
+            "isRunning should be false after timeout",
         )
 
         s.disconnect()
-        mountScope.cancel()
+        scope.cancel()
     }
 }

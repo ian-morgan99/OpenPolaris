@@ -3,7 +3,6 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.TiltCodec
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -166,28 +165,36 @@ class AutoLevelController(
      * from `session.frames` filtered to 538, which is the only tilt source
      * the firmware provides.
      */
+    /**
+     * Run auto-level until the [SETTLE_WINDOW] predicate holds, the caller's
+     * scope is cancelled, or [timeout] elapses.
+     *
+     * Cancellation contract (revised in 3b.5 per issue #7 reviewer
+     * feedback `5464953376`):
+     * - `CancellationException` from the *calling* coroutine propagates to
+     *   the caller. Coroutine cancellation is control flow, not an
+     *   application error: a `launch {}` cancelled by its parent is
+     *   expected to propagate cancellation, and converting it to
+     *   `Failed("cancelled")` would swallow structured cancellation that
+     *   the rest of the codebase relies on. Callers that need a visible
+     *   "cancelled" status should set that in their own cancellation
+     *   handler (see `AppViewModel.runAutoLevel`).
+     * - `TimeoutCancellationException` is *not* propagated — it is mapped
+     *   to [AutoLevelResult.TimedOut] because the timeout budget is a
+     *   domain concept, not coroutine cancellation.
+     * - [_isRunning] is *always* cleared in `finally`. `MutableStateFlow`
+     *   assignment is non-suspending, so cancellation is not a reason to
+     *   suppress this state update; the previous "skip on cancel" guard
+     *   left observers seeing `isRunning == true` after a cancelled run.
+     */
     suspend fun runAndAwait(timeout: Duration = 60.seconds): AutoLevelResult {
         run()
         return try {
             withTimeout(timeout) { awaitSettling() }
         } catch (_: TimeoutCancellationException) {
             AutoLevelResult.TimedOut
-        } catch (_: CancellationException) {
-            // The *calling* coroutine was cancelled mid-settle. We must
-            // surface this as a result (not propagate) so callers that
-            // have already moved on from `runAndAwait` don't see a
-            // throw, and we must not flip _isRunning in the `finally`
-            // when the calling coroutine is gone (the parent scope is
-            // shutting down). Contract: see issue #7 3b.1.
-            AutoLevelResult.Failed("cancelled")
         } finally {
-            // Suppress finally cleanup when the caller itself was
-            // cancelled — touching any state from a cancelled coroutine
-            // is a side effect we want to avoid. We detect this by
-            // checking if our own coroutine is still active.
-            if (kotlinx.coroutines.currentCoroutineContext()[Job]?.isActive == true) {
-                _isRunning.value = false
-            }
+            _isRunning.value = false
         }
     }
 

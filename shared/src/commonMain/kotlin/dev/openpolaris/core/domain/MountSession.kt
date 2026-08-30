@@ -96,13 +96,25 @@ class MountSession(
      *    own [kotlinx.coroutines.Job] on disconnect.
      *  - The buffer is 64 with `DROP_OLDEST` overflow. A slow consumer
      *    (e.g. UI thread doing a plate-solve) may cause older samples to
-     *    be dropped; each drop is counted in [tiltDrops] for observability.
-     *    The reader MUST NOT block on a full buffer — it owns the socket
-     *    and a stalled reader would wedge the entire mount channel. We
-     *    prefer losing a few intermediate samples over blocking. In
-     *    practice the only consumer is the AutoLevel controller, which
-     *    samples far faster than 538 frames arrive (every ~100 ms), so
-     *    drops should be zero in normal operation.
+     *    be dropped. The reader MUST NOT block on a full buffer — it
+     *    owns the socket and a stalled reader would wedge the entire
+     *    mount channel. We prefer losing a few intermediate samples over
+     *    blocking. In practice the only consumer is the AutoLevel
+     *    controller, which samples far faster than 538 frames arrive
+     *    (every ~100 ms), so drops should be zero in normal operation.
+     *
+     *  - **What the drop counter actually counts**: [tiltDropsNoSubscriber]
+     *    increments only when an emit occurs with **no live collector
+     *    attached** (the SharedFlow's subscriptionCount is zero at emit
+     *    time). Those emits are guaranteed to never reach a downstream
+     *    consumer — there is no buffer drain that can ever catch up
+     *    because nothing is reading. Evictions caused by a slow but
+     *    *live* collector (the buffer's DROP_OLDEST path firing while
+     *    the collector is still attached but unable to keep up) are
+     *    **not** separately counted: the only honest observability
+     *    hook for that case is to compare the number of 538 frames
+     *    published by the reader against the number of samples a
+     *    consumer actually receives. [TiltStreamTest] pins both paths.
      *
      * Use [TiltSampleSource]-style adapters to bridge between this hot
      * [Flow] and the `suspend () -> Tilt?` shape [AutoLevelController]
@@ -124,19 +136,33 @@ class MountSession(
 
     /**
      * Number of 538 (SET_TILT_STATE) samples the reader attempted to
-     * publish on [tilt] but were evicted by the SharedFlow buffer's
-     * DROP_OLDEST policy because no collector was keeping up. The
-     * counter exists for observability — `0` is the expected steady
-     * state. A non-zero value means a downstream consumer (typically
-     * the AutoLevel controller) is slower than the ~10 Hz push rate.
+     * publish on [tilt] while **no live collector was attached** (the
+     * SharedFlow's subscriptionCount was zero at the moment of emit).
+     * These emits are guaranteed to never reach a downstream consumer:
+     * with no one reading, the buffer is irrelevant — every sample
+     * disappears into the void. The counter exists for observability —
+     * `0` is the expected steady state. A non-zero value means the
+     * AutoLevel controller (or any other [tilt] consumer) was not
+     * subscribed when frames arrived.
+     *
+     * **This counter does NOT include evictions from a slow but live
+     * collector.** When a collector is attached but cannot keep up with
+     * the ~10 Hz push rate, the SharedFlow's DROP_OLDEST policy silently
+     * evicts the oldest queued sample to make room. The reader cannot
+     * observe that eviction through the SharedFlow API — `tryEmit`
+     * returns success because the new sample *was* accepted, even
+     * though an older queued sample was dropped to make room. The only
+     * way to detect that case is to compare the number of frames
+     * published by the reader against the number of samples a consumer
+     * actually received (see [TiltStreamTest] for the regression).
      *
      * Incremented on the reader coroutine; safe to read from any
      * collector because [MutableStateFlow.update] is atomic. Reset to
      * zero on [connect] so the count always reflects the current
      * session.
      */
-    private val _tiltDrops = MutableStateFlow(0L)
-    val tiltDrops: StateFlow<Long> = _tiltDrops
+    private val _tiltDropsNoSubscriber = MutableStateFlow(0L)
+    val tiltDropsNoSubscriber: StateFlow<Long> = _tiltDropsNoSubscriber
 
     /**
      * Test-only seam: directly publish a frame on [frames] without going
@@ -240,7 +266,7 @@ class MountSession(
                 // Reset drop counter so it always reflects the current
                 // session. Drift across reconnects would make the metric
                 // meaningless.
-                _tiltDrops.value = 0L
+                _tiltDropsNoSubscriber.value = 0L
                 // Start the demux reader before issuing the handshake so
                 // the 284 response is dispatched to the waiter's deferred
                 // instead of being dropped on the floor.
@@ -346,16 +372,22 @@ class MountSession(
                                 // reader would wedge the entire mount
                                 // channel. We prefer losing a few
                                 // intermediate samples to a slow
-                                // consumer over blocking. Each emit
-                                // with zero live subscribers is
-                                // guaranteed to be lost (no buffer
-                                // drain can ever catch up) and is
-                                // counted in [tiltDrops]. Under-buffer
-                                // eviction (a slow but live
-                                // collector) is not separately
-                                // counted — [TiltStreamTest] covers
-                                // that path by comparing emitted
-                                // versus received counts.
+                                // consumer over blocking.
+                                //
+                                // Drop counting policy: this counter
+                                // [tiltDropsNoSubscriber] only
+                                // increments when no collector is
+                                // attached at emit time. Those emits
+                                // are guaranteed to be lost because
+                                // nothing is reading the buffer. A
+                                // slow but *live* collector causes
+                                // DROP_OLDEST to evict the oldest
+                                // queued sample, but `tryEmit` cannot
+                                // observe that eviction (the new
+                                // sample was accepted, an older one
+                                // was dropped). [TiltStreamTest]
+                                // pins that case by comparing
+                                // published vs received counts.
                                 _tilt.tryEmit(
                                     TiltSample(
                                         pitchDeg = tilt.pitchDeg,
@@ -364,7 +396,7 @@ class MountSession(
                                     ),
                                 )
                                 if (_tilt.subscriptionCount.value == 0) {
-                                    _tiltDrops.update { it + 1 }
+                                    _tiltDropsNoSubscriber.update { it + 1 }
                                 }
                             }
                             continue
@@ -515,7 +547,7 @@ class MountSession(
      *  - The reader coroutine is cancelled; any in-flight [request]
      *    waiters are failed with a [java.io.IOException] ("session
      *    closed") the same way they would be on [disconnect].
-     *  - All state flows ([state], [frames], [tiltDrops]) are reset so a
+     *  - All state flows ([state], [frames], [tiltDropsNoSubscriber]) are reset so a
      *    caller that still holds references sees a clean "never used"
      *    view rather than a stale snapshot.
      *
@@ -548,7 +580,7 @@ class MountSession(
         readerScope.coroutineContext.cancel() // INTENTIONAL: this is the fix; leave in place for normal builds
         _state.value = MountState()
         _frames.value = null
-        _tiltDrops.value = 0L
+        _tiltDropsNoSubscriber.value = 0L
     }
 
     private companion object {

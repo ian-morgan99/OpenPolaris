@@ -212,56 +212,66 @@ class TiltStreamTest {
     // overflow). The contradiction made the SUSPEND policy unreachable: the
     // reader ignored the false return value, so the system was de facto lossy
     // AND the contract was incoherent. The fix switched to DROP_OLDEST so the
-    // reader can stay non-suspending, and exposes `tiltDrops` so the loss is
-    // visible. These tests pin the new contract end-to-end through
+    // reader can stay non-suspending, and exposes `tiltDropsNoSubscriber` so
+    // the loss is visible. These tests pin the new contract end-to-end through
     // `publishTiltForTest` (which uses the same `_tilt.tryEmit` path as the
     // production reader, so it exercises the real SharedFlow configuration).
     //
     // Reference: PLAN-CRITICAL-REVIEW §K, PLAN.md "Production gap", #19.
 
     @Test
-    fun zeroSubscriberPushesIncrementTiltDrops() = runTest {
+    fun zeroSubscriberPushesIncrementTiltDropsNoSubscriber() = runTest {
         // The reader MUST NOT block on a full buffer — it owns the socket.
         // With DROP_OLDEST the SharedFlow's buffer is sized at 64, but
         // when no collector is attached every emit is delivered to the
         // floor (a no-op for downstream consumers) and is therefore a
-        // drop. Push 100 538 frames through the reader loop (not via
+        // drop. Push 100 frames through the reader loop (not via
         // publishTiltForTest — that seam bypasses the drop-counter
         // increment because the counter is owned by the reader, not by
-        // the flow) and assert `tiltDrops` reflects the count exactly.
+        // the flow) and assert `tiltDropsNoSubscriber` reflects the count
+        // exactly.
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         s.connect()
         // Reset baseline: connect() clears the counter to 0, so the
         // current value is the start-of-test reference.
-        assertEquals(0L, s.tiltDrops.value, "tiltDrops must start at 0 after connect")
+        assertEquals(
+            0L,
+            s.tiltDropsNoSubscriber.value,
+            "tiltDropsNoSubscriber must start at 0 after connect",
+        )
 
-        // Push 100 538 frames. Each is a different pitch value so the
+        // Push 100 frames. Each is a different pitch value so the
         // frame body is well-formed and TiltCodec.parse returns non-null.
         repeat(100) { i ->
             conn.responses += "1&538&2&pitch:${i.toDouble() * 0.01};roll:0.0;#"
                 .toByteArray(Charsets.US_ASCII)
         }
         // Drain virtual time so the reader loop processes all queued
-        // bytes and runs through the 538 demux for each frame.
+        // bytes and runs through the 538 demultiplexer for each frame.
         advanceTimeBy(200)
 
         assertEquals(
             100L,
-            s.tiltDrops.value,
-            "100 538 frames with zero subscribers must all count as drops",
+            s.tiltDropsNoSubscriber.value,
+            "100 frames with zero subscribers must all count as drops",
         )
         s.disconnect()
     }
 
     @Test
-    fun liveCollectorDoesNotIncrementTiltDrops() = runTest {
+    fun liveCollectorDoesNotIncrementTiltDropsNoSubscriber() = runTest {
         // Counterpart to the previous test: when a collector is attached
         // and the buffer is not yet full, every emit is delivered to the
-        // collector and `tiltDrops` must remain zero. The reader's
-        // subscription-count guard means a live collector prevents drops
-        // from being counted.
+        // collector and `tiltDropsNoSubscriber` must remain zero. The
+        // reader's subscription-count guard means a live collector
+        // prevents drops from being counted.
+        //
+        // NB this test uses a collector that drains 10 samples — well
+        // below the 64-slot buffer — so the DROP_OLDEST eviction path is
+        // NOT exercised. The buffer-eviction contract is pinned by the
+        // third test in this group, `liveSlowCollectorExceedingBufferReceivesExactly64Newest`.
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
@@ -289,8 +299,94 @@ class TiltStreamTest {
 
         assertEquals(
             0L,
-            s.tiltDrops.value,
+            s.tiltDropsNoSubscriber.value,
             "10 emits with a live collector must not count as drops",
+        )
+        s.disconnect()
+    }
+
+    @Test
+    fun liveSlowCollectorExceedingBufferReceivesExactly64Newest() = runTest {
+        // This is the regression that #19's acceptance criterion demands:
+        // a deliberately slow *live* collector that forces the SharedFlow
+        // to evict samples via its DROP_OLDEST overflow path. We publish
+        // 538 frames (538 is the convention used in the issue; it's
+        // also one of those "enough to overflow many times over" values
+        // that makes the eviction obvious) through the reader loop while
+        // a live collector is attached but never advances its take(N).
+        //
+        // Expected contract:
+        //  - The buffer is 64 wide. Once 64 samples are queued, every
+        //    further tryEmit evicts the OLDEST queued sample.
+        //  - The collector therefore receives the NEWEST 64 samples, not
+        //    the first 64.
+        //  - `tiltDropsNoSubscriber` stays at 0 because a collector WAS
+        //    attached at every emit — the no-subscriber path never fires.
+        //
+        // We `take(64)` and assert the pitch range is [538-64, 538),
+        // confirming eviction (not silent miss) and that the surviving
+        // samples are the tail end of the stream. We advance virtual time
+        // generously so the reader loop's READ_RETRY_MS drains fully.
+        val conn = FakeConnection()
+        val s = MountSession({ conn }, readerScope = this)
+        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        s.connect()
+
+        // Subscribe first so the SharedFlow's subscriptionCount is > 0
+        // when the reader starts emitting. The collector is launched in
+        // a child coroutine and we runCurrent() so the subscription
+        // registers before any frames are queued.
+        val totalFrames = 538
+        val expectedKept = 64 // SharedFlow's extraBufferCapacity
+        var received: List<TiltSample> = emptyList()
+        val collectorJob = launch {
+            received = s.tilt.take(expectedKept).toList()
+        }
+        runCurrent()
+
+        // Queue 538 frames. Each pitch is a unique index so the
+        // post-eviction assertions can verify which samples survived.
+        repeat(totalFrames) { i ->
+            conn.responses += "1&538&2&pitch:${i.toDouble()};roll:0.0;#"
+                .toByteArray(Charsets.US_ASCII)
+        }
+        // Drain virtual time generously. Each reader iteration costs
+        // READ_RETRY_MS = 10ms, so 538 frames take at least 5.4s of
+        // virtual time; we advance 10s for safety margin.
+        advanceTimeBy(10_000)
+        collectorJob.join()
+        assertEquals(
+            expectedKept,
+            received.size,
+            "live collector must receive exactly the 64 newest of $totalFrames pushes; " +
+                "DROP_OLDEST evicts the rest silently",
+        )
+        // Newest 64 = indices [totalFrames-64, totalFrames). The
+        // SharedFlow's eviction policy keeps the head of the queue
+        // fresh by dropping the tail, so the collector sees the LAST
+        // 64 frames the reader published. (Confirmed by re-reading
+        // MutableSharedFlow's DROP_OLDEST semantics: on overflow the
+        // oldest queued value is dropped to make room — i.e. the
+        // head of the buffer — so the tail (newest) survives.)
+        val firstIdx = totalFrames - expectedKept
+        assertEquals(
+            firstIdx.toDouble(),
+            received.first().pitchDeg,
+            1e-6,
+            "first received sample must be frame #$firstIdx (newest-64)",
+        )
+        assertEquals(
+            (totalFrames - 1).toDouble(),
+            received.last().pitchDeg,
+            1e-6,
+            "last received sample must be frame #${totalFrames - 1} (newest)",
+        )
+        // No-subscriber counter must remain zero: a collector was
+        // attached at every emit (subscriptionCount > 0 the whole time).
+        assertEquals(
+            0L,
+            s.tiltDropsNoSubscriber.value,
+            "DROP_OLDEST evictions are not counted in tiltDropsNoSubscriber",
         )
         s.disconnect()
     }

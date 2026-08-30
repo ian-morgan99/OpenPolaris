@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.AutoLevelController
+import dev.openpolaris.core.domain.CameraProfile
+import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.GoToController
@@ -135,6 +137,26 @@ class AppViewModel(
     // a non-interactive modal.
     private val _reconnecting = MutableStateFlow(false)
     val reconnecting: StateFlow<Boolean> = _reconnecting.asStateFlow()
+
+    /**
+     * Stream 15.1 (issue #15): the active [CameraProfile] used by
+     * [MainActivity.onLaunchVr] when handing FoV to VRActivity. Defaults
+     * to [CameraProfile.PolarisEyepiece] — the per-mount default the
+     * VRActivity used as a constant before #15. When a real sensor
+     * stream lands the source will flip to [CameraProfileSource.SENSOR];
+     * the render side uses the label to show the user which is in play.
+     */
+    private val _cameraProfile = MutableStateFlow(CameraProfile.PolarisEyepiece)
+    val cameraProfile: StateFlow<CameraProfile> = _cameraProfile.asStateFlow()
+
+    /**
+     * Publish a new [CameraProfile] (e.g. when a sensor reading arrives,
+     * or when the user toggles an override). The StateFlow conflates
+     * identical samples, so it is safe to call from a hot sensor stream.
+     */
+    fun setCameraProfile(profile: CameraProfile) {
+        _cameraProfile.value = profile
+    }
 
     // 3c.5: host-edit buffer for the ReconnectDialog. Populated by
     // [tryReconnectIfMarkerExists] from the saved marker, and read by

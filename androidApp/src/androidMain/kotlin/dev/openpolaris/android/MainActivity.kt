@@ -102,12 +102,17 @@ class MainActivity : ComponentActivity() {
                             putExtra(VRActivity.EXTRA_SOLVE_AGE_MS, ageMs)
                             putExtra(VRActivity.EXTRA_TARGET_RA_DEG, targetRaDeg)
                             putExtra(VRActivity.EXTRA_TARGET_DEC_DEG, targetDecDeg)
-                            // 60°×45° matches the VRActivity defaults
-                            // (DEFAULT_FOV_X_DEG / DEFAULT_FOV_Y_DEG). A
-                            // future stream will read the live camera FoV
-                            // from the connected mount's sensor.
-                            putExtra(VRActivity.EXTRA_FOV_X_DEG, 60f)
-                            putExtra(VRActivity.EXTRA_FOV_Y_DEG, 45f)
+                            // Stream 15.1 (issue #15): hand VRActivity the
+                            // current camera profile from the VM. The
+                            // value is a `PER_MOUNT_DEFAULT` for the
+                            // Polaris eyepiece today; once a real sensor
+                            // stream lands, the VM will publish a profile
+                            // with `source = SENSOR` and the same Intent
+                            // extras will carry the live values without
+                            // any change here.
+                            val profile = viewModel.cameraProfile.value
+                            putExtra(VRActivity.EXTRA_FOV_X_DEG, profile.fovXDeg)
+                            putExtra(VRActivity.EXTRA_FOV_Y_DEG, profile.fovYDeg)
                         }
                     }
                     startActivity(intent)

@@ -11,6 +11,7 @@ import android.opengl.GLUtils
 import android.opengl.Matrix
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
@@ -134,8 +135,13 @@ class VRActivity : ComponentActivity() {
                     targetDecDeg = targetDec,
                     confidence = intent.getFloatExtra(EXTRA_SOLVE_CONFIDENCE, 0.6f),
                     ageMs = intent.getLongExtra(EXTRA_SOLVE_AGE_MS, 0L),
-                    fovXDeg = intent.getFloatExtra(EXTRA_FOV_X_DEG, DEFAULT_FOV_X_DEG),
-                    fovYDeg = intent.getFloatExtra(EXTRA_FOV_Y_DEG, DEFAULT_FOV_Y_DEG),
+                    // -1f is the "absent" sentinel: a missing/garbled
+                    // Intent extra lands here and is caught by the
+                    // sanity-check in [setSolveTarget], which logs and
+                    // clamps to a 1° minimum instead of silently
+                    // substituting 60°/45°. See issue #15.
+                    fovXDeg = intent.getFloatExtra(EXTRA_FOV_X_DEG, -1f),
+                    fovYDeg = intent.getFloatExtra(EXTRA_FOV_Y_DEG, -1f),
                 )
             }
         }
@@ -377,6 +383,8 @@ class VRActivity : ComponentActivity() {
     companion object {
         const val EXTRA_HOST = "dev.openpolaris.android.VR_HOST"
         const val EXTRA_PORT = "dev.openpolaris.android.VR_PORT"
+        private const val TAG = "VRActivity"
+
         // Stream 7.4 — solve-target marker overlay (issue #11).
         // All seven are present only when the caller has a fresh solve
         // AND a target configured. Absent → marker is hidden.
@@ -390,11 +398,6 @@ class VRActivity : ComponentActivity() {
         const val EXTRA_FOV_Y_DEG = "dev.openpolaris.android.VR_FOV_Y"
         const val DEFAULT_HOST = "192.168.43.1"
         const val DEFAULT_PORT = 8080
-        // Cardboard v1 reference viewer profile — used when the caller
-        // doesn't pass a FoV (e.g. a future test harness). Matches the
-        // test defaults in SolveTargetProjectorTest.
-        const val DEFAULT_FOV_X_DEG = 60f
-        const val DEFAULT_FOV_Y_DEG = 45f
         // Marker dims after 5 min since the solve was recorded.
         const val MARKER_MAX_AGE_MS = 5L * 60L * 1000L
     }
@@ -499,9 +502,20 @@ class StereoRenderer : GLSurfaceView.Renderer {
         fovYDeg: Float,
     ) {
         val c = confidence.coerceIn(0f, 1f)
-        // Sanity-check the FoV — refuse to crash on bogus extras.
-        val fx = if (fovXDeg > 0f) fovXDeg else 60f
-        val fy = if (fovYDeg > 0f) fovYDeg else 45f
+        // Stream 15.2 (issue #15): log and clamp — don't silently
+        // substitute a hard-coded 60°/45°. The minimum (1°) mirrors the
+        // `require(fovXDeg > 0f)` validation in [CameraProfile] so a
+        // bogus extra never reaches the projector, but the marker is
+        // still drawn (badly positioned) rather than crashing. The
+        // log is the audit trail.
+        val fx = if (fovXDeg > 0f) fovXDeg else {
+            Log.w(TAG, "setSolveTarget: fovXDeg=$fovXDeg <= 0, clamping to 1°")
+            1f
+        }
+        val fy = if (fovYDeg > 0f) fovYDeg else {
+            Log.w(TAG, "setSolveTarget: fovYDeg=$fovYDeg <= 0, clamping to 1°")
+            1f
+        }
         solveFieldRaDeg = fieldRaDeg
         solveFieldDecDeg = fieldDecDeg
         solveTargetRaDeg = targetRaDeg

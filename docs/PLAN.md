@@ -217,12 +217,7 @@ existing issue, that preempts the cached order per condition 3 above.
 Open issues, in priority order. Tracked in the session todo mirror and on
 [GitHub issues](https://github.com/ian-morgan99/OpenPolaris/issues):
 
-- **#17 — polkit rule typo on the Wi-Fi scan policy** ([link](https://github.com/ian-morgan99/OpenPolaris/issues/17)).
-  The deployed `/etc/polkit-1/rules.d/99-openpolaris-wifi-scan.rules` references
-  `unix-group:admin`, which does not exist on Ubuntu (Ubuntu uses `sudo`). Each
-  `nmcli device wifi rescan` prompts the user. *Blocked on user* to run
-  `/tmp/openpolaris-fix-polkit-typo.sh` and confirm. A self-contained one-shot fix
-  is staged in the session workspace.
+All one-off infrastructure issues filed against this worktree are now closed. The p1/p2 sub-issue work in the 3a/3b/3c queue below is the live queue.
 
 ### 3a/3b/3c queue (Stream 3 — session lifecycle, filed 2026-08-30T17:18Z)
 
@@ -335,7 +330,24 @@ after Stream 7.5:
   mirror now agree: open = #17, #21-#27; closed includes #19 and #20
   with the shippable ref. Next slice is **#21** (3a.2
   `_tilt.value` survives `Session.stop()`/`start()`, p1) per item 5
-  of the "Immediate next actions" list below.
+  of the "Immediate next actions" list below. _Superseded at
+  2026-08-30T18:48:00Z by the #17 closure: open = #21-#27._
+- **2026-08-30T18:48:00Z (issue #17 closed, no commit)**: the polkit rule typo
+  was fixed by the user. The deployed
+  `/etc/polkit-1/rules.d/99-openpolaris-wifi-scan.rules` now uses
+  `subject.local && subject.active` (silent local-user auth) and
+  `unix-group:sudo || unix-group:wheel` (Debian/Ubuntu and Fedora/Arch).
+  User-verified with `nmcli device wifi rescan` (no prompt) and
+  `journalctl -u polkit` (no more `admin` typo warnings). Issue **#17 closed**
+  with a comment documenting the corrected rule, the two verification
+  commands, and noting that the rule now also handles
+  `org.freedesktop.NetworkManager.settings.modify.own` so the Stream 5.3
+  wifi-connect flow won't get a separate auth prompt. The plan and the
+  mirror now agree: open = #21-#27; closed includes #17, #19, and #20.
+  No code change in this worktree was needed (the typo was in the
+  deployed file, not in any in-repo copy — `git ls-files | grep polkit`
+  returns nothing). The "Immediate next actions" item 7 is struck
+  and renumbered as DONE; items 8-9 are renumbered to 7-8.
 - **2026-08-30T18:30:00Z (issue #20 closed, commit `e873bb0`)**: the
   `Session.shutdown` no-leak JVM test landed as `e873bb0` on
   `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
@@ -361,7 +373,7 @@ after Stream 7.5:
   #20 with the shippable refs. Next slice is **#21** (3a.2
   `_tilt.value` survives `Session.stop()`/`start()`, p1) per item 6 of the
   "Immediate next actions" list below (item 5 has been struck and marked
-  DONE).
+  DONE). _Superseded at 2026-08-30T18:48:00Z by the #17 closure: open = #21-#27._
 - **2026-08-30T16:12:51Z (issue #19)**: the "Immediate next actions" list
   named issue #6 as the next slice, but #6 was already closed (2026-08-30T15:50:54Z).
   The connect-time race fix from #6 did land on this worktree (commit `55c83f9`).
@@ -559,16 +571,14 @@ p1 sub-issues (#21-#23) ship in queue order before any p2 work begins
    7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped
    `56831b1`; 7.6 (VR recenter persistence across sessions) is the natural
    successor to 7.5.
-7. **Issue #17: polkit rule typo** — blocked on user; reminder pinged at
-   session start.
-8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
-9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
+7. **Stream 5.3 real-mount smoke** — blocked on user hardware.
+8. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Items 2, 3, and 5 have now landed (commits `7970e55` and `e873bb0`);
-the next agent MUST verify on resume that the worktree is at or past
-`e873bb0` and that `:shared:jvmTest --rerun-tasks` is still green at
-**223/223** before starting item 6. Item 4 (the filed #21-#27
-sub-issues) is also landed and should be confirmed in the worktree
-before any code change. If a reviewing agent files a P0 (label
-`priority/p0`) in between, that preempts per the `next-slice-ready`
-condition 3.
+Items 2, 3, 5, and 7 have now landed (commits `7970e55` and `e873bb0`;
+#17 was a deployed-file fix that required no commit). The next agent
+MUST verify on resume that the worktree is at or past `21df458` and
+that `:shared:jvmTest --rerun-tasks` is still green at **223/223**
+before starting item 6. Item 4 (the filed #21-#27 sub-issues) is also
+landed and should be confirmed in the worktree before any code change.
+If a reviewing agent files a P0 (label `priority/p0`) in between, that
+preempts per the `next-slice-ready` condition 3.

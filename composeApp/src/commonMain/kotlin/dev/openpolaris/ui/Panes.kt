@@ -210,8 +210,11 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 }
 
 /**
- * Camera pane: ISO / WB / aperture / EV index steppers plus capture.
+ * Camera pane: all 10 camera GETs as index steppers plus capture.
  * Codes are inferred — a warning banner says so until hardware-validated.
+ * The 6 new steppers (Focus / Image size / Image format / Color / Shutter /
+ * Capture mode) were added after the 5dab031 commit wired the underlying
+ * GET/SET pairs into `CommandTable` and the post-connect burst.
  */
 @Composable
 fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
@@ -228,6 +231,12 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             StepperRow("WB", c.wbIndex, vm::setWb)
             StepperRow("Aperture", c.fNumIndex, vm::setFNum)
             StepperRow("EV", c.evIndex, vm::setEv)
+            StepperRow("Focus", c.focusIndex, vm::setFocus)
+            StepperRow("Image size", c.imgSizeIndex, vm::setImgSize)
+            StepperRow("Image format", c.imgFmtIndex, vm::setImgFmt)
+            StepperRow("Color", c.colorIndex, vm::setColor)
+            StepperRow("Shutter", c.shutterIndex, vm::setShutter)
+            StepperRow("Capture mode", c.captureModeIndex, vm::setCaptureMode)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::capture) { Text("Capture") }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }

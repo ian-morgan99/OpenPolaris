@@ -13,8 +13,11 @@ import kotlinx.coroutines.withTimeout
 
 /**
  * Single owner of the mount connection (ARCHITECTURE §3.1).
- * Serializes requests with a mutex, runs a reader loop dispatching frames to flows,
- * and reconnects with exponential backoff capped at 30 s.
+ * Serializes requests with a mutex and runs a per-request read loop that
+ * dispatches frames to flows. On write/read failure the session is marked
+ * disconnected; the caller is expected to call [connect] again (TODO: add
+ * exponential-backoff auto-reconnect capped at 30 s, as the original spec
+ * implies).
  */
 class MountSession(
     private val connectionFactory: () -> Connection,

@@ -148,4 +148,33 @@ class SolveTargetProjectorTest {
         assertTrue(abs(pEq.x) > abs(pPole.x),
             "near equator |x| should be larger than near pole, got ${pEq.x} vs ${pPole.x}")
     }
+
+    @Test
+    fun solveResultDefaultTimestampIsZero() {
+        // Back-compat: test fixtures and projection contexts (the VR
+        // renderer's field/target pair) use the default 0L — they
+        // have no real "solve time" of their own.
+        val s = SolveResult(raDeg = 10.0, decDeg = 20.0, confidence = 0.9, matchedStars = 5)
+        assertEquals(0L, s.timestampMs)
+    }
+
+    @Test
+    fun solveResultAgeComputesFromNow() {
+        // Pin "now" so the assertion is deterministic.
+        val pinned = 1_700_000_000_000L
+        SolveResult.currentTimeMillisProvider = { pinned }
+        try {
+            val s = SolveResult(
+                raDeg = 10.0,
+                decDeg = 20.0,
+                confidence = 0.9,
+                matchedStars = 5,
+                timestampMs = pinned - 30_000L, // 30s ago
+            )
+            assertEquals(30_000L, s.ageMs())
+            assertEquals(30_000L, s.ageMs(nowMs = pinned))
+        } finally {
+            SolveResult.currentTimeMillisProvider = { System.currentTimeMillis() }
+        }
+    }
 }

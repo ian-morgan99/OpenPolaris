@@ -92,14 +92,14 @@ class MainActivity : ComponentActivity() {
                             putExtra(VRActivity.EXTRA_SOLVE_RA_DEG, solve.raDeg)
                             putExtra(VRActivity.EXTRA_SOLVE_DEC_DEG, solve.decDeg)
                             putExtra(VRActivity.EXTRA_SOLVE_CONFIDENCE, solve.confidence.toFloat())
-                            // 7.4 follow-up: SolveResult has no timestamp, so
-                            // ageMs is reported as 0 — i.e. the marker is
-                            // drawn at full alpha. That's the honest answer
-                            // given the data we have; a stale "solved long
-                            // ago" solve will still draw, but the operator
-                            // can see the RA/Dec in the HUD before the
-                            // marker disappears.
-                            putExtra(VRActivity.EXTRA_SOLVE_AGE_MS, 0L)
+                            // Stamp at launch time, using the solve's
+                            // recorded timestamp (issue #12) so the marker
+                            // fades by actual age instead of always drawing
+                            // at full alpha.
+                            val ageMs = if (solve.timestampMs > 0L) {
+                                (System.currentTimeMillis() - solve.timestampMs).coerceAtLeast(0L)
+                            } else 0L
+                            putExtra(VRActivity.EXTRA_SOLVE_AGE_MS, ageMs)
                             putExtra(VRActivity.EXTRA_TARGET_RA_DEG, targetRaDeg)
                             putExtra(VRActivity.EXTRA_TARGET_DEC_DEG, targetDecDeg)
                             // 60°×45° matches the VRActivity defaults

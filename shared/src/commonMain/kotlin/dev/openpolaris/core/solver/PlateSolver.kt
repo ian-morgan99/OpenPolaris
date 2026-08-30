@@ -106,18 +106,39 @@ data class SolveHint(
  * `matchedStars` is the number of detections that were mapped onto catalog
  * stars. Useful for diagnostics and for deciding whether the match is
  * trustworthy on a sparse field.
+ *
+ * `timestampMs` is the wall-clock time the solve completed, in ms since the
+ * Unix epoch. The default of `0L` exists for back-compat with test fixtures
+ * and for callers that just want the projection math (the VR renderer, for
+ * example, which reads `ageMs` from a separate Intent extra). **Production
+ * plate-solve call sites must stamp this** so that downstream UI can
+ * honestly report how old the solve is.
  */
 data class SolveResult(
     val raDeg: Double,
     val decDeg: Double,
     val confidence: Double,
     val matchedStars: Int,
+    val timestampMs: Long = 0L,
 ) {
     init {
         require(confidence in 0.0..1.0) { "confidence must be in [0,1], was $confidence" }
         require(matchedStars >= 3) { "matchedStars must be >=3, was $matchedStars" }
+        require(timestampMs >= 0L) { "timestampMs must be >=0, was $timestampMs" }
     }
 
     /** Normalize RA into [0, 360) for storage. */
     val raDegNormalized: Double get() = AstroMath.normalizeDeg(raDeg)
+
+    /** Age of this solve in ms relative to [nowMs] (defaults to wall-clock). */
+    fun ageMs(nowMs: Long = currentTimeMillisProvider()): Long = (nowMs - timestampMs).coerceAtLeast(0L)
+
+    companion object {
+        /**
+         * Indirection for [ageMs] so tests can pin "now" without a
+         * `System.currentTimeMillis()` mock. Production callers get
+         * wall-clock time.
+         */
+        internal var currentTimeMillisProvider: () -> Long = { System.currentTimeMillis() }
+    }
 }

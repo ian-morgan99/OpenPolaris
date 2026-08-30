@@ -781,6 +781,10 @@ class AppViewModel(
                         // SolveResult init contract is satisfied.
                         confidence = 0.6,
                         matchedStars = 3,
+                        // Stamp at the moment the result lands in the
+                        // viewmodel, so MainActivity.onLaunchVr can report
+                        // a honest `ageMs` to the VR marker (issue #12).
+                        timestampMs = System.currentTimeMillis(),
                     )
                     statusMessage = "Solved RA %.4f° Dec %.4f° — mount refined to target"
                         .format(result.first, result.second)

@@ -83,6 +83,7 @@ class OnDevicePlateSolver(
             decDeg = match.centerDecDeg,
             confidence = match.confidence,
             matchedStars = match.matchedStars,
+            timestampMs = System.currentTimeMillis(),
         )
     }
 }

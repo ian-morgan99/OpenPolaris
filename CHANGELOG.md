@@ -7,11 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `tools:cli-probe` `--full` burst mode: pass `--full` as the 3rd arg
+  to send the canonical 9-code pre-camera burst from
+  `CommandTable.BURST_PRE_CAMERA` (808, 809, 802, 778, 779, 775, 824,
+  524, 543) instead of the smoke-test default. Wired up as the new
+  `:tools:cli-probe:liveBurst` gradle task. Use this against a real
+  gimbal once the `Polaris_XXXX` AP is in range; the simulator sees
+  the same traffic.
+
 ### Changed
 - **License:** GPL-3.0 → **MIT**.  The OpenPolaris codebase has not
   yet accepted third-party contributions, so the project owner can
   relicense the original work unilaterally.  NOTICE records the
   origin from `benro-polaris-firmware-patcher`.
+
+### Fixed
+- `CommandTableTest.burstPreCameraParsersCoverAllSteps` now exercises
+  the actual parsers for all 9 burst codes (808, 809, 802, 778, 779,
+  775, 824, 524, 543) instead of silently skipping 5 of 9 via a
+  `?: continue` fallback. A new burst code in `CommandTable` will
+  fail the test rather than pass with reduced coverage.
+- Polkit: `/etc/polkit-1/rules.d/50-openpolaris-wifi-scan.rules`
+  installed and active. Silences the GNOME WiFi-panel auth flood
+  by short-circuiting the 8 relevant NetworkManager actions to
+  `polkit.Result.YES` for user `ian`. Deployed via
+  `scripts/install-wifi-polkit-rule.sh` (idempotent, uses `pkexec`
+  with a graphical agent).
 
 ## [Initial] - 2026-08-27
 

@@ -45,7 +45,9 @@ import kotlinx.coroutines.withTimeout
  * events) do not have to be polled.
  *
  * The reader is started automatically by [connect] and torn down by
- * [disconnect] / [handleDisconnect].
+ * [disconnect] / [handleDisconnect]. Use [shutdown] for the terminal
+ * release of the entire session (including the underlying reader
+ * scope) — see issue #20.
  *
  * The reader's [CoroutineScope] is injected so tests can pass the
  * [kotlinx.coroutines.test.TestScope] (which uses virtual time) instead
@@ -184,6 +186,17 @@ class MountSession(
     private var wantConnected = false
 
     /**
+     * Set to true by [shutdown] and never reset. A [MountSession] is a
+     * single-use object: once [shutdown] has been called, [connect] is
+     * forbidden (it throws [IllegalStateException]). The flag exists so
+     * the JVM-leak test (issue #20) can stand up a fresh session for
+     * every cycle without worrying about a stale state from a previous
+     * [disconnect] leaking across.
+     */
+    @kotlin.concurrent.Volatile
+    private var closed = false
+
+    /**
      * Pending request waiters keyed by response [ResponseParser.Frame.code].
      * Guarded by the [pending] instance monitor (O(1) ops, no coroutine
      * mutex overhead).
@@ -198,6 +211,12 @@ class MountSession(
     private var readerJob: Job? = null
 
     suspend fun connect(): Boolean {
+        // Shutdown is terminal — a fresh MountSession must be created
+        // after shutdown. We check this here rather than in
+        // tryConnect() because the connect() public surface is the
+        // contract; the private helper is allowed to be called from
+        // tests that drive the state directly.
+        if (closed) throw IllegalStateException("session is shut down")
         wantConnected = true
         return tryConnect()
     }
@@ -486,6 +505,50 @@ class MountSession(
         // Dispatchers.Default-backed readerScope would otherwise keep
         // the JVM alive past runTest().
         readerScope.coroutineContext.cancelChildren()
+    }
+
+    /**
+     * Terminal operation: permanently tear down the [MountSession] and
+     * release the [readerScope] itself (not just its children, which is
+     * what [disconnect] does). After [shutdown]:
+     *  - [connect] is forbidden and throws [IllegalStateException].
+     *  - The reader coroutine is cancelled; any in-flight [request]
+     *    waiters are failed with a [java.io.IOException] ("session
+     *    closed") the same way they would be on [disconnect].
+     *  - All state flows ([state], [frames], [tiltDrops]) are reset so a
+     *    caller that still holds references sees a clean "never used"
+     *    view rather than a stale snapshot.
+     *
+     * Idempotent: calling [shutdown] more than once is a no-op. The
+     * [readerScope] is cancelled exactly once; subsequent calls observe
+     * [closed] = true and return without touching the scope.
+     *
+     * This is the seam the JVM-leak test in
+     * [dev.openpolaris.core.domain.SessionShutdownLeakTest] (issue #20)
+     * relies on to keep [DebugProbes.dumpCoroutines] count bounded
+     * across many connect→disconnect cycles: without cancelling the
+     * scope itself, a [Dispatchers.Default]-backed readerScope in
+     * production would outlive every [MountSession] and accumulate
+     * reader jobs (and their socket-poll loops) forever.
+     */
+    fun shutdown() {
+        if (closed) return
+        closed = true
+        wantConnected = false
+        // disconnect() handles the per-cycle cleanup; it's safe to call
+        // even when nothing is connected (it null-checks connection and
+        // pending is empty when nothing is in flight).
+        disconnect()
+        // Now cancel the scope itself — this is what disconnect() does
+        // NOT do. After cancel() the scope's coroutineContext.job is
+        // in CANCELLED state, and any future launch on the scope
+        // becomes a no-op. This is the leak fix: a Dispatchers.Default
+        // readerScope would otherwise survive every MountSession that
+        // uses it.
+        readerScope.coroutineContext.cancel() // INTENTIONAL: this is the fix; leave in place for normal builds
+        _state.value = MountState()
+        _frames.value = null
+        _tiltDrops.value = 0L
     }
 
     private companion object {

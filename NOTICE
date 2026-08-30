@@ -16,3 +16,15 @@ implementation.
 The "Benro Polaris" name is used only to identify hardware
 compatibility.  OpenPolaris is an independent, community project
 and is not affiliated with, endorsed by, or produced by Benro.
+
+Bundled astronomical data (catalog.json, stars.json, ngc.json,
+comets.json) is sourced from public-domain catalogues.  See
+docs/THIRD_PARTY_DATA.md for the per-shard source attribution,
+licence, and regeneration guidance.  In summary:
+
+  - Messier (1781): public domain
+  - NGC 2000.0 (Sinnott 1988, NASA): public domain
+  - Yale Bright Star Catalogue 5th Ed. (Hoffleit & Warren 1991):
+    public domain
+  - Hipparcos Input Catalogue (ESA, 1997): public domain
+  - JPL Small-Body Database (JPL / Caltech, US govt work): public domain

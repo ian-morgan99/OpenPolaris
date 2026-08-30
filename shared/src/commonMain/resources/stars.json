@@ -377,7 +377,7 @@
       "type": "STAR",
       "decDeg": 19.1825,
       "magnitude": -0.05,
-      "constellation": "Bo\u00f6tes",
+      "constellation": "Boötes",
       "raDeg": 213.915
     },
     {
@@ -386,7 +386,7 @@
       "type": "DOUBLE_STAR",
       "decDeg": 27.0742,
       "magnitude": 2.37,
-      "constellation": "Bo\u00f6tes",
+      "constellation": "Boötes",
       "raDeg": 221.247
     },
     {
@@ -1847,5 +1847,27 @@
       "constellation": "Norma",
       "raDeg": 244.9005
     }
-  ]
+  ],
+  "_meta": {
+    "name": "OpenPolaris alignment stars",
+    "summary": "205 bright stars used as alignment candidates (V ≤ ~3.5)",
+    "primary_sources": [
+      {
+        "id": "Yale_BSC5",
+        "title": "The Bright Star Catalogue, 5th Revised Edition",
+        "authors": [
+          "Dorrit Hoffleit",
+          "Wayne H. Warren Jr."
+        ],
+        "year": 1991,
+        "publisher": "Yale University Observatory",
+        "license": "Public domain (academic; no copyright claimed)",
+        "url": "https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html",
+        "vizier_id": "V/50"
+      }
+    ],
+    "epoch": "J2000",
+    "field_notes": "Common name (Bayer/Flamsteed) and constellation from BSC5; magnitudes are visual (V-band).",
+    "regenerate_from": "VizieR V/50 catalogue; field HR, RA2000, DE2000, Vmag, Name, Con."
+  }
 }

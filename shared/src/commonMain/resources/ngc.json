@@ -2468,5 +2468,24 @@
       "constellation": "Leo",
       "raDeg": 175.725
     }
-  ]
+  ],
+  "_meta": {
+    "name": "OpenPolaris NGC deep-sky targets",
+    "summary": "274 NGC entries (galaxies, planetary nebulae, open and globular clusters)",
+    "primary_sources": [
+      {
+        "id": "NGC_2000_0",
+        "title": "NGC 2000.0: The Complete New General Catalogue and Index Catalogues of Nebulae and Star Clusters",
+        "editor": "Roger W. Sinnott",
+        "year": 1988,
+        "publisher": "Sky Publishing Corporation",
+        "license": "Public domain (NASA release)",
+        "url": "https://www.ngc7000.org/",
+        "vizier_id": "VII/118"
+      }
+    ],
+    "epoch": "J2000",
+    "field_notes": "Selected by apparent magnitude ≤ ~11 and popular deep-sky targets.",
+    "regenerate_from": "VizieR VII/118; field Name, RA2000, DE2000, Type, Const, Mag."
+  }
 }

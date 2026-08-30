@@ -37,7 +37,7 @@
       "raDeg": 213.92,
       "decDeg": 19.18,
       "magnitude": -0.05,
-      "constellation": "Bo\u00f6tes"
+      "constellation": "Boötes"
     },
     {
       "designation": "Capella",
@@ -1325,5 +1325,28 @@
       "sizeArcmin": 19.0,
       "description": "M31 satellite."
     }
-  ]
+  ],
+  "_meta": {
+    "name": "OpenPolaris core catalog",
+    "summary": "110 Messier objects + 30 bright alignment stars",
+    "primary_sources": [
+      {
+        "id": "Messier",
+        "author": "Charles Messier",
+        "year": 1781,
+        "license": "Public domain",
+        "url": "https://messier.seds.org/"
+      },
+      {
+        "id": "Hipparcos",
+        "agency": "ESA",
+        "year": 1997,
+        "license": "Public domain",
+        "url": "https://www.cosmos.esa.int/web/hipparcos"
+      }
+    ],
+    "epoch": "J2000",
+    "field_notes": "Hand-curated subset from SEDS Messier database and Hipparcos Input Catalogue.",
+    "regenerate_from": "See docs/THIRD_PARTY_DATA.md §4-5"
+  }
 }

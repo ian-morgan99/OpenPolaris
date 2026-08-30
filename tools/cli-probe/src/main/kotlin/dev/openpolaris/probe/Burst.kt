@@ -1,6 +1,6 @@
 package dev.openpolaris.probe
 
-import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
 import java.net.InetSocketAddress
@@ -8,21 +8,31 @@ import java.net.Socket
 
 private fun log(s: String) { println(s); System.out.flush() }
 
-/** Result of parsing command-line arguments. Host/port default to the real gimbal
- *  (192.168.0.1:9090); codes default to a hand-picked smoke-test set. */
+/**
+ * Result of parsing command-line arguments. Host/port default to the real gimbal
+ * (192.168.0.1:9090); codes default to a hand-picked smoke-test set. Pass `--full`
+ * as a third argument to use the canonical [CommandTable.BURST_PRE_CAMERA] list
+ * (all 9 pre-camera GETs) instead.
+ */
 data class BurstArgs(
     val host: String,
     val port: Int,
     val codes: List<Int>,
+    val full: Boolean = false,
 )
 
 /** Pure, testable argument parser. */
 internal fun parseBurstArgs(args: Array<String>): BurstArgs {
     val host = args.getOrNull(0) ?: "192.168.0.1"
     val port = args.getOrNull(1)?.toIntOrNull() ?: 9090
-    val codes = (args.getOrNull(2) ?: "524,544,802,824,775,778,779")
-        .split(",").map { it.trim().toInt() }
-    return BurstArgs(host, port, codes)
+    val full = args.getOrNull(2) == "--full"
+    val codes = if (full) {
+        CommandTable.BURST_PRE_CAMERA.map { it.code }
+    } else {
+        (args.getOrNull(2) ?: "524,544,802,824,775,778,779")
+            .split(",").map { it.trim().toInt() }
+    }
+    return BurstArgs(host, port, codes, full)
 }
 
 /** Run the burst against host:port. Returns the list of per-code result lines that
@@ -30,7 +40,8 @@ internal fun parseBurstArgs(args: Array<String>): BurstArgs {
  *  to "<error>" lines rather than thrown, so the burst always runs to completion. */
 fun runBurst(args: BurstArgs, sink: (String) -> Unit = ::log): List<String> {
     val results = mutableListOf<String>()
-    val header = "burst → ${args.host}:${args.port} codes=${args.codes}"
+    val header = "burst → ${args.host}:${args.port} codes=${args.codes}" +
+        if (args.full) " (full pre-camera burst)" else ""
     sink(header); results += header
     try {
         val socket = Socket()

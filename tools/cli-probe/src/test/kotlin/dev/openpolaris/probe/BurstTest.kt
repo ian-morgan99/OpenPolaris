@@ -40,6 +40,17 @@ class BurstTest {
         assertEquals(9090, a.port)
     }
 
+    @Test
+    fun `parseBurstArgs --full uses the canonical pre-camera burst codes`() {
+        val a = parseBurstArgs(arrayOf("h", "1", "--full"))
+        assertTrue(a.full, "expected full=true when --full is passed")
+        // 9 codes in the canonical order: 808, 809, 802, 778, 779, 775, 824, 524, 543
+        assertEquals(
+            listOf(808, 809, 802, 778, 779, 775, 824, 524, 543),
+            a.codes,
+        )
+    }
+
     // ---- runBurst: error path ----
 
     @Test

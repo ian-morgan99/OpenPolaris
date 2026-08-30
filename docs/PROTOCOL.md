@@ -60,10 +60,10 @@ with extended firmware payloads.
 
 | Code | Name | Payload |
 |---|---|---|
-| 513 | SP_GIMBAL_HADJ_SPEED | `speed:%s;` or `x:%d;y:%d;` |
+| 513 | SP_GIMBAL_HADJ_SPEED | `time:%dms;` *(Benro app)* / `speed:%s;` *(ogecko/Alpaca)* |
 | 514 | SP_GIMBAL_VADJ_SPEED | same |
-| 515 | SP_GIMBAL_HADJ_ANGLE | angle string |
-| 516 | SP_GIMBAL_VADJ_ANGLE | angle string |
+| 515 | SP_GIMBAL_HADJ_ANGLE | `time:%dms;` *(Benro app)* / `angle string` *(ogecko/Alpaca)* |
+| 516 | SP_GIMBAL_VADJ_ANGLE | same |
 | 521 | SP_GIMBAL_RADJ_SPEED | roll-axis jog |
 | 522 | SP_GIMBAL_RADJ_ANGLE | roll-axis angle |
 | 523 | SP_POS_RESET | reset position reference |
@@ -73,6 +73,16 @@ with extended firmware payloads.
 
 **Enhancement note:** 513–522 exist in firmware but the stock app uses them only for manual jog.
 The open client may use them as fine rate trims during tracking (subject to hardware validation).
+
+**Wire-format divergence (codes 513–516):** the stock Benro app encodes all four jog
+codes as a duration — `time:Nms;` meaning "jog this axis for N milliseconds". Alpaca
+and ogecko instead document 513/514 as `speed:%s;` (with a 2-axis variant `x:%d;y:%d;`)
+and 515/516 as an opaque "angle string". The open client ships the Benro duration
+encoding (consistent with the rest of the codebase's `time:` precedent for
+`SETTLING_TIME` 544 and `SET_SYSTEM_TIME`) until a hardware pass confirms which
+encoding the Benro firmware actually accepts. See
+[CommandTable.kt:115](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/CommandTable.kt)
+and [FIRMWARE-ANALYSIS-ALPACA.md](FIRMWARE-ANALYSIS-ALPACA.md).
 
 ### 3.3 Astro helper settings
 

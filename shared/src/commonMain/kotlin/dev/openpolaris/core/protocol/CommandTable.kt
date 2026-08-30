@@ -113,6 +113,16 @@ object CommandTable {
     val SETTLING_TIME_SET = Descriptor<Int>(Codes.SET_SETTLING_TIME, "settling time set", payload = { "time:$it;" })
 
     // ---- jog -------------------------------------------------------------------
+    //
+    // All four codes accept `time:Nms;` (jog this axis for N milliseconds). This
+    // is the format observed in the stock Benro app (see Panes.kt:JogPad +
+    // TrackingController.jog). Alpaca/ogecko document codes 513/514 as
+    // `speed:%s;` instead and 515/516 as an opaque "angle string" — the open
+    // client has not been RE'd against hardware for these, so we ship the
+    // Benro-style duration encoding for both "speed" and "angle" pairs. A
+    // future hardware pass can split these into separate `speed:`/`angle:`
+    // payload keys if the firmware rejects the duration encoding. See
+    // PROTOCOL.md §3.2 and FIRMWARE-ANALYSIS-ALPACA.md for the divergences.
 
     val JOG_H_SPEED = Descriptor<Int>(Codes.GIMBAL_HADJ_SPEED, "jog yaw speed", payload = { "time:$it;" })
     val JOG_V_SPEED = Descriptor<Int>(Codes.GIMBAL_VADJ_SPEED, "jog pitch speed", payload = { "time:$it;" })

@@ -300,13 +300,17 @@ closed 2026-08-30T15:50:54Z** with reader work at `d693197` / `55c83f9` / `73474
 `55c83f9`, "plan-#7-3i: decouple reader race"). The SUSPEND+tryEmit contradiction
 in the publisher path was fixed in the #19 slice (see commit on this branch that
 replaces `BufferOverflow.SUSPEND` with `BufferOverflow.DROP_OLDEST` on
-`MountSession._tilt` and exposes `tiltDrops: StateFlow<Long>` so silent loss is
+`MountSession._tilt` and exposes `tiltDropsNoSubscriber: StateFlow<Long>` so silent loss is
 visible). The reader's `tryEmit` is now intentional: with DROP_OLDEST it never
 returns false on a healthy buffer, and the `subscriptionCount == 0` guard
-increments the counter only when the emit is guaranteed lost. Two regression
-tests in `TiltStreamTest.kt` (`zeroSubscriberPushesIncrementTiltDrops`,
-`liveCollectorDoesNotIncrementTiltDrops`) pin the contract end-to-end through the
-real reader loop.
+increments the counter only when the emit is guaranteed lost. Three regression
+tests in `TiltStreamTest.kt` (`zeroSubscriberPushesIncrementTiltDropsNoSubscriber`,
+`liveCollectorDoesNotIncrementTiltDropsNoSubscriber`,
+`liveSlowCollectorExceedingBufferReceivesExactly64Newest`) pin the contract end-to-end through the
+real reader loop. **The third test is the one the original closure was missing:**
+538 frames through the reader loop with a live collector that only `take(64)`s, asserting the
+collector sees the **newest** 64 (frames 474–537) and that `tiltDropsNoSubscriber` stays at 0
+throughout (because a collector was attached at every emit; the no-subscriber path never fires).
 
 Known follow-up tickets (not yet filed): the MJPEG-decode-on-GL-thread issue
 ([PLAN-CRITICAL-REVIEW.md §I](./PLAN-CRITICAL-REVIEW.md#i-mjpeg-decode-on-the-gl-thread-is-unowned))
@@ -323,7 +327,7 @@ after Stream 7.5:
 - **2026-08-30T17:42:00Z (issue #19 closed, commit `7970e55`)**: the SUSPEND+tryEmit
   fix per the 2026-08-30T16:12:51Z entry landed as `7970e55` on
   `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
-  `MountSession.kt` (DROP_OLDEST + `tiltDrops` counter + reader comment), and
+  `MountSession.kt` (DROP_OLDEST + `tiltDropsNoSubscriber` counter + reader comment), and
   `TiltStreamTest.kt` (two regression tests). PLAN.md updated in three places
   ("Caveat per #19", the 16:12:51Z reconciliation entry, and "Immediate next
   actions" item 2). Full `:shared:jvmTest --rerun-tasks` is green at 222/222.
@@ -419,7 +423,7 @@ after Stream 7.5:
   The connect-time race fix from #6 did land on this worktree (commit `55c83f9`).
   The SUSPEND+tryEmit critique in the #6 reopen is now fixed in the #19 slice:
   `BufferOverflow.SUSPEND` → `BufferOverflow.DROP_OLDEST` on `_tilt`, plus a
-  new `tiltDrops: StateFlow<Long>` counter, plus two regression tests in
+  new `tiltDropsNoSubscriber: StateFlow<Long>` counter, plus two regression tests in
   `TiltStreamTest.kt`. Full `:shared:jvmTest --rerun` is green at 222/222
   (was 220, +2 from this slice). Issue #19 is closed. See the "Caveat per #19"
   paragraph above and item 2 in the "Immediate next actions" list below for
@@ -524,21 +528,28 @@ issue #19 is closed.
    acceptance criterion)** — **DONE** on this worktree (commit on this branch;
    see "Plan / GitHub reconciliation" 2026-08-30T16:12:51Z entry below).
    Chose option **(A)**: `BufferOverflow.SUSPEND` → `BufferOverflow.DROP_OLDEST`
-   on `_tilt`, and exposed `tiltDrops: StateFlow<Long>` (reset to 0 on every
+   on `_tilt`, and exposed `tiltDropsNoSubscriber: StateFlow<Long>` (reset to 0 on every
    (re)connect) so silent loss is observable. The reader's `tryEmit` is now
    intentional: with DROP_OLDEST it never returns false on a healthy buffer,
    and the `subscriptionCount == 0` guard after each emit increments the
    counter only when the emit is guaranteed lost. The comment block at the
-   reader was rewritten to document the honest contract. Two regression tests
+   reader was rewritten to document the honest contract. Three regression tests
    in `TiltStreamTest.kt` pin the contract end-to-end through the real reader
    loop:
-   - `zeroSubscriberPushesIncrementTiltDrops` — 100 538 frames pushed through
-     `FakeConnection` with no collector attached → `tiltDrops == 100`.
-   - `liveCollectorDoesNotIncrementTiltDrops` — `take(10).toList()` collector
-     drains 10 frames → `tiltDrops == 0`.
-   Full `:shared:jvmTest --rerun` is green at **222/222** (was 220, +2 from
-   this slice). Issue #19 is closed with a comment documenting the four-file
-   edit list and the new test coverage.
+   - `zeroSubscriberPushesIncrementTiltDropsNoSubscriber` — 100 frames pushed through
+     `FakeConnection` with no collector attached → `tiltDropsNoSubscriber == 100`.
+   - `liveCollectorDoesNotIncrementTiltDropsNoSubscriber` — `take(10).toList()` collector
+     drains 10 frames → `tiltDropsNoSubscriber == 0`.
+   - `liveSlowCollectorExceedingBufferReceivesExactly64Newest` — 538 frames pushed
+     through `FakeConnection` with a live collector that only `take(64)`s →
+     collector receives the **newest** 64 (frames 474–537, by index) and
+     `tiltDropsNoSubscriber` stays at 0. This third test is the one the original
+     closure was missing: it forces the SharedFlow's 64-slot buffer to overflow
+     so the DROP_OLDEST eviction path is actually exercised.
+   Full `:shared:jvmTest --rerun` is green at **224/224** (was 220, +4 across
+   the #19 reopen and the missing-test follow-up; 222 after the first
+   closure, 224 after the slow-collector test). Issue #19 is closed with a
+   comment documenting the four-file edit list and the new test coverage.
 3. ~~**§F contract test (per §L of PLAN-CRITICAL-REVIEW)** — add two tests to
    `AutoLevelControllerTest.kt`.~~ **DONE** in commit `7970e55`. The shipped
    tests are `gimbalPosFrame517DoesNotFeedTilt` (line 272) and

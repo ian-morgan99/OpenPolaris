@@ -14,13 +14,17 @@
 >    (`host = "192.168.0.1"`, port `9090`), and
 >    [`Burst.kt:13`](tools/cli-probe/src/main/kotlin/dev/openpolaris/probe/Burst.kt)
 >    was also flipped to `192.168.0.1`.
-> 2. The post-connect sequence naming `515` as `SET_SYSTEM_TIME` (line 173,
->    line 241) contradicts the RE table in
->    [PROTOCOL.md §Control plane](PROTOCOL.md) and `shared/.../Codes.kt:43`,
->    both of which say `515 = SP_GIMBAL_HADJ_ANGLE`. **The post-connect
->    "time-set" code is currently unidentified.** When the live burst
->    probe (Step 3) runs, capture the exact code the firmware expects;
->    until then, treat 515 in any burst command as a placeholder.
+> 2. ~~`515` as `SET_SYSTEM_TIME` was a placeholder in an older draft~~
+>    (2026-08-30). **Resolved:** `515` is `GIMBAL_HADJ_ANGLE` per
+>    [PROTOCOL.md §Control plane](PROTOCOL.md) and
+>    [`shared/.../Codes.kt:43`](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt).
+>    The post-connect burst (item 3 below) no longer fires 515; the
+>    earlier "time-set" code is now believed to be `544`
+>    (`SET_SETTLING_TIME`, payload `time:<ms>;`) based on
+>    [`CommandTable.kt:127`](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/CommandTable.kt),
+>    and is wired in via `MountSession.setSettlingTimeMs(ms)` only
+>    (not on every connect). The live burst probe (Step 3) will
+>    confirm — if firmware rejects 544 as a SETTER, we will revisit.
 > 3. **2026-08-30 (today):** Step 5 implemented in code. The post-connect
 >    burst is now wired into [`AppViewModel.kt`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt)
 >    and runs in this order after `MountSession.connect()` returns true:
@@ -55,7 +59,9 @@ in the way, and what each next step costs.
    exactly like the Benro app, and `ResponseParser` consumes
    `<spCode>@<value>#`. The first 7 burst-set codes (524, 544, 802,
    824, 775, 778, 779) round-trip against the local stub server;
-   75 `shared:jvmTest` tests pass.
+   86 `shared:jvmTest` tests pass; 17 additional `tools` tests (8
+   stub-server, 6 cli-probe, 3 bridge) round-trip the wire format
+   end-to-end. **103/103 total green.**
 
 3. **The Bluetooth→WiFi handoff is now fully understood from RE.**
    The gimbal's BLE adapter is a simple wake switch: connecting to
@@ -94,12 +100,13 @@ Picking up tomorrow? Read this first.
   `192.168.0.1`, the burst will fire automatically on connect. We
   need to capture one successful round-trip and paste the responses
   back here so we can tune the four `*Detail.fromFrame` parsers to
-  the actual wire format. (40 unit tests pass against the stub
-  server; live firmware is the only thing left to validate against.)
+  the actual wire format. (Tests against the stub: 8 stub-server + 6
+  cli-probe + 6 bridge + 86 shared = 103/103 green across the repo;
+  live firmware is the only thing left to validate against.)
 - **Build is green.** `JAVA_HOME=/home/ian/jdks/jdk-21.0.2 ./gradlew
-  :shared:jvmTest :composeApp:compileKotlinJvm` → `BUILD SUCCESSFUL`,
-  40 tests pass. (Note: `/usr/lib/jvm/java-21-openjdk-amd64` is a JRE
-  without `javac` — always set `JAVA_HOME` to a real JDK on this box.)
+  check` → `BUILD SUCCESSFUL`, 103 tests pass. (Note:
+  `/usr/lib/jvm/java-21-openjdk-amd64` is a JRE without `javac` —
+  always set `JAVA_HOME` to a real JDK on this box.)
 
 ---
 
@@ -109,13 +116,13 @@ Picking up tomorrow? Read this first.
 
 | Area | State | Evidence |
 |---|---|---|
-| Wire format | ✅ implemented | [CommandBuilder.kt](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/CommandBuilder.kt), 75 jvmTest pass |
+| Wire format | ✅ implemented | [CommandBuilder.kt](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/CommandBuilder.kt); 86 shared + 17 tools tests = 103 total, all green |
 | Code constants | ✅ implemented | [Codes.kt](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt), 190 lines, camera 258-311 marked UNVERIFIED |
 | Response parser | ✅ implemented | [ResponseParser.kt](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/ResponseParser.kt) splits `<spCode>@<value>#` |
-| Burst codes 524/544/802/824/775/778/779 | ✅ round-trip green | 75 jvmTest pass; 7 burst probes against stub server |
+| Burst codes 524/544/802/824/775/778/779 | ✅ round-trip green | 86 jvmTest pass; 8 stub-server tests + 6 probe tests exercise the burst path |
 | Stub server (mobile-app → PC) | ✅ built | `tools/stub-server` runs the simulator as a TCP service |
 | `MountSession` host (was `AppViewModel.connect()`) | ✅ defaults to `192.168.0.1:9090` | [MountSession.kt:21](shared/src/commonMain/kotlin/dev/openpolaris/core/domain/MountSession.kt); `Burst.kt:13` also defaults to `192.168.0.1` |
-| Post-connect burst (524/TBD-time-set/778/775/284/802/824) | ✅ implemented | [`AppViewModel.postConnectBurst()`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt) runs 808/809/802/778/779/775/824/524/543 after `MountSession.connect()`. Time-set was **dropped** in favor of `543` (settling-time get); `544` is the setter. |
+| Post-connect burst (808/809/802/778/779/775/824/524/543) | ✅ implemented | [`AppViewModel.postConnectBurst()`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt) runs 808→809→802→778→779→775→824→524→543 after `MountSession.connect()`. The earlier "TBD-time-set" placeholder is **resolved**: `515` was mistakenly tagged as a time-setter in a prior draft but is actually `GIMBAL_HADJ_ANGLE` (jog yaw). The real setter is `544` (`SET_SETTLING_TIME`); the burst only fires its GET (`543`) plus a separate `setSettlingTimeMs(ms)` call. See [PROTOCOL.md §Control plane](PROTOCOL.md) and [Codes.kt:43](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt). |
 | Camera info burst (CAM_GET_* = 258/260/262/264/266/268/270/272/274/276/278) | ⚠ partial — 6/11 in CommandTable, 10/11 in `AppViewModel.postConnectBurst()`, 10/10 steppers rendered in `CameraPane` | 6 new GET/SET pairs (focus/imgSize/imgFmt/color/shutter/captureMode, codes 268-279) added to `CommandTable` in commit `5dab031`; `CameraInfo.fromFrame` parser handles all 10 burst codes; `SimulatedProtocol` generates valid responses for the 6 new pairs; 11 new unit tests in `786d006` (jvmTest now 86/86 green). 10 of 11 camera GETs (all except 266=`CAM_GET_STATE` and 267=`CAPTURE`, which feed separate pipelines) are in `AppViewModel.postConnectBurst()` and were stub-verified this session. **In commit `ae241bb`**: all 6 new fields now have `StepperRow` entries in `CameraPane` (Focus / Image size / Image format / Color / Shutter / Capture mode), matching the existing `setFocus` / `setImgSize` / `setImgFmt` / `setColor` / `setShutter` / `setCaptureMode` API on `AppViewModel`. `compileKotlinJvm` still builds clean. Remaining: live verify against the real gimbal at `192.168.0.1:9090` (still blocked on B1 sudo + B2 gimbal power). |
 | BT-side codes (1-5, 257-263, 513-524) | ❌ not in repo | likely a new `BtCodes.kt` + frame helpers |
 | Linux BlueZ BLE wake pulse | ❌ not implemented | optional, see "Bluetooth" below |
@@ -142,7 +149,9 @@ Picking up tomorrow? Read this first.
   (cable/HDMI/4G/AT/URAT/sleep/reset/battery-warn) by the app's test
   flows. It is **not** part of the connect handshake.
 - **Post-connect burst** (from `setWifiConnectState(true)`):
-  524 → (time-set, code **TBD** — not confirmed in RE) → 778 poll → 775 poll → 284 → 802 → 824.
+  808 → 809 → 802 → 778 → 779 → 775 → 824 → 524 → 543 (and a separate
+  `setSettlingTimeMs(ms)` call). The earlier "time-set" placeholder
+  has been resolved — see PROTOCOL.md §Control plane.
 - **Camera info burst** (from `getCanmeraInfo()`): fires the
   `CAM_GET_*` set — 258, 260, 262, 264, 266, 268, 270, 272, 274, 276,
   278 (ISO / WB / FNum / EV / State / Focus / ImgSize / ImgFmt /
@@ -237,19 +246,24 @@ Three things become unblocked:
 
 1. We can issue a **live TCP burst probe** from the CLI:
    ```bash
-   # connect to gimbal AP (no PSK), then
-   for c in 524 515 778 775 284 802 824; do
+   # connect to gimbal AP (no PSK), then probe the GET-only burst
+   # codes (the same ones AppViewModel.postConnectBurst() fires on
+   # desktop connect). 543 is the settling-time GET (safe to read).
+   for c in 524 543 775 778 779 802 808 809 824; do
      printf '1&%s&2&-100#\n' "$c" | nc -w1 192.168.0.1 9090
    done
    ```
-   **Note:** `515` is the stand-in the planning doc uses for the
-   "time-set" step. The RE table in [PROTOCOL.md](PROTOCOL.md) says
-   `515 = SP_GIMBAL_HADJ_ANGLE`. Treat the time-set output as
-   *unspecified code* and capture whatever the firmware echoes — that
-   becomes the canonical time-set code. This will tell us whether the
-   firmware's wire format is exactly what we inferred from RE (very
-   likely yes), and gives us real responses to validate
-   `ResponseParser` against.
+   **Note (2026-08-30):** `515` was removed from the probe list. The
+   RE table in [PROTOCOL.md](PROTOCOL.md) confirms
+   `515 = SP_GIMBAL_HADJ_ANGLE`, so `cmdType=2` with that code would
+   *jog* the gimbal horizontally, not set the time. The post-connect
+   burst in `AppViewModel` no longer fires 515 either. The time-set
+   step is now believed to be `544` (`SET_SETTLING_TIME`); if the
+   firmware needs an explicit system-clock sync, that will be a
+   separate one-off after the GET burst above. This probe will tell
+   us whether the wire format is exactly what we inferred (very
+   likely yes) and gives us real responses to validate `ResponseParser`
+   against.
 
 2. ~~We can flip `AppViewModel.connect()` to `host=192.168.0.1`.~~
    **Done** — `MountSession.connect()` and `Burst.kt` already default
@@ -345,7 +359,7 @@ Each step lists **what**, **how long** (rough), **how to verify**, and
   two responses.
 - **Build evidence:** `JAVA_HOME=/home/ian/jdks/jdk-21.0.2
   ./gradlew :shared:jvmTest :composeApp:compileKotlinJvm` →
-  `BUILD SUCCESSFUL`, 40 jvmTest pass.
+  `BUILD SUCCESSFUL`, 86 shared + 17 tools tests = 103/103 green.
 - **Live verification (Step 8 below) still pending.**
 
 ### Step 6 — Implement and wire the camera info burst

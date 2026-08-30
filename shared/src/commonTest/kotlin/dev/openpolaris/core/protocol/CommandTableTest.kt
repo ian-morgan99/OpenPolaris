@@ -108,18 +108,30 @@ class CommandTableTest {
     @Test
     fun burstPreCameraParsersCoverAllSteps() {
         // Each step's parser should produce a non-null value when handed a
-        // minimal synthetic frame that the code's real protocol message
-        // contains. This proves the parser actually parses, not just that
-        // a function reference exists.
-        val keyByCode = mapOf(
-            808 to "ver", 809 to "sn", 802 to "band", 543 to "time",
-        )
+        // minimal synthetic frame carrying the key the code's real protocol
+        // message contains. This proves the parser actually parses, not just
+        // that a function reference exists. 778/779/775/824/524 are
+        // domain-specific (BatteryDetail, SdStatus, OmsState, ExAxisState) so
+        // we hand them a frame shaped to their fromFrame.
+        val minimalFrame: (Int) -> String = { code ->
+            when (code) {
+                808 -> "ver:7;"
+                809 -> "sn:7;"
+                802 -> "band:7;"
+                778 -> "level:50;"     // BatteryDetail.fromFrame (basic 778 frame)
+                779 -> "temp:25;"      // BatteryDetail.fromFrame (detail 779 frame)
+                775 -> "state:0;"      // SdStatus.fromFrame (present)
+                824 -> "running:1;"    // OmsState.fromFrame
+                524 -> "state:2;"      // ExAxisState.fromFrame
+                543 -> "time:7;"
+                else -> error("no synthetic frame defined for burst code $code")
+            }
+        }
         for (step in CommandTable.BURST_PRE_CAMERA) {
-            val key = keyByCode[step.code] ?: continue // 778/779/775/824/524 use domain-specific helpers
             val p = ResponseParser()
-            val f = p.parseFrame("1&0&2&$key:7;")!!
+            val f = p.parseFrame("1&0&2&${minimalFrame(step.code)}")!!
             val v = step.parse(f)
-            assertTrue(v != null, "step ${step.code} returned null on a $key:7; frame")
+            assertTrue(v != null, "step ${step.code} returned null on its synthetic frame")
         }
     }
 

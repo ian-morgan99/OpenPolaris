@@ -1,7 +1,10 @@
 package dev.openpolaris.core.sim
 
+import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.protocol.ResponseParser
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -128,6 +131,27 @@ class SimulatedProtocolTest {
     fun omsRunState() {
         val resp = sim.handle(Codes.OMS_RUN_STATE, emptyMap())
         assertNotNull(resp)
+    }
+
+    @Test
+    fun omsTaskList() {
+        val resp = sim.handle(Codes.OMS_TASK_LIST, emptyMap())
+        assertNotNull(resp)
+        val first = String(resp[0])
+        assertTrue(first.endsWith("#"), "frame must end with #: $first")
+
+        // Strip "1&<code>&2&" envelope + trailing '#' to feed ResponseParser.
+        val payload = first.removeSuffix("#").substringAfter("&2&")
+        val f = ResponseParser().parseFrame("1&${Codes.OMS_TASK_LIST}&2&$payload")!!
+        val list = TaskList.fromFrame(f)
+        assertNotNull(list, "TaskList.fromFrame must succeed for simulator output")
+        assertEquals(2, list.count, "expected the seeded 2-task table")
+        assertEquals(2, list.tasks.size)
+        assertEquals("Slew", list.tasks[0].name)
+        assertEquals(0, list.tasks[0].id)
+        assertEquals(0, list.tasks[0].state)
+        assertEquals("Pan", list.tasks[1].name)
+        assertEquals(1, list.tasks[1].id)
     }
 
     @Test

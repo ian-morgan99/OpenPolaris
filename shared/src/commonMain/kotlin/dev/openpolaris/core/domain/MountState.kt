@@ -2,6 +2,25 @@ package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.protocol.ResponseParser
 
+/**
+ * Internal helpers for parsing `key:value;` segments out of a raw payload.
+ * Used by the [Task] / [TaskList] parsers to read fields before the standard
+ * field-map collapses duplicate keys.
+ */
+private fun String.intField(key: String): Int? =
+    split(';')
+        .firstOrNull { it.startsWith("$key:") }
+        ?.substringAfter(':')
+        ?.trim()
+        ?.toIntOrNull()
+
+private fun String.strField(key: String): String? =
+    split(';')
+        .firstOrNull { it.startsWith("$key:") }
+        ?.substringAfter(':')
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
 /** Mount operating mode reported by 284. */
 enum class MountMode { PANORAMA, TIMELAPSE, ASTRO, UNKNOWN }
 
@@ -118,6 +137,85 @@ data class OmsState(
             val err = f.int("err")
             if (run == null && tasks == null && err == null) return null
             return OmsState((run ?: 0) != 0, tasks, err)
+        }
+    }
+}
+
+/**
+ * 825 — a single OMS (On-Mount Scheduler) task.
+ *
+ * Each task record in the firmware response looks like:
+ *   `id:N;state:N;name:X;...;`
+ * The list of records is concatenated; the standard field-map parser cannot
+ * recover them because duplicate keys collide. See [TaskList.fromFrame] for
+ * the record-splitter.
+ */
+data class Task(
+    val id: Int,
+    val state: Int,
+    val name: String,
+) {
+    companion object {
+        /** Parse one record segment (a `;`-separated `key:value;...` substring)
+         *  into a [Task]. Returns null if id or state is missing/invalid or if
+         *  name is missing. Extra fields are ignored. */
+        fun fromSegment(seg: String): Task? {
+            val id = seg.intField("id") ?: return null
+            val state = seg.intField("state") ?: return null
+            val name = seg.strField("name") ?: return null
+            return Task(id, state, name)
+        }
+    }
+}
+
+/**
+ * 825 — list of OMS tasks.
+ *
+ * Firmware format (RE): `count:N;id:N;state:N;name:X;id:N;state:N;name:X;...;`
+ * The standard frame parser collapses duplicate keys so we split the raw
+ * payload on `id:` to recover the individual records. The first chunk may
+ * carry a leading `count:N;` prefix which is preserved as [count].
+ *
+ * The record-list parser makes a documented assumption: every record starts
+ * with `id:` and `id:` never appears in any value. Both hold for the RE
+ * captures and the simulated response. Validate against live firmware before
+ * relying on this in production.
+ */
+data class TaskList(
+    val count: Int? = null,
+    val tasks: List<Task> = emptyList(),
+) {
+    companion object {
+        /**
+         * Parse the multi-record task list from a frame.
+         *
+         * Re-splits the raw payload (carried by the frame via the [Frame.raw]
+         * extension) on `id:` to recover individual records. The first
+         * record's leading prefix (e.g. `count:N;`) is scanned for [count].
+         */
+        fun fromFrame(f: ResponseParser.Frame): TaskList? {
+            val raw = f.raw ?: return null
+            val records = splitTaskRecords(raw)
+            if (records.isEmpty()) return null
+            val count = records.first().intField("count")
+            val tasks = records.mapNotNull { Task.fromSegment(it) }
+            return TaskList(count, tasks)
+        }
+
+        /**
+         * Split a raw payload into one segment per record, splitting on the
+         * first field of each record (`id:`). The first segment is the
+         * prefix that may carry a `count:N;` field. The `id:` delimiter is
+         * re-attached to all segments except the first.
+         */
+        internal fun splitTaskRecords(payload: String): List<String> {
+            if (payload.isBlank()) return emptyList()
+            // Split on the literal "id:" but only between segments (i.e. after
+            // a ';'). This avoids false positives if "id:" ever appears in a
+            // value (it doesn't in RE captures).
+            val parts = payload.split(Regex("(?<=;)id:"))
+            // Reattach "id:" to all but the first part.
+            return listOf(parts.first()) + parts.drop(1).map { "id:$it" }
         }
     }
 }

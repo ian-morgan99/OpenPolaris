@@ -55,6 +55,12 @@ class SimulatedProtocol {
     var wifiBand = 0
     var omsRunning = false
     var omsTaskCount = 0
+    /** OMS scheduler task table (id, state, name). The first record is the
+     *  default seeded list — exactly what the simulator returns for code 825. */
+    val omsTasks: MutableList<SimTask> = mutableListOf(
+        SimTask(0, 0, "Slew"),
+        SimTask(1, 1, "Pan"),
+    )
     var gimbalRtcMillis: Long = 1_700_000_000_000L
     var fwVersion = "1.0.0"
     var serial = "POL-SIM-0001"
@@ -350,7 +356,19 @@ class SimulatedProtocol {
                 "1&${Codes.OMS_RUN_STATE}&2&running:${if (omsRunning) 1 else 0};" +
                     "tasks:$omsTaskCount;err:0;#"
             )
-            Codes.OMS_TASK_LIST -> out += response("1&${Codes.OMS_TASK_LIST}&2&ret:0;#")
+            Codes.OMS_TASK_LIST -> {
+                // Format mirrors a real GET response: count first, then one
+                // "id:N;state:N;name:X;" record per task. Parser relies on
+                // `id:` never appearing inside a name.
+                val sb = StringBuilder()
+                sb.append("count:").append(omsTasks.size).append(';')
+                for (t in omsTasks) {
+                    sb.append("id:").append(t.id).append(';')
+                    sb.append("state:").append(t.state).append(';')
+                    sb.append("name:").append(t.name).append(';')
+                }
+                out += response("1&${Codes.OMS_TASK_LIST}&2&${sb}#")
+            }
 
             // ---- handshake / token -----------------------------------------
             Codes.APP_PASSWORD_INFO -> out += response(
@@ -392,6 +410,13 @@ data class SimFile(
     var name: String,
     var prot: Int,
     var type: Int,
+)
+
+/** OMS scheduler task row (code 825, GET returns one per scheduled task). */
+data class SimTask(
+    val id: Int,
+    var state: Int,
+    var name: String,
 )
 
 /** Sentinel for empty payload (imported for clarity in callers). */

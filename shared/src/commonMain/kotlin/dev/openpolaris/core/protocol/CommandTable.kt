@@ -2,6 +2,7 @@ package dev.openpolaris.core.protocol
 
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountState
+import dev.openpolaris.core.domain.TaskList
 
 /**
  * Table-driven command registry (ARCHITECTURE §3.2). One descriptor per code:
@@ -253,7 +254,17 @@ object CommandTable {
 
     /** OMS = On-Mount State. 824 pushes current OMS + error state. */
     val OMS_RUN_STATE = Descriptor<Unit>(Codes.OMS_RUN_STATE, "oms run state")
-    val OMS_TASK_LIST = Descriptor<Unit>(Codes.OMS_TASK_LIST, "oms task list")
+
+    /**
+     * 825 GET returns the scheduled task table as multiple
+     * `id:N;state:N;name:X;` records prefixed with `count:N;`. Parser splits
+     * the raw payload on `id:` (look-behind for `;`) since the field map
+     * collapses duplicate keys.
+     */
+    val OMS_TASK_LIST = Descriptor<TaskList>(
+        Codes.OMS_TASK_LIST, "oms task list",
+        parse = TaskList::fromFrame,
+    )
 
     // ---- app handshake / token (RE) -------------------------------------------
 

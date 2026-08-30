@@ -8,7 +8,20 @@ package dev.openpolaris.core.protocol
 class ResponseParser {
 
     /** A parsed response frame. */
-    data class Frame(val code: Int, val fields: Map<String, String>) {
+    data class Frame(
+        val code: Int,
+        val fields: Map<String, String>,
+        /**
+         * Raw payload text (the substring between the type segment and the
+         * terminating `#`, e.g. `count:2;id:0;state:0;name:Slew;id:1;...;`).
+         *
+         * Carried alongside [fields] so list-of-records parsers (e.g. OMS
+         * task list) can recover individual records that the field map
+         * collapses. May be null if the frame was constructed without a
+         * raw payload (e.g. in tests).
+         */
+        val raw: String? = null,
+    ) {
         operator fun get(key: String): String? = fields[key]
         fun int(key: String): Int? = fields[key]?.trim()?.toIntOrNull()
         fun float(key: String): Float? = fields[key]?.trim()?.toFloatOrNull()
@@ -48,7 +61,7 @@ class ResponseParser {
         if (segs.size < 4) return null
         val code = segs[1].trim().toIntOrNull() ?: return null
         val payload = segs.drop(3).joinToString("&")
-        return Frame(code, parseFields(payload))
+        return Frame(code, parseFields(payload), raw = payload)
     }
 
     companion object {

@@ -5,6 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.astro.AstroMath
+import dev.openpolaris.core.astro.Catalog
+import dev.openpolaris.core.astro.CometOrbitalElements
+import dev.openpolaris.core.astro.CometShardLoader
+import dev.openpolaris.core.astro.EmbeddedCatalog
+import dev.openpolaris.core.astro.ObjectType
 import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.Connection
@@ -16,6 +21,7 @@ import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TrackingController
+import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
@@ -476,5 +482,42 @@ class AppViewModel(
         if (cameraController == null) { statusMessage = "Not connected"; return@launch }
         cameraController?.capture()
         statusMessage = "Capture sent"
+    }
+
+    // ---- catalog & comets (Tonight pane) ----------------------------------
+    //
+    // The bundled shards (catalog.json, stars.json, ngc.json, comets.json)
+    // ship in `commonMain/resources/` and are visible via the
+    // `readResourceText` expect/actual. They are loaded once at
+    // construction time and never mutate; UI code reads them via
+    // [tonightCatalog] / [tonightComets] to drive the Tonight call-out.
+
+    /** Merged fixed-position catalog (Messier + named stars + NGC). */
+    val tonightCatalog: Catalog by lazy {
+        EmbeddedCatalog.loadFrom(EmbeddedCatalog.DEFAULT_SHARDS) { path ->
+            readResourceText(path)
+        }
+    }
+
+    /** Periodic comets + any appended discoveries (orbital elements). */
+    val tonightComets: List<CometOrbitalElements> by lazy {
+        val text = readResourceText("comets.json") ?: return@lazy emptyList()
+        runCatching { CometShardLoader.parse(text).objects }
+            .getOrDefault(emptyList())
+    }
+
+    /**
+     * Tap-to-slew helper used by the Tonight pane. Prefills the goto
+     * fields with the object's J2000 RA/Dec (formatted HH MM SS / ±DD MM SS)
+     * and kicks off the existing [goto] path.
+     */
+    fun slewToObject(obj: dev.openpolaris.core.astro.AstroObject) {
+        val raText = AstroMath.formatRaHours(obj.raDeg)
+        val decText = AstroMath.formatDecDMS(obj.decDeg)
+        updateRa(raText)
+        updateDec(decText)
+        setRaDecMode(true)
+        statusMessage = "Slewing to ${obj.name ?: obj.designation} (${obj.type.name})…"
+        goto()
     }
 }

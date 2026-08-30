@@ -159,5 +159,16 @@ object AstroMath {
         return "$h ${format2(m)} ${format2(s)}"
     }
 
+    /** Format declination degrees as "±DD MM SS" (e.g. "-05 27 30"). */
+    fun formatDecDMS(decDeg: Double): String {
+        val sign = if (decDeg < 0) "-" else "+"
+        val abs = kotlin.math.abs(decDeg)
+        val d = floor(abs).toInt()
+        val mFull = (abs - d) * 60.0
+        val m = floor(mFull).toInt()
+        val s = ((mFull - m) * 60.0).toInt()
+        return "$sign${format2(d)} ${format2(m)} ${format2(s)}"
+    }
+
     private fun format2(v: Int): String = v.toString().padStart(2, '0')
 }

@@ -237,8 +237,12 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             StepperRow("Color", c.colorIndex, vm::setColor)
             StepperRow("Shutter", c.shutterIndex, vm::setShutter)
             StepperRow("Capture mode", c.captureModeIndex, vm::setCaptureMode)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = vm::capture) { Text("Capture") }
+            val busy = vm.captureState?.state == 1
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = vm::capture, enabled = !busy) { Text("Capture") }
+                if (busy) {
+                    Text("Busy", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
             }
         }

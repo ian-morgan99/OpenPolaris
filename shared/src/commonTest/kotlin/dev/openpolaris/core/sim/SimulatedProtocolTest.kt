@@ -192,4 +192,35 @@ class SimulatedProtocolTest {
         assertNotNull(resp)
         assertTrue(resp.isNotEmpty())
     }
+
+    @Test
+    fun camGetStateReflectsTracking() {
+        // Baseline: tracking off → state:0
+        val off = sim.handle(Codes.CAM_GET_STATE, emptyMap())!!
+        val offFrame = String(off[0])
+        assertTrue(offFrame.contains("state:0;"), "expected state:0 when tracking off, got $offFrame")
+        assertTrue(offFrame.contains("bulb:0;"))
+        assertTrue(offFrame.contains("c:0;"))
+
+        // Enable tracking, expect state:1
+        assertNotNull(sim.handle(Codes.SET_TRACK_AU_STATE, StringMap("state" to 1)))
+        val on = sim.handle(Codes.CAM_GET_STATE, emptyMap())!!
+        val onFrame = String(on[0])
+        assertTrue(onFrame.contains("state:1;"), "expected state:1 when tracking on, got $onFrame")
+    }
+
+    @Test
+    fun camGetStateFrameIsParseable() {
+        // The simulator's 266 response should be accepted by the
+        // CommandTable.CAM_GET_STATE parser (the same one AppViewModel uses
+        // in its 2s poll). A non-null CaptureState proves end-to-end wiring.
+        val resp = sim.handle(Codes.CAM_GET_STATE, emptyMap())!!
+        val frame = String(resp[0])
+        val parsedFrame = ResponseParser().parseFrame(frame)
+        assertNotNull(parsedFrame, "ResponseParser could not parse 266 frame: $frame")
+        val parsed = dev.openpolaris.core.protocol.CommandTable.CAM_GET_STATE.parse?.invoke(parsedFrame)
+        assertNotNull(parsed, "CAM_GET_STATE parser returned null for: $frame")
+        // c is the capture counter; the sim always emits 0 for 266 GETs.
+        assertEquals(0, parsed.c)
+    }
 }

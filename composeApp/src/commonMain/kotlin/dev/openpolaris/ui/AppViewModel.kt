@@ -80,9 +80,22 @@ class AppViewModel(
     var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
+    /**
+     * Live capture pipeline state (code 266). Polled on a separate 2s cadence
+     * from the main 1Hz pose poll so that a slow/no-response 266 doesn't stall
+     * the 284/517 update loop. `state==1` means a shot is in progress (bulb
+     * exposure, processing, etc.) and the UI should grey out the Capture
+     * button to prevent stacking exposures. `state==0` is idle. `c` is a
+     * firmware-defined counter (typically the remaining shots in a burst).
+     * See docs/PLANNING-2026-08.md Step 7.
+     */
+    var captureState by mutableStateOf<CommandTable.CaptureState?>(null)
+        private set
+
     private var session: MountSession? = null
     private var controller: TrackingController? = null
     private var pollJob: Job? = null
+    private var capturePollJob: Job? = null
 
     fun updateHost(h: String) { host = h }
 
@@ -99,6 +112,7 @@ class AppViewModel(
                 statusMessage = "Connected"
                 postConnectBurst(s)
                 startPolling(s)
+                startCapturePolling(s)
             } else {
                 statusMessage = "Could not reach $host — try Demo mode"
             }
@@ -129,11 +143,13 @@ class AppViewModel(
             sim.session.connect()
             statusMessage = "Demo mode (simulated mount)"
             startPolling(sim.session)
+            startCapturePolling(sim.session)
         }
     }
 
     fun disconnect() {
         pollJob?.cancel()
+        capturePollJob?.cancel()
         session?.disconnect()
         session = null
         controller = null
@@ -149,6 +165,7 @@ class AppViewModel(
         settlingTime = null
         exAxisState = null
         cameraInfo = null
+        captureState = null
         if (!demoMode) statusMessage = "Disconnected"
     }
 
@@ -166,6 +183,28 @@ class AppViewModel(
                     else -> {}
                 }
                 delay(1000)
+            }
+        }
+    }
+
+    /**
+     * Periodic 2s poll for code 266 (CAM_GET_STATE). Kept off the main 1Hz
+     * pose poll so a slow/missing 266 reply (older firmware or hardware
+     * timeout) cannot stall 284/517. MountSession.request serialises through
+     * a single Mutex, so captureState updates will interleave with the pose
+     * poll but never overlap. The parser returns null if `state` is absent;
+     * we preserve the last good value in that case so a single missed
+     * response doesn't visually reset the Capture button.
+     */
+    private fun startCapturePolling(s: MountSession) {
+        capturePollJob?.cancel()
+        capturePollJob = scope.launch {
+            while (isActive) {
+                when (val r = s.request(dev.openpolaris.core.protocol.Codes.CAM_GET_STATE) { CommandTable.CAM_GET_STATE.parse!!(it) }) {
+                    is MountSession.CmdResult.Ok -> r.value?.let { captureState = it }
+                    else -> {} // Timeout / ProtocolError: keep last good captureState
+                }
+                delay(2000)
             }
         }
     }

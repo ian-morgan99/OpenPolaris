@@ -16,15 +16,18 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.MarkerWarp
 import dev.openpolaris.core.domain.PreviewController
+import dev.openpolaris.core.domain.RecenterMath
 import dev.openpolaris.core.domain.SolveTargetProjector
 import dev.openpolaris.core.domain.VrStereoShaders
 import dev.openpolaris.core.solver.SolveResult
@@ -239,9 +242,12 @@ class VRActivity : ComponentActivity() {
             },
         )
 
-        // Tilt/recenter hint at bottom-left (small, fades after 2s).
+        // Recenter hint at bottom-left (small, fades after 2s).
+        // Stream 7.5: the actual affordance is the volume key (handled
+        // in [onKeyDown]) — the headset's cable button on Cardboard-
+        // class viewers maps to KEYCODE_VOLUME_UP/DOWN.
         val centerHint = TextView(this).apply {
-            text = "Tilt your head to recenter"
+            text = "Volume key: recenter"
             setTextColor(Color.WHITE)
             setShadowLayer(4f, 0f, 0f, Color.BLACK)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
@@ -331,6 +337,32 @@ class VRActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         finish()
+    }
+
+    /**
+     * Stream 7.5 (in-VR recenter affordance): the Cardboard-class headset
+     * cable button and most 3-DoF viewers map to KEYCODE_VOLUME_UP /
+     * KEYCODE_VOLUME_DOWN. We consume both, call [StereoRenderer.recenter]
+     * (the offset math), and toast so the user gets confirmation even
+     * though the visual change is "world stops drifting" — easy to miss
+     * in a headset. Returning `true` stops the system from also turning
+     * the volume down or playing a beep (which would be jarring in VR).
+     *
+     * The toast is gated by [RecenterMath.recenterWouldChange] so IMU
+     * noise near the dead-band doesn't spam the user; in practice the
+     * user presses the key with intent.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                val changed = renderer.recenter()
+                if (changed) {
+                    Toast.makeText(this, "Recentered", Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
     }
 
     /**
@@ -435,6 +467,19 @@ class StereoRenderer : GLSurfaceView.Renderer {
     @Volatile private var yaw: Float = 0f
     @Volatile private var pitch: Float = 0f
 
+    // Stream 7.5 (in-VR recenter affordance): the sensor reports a raw
+    // head pose; [recenterMath] holds the offset the user has dialled
+    // in via the volume-key. The eye shader and solve-marker both need
+    // the *effective* pose (raw − offset), so we store that in [yaw]/
+    // [pitch] (the existing consumers) and keep the raw pose here for
+    // the next recenter. @Volatile mirrors the existing pattern: the
+    // sensor thread writes, the UI thread reads via [recenter] (and the
+    // GL thread reads the effective pose for rendering). The math
+    // itself is JVM-tested in [RecenterMathTest].
+    @Volatile private var rawYaw: Float = 0f
+    @Volatile private var rawPitch: Float = 0f
+    private val recenterMath = RecenterMath()
+
     // FPS accounting: count frames every second, expose via [fps].
     // Used by the in-VR status HUD so the user can tell at a glance
     // whether the MJPEG stream is keeping up.
@@ -469,8 +514,33 @@ class StereoRenderer : GLSurfaceView.Renderer {
     }
 
     fun setYawPitch(y: Float, p: Float) {
-        yaw = y
-        pitch = p
+        rawYaw = y
+        rawPitch = p
+        // Publish the effective (raw − offset) pose for downstream
+        // consumers (eye shader, solve marker). Holding the raw pose
+        // separately lets [recenter] dial in a new offset on demand
+        // without losing the user's current head position.
+        val (ey, ep) = recenterMath.effective(y, p)
+        yaw = ey
+        pitch = ep
+    }
+
+    /**
+     * Stream 7.5: re-centre the in-VR view on the user's current head
+     * pose. The next frame publishes `current − current = (0, 0)` as
+     * the effective pose, so the world stops drifting. Safe to call
+     * from the UI thread (the volume-key handler); [RecenterMath]
+     * tolerates a 0.5° radius of "no-op" so IMU noise doesn't trigger
+     * a feedback toast.
+     */
+    fun recenter(): Boolean {
+        val changed = recenterMath.recenterWouldChange(rawYaw, rawPitch)
+        recenterMath.recenter(rawYaw, rawPitch)
+        // Publish the new effective pose immediately so the very next
+        // drawEye/drawSolveMarker frame reflects the new centre.
+        yaw = rawYaw - recenterMath.yawOffset
+        pitch = rawPitch - recenterMath.pitchOffset
+        return changed
     }
 
     // Stream 7.4 — plate-solve target marker overlay (issue #11).

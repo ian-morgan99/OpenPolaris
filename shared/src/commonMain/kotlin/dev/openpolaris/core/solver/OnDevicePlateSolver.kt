@@ -39,7 +39,8 @@ class OnDevicePlateSolver(
                 lngEastDeg = hint.lngEastDeg!!,
                 jd = hint.jdUtc!!,
             )
-            catalog.starsWithin(radec.raDeg, radec.decDeg, searchRadiusDeg)
+            val cands = catalog.starsWithin(radec.raDeg, radec.decDeg, searchRadiusDeg)
+            cands
         } else {
             when (catalog) {
                 is InMemoryCatalog -> catalog.stars

@@ -78,7 +78,9 @@ class PyramidMatcher(
     ): PyramidMatch? {
         require(detections.size >= 3) { "need at least 3 detections, got ${detections.size}" }
         require(frameWidth > 0 && frameHeight > 0) { "frame dims must be positive" }
-        if (candidates.size < 3) return null
+        if (candidates.size < 3) {
+            return null
+        }
 
         // Sort detections by flux, take the brightest 6 (cheap upper bound
         // for the search; the kdtree / pyramid-indexed version will be
@@ -121,7 +123,8 @@ class PyramidMatcher(
                     var supporting = 3
                     for (det in remainingDetections) {
                         val predicted = mapping.apply(det.x, det.y)
-                        if (nearestProjectedDistance(predicted, projected) <= pixelTolerance) {
+                        val nearest = nearestProjectedDistance(predicted, projected)
+                        if (nearest <= pixelTolerance) {
                             supporting++
                         }
                     }

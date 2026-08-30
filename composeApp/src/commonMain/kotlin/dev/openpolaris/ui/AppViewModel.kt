@@ -738,7 +738,7 @@ class AppViewModel(
         }
         solveInProgress = true
         statusMessage = "Solving…"
-        scope.launch {
+        val launchJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             try {
                 val detections = starDetector.detect(jpeg, frameWidth, frameHeight)
                 if (detections.isEmpty()) {

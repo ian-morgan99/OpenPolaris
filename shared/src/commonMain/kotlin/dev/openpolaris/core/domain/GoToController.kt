@@ -131,15 +131,17 @@ class GoToController(
         lngEastDeg: Double,
         jdUtc: Double,
     ): Pair<Double, Double>? {
-        val pos = (session.request(Codes.GET_GIMBAL_POS, parse = GimbalPosition::fromFrame517) as? MountSession.CmdResult.Ok)?.value
-            ?: return null
+        val reqResult = session.request(Codes.GET_GIMBAL_POS, parse = GimbalPosition::fromFrame517)
+        val pos = (reqResult as? MountSession.CmdResult.Ok)?.value
+        if (pos == null) return null
         val hint = SolveHint(
             azAltDeg = pos.yaw.toDouble() to pos.pitch.toDouble(),
             latDeg = latDeg,
             lngEastDeg = lngEastDeg,
             jdUtc = jdUtc,
         )
-        val result = solver.solve(detections, frameWidth, frameHeight, hint) ?: return null
+        val result = solver.solve(detections, frameWidth, frameHeight, hint)
+        if (result == null) return null
         refine(
             measuredRaDeg = result.raDeg,
             measuredDecDeg = result.decDeg,

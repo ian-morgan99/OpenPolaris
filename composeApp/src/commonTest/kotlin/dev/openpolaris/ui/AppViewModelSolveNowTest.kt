@@ -14,7 +14,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import java.lang.System.currentTimeMillis
 import kotlin.math.PI
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,9 +39,28 @@ import kotlin.test.assertTrue
 /** In-memory [Connection] that records writes and can emit scripted responses. */
 private class FakeConnection : Connection {
     val written = mutableListOf<ByteArray>()
-    val responses = mutableListOf<ByteArray>()
+    // Use a Channel so the reader can BLOCK (suspend) when no responses
+    // are available, instead of returning -1 immediately. Without this
+    // the reader's pre-queued 517 frames are consumed by the install
+    // session handshake and any subsequent 517 waiter added later (e.g.
+    // by GoToController.solveAndRefine) never receives a frame,
+    // causing MountSession.request(GET_GIMBAL_POS) to time out.
+    private val channel = kotlinx.coroutines.channels.Channel<ByteArray>(kotlinx.coroutines.channels.Channel.BUFFERED)
     var failConnect = false
     var failMessage: String? = null
+
+    /** Append a response for the reader to consume. */
+    fun enqueueResponse(data: ByteArray) {
+        channel.trySend(data)
+    }
+
+    /**
+     * Optional hook invoked from inside [write] with the raw request
+     * bytes. Tests can install a script that enqueues the appropriate
+     * response frames based on what was written, decoupling the script
+     * from the reader's consumption order.
+     */
+    var onWrite: ((ByteArray) -> Unit)? = null
 
     override suspend fun connect(host: String, port: Int, timeoutMs: Int) {
         if (failConnect) throw java.io.IOException("refused")
@@ -48,19 +69,33 @@ private class FakeConnection : Connection {
     override suspend fun write(data: ByteArray) {
         try {
             written += data
+            onWrite?.invoke(data)
         } catch (t: Throwable) {
             failMessage = t.message
         }
     }
 
     override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
-        if (responses.isEmpty()) return -1
-        val r = responses.removeAt(0)
+        // Suspend until a response is enqueued. Using `tryReceive` after a
+        // `delay(timeoutMs)` is fundamentally broken under `runTest`'s
+        // virtual scheduler: the delay consumes the entire 200ms window
+        // before the writer can enqueue a response, and `tryReceive` is
+        // non-blocking — so we return -1 and re-loop, eating another
+        // 200ms of virtual time. The writer's `withTimeout(60000)` is
+        // also on the test scheduler, so eventually the timeout fires
+        // before the response is ever consumed.
+        //
+        // `channel.receive()` suspends until a value is available, so
+        // the test scheduler correctly advances to the enqueue point
+        // without burning virtual time.
+        val r = channel.receive()
         r.copyInto(buffer)
         return r.size
     }
 
-    override fun close() {}
+    override fun close() {
+        channel.close()
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -187,7 +222,7 @@ class AppViewModelSolveNowTest {
             // Bypass connect() (which would start preview too) by installing
             // the session/controller directly: this is the same code path
             // connect() executes inside its launch{} block.
-            installSession(vm, conn)
+            installSession(vm, conn, this)
             advanceUntilIdle()
 
             vm.setRaDecMode(true)
@@ -211,17 +246,38 @@ class AppViewModelSolveNowTest {
         val conn = FakeConnection()
         val vm = newViewModel(this) { conn }
 
-        try {
-            installSession(vm, conn)
-            advanceUntilIdle()
+        // Mount reports it is currently at the cluster's horizon coords.
+        val h = AstroMath.toHorizontalAt(truthRa, truthDec, lat, lng, jdUtc)
+        // Wire up onWrite to enqueue responses AS the writer issues
+        // requests. This decouples the reader's consumption order from
+        // the writer's request order, which is required because
+        // MountSession.tryConnect launches the reader coroutine BEFORE
+        // it registers the 284 waiter (see L202 startReader then
+        // L205-208 request(284)). Any pre-queued 284 ack would be
+        // consumed by the reader before the waiter exists, so we must
+        // enqueue it on demand from inside the write call. The same
+        // pattern covers the 517 gimbal polls in the happy path
+        // (GoToController.solveAndRefine L134, refine L102). The
+        // corrective slew is fire-and-forget (TrackingController.
+        // gotoAzAlt), so no 519 ack is needed.
+        conn.onWrite = { req ->
+            // Request frames use the form "1&<code>&<type>&<payload>#".
+            // Match on the "1&<code>&" prefix to enqueue the matching
+            // response.
+            val s = String(req, Charsets.US_ASCII)
+            when {
+                s.startsWith("1&284&") -> {
+                    conn.enqueueResponse("1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII))
+                }
+                s.startsWith("1&517&") -> {
+                    conn.enqueueResponse(gimbalFrame(h.azimuthDeg, h.altitudeDeg))
+                }
+            }
+        }
 
-            // Mount reports it is currently at the cluster's horizon coords.
-            val h = AstroMath.toHorizontalAt(truthRa, truthDec, lat, lng, jdUtc)
-            // Queue two 517 replies: one for solveAndRefine's initial pose
-            // poll, one for refine's mid-flight pose poll. The corrective
-            // 519 frame is written immediately after the second poll.
-            conn.responses += gimbalFrame(h.azimuthDeg, h.altitudeDeg)
-            conn.responses += gimbalFrame(h.azimuthDeg, h.altitudeDeg)
+        try {
+            installSession(vm, conn, this)
+            advanceUntilIdle()
 
             vm.setRaDecMode(true)
             vm.updateLat("40.0")
@@ -254,6 +310,10 @@ class AppViewModelSolveNowTest {
                 "expected 'Solved RA …' status, got '${vm.statusMessage}'",
             )
         } finally {
+            // Tear down the session so MountSession.disconnect cancels
+            // the reader coroutine (which would otherwise keep the test
+            // scheduler alive and trigger UncompletedCoroutinesError).
+            vm.disconnect()
             vm.preview.shutdown()
         }
     }
@@ -263,7 +323,7 @@ class AppViewModelSolveNowTest {
         val conn = FakeConnection()
         val vm = newViewModel(this) { conn }
         try {
-            installSession(vm, conn)
+            installSession(vm, conn, this)
             advanceUntilIdle()
 
             // Force a solve result by directly setting it (no need to run
@@ -291,8 +351,30 @@ class AppViewModelSolveNowTest {
      * `request()` returns ProtocolError("not connected") and the test
      * sees "Plate-solve failed" with no diagnostic.
      */
-    private suspend fun installSession(vm: AppViewModel, conn: Connection) {
-        val s = MountSession({ conn }, "127.0.0.1", 9090)
+    private suspend fun installSession(
+        vm: AppViewModel,
+        conn: Connection,
+        readerScope: CoroutineScope,
+    ) {
+        // Inject the test's runTest scope as MountSession.readerScope.
+        // Without this, the reader runs on MountSession's default
+        // Dispatchers.Default scope (real time), and the test's virtual
+        // scheduler advances through the 2000ms withTimeout in `request`
+        // before the real-time reader can poll the response channel. The
+        // symptom is a deterministic "Plate-solve failed (no confident
+        // match)" because solveAndRefine's 517 gimbal-position request
+        // times out before the 517 frame is delivered.
+        //
+        // By passing the test scope, the reader's delay(READ_RETRY_MS)
+        // loop is driven by the test scheduler, and advanceUntilIdle()
+        // is now sufficient to flush every pending read + write +
+        // response-handler pair.
+        val s = MountSession(
+            connectionFactory = { conn },
+            host = "127.0.0.1",
+            port = 9090,
+            readerScope = readerScope,
+        )
         s.connect()
         vm.testInstallSession(s)
     }

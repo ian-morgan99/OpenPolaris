@@ -8,6 +8,7 @@ import dev.openpolaris.core.net.WifiBridge
  *
  * Subcommands:
  *   --probe           One-shot BT LE scan for a Polaris-named device.
+ *   --wake            Pulse BT GATT connect to wake the gimbal's WiFi AP.
  *   --up <profile>    Bring the saved NM profile up, await link, install policy route.
  *   --down <profile>  Tear the policy route down, drop the NM profile.
  *   --check           Print which interface has the gimbal route (LAN must NOT).
@@ -17,6 +18,7 @@ import dev.openpolaris.core.net.WifiBridge
  *
  * Examples:
  *   tools/bridge --probe
+ *   tools/bridge --wake
  *   tools/bridge --up polaris_d13e86 --ifname wlp8s0
  *   tools/bridge --down polaris_d13e86 --ifname wlp8s0
  *   tools/bridge --check
@@ -39,7 +41,7 @@ fun runMain(args: Array<String>): Int {
     var i = 0
     while (i < args.size) {
         when (val a = args[i]) {
-            "--probe", "--up", "--down", "--check" -> mode = a.removePrefix("--")
+            "--probe", "--up", "--down", "--check", "--wake" -> mode = a.removePrefix("--")
             "--profile" -> { profile = args.getOrNull(++i) }
             "--ifname" -> { ifname = args.getOrNull(++i) }
             "--json" -> json = true
@@ -62,6 +64,20 @@ fun runMain(args: Array<String>): Int {
             } else {
                 if (json) println("""{"ok":true,"address":"${dev.address}","name":"${dev.name}"}""")
                 else println("found ${dev.name} (${dev.address})")
+                0
+            }
+        }
+        "wake" -> {
+            val dev = bt.discover()
+            if (dev == null) {
+                if (json) println("{\"ok\":false,\"err\":\"no device matched\"}")
+                else println("no Polaris-named BT device found — nothing to wake")
+                1
+            } else {
+                if (!json) println("found ${dev.name} (${dev.address}); pulsing BT wake…")
+                bt.wake(dev)
+                if (json) println("""{"ok":true,"address":"${dev.address}","name":"${dev.name}","msg":"woke"}""")
+                else println("woke ${dev.name} (${dev.address}); AP should be up in ~2s")
                 0
             }
         }
@@ -103,9 +119,10 @@ fun runMain(args: Array<String>): Int {
 private fun usage() {
     println(
         """
-        |usage: bridge --probe | --up --profile <p> [--ifname <n>] | --down --profile <p> [--ifname <n>] | --check
+        |usage: bridge --probe | --wake | --up --profile <p> [--ifname <n>] | --down --profile <p> [--ifname <n>] | --check
         |
         |  --probe   one-shot BT scan for a Polaris device
+        |  --wake    pulse BT GATT connect to wake the gimbal's AP, then drop the link
         |  --up      bring saved NM profile up, install policy route
         |  --down    tear policy route down, drop profile
         |  --check   show gimbal link address and policy table

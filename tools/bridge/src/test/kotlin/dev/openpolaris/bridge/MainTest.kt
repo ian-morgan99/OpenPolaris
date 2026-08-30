@@ -28,6 +28,7 @@ class MainTest {
         }
         val text = buf.toString()
         assertTrue(text.contains("--probe"), "usage should mention --probe, got:\n$text")
+        assertTrue(text.contains("--wake"), "usage should mention --wake")
         assertTrue(text.contains("--up"), "usage should mention --up")
         assertTrue(text.contains("--down"), "usage should mention --down")
         assertTrue(text.contains("--check"), "usage should mention --check")
@@ -61,6 +62,54 @@ class MainTest {
             val code = runMain(arrayOf("--bogus"))
             assertEquals(2, code)
             assertTrue(errBuf.toString().contains("unknown argument"))
+        } finally {
+            System.setOut(realOut)
+            System.setErr(realErr)
+        }
+    }
+
+    @Test
+    fun `--wake returns 1 with not-found message when no device is present`() {
+        val realOut = System.out
+        val buf = java.io.ByteArrayOutputStream()
+        val realErr = System.err
+        val errBuf = java.io.ByteArrayOutputStream()
+        try {
+            System.setOut(java.io.PrintStream(buf))
+            System.setErr(java.io.PrintStream(errBuf))
+            // On the test host there is no polaris-named BT device, so the
+            // scan will return no rows. With the 0-ms settle default the
+            // function returns quickly.
+            val code = runMain(arrayOf("--wake"))
+            assertEquals(1, code)
+            val out = buf.toString()
+            assertTrue(
+                out.contains("no Polaris-named BT device found") ||
+                    out.contains("\"ok\":false"),
+                "expected not-found message, got: $out",
+            )
+        } finally {
+            System.setOut(realOut)
+            System.setErr(realErr)
+        }
+    }
+
+    @Test
+    fun `--wake with --json emits not-found JSON`() {
+        val realOut = System.out
+        val buf = java.io.ByteArrayOutputStream()
+        val realErr = System.err
+        val errBuf = java.io.ByteArrayOutputStream()
+        try {
+            System.setOut(java.io.PrintStream(buf))
+            System.setErr(java.io.PrintStream(errBuf))
+            val code = runMain(arrayOf("--wake", "--json"))
+            assertEquals(1, code)
+            val out = buf.toString()
+            assertTrue(
+                out.contains("\"ok\":false") && out.contains("\"err\""),
+                "expected not-found JSON line, got: $out",
+            )
         } finally {
             System.setOut(realOut)
             System.setErr(realErr)

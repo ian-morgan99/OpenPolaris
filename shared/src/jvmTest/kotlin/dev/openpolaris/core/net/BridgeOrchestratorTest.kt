@@ -19,9 +19,10 @@ import kotlin.test.assertTrue
  *    interface. The NM-up phase still issues, the function returns `false`,
  *    and the failure message reaches the progress callback.
  *
- * The default [BluetoothProbe] (blank GATT UUIDs) makes the BT phase
- * short-circuit cleanly, which is exactly the behaviour the user wants
- * until the real GATT UUIDs are captured from the official Benro app.
+ * The BT phase issues a scan against the fake runner (which returns no
+ * devices). The orchestrator treats "no device found" as a no-op and
+ * proceeds to the Wi-Fi phases, which is the correct behaviour for a
+ * gimbal that is already awake.
  */
 class BridgeOrchestratorTest {
 
@@ -57,7 +58,9 @@ class BridgeOrchestratorTest {
     fun `bridgeToMount happy path runs NM up, awaits link, installs policy route`() = runBlocking {
         val fake = FakeRunner()
         val wifi = StubbedWifiBridge(fake, linkUpResult = true)
-        val bt = BluetoothProbe(runner = fake) // blank GATT UUIDs -> BT skipped
+        // Fake scanner returns no devices, so the orchestrator treats the
+        // BT phase as a no-op and proceeds to the Wi-Fi phases.
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val messages = mutableListOf<String>()
@@ -69,10 +72,15 @@ class BridgeOrchestratorTest {
 
         assertTrue(ok, "happy path should return true when link is up")
 
-        // BT phase short-circuits because GATT UUIDs are blank.
+        // BT phase scans, finds nothing, and the orchestrator proceeds.
         assertTrue(
-            messages.any { it.contains("BT wake skipped") },
-            "expected BT-skipped progress message, got: " + messages.toString(),
+            messages.any { it.contains("No Polaris device found") },
+            "expected no-device progress message, got: " + messages.toString(),
+        )
+        // A bluetoothctl scan should have been issued.
+        assertTrue(
+            fake.calls.any { it.firstOrNull() == "bluetoothctl" && it.contains("scan") },
+            "expected a bluetoothctl scan call, got: " + fake.calls.toString(),
         )
 
         // NM-up, link-up wait, policy route install all happened.
@@ -112,7 +120,7 @@ class BridgeOrchestratorTest {
         // which doesn't exist on the test host, so it returns false within the
         // bounded poll window.
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
-        val bt = BluetoothProbe(runner = fake)
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val messages = mutableListOf<String>()
@@ -143,7 +151,7 @@ class BridgeOrchestratorTest {
     fun `tearDown removes policy route and brings profile down in order`() = runBlocking {
         val fake = FakeRunner()
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
-        val bt = BluetoothProbe(runner = fake)
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val messages = mutableListOf<String>()

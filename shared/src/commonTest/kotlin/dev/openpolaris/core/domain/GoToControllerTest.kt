@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import kotlin.math.abs
 import kotlin.test.Test
@@ -8,9 +9,11 @@ import kotlin.test.assertTrue
 
 class GoToControllerTest {
 
-    private fun newRig(): Triple<FakeConnection, MountSession, GoToController> {
+    private fun newRig(
+        scope: CoroutineScope,
+    ): Triple<FakeConnection, MountSession, GoToController> {
         val conn = FakeConnection()
-        val session = MountSession({ conn })
+        val session = MountSession({ conn }, readerScope = scope)
         val tracking = TrackingController(session)
         return Triple(conn, session, GoToController(session, tracking))
     }
@@ -32,7 +35,7 @@ class GoToControllerTest {
 
     @Test
     fun `goToRaDec sends corrected az alt frame`() = runTest {
-        val (conn, session, c) = newRig()
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         // Known transform: RA=LST (HA=0), Dec=+30 at lat 0 ->
@@ -40,7 +43,7 @@ class GoToControllerTest {
         val jd = AstroMath.julianDate(2024, 1, 1, 12, 0, 0)
         val lst = AstroMath.localSiderealTimeDeg(jd, 0.0)
         val raDeg = lst // HA = 0
-        conn.responses += "1&517&2&yaw:0.0;pitch:60.0;roll:0.0;#".toByteArray(Charsets.US_ASCII)
+        conn.push("1&517&2&yaw:0.0;pitch:60.0;roll:0.0;#".toByteArray(Charsets.US_ASCII))
         c.goToRaDec(raDeg, 30.0, latDeg = 0.0, lngEastDeg = 0.0, jdUtc = jd)
 
         // written[0] is the connect handshake; written[1] is the goto frame.

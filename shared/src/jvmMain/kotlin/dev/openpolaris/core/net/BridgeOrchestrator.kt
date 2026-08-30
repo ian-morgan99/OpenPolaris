@@ -11,10 +11,10 @@ import kotlinx.coroutines.withContext
  * Glues the three bridge phases together so the desktop UI (or any other
  * caller) can run the whole thing with one call.
  *
- * 1. **BT wake** (best-effort) — one-shot scan for the gimbal, then a GATT
- *    write to toggle its Wi-Fi AP. If the GATT UUIDs aren't configured yet,
- *    this phase is skipped silently: the user can still wake the gimbal
- *    manually and the Wi-Fi phases below will succeed anyway.
+ * 1. **BT wake** (best-effort) — one-shot scan for the gimbal, then a bare
+ *    GATT connect to it. The connect itself is the wake pulse; the Benro
+ *    firmware notices and brings up its Wi-Fi AP. See
+ *    `BluetoothProbe.wake()` and `polaris-re-results.md` §8.5.
  * 2. **NM up** — `nmcli connection up <profile> ifname <ifname>` on a saved
  *    profile. The profile is *required* because scans are forbidden on this
  *    laptop (see `NoScanGuardTest`).
@@ -84,23 +84,27 @@ class BridgeOrchestrator(
     }
 
     private suspend fun wakeOverBluetooth(progress: suspend (String) -> Unit) {
-        // The user can pre-configure the GATT UUIDs by passing a BluetoothProbe
-        // instance; the default has them blank, which short-circuits to skip.
-        if (!bt.canStartAp) {
-            progress("BT wake skipped (GATT UUIDs not configured — power gimbal manually)")
-            return
-        }
+        // The wake path is unconditional on the Benro Polaris: a bare GATT
+        // connect pulses the firmware's Wi-Fi AP. If the gimbal is already
+        // awake, the scan and connect will still succeed (no-op).
         progress("Scanning for gimbal over Bluetooth…")
-        val device = bt.discover(timeoutMs = 5_000)
+        val device = try {
+            bt.discover(timeoutMs = 5_000)
+        } catch (e: Exception) {
+            progress("BT scan failed: ${e.message ?: e::class.simpleName}")
+            null
+        }
         if (device == null) {
-            progress("No Polaris device found on Bluetooth — power gimbal manually")
+            progress("No Polaris device found on Bluetooth — assuming gimbal already awake")
             return
         }
-        progress("Telling ${device.name} to turn Wi-Fi on…")
-        bt.startAp(device)
-        // Brief settle for the AP to come up after the GATT write completes.
+        progress("Waking ${device.name} via Bluetooth…")
+        bt.wake(device)
+        // Brief settle so the firmware has time to bring the AP up after the
+        // BT connect pulse. wakeSettleMs inside BluetoothProbe handles the
+        // primary wait; this gives a little extra for slow firmware.
         var settled = 0
-        while (settled < 20 && coroutineContext.isActive) {
+        while (settled < 8 && coroutineContext.isActive) {
             delay(250); settled++
         }
     }

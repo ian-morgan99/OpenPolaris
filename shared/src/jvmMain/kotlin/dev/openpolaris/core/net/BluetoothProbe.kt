@@ -5,45 +5,65 @@ import java.util.UUID
 /**
  * Bluetooth control plane for the gimbal.
  *
- * The official Benro app wakes the gimbal's Wi-Fi AP over Bluetooth LE
- * (GATT write), then drops the BT link and connects to the AP. We do the
- * same:
+ * The official Benro app wakes the gimbal's Wi-Fi AP over Bluetooth LE by
+ * **opening a GATT connection** to the gimbal — that single act is the wake
+ * pulse. No characteristic write, no GATT command, no payload. The firmware
+ * notices the incoming GATT connection, brings up its Wi-Fi AP in response,
+ * and we then drop the BT link and connect over Wi-Fi.
  *
- *   1. one-shot scan for a device whose name matches [namePattern];
- *   2. connect, discover primary GATT services;
- *   3. write [apOnBytes] to the characteristic at [apToggleCharacteristic];
- *   4. wait for the [apReadyCharacteristic] to indicate "AP up";
- *   5. caller hands off to [WifiBridge].
+ * RE evidence: `tryBleAwakenWifi` in the BenroConnect APK does
+ * `bluetoothDevice.connectGatt(...); ... bluetoothGatt.close();`. See
+ * `polaris-re-results.md` §8.5.
  *
- * Because the exact service / characteristic UUIDs are vendor-specific and
- * aren't published in the public Polaris docs, the GATT UUIDs are parameters
- * to the class, not constants. The user discovers them once (via a packet
- * capture of the official app or `bluetoothctl` while it controls the
- * gimbal) and passes them in. Until then, [startAp] will throw a
- * [BridgeException] with a clear "UUID not yet configured" message.
+ * Flow this class supports:
+ *   1. [discover] — one-shot LE scan for a device whose name matches
+ *      [namePattern] (default `polaris_` or `theta_` prefixes used by Benro);
+ *   2. [wake] — pair + trust + connect + settle + disconnect, the wake pulse;
+ *   3. caller hands off to [WifiBridge] (or `nmcli`) to bring up the AP link.
+ *
+ * [startAp] is kept as a **vendor-extension escape hatch** for firmware
+ * revisions that actually do require a GATT characteristic write to start
+ * the AP. It is deprecated because the Benro Polaris does not need it.
  *
  * Every shell call goes through [runner], so this class is fully unit-testable.
  */
 class BluetoothProbe(
     private val runner: ProcessRunner = SystemProcessRunner,
-    private val namePattern: String = "Polaris",
+    private val namePattern: String = "polaris_",
     /**
-     * GATT characteristic handle UUID that toggles the gimbal's Wi-Fi AP.
-     * Format: `0000xxxx-0000-1000-8000-00805f9b34fb` (standard BLE base).
-     * Leave blank to disable AP toggling (discover-only mode).
+     * Time in ms to wait between the BT `connect` and `disconnect` so the
+     * gimbal's firmware has time to bring its AP up. The Benro firmware
+     * appears to need ~1s; 2s is a safe default.
      */
+    private val wakeSettleMs: Int = 2_000,
+    /**
+     * GATT characteristic handle UUID that toggles the gimbal's Wi-Fi AP,
+     * for firmware revisions that require a GATT write. Format:
+     * `0000xxxx-0000-1000-8000-00805f9b34fb` (standard BLE base).
+     * Leave blank to disable the GATT-write path entirely.
+     */
+    @Deprecated(
+        "Benro Polaris wakes on a bare GATT connect (see wake()). The GATT-write " +
+            "path is kept only as a vendor escape hatch.",
+    )
     private val apToggleCharacteristic: String = "",
     /**
-     * GATT characteristic UUID whose notification signals "AP is up".
-     * Leave blank to skip the wait and return immediately after the write.
+     * GATT characteristic UUID whose notification signals "AP is up", for
+     * the deprecated GATT-write path. Leave blank to skip the wait.
      */
+    @Deprecated(
+        "Benro Polaris wakes on a bare GATT connect. apReadyCharacteristic is " +
+            "only relevant to the deprecated startAp() path.",
+    )
     private val apReadyCharacteristic: String = "",
     /**
-     * Bytes to write to [apToggleCharacteristic] to start the AP.
-     * Default is a single 0x01 byte; override with the vendor value once known.
+     * Bytes to write to [apToggleCharacteristic] to start the AP, for the
+     * deprecated GATT-write path.
      */
+    @Deprecated("Only used by the deprecated startAp() path.")
     private val apOnBytes: ByteArray = byteArrayOf(0x01),
-    /** Timeout in ms for the [startAp] notification wait. */
+    /** Timeout in ms for the deprecated [startAp] notification wait. */
+    @Deprecated("Only used by the deprecated startAp() path.")
     private val apReadyTimeoutMs: Int = 10_000,
 ) {
 
@@ -59,14 +79,6 @@ class BluetoothProbe(
      * Does NOT enable continuous discovery, so this is safe to call without
      * overloading the host.
      */
-    /**
-     * True iff the GATT UUIDs needed to toggle the AP are configured. When
-     * false, [startAp] will refuse to run; callers should treat the BT
-     * control plane as unavailable and fall back to manual wake.
-     */
-    val canStartAp: Boolean
-        get() = apToggleCharacteristic.isNotBlank()
-
     fun discover(timeoutMs: Int = 8000): DiscoveredDevice? {
         val out = runner.run(listOf("bluetoothctl", "--timeout", (timeoutMs / 1000).coerceAtLeast(1).toString(), "scan", "on"))
         val addressRegex = Regex("""Device\s+([0-9A-Fa-f:]{17})\s+(.+)""")
@@ -82,9 +94,54 @@ class BluetoothProbe(
     }
 
     /**
-     * Pairs, connects, and starts the gimbal's AP.
+     * True iff the deprecated GATT-write wake path is configured. The
+     * current Benro firmware does not need it; [wake] is always usable.
+     */
+    @Deprecated("Benro Polaris does not need the GATT-write path; use wake().")
+    val canStartAp: Boolean
+        get() = apToggleCharacteristic.isNotBlank()
+
+    /**
+     * Wakes the gimbal's Wi-Fi AP by issuing a bare GATT connect to the
+     * peripheral. This is the mechanism the official Benro app uses; see
+     * `polaris-re-results.md` §8.5. The sequence is:
+     *
+     *   1. `bluetoothctl pair`   — bond so subsequent connects don't prompt
+     *   2. `bluetoothctl trust`  — auto-accept future connections
+     *   3. `bluetoothctl connect` — open the GATT link (this IS the wake pulse)
+     *   4. wait [wakeSettleMs]   — let the firmware bring the AP up
+     *   5. `bluetoothctl disconnect` — drop the BT link; we don't need it
+     *
+     * After this returns, the gimbal's AP should be visible to NetworkManager
+     * (or any wifi scanner). The caller should then bring up the
+     * `polaris_<id>` connection via [WifiBridge.up].
+     *
+     * Throws [BridgeException] if any bluetoothctl call fails.
+     */
+    fun wake(device: DiscoveredDevice) {
+        runner.run(listOf("bluetoothctl", "pair", device.address))
+        runner.run(listOf("bluetoothctl", "trust", device.address))
+        runner.run(listOf("bluetoothctl", "connect", device.address))
+        if (wakeSettleMs > 0) {
+            Thread.sleep(wakeSettleMs.toLong())
+        }
+        // Disconnect is best-effort: if it fails, the link will drop on its
+        // own once the device goes idle, and the WiFi AP is already up.
+        runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
+    }
+
+    /**
+     * Pairs, connects, and starts the gimbal's AP via a GATT characteristic
+     * write. Kept as a vendor-extension escape hatch for firmware revisions
+     * that need more than a bare GATT connect. Benro Polaris does not.
+     *
      * Throws [BridgeException] on any failure or if the GATT UUIDs are blank.
      */
+    @Deprecated(
+        "Benro Polaris wakes on a bare GATT connect. Use wake() instead. " +
+            "This entry point is retained for vendor-specific firmware that " +
+            "requires an explicit AP-toggle characteristic write.",
+    )
     fun startAp(device: DiscoveredDevice) {
         require(apToggleCharacteristic.isNotBlank()) {
             "BluetoothProbe.startAp: apToggleCharacteristic UUID is blank. " +
@@ -146,7 +203,13 @@ class BluetoothProbe(
     /**
      * Best-effort cleanup: tell the gimbal to power its AP off, then drop
      * the GATT connection. Both calls are non-fatal.
+     *
+     * Retained alongside [startAp] for the deprecated GATT-write path. The
+     * Benro Polaris firmware powers the AP down on its own when it sees no
+     * Wi-Fi clients, so the modern usage is to simply close the network
+     * connection — no BT teardown required.
      */
+    @Deprecated("Use the normal Wi-Fi disconnect; the gimbal powers its AP down on its own.")
     fun stopAp(device: DiscoveredDevice) {
         if (apToggleCharacteristic.isNotBlank()) {
             val off = byteArrayOf(0x00)

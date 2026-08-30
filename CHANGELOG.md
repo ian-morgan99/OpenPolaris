@@ -35,6 +35,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/install-wifi-polkit-rule.sh` (idempotent, uses `pkexec`
   with a graphical agent).
 
+### Changed
+- **MountSession background reader (issue #6 core):** the session
+  now owns a single `runReaderLoop` coroutine that parses every
+  frame off the socket and dispatches it — 538 push frames go to
+  the new `tilt` `SharedFlow`, everything else goes to the waiter
+  registered by the matching `request(code)`. Previously each
+  request spun up its own read loop, so a 538 push arriving
+  *between* a request and its reply would be silently dropped
+  (the inner reader was torn down when the deferred completed).
+  Push frames now reach `MountSession.tilt` even while a
+  request/response is in flight, and the demux is correct under
+  interleaving (covered by `MountSessionReaderTest`).
+
 ## [Initial] - 2026-08-27
 
 ### Added

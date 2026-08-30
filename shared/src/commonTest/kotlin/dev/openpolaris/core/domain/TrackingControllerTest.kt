@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package dev.openpolaris.core.domain
 
 import kotlinx.coroutines.CoroutineScope

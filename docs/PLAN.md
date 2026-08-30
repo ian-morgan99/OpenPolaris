@@ -228,7 +228,7 @@ Open issues, in priority order. Tracked in the session todo mirror and on
 
 | # | Priority | Issue | Title | Depends on |
 |---|----------|-------|-------|-----------|
-| 3a.1 | p1 | [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) | `Session.shutdown` no-leak JVM test | — |
+| 3a.1 | p1 | [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) (closed) | `Session.shutdown` no-leak JVM test | — | DONE (`e873bb0`) |
 | 3a.2 | p1 | [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) | `_tilt.value` survives `Session.stop()`/`start()` | 3a.1 |
 | 3b.1 | p1 | [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) | `runAndAwait` cancellation returns `Failed("cancelled")` within 1s | 3a.2 |
 | 3b.2 | p1 | [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) | No leftover coroutines after `runAndAwait` cancellation | 3b.1 |
@@ -238,7 +238,7 @@ Open issues, in priority order. Tracked in the session todo mirror and on
 | 3c.4 | p2 | [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) | Auto-reconnect prompt on Wi-Fi loss (uses `SessionStore.latest()`) | 3c.3 |
 
 p1 sub-issues ship in queue order before any p2 work begins (see
-"Immediate next actions" items 5-12 and the
+"Immediate next actions" items 6-12 and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 p2 sub-issues are deferred until the p1 queue is empty or until a
 reviewing agent assigns a new owner.
@@ -332,9 +332,36 @@ after Stream 7.5:
   actions" item 2). Full `:shared:jvmTest --rerun-tasks` is green at 222/222.
   Issue **#19 closed** with a comment listing the four-file edit list, the two
   new test names and assertions, and the test pass count. The plan and the
-  mirror now agree: open = #17, #20-#27; closed includes #19 with the
-  shippable ref. Next slice is **#20** (3a.1 `Session.shutdown` no-leak JVM
-  test, p1) per item 5 of the "Immediate next actions" list below.
+  mirror now agree: open = #17, #21-#27; closed includes #19 and #20
+  with the shippable ref. Next slice is **#21** (3a.2
+  `_tilt.value` survives `Session.stop()`/`start()`, p1) per item 5
+  of the "Immediate next actions" list below.
+- **2026-08-30T18:30:00Z (issue #20 closed, commit `e873bb0`)**: the
+  `Session.shutdown` no-leak JVM test landed as `e873bb0` on
+  `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
+  `MountSession.kt` (added `closed` flag, `connect()` guard, and `shutdown()`
+  method that calls `readerScope.coroutineContext.cancel()` — the leak source
+  was the parent scope job, not the live reader, so `disconnect()`'s
+  `cancelChildren()` was insufficient), `SessionShutdownLeakTest.kt` (new
+  jvmTest driving 10 connect→disconnect→shutdown cycles with the production
+  scope, not `runTest`'s auto-cancelling scope, with `!isActive` per cycle and
+  bounded thread-count delta), `shared/build.gradle.kts` (added
+  `jvmTest.dependencies { implementation(libs.kotlinx.coroutines.debug) }`),
+  and `gradle/libs.versions.toml` (new `kotlinx-coroutines-debug` alias).
+  PLAN.md updated in three places: priorities table marks 3a.1 DONE; the
+  17:42:00Z reconciliation entry's "open = …" list drops #20; item 5 of
+  "Immediate next actions" is struck and renumbered as DONE with the
+  shippable ref. Full `:shared:jvmTest --rerun-tasks` is green at **223/223**
+  (was 222, +1 from `SessionShutdownLeakTest`). Test verified to catch the
+  regression: neutralising the `cancel()` call fails the test at cycle 0 with
+  `scope must be inactive after shutdown() on cycle 0`. Issue **#20 closed**
+  with a comment listing the four-file edit list, the two assertions, the
+  "catches-the-regression" verification, and the test pass count. The plan
+  and the mirror now agree: open = #17, #21-#27; closed includes #19 and
+  #20 with the shippable refs. Next slice is **#21** (3a.2
+  `_tilt.value` survives `Session.stop()`/`start()`, p1) per item 6 of the
+  "Immediate next actions" list below (item 5 has been struck and marked
+  DONE).
 - **2026-08-30T16:12:51Z (issue #19)**: the "Immediate next actions" list
   named issue #6 as the next slice, but #6 was already closed (2026-08-30T15:50:54Z).
   The connect-time race fix from #6 did land on this worktree (commit `55c83f9`).
@@ -470,11 +497,20 @@ issue #19 is closed.
    contract. PLAN-CRITICAL-REVIEW §F wording is updated accordingly.
 4. **File 3a/3b/3c as separate issues (issue #19 acceptance criterion)** —
    planning commits, no code. Closes the `next-slice-ready` rule 4 violation
-   §K surfaces. 3a.1 = `AutoLevelController.stop()` + restart test (no leak);
-   3a.2 = `_tilt.value` survives stop/start; 3b.1 = scope cancel
-   mid-`runAndAwait` returns `Failed("cancelled")` within 1s; 3b.2 = no leftover
-   coroutines (via `kotlinx.coroutines.debug`); 3c.1-3c.4 = SessionMarker,
-   SessionStore, file-backed, auto-reconnect prompt.
+   §K surfaces. **Note (2026-08-30T18:30:00Z):** the description below
+   reflects the **original** 3a.1 scoping (`AutoLevelController.stop()`).
+   After the 2026-08-30T17:18Z filing, 3a.1 was **re-scoped** to
+   `Session.shutdown` no-leak (the `AutoLevelController.stop()` test
+   already exists in `AutoLevelControllerTest.kt` — see item 3 above —
+   and was promoted out of the 3a queue). The filed 3a.1 therefore
+   matches the re-scoped definition, not the wording below. The
+   priorities table at the start of "Stream 3" is the source of truth
+   for the filed-and-closed state.
+   Original scoping (superseded): 3a.1 = `AutoLevelController.stop()` + restart
+   test (no leak); 3a.2 = `_tilt.value` survives stop/start; 3b.1 = scope
+   cancel mid-`runAndAwait` returns `Failed("cancelled")` within 1s; 3b.2 =
+   no leftover coroutines (via `kotlinx.coroutines.debug`); 3c.1-3c.4 =
+   SessionMarker, SessionStore, file-backed, auto-reconnect prompt.
    **Filed 2026-08-30T17:18Z**:
    [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) 3a.1 Session.shutdown no-leak (p1);
    [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) 3a.2 _tilt.value survives (p1);
@@ -486,18 +522,21 @@ issue #19 is closed.
    [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) 3c.4 auto-reconnect prompt (p2).
    p1 sub-issues unblock after item 2 lands; p2 sub-issues are deferred
    to a later slice.
-5. **Issue #20: 3a.1 `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
-   items 2-4 land. The live issue is the source of truth:
-   [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20).
+5. ~~**Issue #20: 3a.1 `Session.shutdown` + JVM no-leak test** — ~80 LoC.~~ **DONE**
+   in commit `e873bb0` on `agents/connectivity-tests-for-polaris`. Closed with
+   a comment listing the four-file edit list, the two assertions, the
+   "catches-the-regression" verification, and the test pass count (223/223).
+   PLAN.md updated in three places: priorities table marks 3a.1 DONE; the
+   17:42:00Z reconciliation entry's "open = …" list drops #20; this item is
+   struck and renumbered as DONE with the shippable ref.
 6. **Issue #21: 3a.2 `_tilt.value` survives `Session.stop()`/`start()`** — p1,
    unblocks after #20. ~60 LoC. Live:
    [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21).
-7. **Issue #22: 3b.1 `runAndAwait` cancellation returns `Failed("cancelled")`
-   within 1s** — p1, unblocks after #21. ~60 LoC. Live:
+7. **Issue #22: 3b.1 `runAndAwait` cancellation returns `Failed("cancelled")**
+   **within 1s** — p1, unblocks after #21. ~60 LoC. Live:
    [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22).
 8. **Issue #23: 3b.2 No leftover coroutines after `runAndAwait` cancellation**
-   (gated on `-Pkotlinx.coroutines.debug=true`) — p1, unblocks after #22.
-   ~60 LoC. Live:
+   — p1, unblocks after #22. ~60 LoC. Live:
    [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23).
 9. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
    JSON** — p2, deferred to a later slice. ~80 LoC. Live:
@@ -512,7 +551,7 @@ issue #19 is closed.
     `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
     [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
 
-p1 sub-issues (#20-#23) ship in queue order before any p2 work begins
+p1 sub-issues (#21-#23) ship in queue order before any p2 work begins
 (see the `next-slice-ready` condition 4 in PLAN.md and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
@@ -525,10 +564,11 @@ p1 sub-issues (#20-#23) ship in queue order before any p2 work begins
 8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
 9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Items 2 and 3 have now landed (commit `7970e55`); the next agent MUST verify
-on resume that the worktree is at or past `7970e55` and that
-`:shared:jvmTest --rerun-tasks` is still green at 222/222 before starting
-item 5. Item 4 (the filed #20-#27 sub-issues) is also landed and should
-be confirmed in the worktree before any code change. If a reviewing
-agent files a P0 (label `priority/p0`) in between, that preempts per the
-`next-slice-ready` condition 3.
+Items 2, 3, and 5 have now landed (commits `7970e55` and `e873bb0`);
+the next agent MUST verify on resume that the worktree is at or past
+`e873bb0` and that `:shared:jvmTest --rerun-tasks` is still green at
+**223/223** before starting item 6. Item 4 (the filed #21-#27
+sub-issues) is also landed and should be confirmed in the worktree
+before any code change. If a reviewing agent files a P0 (label
+`priority/p0`) in between, that preempts per the `next-slice-ready`
+condition 3.

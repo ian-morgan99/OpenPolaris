@@ -57,6 +57,7 @@ class VRActivity : ComponentActivity() {
     private lateinit var hudText: TextView
     private lateinit var connLoss: TextView
     private var hudHost: String = DEFAULT_HOST
+    private var hudPort: Int = DEFAULT_PORT
     private var hudTickHandler: Handler? = null
     private val hudTick = object : Runnable {
         override fun run() {
@@ -65,7 +66,7 @@ class VRActivity : ComponentActivity() {
             val stale = last == 0L || now - last > 2_000L
             val fps = renderer.fps()
             val frames = renderer.frameCount
-            hudText.text = "host=$hudHost  fps=${"%.1f".format(fps)}  frames=$frames"
+            hudText.text = "host=$hudHost:$hudPort  fps=${"%.1f".format(fps)}  frames=$frames"
             if (stale) {
                 if (connLoss.visibility != View.VISIBLE) connLoss.visibility = View.VISIBLE
             } else {
@@ -100,6 +101,15 @@ class VRActivity : ComponentActivity() {
         )
 
         hudHost = intent.getStringExtra(EXTRA_HOST) ?: DEFAULT_HOST
+        // 3h-BUG: read the live port from the launching Intent so the
+        // user-chosen port from the reconnect dialog (or the persisted
+        // SessionMarker on disk) actually flows into the MJPEG transport.
+        // Previously the intent had no port extra and we fell back to
+        // 8080, so a non-default port never received frames. The
+        // fallback is 8080 to preserve the pre-3h default rather than
+        // fail loudly — this activity is launched by the user explicitly
+        // and a wrong port just shows "no frames" in the HUD.
+        hudPort = intent.getIntExtra(EXTRA_PORT, DEFAULT_PORT)
 
         renderer = StereoRenderer()
         glView = GLSurfaceView(this).apply {
@@ -291,7 +301,10 @@ class VRActivity : ComponentActivity() {
      */
     private fun startPreview() {
         if (collectJob?.isActive == true) return
-        preview.start(hudHost, 8080)
+        // 3h-BUG: pass hudPort (seeded from EXTRA_PORT) instead of a
+        // hard-coded 8080. Combined with the new EXTRA_PORT intent extra
+        // in MainActivity this lets the user pick a non-default port.
+        preview.start(hudHost, hudPort)
         collectJob = lifecycleScope.launch {
             preview.bytes.collect { jpeg -> if (jpeg != null) renderer.submitFrame(jpeg) }
         }
@@ -309,7 +322,9 @@ class VRActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_HOST = "dev.openpolaris.android.VR_HOST"
+        const val EXTRA_PORT = "dev.openpolaris.android.VR_PORT"
         const val DEFAULT_HOST = "192.168.43.1"
+        const val DEFAULT_PORT = 8080
     }
 }
 

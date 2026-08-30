@@ -553,6 +553,15 @@ class AppViewModel(
      * is decoded off the main thread and published to [previewFrame].
      */
     private fun startPreview() {
+        // 3h-BUG: read the live port field, not a hard-coded 8080. The port
+        // is seeded from the persisted SessionMarker (in
+        // tryReconnectIfMarkerExists) and may be overridden by the user via
+        // the reconnect dialog's port field (acceptReconnect() writes
+        // `port = targetPort`). Previously this call always hit 8080 even
+        // when the user picked a non-default port, so the preview never
+        // opened. Called before the collector launches so the first frame
+        // isn't missed by a start/collect race.
+        preview.start(host, port)
         scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
@@ -567,7 +576,6 @@ class AppViewModel(
                 decoded.getOrNull()?.let { previewFrame = it }
             }
         }
-        preview.start(host, 8080)
     }
 
     private fun startPolling(s: MountSession) {

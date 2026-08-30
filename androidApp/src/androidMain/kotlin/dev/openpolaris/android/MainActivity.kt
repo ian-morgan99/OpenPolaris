@@ -66,7 +66,16 @@ class MainActivity : ComponentActivity() {
                     startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
                 },
                 onLaunchVr = {
-                    startActivity(Intent(this, VRActivity::class.java))
+                    // 3h-BUG: pass host and port so the VR activity connects
+                    // to the same endpoint the user just configured (instead
+                    // of hard-coding 192.168.43.1:8080 in VRActivity's
+                    // companion defaults). Reading from viewModel.{host,port}
+                    // keeps the two screens in sync.
+                    val intent = Intent(this, VRActivity::class.java).apply {
+                        putExtra(VRActivity.EXTRA_HOST, viewModel.host)
+                        putExtra(VRActivity.EXTRA_PORT, viewModel.port)
+                    }
+                    startActivity(intent)
                 },
                 viewModel = viewModel,
             )

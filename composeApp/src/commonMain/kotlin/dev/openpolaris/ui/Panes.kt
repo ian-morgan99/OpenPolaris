@@ -310,15 +310,30 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     contentDescription = "Live camera preview",
                     modifier = Modifier.fillMaxWidth(),
                 )
-                state is dev.openpolaris.core.domain.PreviewController.State.Connecting ->
+                // 3h-BUG: `state` is a StateFlow, not a State. The previous
+                // check `state is PreviewController.State.Connecting` was
+                // comparing a StateFlow to a State object — always false.
+                // The branch never fired, so the user only ever saw the
+                // generic "Stream unavailable" message while the transport
+                // was still connecting. Use `.value` to read the current
+                // state out of the flow.
+                state.value is dev.openpolaris.core.domain.PreviewController.State.Connecting ->
                     Text("Connecting…", style = MaterialTheme.typography.bodyMedium)
-                state is dev.openpolaris.core.domain.PreviewController.State.Error ->
-                    Text("Stream unavailable: ${state.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                state.value is dev.openpolaris.core.domain.PreviewController.State.Error ->
+                    Text(
+                        "Stream unavailable: ${(state.value as dev.openpolaris.core.domain.PreviewController.State.Error).message}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 else ->
                     Text("Stream unavailable — connect to the mount or check Wi-Fi.", style = MaterialTheme.typography.bodySmall)
             }
             Text(
-                "Streamed from http://${vm.host}:8080/?action=stream. 16:9, best-effort, frames are dropped when stale.",
+                // 3h-BUG: surface the live port (vm.port) instead of a
+                // hard-coded 8080 so the user knows which port the preview
+                // is actually using — matters when they entered a non-
+                // default port in the reconnect dialog.
+                "Streamed from http://${vm.host}:${vm.port}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

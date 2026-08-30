@@ -227,9 +227,10 @@ Open issues, in priority order. Tracked in the session todo mirror and on
 
 **Closed (recent, in this worktree's history):**
 - **#18 — Stream 7.5: in-VR recenter affordance (volume key + offset math)**
-  (shipped `56831b1`). 12 new `RecenterMathTest` cases; raw-vs-effective pose
-  split; `VRActivity.onKeyDown` consumes the volume-key event; toast debounced
-  via 0.5° epsilon. 220/220 `:shared:jvmTest` PASSED.
+  (shipped `56831b1`, closed 2026-08-30T17:18Z). 12 new `RecenterMathTest`
+  cases; raw-vs-effective pose split; `VRActivity.onKeyDown` consumes the
+  volume-key event; toast debounced via 0.5° epsilon. 220/220 `:shared:jvmTest`
+  PASSED.
 - **#15 — VR marker reads live camera FoV from connected mount sensor**
   (shipped `f948ced`). #16 — barrel-distortion shader routing
   (shipped `ff81c2c`). #14 — `StateFlow` update on `lastSolveResult` change.
@@ -430,6 +431,17 @@ reopen critique was never addressed on any branch.
    mid-`runAndAwait` returns `Failed("cancelled")` within 1s; 3b.2 = no leftover
    coroutines (via `kotlinx.coroutines.debug`); 3c.1-3c.4 = SessionMarker,
    SessionStore, file-backed, auto-reconnect prompt.
+   **Filed 2026-08-30T17:18Z**:
+   [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) 3a.1 Session.shutdown no-leak (p1);
+   [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) 3a.2 _tilt.value survives (p1);
+   [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) 3b.1 cancel returns Failed(cancelled) (p1);
+   [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) 3b.2 no leftover coroutines (p1);
+   [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) 3c.1 SessionMarker (p2);
+   [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) 3c.2 SessionStore interface (p2);
+   [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26) 3c.3 FileSessionStore (p2);
+   [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) 3c.4 auto-reconnect prompt (p2).
+   p1 sub-issues unblock after item 2 lands; p2 sub-issues are deferred
+   to a later slice.
 5. **Issue #3a.1: `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
    items 2-4 land.
 6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11

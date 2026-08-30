@@ -29,6 +29,7 @@ import dev.openpolaris.core.solver.SolveHint
 import dev.openpolaris.core.solver.SolveResult
 import dev.openpolaris.core.solver.StarDetector
 import dev.openpolaris.core.solver.SyntheticTestCatalog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -835,6 +836,18 @@ class AppViewModel(
     }
 
     /**
+     * Test seam: install an [AutoLevelController] on this viewmodel
+     * without going through [connect] / [startAutoLevel]. Lets tests
+     * drive [runAutoLevel] with a controller wired to a known
+     * (hanging, scripted, or real) sample source. Caller is responsible
+     * for the controller's [AutoLevelController.start] lifecycle —
+     * mirroring what [startAutoLevel] does in production.
+     */
+    internal fun testInstallAutoLevel(c: AutoLevelController) {
+        this.autoLevelController = c
+    }
+
+    /**
      * Test seam: simulate a prior successful [solveNow] by writing
      * a [SolveResult] into [lastSolveResult]. Used by tests that
      * need to assert [disconnect] clears the cached solve.
@@ -945,11 +958,29 @@ class AppViewModel(
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
     }
 
-    /** Trigger one auto-level cycle (code 549) and surface the settling result. */
+    /**
+     * Trigger one auto-level cycle (code 549) and surface the settling result.
+     *
+     * Cancellation contract (issue #22 / 3b.5 follow-up): [AutoLevelController.runAndAwait]
+     * deliberately propagates [CancellationException] from the calling coroutine — coroutine
+     * cancellation is control flow, not an application error (see
+     * [AutoLevelController.runAndAwait] KDoc and PLAN.md §3b.5). The user-visible
+     * "cancelled" message is therefore THIS caller's responsibility: we catch the
+     * exception solely to set [statusMessage], then re-throw so the surrounding
+     * structured-concurrency tree still observes the cancellation. The catch must
+     * be on the specific [CancellationException] type so genuine failures (e.g.
+     * IOException from the session reader) continue to surface as the original
+     * exception in the structured-concurrency tree.
+     */
     fun runAutoLevel() = scope.launch {
         val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
         statusMessage = "Auto-level started…"
-        val result = c.runAndAwait()
+        val result = try {
+            c.runAndAwait()
+        } catch (e: CancellationException) {
+            statusMessage = "Auto-level cancelled"
+            throw e
+        }
         statusMessage = when (result) {
             is dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.Completed ->
                 "Auto-level settled at roll=${"%.3f".format(result.rollDeg)}°, pitch=${"%.3f".format(result.pitchDeg)}°"

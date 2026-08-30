@@ -50,8 +50,11 @@ polaris-client/
 ├── androidApp/              # Android shell (manifest, permissions, service)
 ├── iosApp/                  # iOS shell (Xcode project wrapping the KMP framework)
 └── tools/
-    └── cli-probe/           # JVM CLI that speaks the protocol — hardware testing WITHOUT any app
-                             #   (fast iteration, scriptable regression checks)
+    ├── cli-probe/           # JVM CLI that speaks the protocol — hardware testing WITHOUT any app
+    │                        #   (fast iteration, scriptable regression checks)
+    └── bridge/              # JVM CLI for laptops: BT-wake → segregated-WiFi-bridge.
+                             #   See §3.7. No scans, no auth storms, gimbal traffic
+                             #   isolated from the LAN via policy routing.
 ```
 
 **Dependency rule:** `composeApp → shared/domain → shared/protocol`; nothing in `shared/*` imports
@@ -86,6 +89,55 @@ magnitude) — sufficient to replicate stock alignment UX.
 ### 3.6 Feature flags
 `FeatureFlags` data class loaded from settings; all v2 enhancement hooks default false and their UI is
 hidden when disabled (SPEC.md §3).
+
+### 3.7 Laptop Wi-Fi bridge (BT-as-control-plane, segregated data plane)
+
+Phones join the gimbal's `Polaris_XXXX` AP directly. Laptops have an Ethernet
+connection that phones don't, so the simpler "join the AP" approach is wrong for them — it
+either yanks them off the internet, or requires double-NIC gymnastics. This module wires a
+real laptop to a real gimbal without breaking internet access, and without the auth-storm
+that turning Wi-Fi scanning on normally produces.
+
+The flow, run by `tools/bridge` (`./gradlew :tools:bridge:run --args="--up --profile polaris_d13e86"`):
+
+```
+┌──────────┐  BT GATT   ┌──────────┐  Wi-Fi AP  ┌──────────┐
+│ Laptop   │ ─────────▶ │  Polaris │ ─────────▶ │  Laptop  │
+│ (BlueZ)  │  wake-on   │  gimbal  │  192.168.  │  wlp8s0  │
+│          │  -wifi     │          │   0.0/24   │          │
+└──────────┘            └──────────┘            └──────────┘
+       │                                           │
+       │ enp11s0 (default route, 192.168.68.0/22)  │ policy-routed:
+       │   ↳ internet                              │ 192.168.0.0/24
+       │                                           │   ↳ wlp8s0 ONLY
+       ▼                                           ▼
+  192.168.68.1                                   192.168.0.1:9090
+  (router, internet)                             (gimbal control)
+```
+
+**Three phases, three ownerships:**
+
+1. **Wake the gimbal over Bluetooth** — the official Benro app does the same thing. We
+   identify the device by GATT service/characteristic UUIDs (constructor params of
+   `BluetoothProbe`), write a "turn on Wi-Fi" command to the control characteristic, and wait
+   for confirmation. This is the only thing that touches Bluetooth.
+2. **Bring up a saved NetworkManager profile** on `wlp8s0`. The SSID is already known to
+   NetworkManager (profile `polaris_d13e86`), so we do `nmcli connection up` — no scan, no
+   EAPOL auth storm, no D-Bus chatter beyond the single up call.
+3. **Segregate traffic via policy routing.** A dedicated `ip rule` + `ip route` table entry
+   routes `192.168.0.0/24` out `wlp8s0` only. The main default route on `enp11s0` is
+   untouched. The gimbal cannot reach the LAN; the LAN cannot reach the gimbal. The
+   `WifiBridge.installPolicyRoute` is idempotent — repeated calls don't add duplicate rules.
+
+**Why not just turn on Wi-Fi scanning?** Background scans on this laptop's `wlp8s0`
+generate ~10 auth-request/sec against the local network, drowning the kernel's EAPOL
+handler. The saved-profile + on-demand approach is the fix. The `NoScanGuardTest` walks
+the repo and asserts no source file contains a `scan`/`probe`/`iwlist`/`nmcli dev wifi`
+pattern — CI rejects any future regression.
+
+**Tear-down** (`--down`) reverses all three phases: `nmcli connection down`, `ip rule del`
++ `ip route flush table`, then power down `wlp8s0`. The `--check` subcommand reports
+current state without changing anything — useful for diagnostics and tests.
 
 ## 4. Testing strategy
 

@@ -1,10 +1,10 @@
 # OpenPolaris — Current Plans & Findings Snapshot
 
 **Date:** 2026-08-30
-**Status:** Gateway open, hardware unproven. Code on the stub server only.
+**Status:** Gateway open, burst implemented in code, hardware smoke still pending.
 **Audience:** pick this up tomorrow and know exactly what to do next.
 
-> **2026-08 update:** two stale claims in this doc have been corrected:
+> **2026-08 updates:**
 > 1. The `AppViewModel.kt:127.0.0.1` reference is **dead code** — that file
 >    was at `shared/.../core/AppViewModel.kt`; it has since been moved
 >    to `composeApp/.../ui/AppViewModel.kt`, where it now defaults to
@@ -21,6 +21,16 @@
 >    "time-set" code is currently unidentified.** When the live burst
 >    probe (Step 3) runs, capture the exact code the firmware expects;
 >    until then, treat 515 in any burst command as a placeholder.
+> 3. **2026-08-30 (today):** Step 5 implemented in code. The post-connect
+>    burst is now wired into [`AppViewModel.kt`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt)
+>    and runs in this order after `MountSession.connect()` returns true:
+>    `808` (firmware version) → `809` (serial number) → `802` (WiFi band) →
+>    `778` (battery base) → `779` (battery detail) → `775` (SD status) →
+>    `824` (OMS run state) → `524` (ex-axis state) → `543` (settling-time get).
+>    Each call is wrapped in `runCatching` so a non-matching parser
+>    doesn't abort the burst. `544` (settling-time SET) is *not* in the
+>    burst — it's only fired by `setSettlingTimeMs(ms)`. See
+>    "What changed today" below.
 
 This is the **actionable** view. The deep RE reference is
 [polaris-re-results.md](</home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/polaris-re-results.md>);
@@ -54,6 +64,43 @@ in the way, and what each next step costs.
    just connect, observe `state=2`, disconnect. After that, TCP to
    `192.168.0.1:9090` is all that is needed.
 
+### What changed today (2026-08-30)
+
+Picking up tomorrow? Read this first.
+
+- **Polkit rule ready, one sudo away from killing the auth-flood.**
+  Run `/home/ian/Documents/VSCodeProjects/OpenPolaris/scripts/install-wifi-polkit-rule.sh`
+  (asks for your password once, ~30 s). Until this is installed, every
+  `nmcli radio wifi on` from a GUI panel will trigger a polkit auth
+  request and slow the laptop.
+- **Post-connect burst now wired into the desktop app.** Open the app,
+  connect, and the moment the TCP socket is up, the app fires
+  `808 → 809 → 802 → 778 → 779 → 775 → 824 → 524 → 543` (in that order).
+  The parsed results populate 8 new observable state fields in
+  [`AppViewModel`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt):
+  `firmwareVersion`, `serialNumber`, `wifiBand`, `batteryDetail`,
+  `sdStatus`, `omsState`, `settlingTime`, `exAxisState`. Each call is
+  individually `runCatching`'d so a parser miss on one code doesn't
+  kill the rest of the burst.
+- **Time-set code is *not* in the burst.** The earlier draft of this
+  doc named `515` as the time-set code, but RE says `515 = HADJ_ANGLE`.
+  We skipped the time-set entirely — `543` (settling-time GET) is the
+  only "set/get" pair in the burst, and `544` is the matching setter
+  fired by `setSettlingTimeMs(ms)`. If the live smoke (next bullet)
+  shows a separate time-sync is required, we can add it without
+  touching the burst structure.
+- **Next concrete thing to do is the live smoke.** With the polkit
+  rule installed, gimbal powered, and the desktop app pointed at
+  `192.168.0.1`, the burst will fire automatically on connect. We
+  need to capture one successful round-trip and paste the responses
+  back here so we can tune the four `*Detail.fromFrame` parsers to
+  the actual wire format. (40 unit tests pass against the stub
+  server; live firmware is the only thing left to validate against.)
+- **Build is green.** `JAVA_HOME=/home/ian/jdks/jdk-21.0.2 ./gradlew
+  :shared:jvmTest :composeApp:compileKotlinJvm` → `BUILD SUCCESSFUL`,
+  40 tests pass. (Note: `/usr/lib/jvm/java-21-openjdk-amd64` is a JRE
+  without `javac` — always set `JAVA_HOME` to a real JDK on this box.)
+
 ---
 
 ## Where we are
@@ -68,8 +115,8 @@ in the way, and what each next step costs.
 | Burst codes 524/544/802/824/775/778/779 | ✅ round-trip green | 75 jvmTest pass; 7 burst probes against stub server |
 | Stub server (mobile-app → PC) | ✅ built | `tools/stub-server` runs the simulator as a TCP service |
 | `MountSession` host (was `AppViewModel.connect()`) | ✅ defaults to `192.168.0.1:9090` | [MountSession.kt:21](shared/src/commonMain/kotlin/dev/openpolaris/core/domain/MountSession.kt); `Burst.kt:13` also defaults to `192.168.0.1` |
-| Post-connect burst (524/TBD-time-set/778/775/284/802/824) | ❌ not implemented | RE-known sequence, not yet coded; time-set code **unconfirmed** |
-| Camera info burst (CAM_GET_* = 258/260/262/264/266/268/270/272/274/276/278) | ❌ not implemented | fired by `getCanmeraInfo()` in original app; code list to be pinned in Step 3 |
+| Post-connect burst (524/TBD-time-set/778/775/284/802/824) | ✅ implemented | [`AppViewModel.postConnectBurst()`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt) runs 808/809/802/778/779/775/824/524/543 after `MountSession.connect()`. Time-set was **dropped** in favor of `543` (settling-time get); `544` is the setter. |
+| Camera info burst (CAM_GET_* = 258/260/262/264/266/268/270/272/274/276/278) | ❌ not implemented | fired by `getCanmeraInfo()` in original app; code list already pinned from RE §5. Next step: add to `AppViewModel.postConnectBurst()` after live smoke proves the basic 9-code burst. |
 | BT-side codes (1-5, 257-263, 513-524) | ❌ not in repo | likely a new `BtCodes.kt` + frame helpers |
 | Linux BlueZ BLE wake pulse | ❌ not implemented | optional, see "Bluetooth" below |
 | `ResponseParser` handling of literal `h` pulse ack | ⚠️ not visible | needs review |
@@ -268,30 +315,38 @@ Each step lists **what**, **how long** (rough), **how to verify**, and
   Step 3 (live TCP burst probe) and the G1 sign-off.
 - **Unblocks:** running the app against a real gimbal from the IDE.
 
-### Step 5 — Implement and wire the post-connect burst
+### Step 5 — Implement and wire the post-connect burst (DONE 2026-08-30)
 
-- **What:** in `MountSession` (or equivalent), after the TCP
-  `connect()` returns, fire the seven-code burst in this order:
-  1. `524` (EX_AXIS_STA, `cmdType=3`)
-  2. **(time-set, code TBD)** — RE shows the gimbal expects a time
-     sync, but the *code* is not in the captured dispatch table. The
-     earlier plan called this `515` (`SET_SYSTEM_TIME`), but
-     [PROTOCOL.md](PROTOCOL.md) and [Codes.kt:43](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt)
-     both say `515 = SP_GIMBAL_HADJ_ANGLE`. **Do not hardcode `515`
-     in the burst until the live probe (Step 3) confirms the actual
-     time-set code.** Until then, implement steps 1, 3–7 and leave
-     step 2 as a `TODO` with a clear code-slot constant.
-  3. start a poll timer for `778` (battery) every N seconds
-  4. start a poll timer for `775` (memory) every N seconds
-  5. `284` (PUSH_MODE_STATE, `cmdType=2`)
-  6. `802` (GET_WIFI_BAND, `cmdType=2`)
-  7. `824` (OMS_RUN_STATE, `cmdType=2`)
-- **Why:** the gimbal expects this exact sequence after a WiFi
-  connect — without it, push/poll streams don't flow.
-- **Cost:** ~half a day including a unit test that records the
-  outgoing bytes in order.
-- **Unblocks:** live status updates in the UI (battery percentage,
-  SD capacity, etc).
+- **What was done:** in [`AppViewModel.postConnectBurst()`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt),
+  after `MountSession.connect()` returns true, fire this 9-code burst:
+  1. `808` (firmware version, `cmdType=2`)
+  2. `809` (serial number, `cmdType=2`)
+  3. `802` (WiFi band, `cmdType=2`)
+  4. `778` (battery base, `cmdType=2`)
+  5. `779` (battery detail, `cmdType=2`)
+  6. `775` (SD status, `cmdType=2`)
+  7. `824` (OMS run state, `cmdType=2`)
+  8. `524` (ex-axis state, `cmdType=3`)
+  9. `543` (settling-time get, `cmdType=2`)
+- **Time-set was *dropped*.** The earlier draft named `515`, but RE
+  says `515 = HADJ_ANGLE`. If the live smoke shows the gimbal
+  really does need a time-sync, we'll add it as a separate
+  `timeSync()` method, not as a slot in this burst.
+- **`544` (settling-time setter) is NOT in the burst.** It's only
+  fired by `setSettlingTimeMs(ms)`. Pairing is `543` get / `544` set.
+- **Tolerance:** each `request<T>()` is wrapped in `runCatching`.
+  A parser that returns `null` → `matched!!` throws NPE → `request`
+  catches it → `runCatching` swallows it. The burst never aborts
+  on a single bad parse; subsequent codes still fire.
+- **New types added** to [`MountState.kt`](shared/src/commonMain/kotlin/dev/openpolaris/core/domain/MountState.kt):
+  `BatteryDetail`, `SdStatus`, `OmsState`, `ExAxisState`. Each has a
+  `fromFrame` companion parser. `BatteryDetail.fromFrame` is the
+  only merge parser — it accumulates 778 + 779 fields across the
+  two responses.
+- **Build evidence:** `JAVA_HOME=/home/ian/jdks/jdk-21.0.2
+  ./gradlew :shared:jvmTest :composeApp:compileKotlinJvm` →
+  `BUILD SUCCESSFUL`, 40 jvmTest pass.
+- **Live verification (Step 8 below) still pending.**
 
 ### Step 6 — Implement and wire the camera info burst
 
@@ -458,25 +513,60 @@ Don't go chasing these until Steps 1-6 are verified:
 
 ---
 
+## Next steps in priority order
+
+These are the highest-leverage things to do next, in order. Each
+is blocked on the one above it; if the user is short on time,
+work top-down.
+
+1. **Install the polkit rule** (one sudo, 30 s).
+   `scripts/install-wifi-polkit-rule.sh`. This is the single
+   blocker on all wireless work. Without it, every WiFi scan
+   triggers an auth dialog and the user's productivity dies.
+2. **Capture a live burst from the gimbal** (10 min).
+   Power the gimbal, open the desktop app, click Connect,
+   capture stdout + one log of the 9-code burst responses.
+   Paste it into RE §10. This validates that the 808/809/802/...
+   payloads we expect match what the gimbal actually sends, and
+   gives us the data to tune `BatteryDetail`, `SdStatus`,
+   `OmsState`, `ExAxisState` parsers.
+3. **Implement Step 6 — camera info burst** (~half a day).
+   Once the basic burst is proven live, add the
+   `CAM_GET_DEVICE_INFO`, `CAM_GET_STATE`, `CAM_GET_VIDEO_RES`
+   etc. queries to `AppViewModel.postConnectBurst()`. Camera
+   info is the second highest-value data to show in the UI
+   (after battery/SD state).
+4. **Wire up the first real control command end-to-end** (~1 day).
+   Pick one command — `START_RECORD` or `TOGGLE_MODE` — and
+   prove that our request gets echoed and the gimbal reacts.
+   Use it as the smoke test for the whole stack.
+5. **Polish the UI** (depends on the above).
+   The Compose UI is a placeholder; once real state flows, the
+   actual controls can be wired to the real `request<T>()` calls.
+
 ## Re-starting tomorrow (cheat sheet)
 
 1. **First:** check the polkit rule status
    (`ls -la /etc/polkit-1/rules.d/`). If not there, install it
-   (Step 1, 30 s).
+   (Step 1, 30 s). If it's already there, you're done with auth.
 2. **Second:** confirm the gimbal is online
    (`nmcli device wifi list | grep polaris_`). If not, power the
    gimbal.
 3. **Third:** if both green, do the live burst probe
    (Step 3, 10 min). This is the single most informative thing
    we can do.
-4. **Then:** `cd tools/cli-probe && ./bin/cli-probe` — it already
-   targets `192.168.0.1:9090` (default host; flip done in code
-   2026-08). If the gimbal answers, you have a working stack.
-5. **Then:** start on Step 5 (post-connect burst in `MountSession`).
+4. **Then:** run the desktop app (`./gradlew :composeApp:run`).
+   On connect, the app fires the Step-5 burst automatically
+   (808/809/802/778/779/775/824/524/543). Capture one full
+   round-trip in the log and paste it into
+   [polaris-re-results.md §10](</home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/polaris-re-results.md)
+   so we can tune the four `*Detail.fromFrame` parsers to the
+   real wire format.
+5. **Then:** start on Step 6 (camera info burst).
 
 If you only have 10 minutes, do step 1. If you have an hour, do
 1+2+3. If you have half a day, do all of the above plus start
-Step 5.
+Step 6.
 
 The protocol side is no longer the bottleneck. The auth-flood
 fix is. Get that installed and the rest flows.

@@ -35,7 +35,8 @@ Everything runs on the phone. The mount is a TCP server; the app is the brain.
 
 ### Transport
 - The Polaris broadcasts its own Wi-Fi access point (`Polaris_XXXX`). Join it, then open a TCP
-  connection to `192.168.43.1:9090` (the address the stock app uses).
+  connection to `192.168.0.1:9090` (the address the stock app uses; reverse-engineered from
+  `com.snoppa.polaris.singleton.PolarisSyntheticHelper.connectHost = "192.168.0.1"`).
 - Messages are ASCII text frames of the form:
 
   ```
@@ -76,6 +77,19 @@ firmware strings and traffic captured from the stock app.
 - Host/port fields with one-tap connect; auto-reconnect on drop.
 - Live status pane: battery %, shooting mode, mount state — updated from pushed frames.
 - **Demo mode**: a built-in simulated mount so you can explore the UI without hardware.
+- **Wi-Fi bridge for laptops/desktops** (BT-as-control-plane, segregated data plane): the laptop
+  keeps `wlp8s0` powered off until you ask to connect. The "Find Wi-Fi" button runs the bridge
+  tool (`./gradlew :tools:bridge:run --args=...`) which does three things in order:
+  1. **Wake the gimbal over Bluetooth.** The official Benro app does the same — it identifies the
+     device via GATT, then asks the firmware to bring up its AP.
+  2. **Bring up a saved NetworkManager profile** (`polaris_d13e86`) on `wlp8s0`. No Wi-Fi scans,
+     no auth storms — the SSID is already known to NM and just gets reactivated.
+  3. **Segregate the gimbal traffic from the LAN** via policy routing: a dedicated routing table
+     routes `192.168.0.0/24` out `wlp8s0` only, leaving `enp11s0` as the default route for the
+     internet. The gimbal cannot reach your home network, and your home network cannot reach the
+     gimbal.
+  Once the bridge is up, the app talks to `192.168.0.1:9090` exactly as it does on a phone joined
+  directly to `Polaris_XXXX`. Tearing down (`--down`) reverses all three steps.
 
 ### Manual control
 - Four-direction jog pad (yaw/pitch nudge) using the firmware's rate-adjust codes.
@@ -194,3 +208,6 @@ Debug-signed; expect rough edges. Field-test findings go straight into the issue
 | [PLAN.md](PLAN.md) | Phased delivery plan with hardware-gated milestones |
 | [EVALUATION.md](EVALUATION.md) | Phase 0/1 close-out evaluation |
 | [SMOKE-TEST.md](SMOKE-TEST.md) | Hardware smoke-test checklist |
+
+The "Wi-Fi bridge for laptops" section above links the laptop BT→WiFi flow to the architecture
+document, where the segregated routing table and NetworkManager integration live in detail.

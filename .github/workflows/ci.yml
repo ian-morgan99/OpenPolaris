@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel in-flight runs for the same ref when new commits land.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  jvm:
+    name: JVM tests (Ubuntu)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # JDK 21 is required by the Gradle 8.10.2 toolchain / AGP 8.7.2,
+      # but the project's jvmTarget is 17 — see shared/build.gradle.kts.
+      JAVA_HOME: ${{ github.workspace }}/.jdk/21.0.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Show toolchain
+        run: |
+          ./gradlew --version
+          java -version
+          echo "AGP warning suppression in gradle.properties:"
+          grep -E "nowarn|ignoreDisabledTargets" gradle.properties || true
+
+      - name: Compile JVM sources
+        run: ./gradlew :shared:compileKotlinJvm :shared:compileTestKotlinJvm
+
+      - name: Run shared JVM tests (rerun to surface ordering issues)
+        run: ./gradlew :shared:jvmTest --rerun-tasks
+
+      - name: Run tools tests (stub-server + cli-probe)
+        run: ./gradlew :tools:stub-server:test :tools:cli-probe:test --rerun-tasks
+
+      - name: Upload JUnit XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results
+          path: |
+            **/build/test-results/**/*.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-reports
+          path: |
+            **/build/reports/tests/**/*.html
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Summarise failures
+        if: failure()
+        run: |
+          echo "## ❌ JVM test job failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "See the *junit-results* artifact for the failing tests." >> "$GITHUB_STEP_SUMMARY"
+
+  lint:
+    name: Lint (ktlint-detekt placeholder)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Show source tree
+        run: |
+          find . -name "*.kt" -not -path "*/build/*" -not -path "*/.gradle/*" | wc -l
+          echo "Note: this is a placeholder. Add ktlint/detekt later — see docs/PLANNING-2026-08.md §Next steps."

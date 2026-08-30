@@ -16,6 +16,7 @@ java {
 
 dependencies {
     implementation(project(":shared"))
+    testImplementation(kotlin("test"))
 }
 
 application {

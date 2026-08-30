@@ -16,6 +16,8 @@ java {
 
 dependencies {
     implementation(project(":shared"))
+    testImplementation(kotlin("test"))
+    testImplementation(project(":tools:stub-server"))
 }
 
 application {

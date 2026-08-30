@@ -26,19 +26,56 @@ import java.util.concurrent.atomic.AtomicLong
  * frame is kept across reads. This mirrors the real mount's framing — clients
  * do NOT terminate requests with newlines, only with `#`.
  */
-fun main(args: Array<String>) {
-    val port = argValue(args, "--port")?.toIntOrNull() ?: 9090
-    val bind = argValue(args, "--bind") ?: "0.0.0.0"
+/**
+ * Parse args and return either a [Startup] describing what to bind to, or a
+ * [Usage] error (exit code 2) describing what went wrong. Testable seam.
+ */
+internal sealed interface ParseResult {
+    data class Startup(val bind: String, val port: Int) : ParseResult
+    data class Usage(val message: String) : ParseResult
+}
 
+internal fun parseArgs(args: Array<String>): ParseResult {
+    val portRaw = argValue(args, "--port")
+    val port = portRaw?.toIntOrNull()
+    if (portRaw != null && port == null) {
+        return ParseResult.Usage("--port must be an integer, got: $portRaw")
+    }
+    val bind = argValue(args, "--bind") ?: "0.0.0.0"
+    return ParseResult.Startup(bind, port ?: 9090)
+}
+
+fun main(args: Array<String>) {
+    when (val r = parseArgs(args)) {
+        is ParseResult.Usage -> {
+            System.err.println(r.message)
+            kotlin.system.exitProcess(2)
+        }
+        is ParseResult.Startup -> runServer(r.bind, r.port)
+    }
+}
+
+/**
+ * Open the listening socket, accept clients forever, and return when the
+ * server is bound. Returns the actual bound port (useful when the caller
+ * asked for port 0 / ephemeral).
+ *
+ * The function does NOT return under normal operation — the [ServerSocket]
+ * accept loop runs until the JVM is shut down. The return is reached only
+ * if [bind] fails (e.g. port already in use), in which case we propagate
+ * the [java.io.IOException] to the caller.
+ */
+fun runServer(bind: String, port: Int): Int {
     val address = InetAddress.getByName(bind)
     val server = ServerSocket(port, 50, address)
-    System.out.println("polaris-stub listening on $bind:$port")
+    val boundPort = server.localPort
+    System.out.println("polaris-stub listening on $bind:$boundPort")
     val exec = Executors.newCachedThreadPool { r ->
         Thread(r, "polaris-stub-client-${CLIENT_ID.incrementAndGet()}").apply { isDaemon = true }
     }
     Runtime.getRuntime().addShutdownHook(Thread {
         System.out.println("polaris-stub shutting down")
-        server.close()
+        runCatching { server.close() }
         exec.shutdownNow()
     })
     while (true) {
@@ -46,6 +83,7 @@ fun main(args: Array<String>) {
         System.out.println("client connected: ${client.remoteSocketAddress}")
         exec.submit { handle(client) }
     }
+    return boundPort
 }
 
 private fun handle(client: Socket) {
@@ -83,7 +121,7 @@ private fun handle(client: Socket) {
     }
 }
 
-private fun argValue(args: Array<String>, name: String): String? {
+internal fun argValue(args: Array<String>, name: String): String? {
     val i = args.indexOf(name)
     if (i < 0 || i + 1 >= args.size) return null
     return args[i + 1]

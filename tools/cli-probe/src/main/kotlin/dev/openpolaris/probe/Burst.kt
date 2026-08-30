@@ -8,50 +8,83 @@ import java.net.Socket
 
 private fun log(s: String) { println(s); System.out.flush() }
 
-/** Send a comma-separated list of codes to host:port and print each response. */
-fun main(args: Array<String>) {
-    val host = args.getOrElse(0) { "192.168.0.1" }
-    val port = args.getOrElse(1) { "9090" }.toIntOrNull() ?: 9090
-    val codes = args.getOrElse(2) { "524,544,802,824,775,778,779" }
+/** Result of parsing command-line arguments. Host/port default to the real gimbal
+ *  (192.168.0.1:9090); codes default to a hand-picked smoke-test set. */
+data class BurstArgs(
+    val host: String,
+    val port: Int,
+    val codes: List<Int>,
+)
+
+/** Pure, testable argument parser. */
+internal fun parseBurstArgs(args: Array<String>): BurstArgs {
+    val host = args.getOrNull(0) ?: "192.168.0.1"
+    val port = args.getOrNull(1)?.toIntOrNull() ?: 9090
+    val codes = (args.getOrNull(2) ?: "524,544,802,824,775,778,779")
         .split(",").map { it.trim().toInt() }
-    log("burst → $host:$port codes=$codes")
+    return BurstArgs(host, port, codes)
+}
 
-    val socket = Socket()
-    socket.connect(InetSocketAddress(host, port), 5000)
-    val out = socket.getOutputStream()
-    val `in` = socket.getInputStream()
-    val parser = ResponseParser()
-
-    for (c in codes) {
-        out.write(command(c)); out.flush()
-        log("  sent code=$c")
-
-        // short per-code window — setters (e.g. 544) ack-free, push codes are async
-        socket.soTimeout = 1500
-        val pending = java.io.ByteArrayOutputStream()
-        val buf = ByteArray(4096)
+/** Run the burst against host:port. Returns the list of per-code result lines that
+ *  were written to [sink] so the test suite can assert on them. Errors are converted
+ *  to "<error>" lines rather than thrown, so the burst always runs to completion. */
+fun runBurst(args: BurstArgs, sink: (String) -> Unit = ::log): List<String> {
+    val results = mutableListOf<String>()
+    val header = "burst → ${args.host}:${args.port} codes=${args.codes}"
+    sink(header); results += header
+    try {
+        val socket = Socket()
+        socket.connect(InetSocketAddress(args.host, args.port), 5000)
         try {
-            while (true) {
-                val n = `in`.read(buf)
-                if (n < 0) break
-                if (n == 0) break
-                pending.write(buf, 0, n)
+            val out = socket.getOutputStream()
+            val `in` = socket.getInputStream()
+            val parser = ResponseParser()
+            for (c in args.codes) {
+                out.write(command(c)); out.flush()
+                val line = "  sent code=$c"
+                sink(line); results += line
+
+                // short per-code window — setters (e.g. 544) ack-free, push codes are async
+                socket.soTimeout = 1500
+                val pending = java.io.ByteArrayOutputStream()
+                val buf = ByteArray(4096)
+                try {
+                    while (true) {
+                        val n = `in`.read(buf)
+                        if (n <= 0) break
+                        pending.write(buf, 0, n)
+                    }
+                } catch (_: java.net.SocketTimeoutException) {
+                    // expected for setter / push codes
+                }
+                val bytes = pending.toByteArray()
+                val drained = "  drained ${bytes.size}B raw=${String(bytes, Charsets.US_ASCII).trim()}"
+                sink(drained); results += drained
+                if (bytes.isEmpty()) {
+                    val noResp = "  code=$c <no response> (setter or push-mode)"
+                    sink(noResp); results += noResp
+                    continue
+                }
+                val (frames, _) = parser.parse(bytes)
+                if (frames.isEmpty()) {
+                    val unparsed = "  code=$c unparsed"
+                    sink(unparsed); results += unparsed
+                } else for (f in frames) {
+                    val fields = f.fields.entries.joinToString(" ") { "${it.key}=${it.value}" }
+                    val parsed = "  code=${f.code} $fields"
+                    sink(parsed); results += parsed
+                }
             }
-        } catch (_: java.net.SocketTimeoutException) {
-            // expected for setter / push codes
+        } finally {
+            runCatching { socket.close() }
         }
-        val bytes = pending.toByteArray()
-        log("  drained ${bytes.size}B raw=${String(bytes, Charsets.US_ASCII).trim()}")
-        if (bytes.isEmpty()) {
-            log("  code=$c <no response> (setter or push-mode)"); continue
-        }
-        val (frames, _) = parser.parse(bytes)
-        if (frames.isEmpty()) {
-            log("  code=$c unparsed")
-        } else for (f in frames) {
-            val fields = f.fields.entries.joinToString(" ") { "${it.key}=${it.value}" }
-            log("  code=${f.code} $fields")
-        }
+    } catch (e: Exception) {
+        val err = "  <error: ${e.javaClass.simpleName}: ${e.message}>"
+        sink(err); results += err
     }
-    socket.close()
+    return results
+}
+
+fun main(args: Array<String>) {
+    runBurst(parseBurstArgs(args))
 }

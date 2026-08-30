@@ -53,16 +53,6 @@ class TrackingController(private val session: MountSession) {
     }
 }
 
-/** Common-main 4-decimal fixed formatting (String.format is JVM-only). */
-private fun Double.format4(): String {
-    val neg = this < 0
-    val abs = if (neg) -this else this
-    val scaled = (abs * 10000.0 + 0.5).toLong()
-    val whole = scaled / 10000
-    val frac = (scaled % 10000).toString().padStart(4, '0')
-    return (if (neg) "-" else "") + "$whole.$frac"
-}
-
 /** Common-main 2-decimal fixed formatting for UI display. */
 fun Double.format2(): String {
     val neg = this < 0

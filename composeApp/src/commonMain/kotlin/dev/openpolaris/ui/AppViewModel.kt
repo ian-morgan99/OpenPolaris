@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.BatteryDetail
+import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.GimbalPosition
@@ -16,6 +17,7 @@ import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -74,6 +76,8 @@ class AppViewModel(
     var settlingTime by mutableStateOf<Int?>(null)
         private set
     var exAxisState by mutableStateOf<Int?>(null)
+        private set
+    var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
     private var session: MountSession? = null
@@ -144,6 +148,7 @@ class AppViewModel(
         omsState = null
         settlingTime = null
         exAxisState = null
+        cameraInfo = null
         if (!demoMode) statusMessage = "Disconnected"
     }
 
@@ -202,6 +207,21 @@ class AppViewModel(
         // Tolerate Timeout on builds that only expose the SETTER.
         runCatching { s.request<Int>(543) { it.int("time") } }
             .onSuccess { if (it is MountSession.CmdResult.Ok) settlingTime = it.value }
+
+        // Camera parameter burst (10 GETs). Each merges one field into the
+        // running CameraInfo snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
+        // NOT part of this — they feed the CaptureState pipeline / capture button.
+        runCatching {
+            val codes = listOf(258, 260, 262, 264, 268, 270, 272, 274, 276, 278)
+            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
+            for (c in codes) {
+                val r = s.request<ResponseParser.Frame>(c) { it }
+                if (r is MountSession.CmdResult.Ok) {
+                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
+                }
+            }
+            cameraInfo = snapshot
+        }
     }
 
     /** Re-fire a single code from the post-connect burst on demand. */
@@ -389,13 +409,28 @@ class AppViewModel(
                 wbIndex = cc.queryWb(),
                 fNumIndex = cc.queryFNum(),
                 evIndex = cc.queryEv(),
+                focusIndex = cc.queryFocus(),
+                imgSizeIndex = cc.queryImgSize(),
+                imgFmtIndex = cc.queryImgFmt(),
+                colorIndex = cc.queryColor(),
+                shutterIndex = cc.queryShutter(),
+                captureModeIndex = cc.queryCaptureMode(),
             )
             camera = p
             statusMessage = if (p.isoIndex != null || p.wbIndex != null ||
-                p.fNumIndex != null || p.evIndex != null)
+                p.fNumIndex != null || p.evIndex != null || p.focusIndex != null ||
+                p.imgSizeIndex != null || p.imgFmtIndex != null || p.colorIndex != null ||
+                p.shutterIndex != null || p.captureModeIndex != null)
                 "Camera parameters refreshed" else "Camera did not respond"
         }
     }
+
+    fun setFocus(index: Int) { camera = camera.copy(focusIndex = index); scope.launch { cameraController?.setFocus(index) } }
+    fun setImgSize(index: Int) { camera = camera.copy(imgSizeIndex = index); scope.launch { cameraController?.setImgSize(index) } }
+    fun setImgFmt(index: Int) { camera = camera.copy(imgFmtIndex = index); scope.launch { cameraController?.setImgFmt(index) } }
+    fun setColor(index: Int) { camera = camera.copy(colorIndex = index); scope.launch { cameraController?.setColor(index) } }
+    fun setShutter(index: Int) { camera = camera.copy(shutterIndex = index); scope.launch { cameraController?.setShutter(index) } }
+    fun setCaptureMode(index: Int) { camera = camera.copy(captureModeIndex = index); scope.launch { cameraController?.setCaptureMode(index) } }
 
     fun setIso(index: Int) { camera = camera.copy(isoIndex = index); scope.launch { cameraController?.setIso(index) } }
     fun setWb(index: Int) { camera = camera.copy(wbIndex = index); scope.launch { cameraController?.setWb(index) } }

@@ -133,3 +133,50 @@ data class ExAxisState(val state: Int) {
     }
 }
 
+/**
+ * 258..278 — camera parameter snapshot (10 GETs merged into one model).
+ *
+ * Each individual code carries one parameter: iso, wb, fNum, ev, focus, imgSize,
+ * imgFmt, color, shutter, captureMode. The post-connect burst fires them all
+ * and merges results into one [CameraInfo]. All fields are nullable so an
+ * absent (or unimplemented on older firmware) parameter is clearly distinct
+ * from a legitimate zero.
+ */
+data class CameraInfo(
+    val iso: Int? = null,
+    val wb: Int? = null,
+    val fNum: Int? = null,
+    val ev: Int? = null,
+    val focus: Int? = null,
+    val imgSize: Int? = null,
+    val imgFmt: Int? = null,
+    val color: Int? = null,
+    val shutter: Int? = null,
+    val captureMode: Int? = null,
+) {
+    companion object {
+        /**
+         * Merge one parameter from a single response frame into a [CameraInfo].
+         * Unknown codes produce an unchanged copy. Note: 266 (CAM_GET_STATE)
+         * and 267 (CAM_CAPTURE) are NOT merged here — those produce a
+         * [CommandTable.CaptureState] instead and have their own pipeline.
+         */
+        fun fromFrame(code: Int, f: ResponseParser.Frame, current: CameraInfo = CameraInfo()): CameraInfo {
+            fun int(key: String): Int? = f.int(key)
+            return when (code) {
+                258 -> current.copy(iso = int("iso"))
+                260 -> current.copy(wb = int("wb"))
+                262 -> current.copy(fNum = int("fNum"))
+                264 -> current.copy(ev = int("ev"))
+                268 -> current.copy(focus = int("focus"))
+                270 -> current.copy(imgSize = int("imgSize"))
+                272 -> current.copy(imgFmt = int("imgFmt"))
+                274 -> current.copy(color = int("color"))
+                276 -> current.copy(shutter = int("shutter"))
+                278 -> current.copy(captureMode = int("captureMode"))
+                else -> current
+            }
+        }
+    }
+}
+

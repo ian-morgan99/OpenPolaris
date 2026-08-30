@@ -150,6 +150,30 @@ object CommandTable {
         parse = { f -> f.int("ev")?.let { CamParam(it) } })
     val CAM_SET_EV = Descriptor<CamParam>(Codes.CAM_SET_EV, "camera ev set",
         payload = { "ev:${it.index};" })
+    val CAM_GET_FOCUS = Descriptor<CamParam?>(Codes.CAM_GET_FOCUS, "camera focus get",
+        parse = { f -> f.int("focus")?.let { CamParam(it) } })
+    val CAM_SET_FOCUS = Descriptor<CamParam>(Codes.CAM_SET_FOCUS, "camera focus set",
+        payload = { "focus:${it.index};" })
+    val CAM_GET_IMG_SIZE = Descriptor<CamParam?>(Codes.CAM_GET_IMG_SIZE, "camera img size get",
+        parse = { f -> f.int("imgSize")?.let { CamParam(it) } })
+    val CAM_SET_IMG_SIZE = Descriptor<CamParam>(Codes.CAM_SET_IMG_SIZE, "camera img size set",
+        payload = { "imgSize:${it.index};" })
+    val CAM_GET_IMG_FMT = Descriptor<CamParam?>(Codes.CAM_GET_IMG_FMT, "camera img fmt get",
+        parse = { f -> f.int("imgFmt")?.let { CamParam(it) } })
+    val CAM_SET_IMG_FMT = Descriptor<CamParam>(Codes.CAM_SET_IMG_FMT, "camera img fmt set",
+        payload = { "imgFmt:${it.index};" })
+    val CAM_GET_COLOR = Descriptor<CamParam?>(Codes.CAM_GET_COLOR, "camera color get",
+        parse = { f -> f.int("color")?.let { CamParam(it) } })
+    val CAM_SET_COLOR = Descriptor<CamParam>(Codes.CAM_SET_COLOR, "camera color set",
+        payload = { "color:${it.index};" })
+    val CAM_GET_SHUTTER = Descriptor<CamParam?>(Codes.CAM_GET_SHUTTER, "camera shutter get",
+        parse = { f -> f.int("shutter")?.let { CamParam(it) } })
+    val CAM_SET_SHUTTER = Descriptor<CamParam>(Codes.CAM_SET_SHUTTER, "camera shutter set",
+        payload = { "shutter:${it.index};" })
+    val CAM_GET_CAPTURE_MODE = Descriptor<CamParam?>(Codes.CAM_GET_CAPTURE_MODE, "camera capture mode get",
+        parse = { f -> f.int("captureMode")?.let { CamParam(it) } })
+    val CAM_SET_CAPTURE_MODE = Descriptor<CamParam>(Codes.CAM_SET_CAPTURE_MODE, "camera capture mode set",
+        payload = { "captureMode:${it.index};" })
 
     /** Capture state push: `state:%d;bulb:%d;c:%d;`. */
     data class CaptureState(val state: Int, val bulb: Int, val c: Int)
@@ -238,7 +262,14 @@ object CommandTable {
             SETTLING_TIME_GET, SETTLING_TIME_SET,
             EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
-            CAM_GET_EV, CAM_SET_EV, CAM_GET_STATE, CAM_CAPTURE,
+            CAM_GET_EV, CAM_SET_EV,
+            CAM_GET_FOCUS, CAM_SET_FOCUS,
+            CAM_GET_IMG_SIZE, CAM_SET_IMG_SIZE,
+            CAM_GET_IMG_FMT, CAM_SET_IMG_FMT,
+            CAM_GET_COLOR, CAM_SET_COLOR,
+            CAM_GET_SHUTTER, CAM_SET_SHUTTER,
+            CAM_GET_CAPTURE_MODE, CAM_SET_CAPTURE_MODE,
+            CAM_GET_STATE, CAM_CAPTURE,
             FILE_LIST, FILE_DELETE, FILE_RENAME, FILE_PROTECT, FILE_INFO,
             FILE_SD_STATUS, FILE_SD_FORMAT, FILE_SET_TYPE, FILE_UPLOAD_FW,
             FILE_UPLOAD_CHUNK, FILE_UPLOAD_END,

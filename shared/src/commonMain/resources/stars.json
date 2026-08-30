@@ -1,0 +1,1851 @@
+{
+  "version": 1,
+  "type": "stars",
+  "objects": [
+    {
+      "designation": "ALF UMa",
+      "name": "Dubhe",
+      "type": "DOUBLE_STAR",
+      "decDeg": 61.7508,
+      "magnitude": 1.79,
+      "constellation": "Ursa Major",
+      "raDeg": 165.9315
+    },
+    {
+      "designation": "BET UMa",
+      "name": "Merak",
+      "type": "STAR",
+      "decDeg": 56.3824,
+      "magnitude": 2.37,
+      "constellation": "Ursa Major",
+      "raDeg": 165.4605
+    },
+    {
+      "designation": "GAM UMa",
+      "name": "Phecda",
+      "type": "STAR",
+      "decDeg": 53.6948,
+      "magnitude": 2.44,
+      "constellation": "Ursa Major",
+      "raDeg": 178.458
+    },
+    {
+      "designation": "DEL UMa",
+      "name": "Megrez",
+      "type": "DOUBLE_STAR",
+      "decDeg": 57.0326,
+      "magnitude": 3.31,
+      "constellation": "Ursa Major",
+      "raDeg": 183.85649999999998
+    },
+    {
+      "designation": "EPS UMa",
+      "name": "Alioth",
+      "type": "STAR",
+      "decDeg": 55.9598,
+      "magnitude": 1.77,
+      "constellation": "Ursa Major",
+      "raDeg": 193.5075
+    },
+    {
+      "designation": "ZET UMa",
+      "name": "Mizar",
+      "type": "DOUBLE_STAR",
+      "decDeg": 54.9254,
+      "magnitude": 2.23,
+      "constellation": "Ursa Major",
+      "raDeg": 200.982
+    },
+    {
+      "designation": "ETA UMa",
+      "name": "Alkaid",
+      "type": "STAR",
+      "decDeg": 49.3133,
+      "magnitude": 1.86,
+      "constellation": "Ursa Major",
+      "raDeg": 206.88449999999997
+    },
+    {
+      "designation": "ALF UMi",
+      "name": "Polaris",
+      "type": "DOUBLE_STAR",
+      "decDeg": 89.2641,
+      "magnitude": 1.97,
+      "constellation": "Ursa Minor",
+      "raDeg": 37.952999999999996
+    },
+    {
+      "designation": "BET UMi",
+      "name": "Kochab",
+      "type": "STAR",
+      "decDeg": 74.1555,
+      "magnitude": 2.08,
+      "constellation": "Ursa Minor",
+      "raDeg": 222.6765
+    },
+    {
+      "designation": "GAM UMi",
+      "name": "Pherkad",
+      "type": "VARIABLE_STAR",
+      "decDeg": 71.834,
+      "magnitude": 3.0,
+      "constellation": "Ursa Minor",
+      "raDeg": 230.1915
+    },
+    {
+      "designation": "ALF CMa",
+      "name": "Sirius",
+      "type": "DOUBLE_STAR",
+      "decDeg": -16.7161,
+      "magnitude": -1.46,
+      "constellation": "Canis Major",
+      "raDeg": 101.28750000000001
+    },
+    {
+      "designation": "EPS CMa",
+      "name": "Adhara",
+      "type": "DOUBLE_STAR",
+      "decDeg": -28.9722,
+      "magnitude": 1.5,
+      "constellation": "Canis Major",
+      "raDeg": 104.655
+    },
+    {
+      "designation": "DEL CMa",
+      "name": "Wezen",
+      "type": "STAR",
+      "decDeg": -26.3933,
+      "magnitude": 1.84,
+      "constellation": "Canis Major",
+      "raDeg": 107.0985
+    },
+    {
+      "designation": "BET CMa",
+      "name": "Mirzam",
+      "type": "VARIABLE_STAR",
+      "decDeg": -17.9559,
+      "magnitude": 1.98,
+      "constellation": "Canis Major",
+      "raDeg": 95.67450000000001
+    },
+    {
+      "designation": "ETA CMa",
+      "name": "Aludra",
+      "type": "DOUBLE_STAR",
+      "decDeg": -29.3031,
+      "magnitude": 2.45,
+      "constellation": "Canis Major",
+      "raDeg": 111.021
+    },
+    {
+      "designation": "ALF CMi",
+      "name": "Procyon",
+      "type": "DOUBLE_STAR",
+      "decDeg": 5.225,
+      "magnitude": 0.34,
+      "constellation": "Canis Minor",
+      "raDeg": 114.825
+    },
+    {
+      "designation": "BET CMi",
+      "name": "Gomeisa",
+      "type": "STAR",
+      "decDeg": 8.2893,
+      "magnitude": 2.89,
+      "constellation": "Canis Minor",
+      "raDeg": 111.792
+    },
+    {
+      "designation": "ALF Ori",
+      "name": "Betelgeuse",
+      "type": "VARIABLE_STAR",
+      "decDeg": 7.4071,
+      "magnitude": 0.5,
+      "constellation": "Orion",
+      "raDeg": 88.7925
+    },
+    {
+      "designation": "BET Ori",
+      "name": "Rigel",
+      "type": "DOUBLE_STAR",
+      "decDeg": -8.2017,
+      "magnitude": 0.13,
+      "constellation": "Orion",
+      "raDeg": 78.6345
+    },
+    {
+      "designation": "GAM Ori",
+      "name": "Bellatrix",
+      "type": "STAR",
+      "decDeg": 6.3497,
+      "magnitude": 1.64,
+      "constellation": "Orion",
+      "raDeg": 81.282
+    },
+    {
+      "designation": "DEL Ori",
+      "name": "Mintaka",
+      "type": "DOUBLE_STAR",
+      "decDeg": -0.2991,
+      "magnitude": 2.23,
+      "constellation": "Orion",
+      "raDeg": 83.001
+    },
+    {
+      "designation": "EPS Ori",
+      "name": "Alnilam",
+      "type": "DOUBLE_STAR",
+      "decDeg": -1.2019,
+      "magnitude": 1.69,
+      "constellation": "Orion",
+      "raDeg": 84.054
+    },
+    {
+      "designation": "ZET Ori",
+      "name": "Alnitak",
+      "type": "DOUBLE_STAR",
+      "decDeg": -1.9426,
+      "magnitude": 1.74,
+      "constellation": "Orion",
+      "raDeg": 85.1895
+    },
+    {
+      "designation": "IOT Ori",
+      "name": "Nair al Saif",
+      "type": "DOUBLE_STAR",
+      "decDeg": -5.9101,
+      "magnitude": 2.77,
+      "constellation": "Orion",
+      "raDeg": 83.7855
+    },
+    {
+      "designation": "KAP Ori",
+      "name": "Saiph",
+      "type": "STAR",
+      "decDeg": -9.6697,
+      "magnitude": 2.06,
+      "constellation": "Orion",
+      "raDeg": 86.93849999999999
+    },
+    {
+      "designation": "ALF Tau",
+      "name": "Aldebaran",
+      "type": "DOUBLE_STAR",
+      "decDeg": 16.5093,
+      "magnitude": 0.85,
+      "constellation": "Taurus",
+      "raDeg": 68.9805
+    },
+    {
+      "designation": "BET Tau",
+      "name": "Elnath",
+      "type": "DOUBLE_STAR",
+      "decDeg": 28.6075,
+      "magnitude": 1.65,
+      "constellation": "Taurus",
+      "raDeg": 81.57300000000001
+    },
+    {
+      "designation": "ETA Tau",
+      "name": "Alcyone",
+      "type": "DOUBLE_STAR",
+      "decDeg": 24.1051,
+      "magnitude": 2.85,
+      "constellation": "Taurus",
+      "raDeg": 56.8695
+    },
+    {
+      "designation": "ALF Aur",
+      "name": "Capella",
+      "type": "DOUBLE_STAR",
+      "decDeg": 45.998,
+      "magnitude": 0.08,
+      "constellation": "Auriga",
+      "raDeg": 79.173
+    },
+    {
+      "designation": "BET Aur",
+      "name": "Menkalinan",
+      "type": "DOUBLE_STAR",
+      "decDeg": 44.9474,
+      "magnitude": 1.9,
+      "constellation": "Auriga",
+      "raDeg": 89.88300000000001
+    },
+    {
+      "designation": "ALF Gem",
+      "name": "Castor",
+      "type": "DOUBLE_STAR",
+      "decDeg": 31.8883,
+      "magnitude": 1.58,
+      "constellation": "Gemini",
+      "raDeg": 113.649
+    },
+    {
+      "designation": "BET Gem",
+      "name": "Pollux",
+      "type": "STAR",
+      "decDeg": 28.0262,
+      "magnitude": 1.14,
+      "constellation": "Gemini",
+      "raDeg": 116.3295
+    },
+    {
+      "designation": "ALF Cnc",
+      "name": "Acubens",
+      "type": "DOUBLE_STAR",
+      "decDeg": 11.8584,
+      "magnitude": 4.2,
+      "constellation": "Cancer",
+      "raDeg": 134.622
+    },
+    {
+      "designation": "BET Cnc",
+      "name": "Tarf",
+      "type": "STAR",
+      "decDeg": 9.1856,
+      "magnitude": 3.52,
+      "constellation": "Cancer",
+      "raDeg": 127.6845
+    },
+    {
+      "designation": "ALF Leo",
+      "name": "Regulus",
+      "type": "DOUBLE_STAR",
+      "decDeg": 11.9672,
+      "magnitude": 1.35,
+      "constellation": "Leo",
+      "raDeg": 152.0925
+    },
+    {
+      "designation": "BET Leo",
+      "name": "Denebola",
+      "type": "STAR",
+      "decDeg": 14.572,
+      "magnitude": 2.14,
+      "constellation": "Leo",
+      "raDeg": 177.2655
+    },
+    {
+      "designation": "GAM Leo",
+      "name": "Algieba",
+      "type": "DOUBLE_STAR",
+      "decDeg": 19.8415,
+      "magnitude": 2.61,
+      "constellation": "Leo",
+      "raDeg": 154.9935
+    },
+    {
+      "designation": "DEL Leo",
+      "name": "Zosma",
+      "type": "STAR",
+      "decDeg": 20.5237,
+      "magnitude": 2.56,
+      "constellation": "Leo",
+      "raDeg": 168.5265
+    },
+    {
+      "designation": "EPS Leo",
+      "name": "Algenubi",
+      "type": "DOUBLE_STAR",
+      "decDeg": 23.7742,
+      "magnitude": 2.97,
+      "constellation": "Leo",
+      "raDeg": 146.4465
+    },
+    {
+      "designation": "ALF Vir",
+      "name": "Spica",
+      "type": "DOUBLE_STAR",
+      "decDeg": -11.1614,
+      "magnitude": 0.97,
+      "constellation": "Virgo",
+      "raDeg": 201.2985
+    },
+    {
+      "designation": "GAM Vir",
+      "name": "Porrima",
+      "type": "DOUBLE_STAR",
+      "decDeg": -1.45,
+      "magnitude": 2.74,
+      "constellation": "Virgo",
+      "raDeg": 190.416
+    },
+    {
+      "designation": "ALF Boo",
+      "name": "Arcturus",
+      "type": "STAR",
+      "decDeg": 19.1825,
+      "magnitude": -0.05,
+      "constellation": "Bo\u00f6tes",
+      "raDeg": 213.915
+    },
+    {
+      "designation": "EPS Boo",
+      "name": "Izar",
+      "type": "DOUBLE_STAR",
+      "decDeg": 27.0742,
+      "magnitude": 2.37,
+      "constellation": "Bo\u00f6tes",
+      "raDeg": 221.247
+    },
+    {
+      "designation": "ALF Lib",
+      "name": "Zubenelgenubi",
+      "type": "DOUBLE_STAR",
+      "decDeg": -16.0417,
+      "magnitude": 2.75,
+      "constellation": "Libra",
+      "raDeg": 222.70950000000002
+    },
+    {
+      "designation": "BET Lib",
+      "name": "Zubeneschamali",
+      "type": "STAR",
+      "decDeg": -9.3829,
+      "magnitude": 2.61,
+      "constellation": "Libra",
+      "raDeg": 229.2465
+    },
+    {
+      "designation": "ALF Sco",
+      "name": "Antares",
+      "type": "DOUBLE_STAR",
+      "decDeg": -26.4319,
+      "magnitude": 1.06,
+      "constellation": "Scorpius",
+      "raDeg": 247.35150000000002
+    },
+    {
+      "designation": "BET Sco",
+      "name": "Acrab",
+      "type": "DOUBLE_STAR",
+      "decDeg": -19.8055,
+      "magnitude": 2.5,
+      "constellation": "Scorpius",
+      "raDeg": 241.35449999999997
+    },
+    {
+      "designation": "DEL Sco",
+      "name": "Dschubba",
+      "type": "VARIABLE_STAR",
+      "decDeg": -22.6217,
+      "magnitude": 2.32,
+      "constellation": "Scorpius",
+      "raDeg": 240.084
+    },
+    {
+      "designation": "EPS Sco",
+      "name": "Larawag",
+      "type": "STAR",
+      "decDeg": -34.2927,
+      "magnitude": 2.29,
+      "constellation": "Scorpius",
+      "raDeg": 252.5475
+    },
+    {
+      "designation": "LAM Sco",
+      "name": "Shaula",
+      "type": "DOUBLE_STAR",
+      "decDeg": -37.1038,
+      "magnitude": 1.62,
+      "constellation": "Scorpius",
+      "raDeg": 263.4015
+    },
+    {
+      "designation": "THE Sco",
+      "name": "Sargas",
+      "type": "STAR",
+      "decDeg": -42.9978,
+      "magnitude": 1.86,
+      "constellation": "Scorpius",
+      "raDeg": 264.3285
+    },
+    {
+      "designation": "ALF Oph",
+      "name": "Rasalhague",
+      "type": "STAR",
+      "decDeg": 12.5601,
+      "magnitude": 2.08,
+      "constellation": "Ophiuchus",
+      "raDeg": 263.7345
+    },
+    {
+      "designation": "ALF Sgr",
+      "name": "Rukbat",
+      "type": "STAR",
+      "decDeg": -40.6126,
+      "magnitude": 3.96,
+      "constellation": "Sagittarius",
+      "raDeg": 285.64799999999997
+    },
+    {
+      "designation": "EPS Sgr",
+      "name": "Kaus Australis",
+      "type": "DOUBLE_STAR",
+      "decDeg": -34.3846,
+      "magnitude": 1.85,
+      "constellation": "Sagittarius",
+      "raDeg": 276.0435
+    },
+    {
+      "designation": "SIG Sgr",
+      "name": "Nunki",
+      "type": "STAR",
+      "decDeg": -26.2967,
+      "magnitude": 2.05,
+      "constellation": "Sagittarius",
+      "raDeg": 283.81649999999996
+    },
+    {
+      "designation": "ZET Sgr",
+      "name": "Ascella",
+      "type": "DOUBLE_STAR",
+      "decDeg": -29.8801,
+      "magnitude": 2.59,
+      "constellation": "Sagittarius",
+      "raDeg": 285.636
+    },
+    {
+      "designation": "DEL Sgr",
+      "name": "Kaus Media",
+      "type": "DOUBLE_STAR",
+      "decDeg": -29.8281,
+      "magnitude": 2.7,
+      "constellation": "Sagittarius",
+      "raDeg": 275.238
+    },
+    {
+      "designation": "LAM Sgr",
+      "name": "Kaus Borealis",
+      "type": "STAR",
+      "decDeg": -25.421,
+      "magnitude": 2.81,
+      "constellation": "Sagittarius",
+      "raDeg": 274.215
+    },
+    {
+      "designation": "ALF Lyr",
+      "name": "Vega",
+      "type": "STAR",
+      "decDeg": 38.7837,
+      "magnitude": 0.03,
+      "constellation": "Lyra",
+      "raDeg": 279.23400000000004
+    },
+    {
+      "designation": "BET Lyr",
+      "name": "Sheliak",
+      "type": "VARIABLE_STAR",
+      "decDeg": 33.3627,
+      "magnitude": 3.52,
+      "constellation": "Lyra",
+      "raDeg": 282.5205
+    },
+    {
+      "designation": "GAM Lyr",
+      "name": "Sulafat",
+      "type": "STAR",
+      "decDeg": 32.6894,
+      "magnitude": 3.24,
+      "constellation": "Lyra",
+      "raDeg": 284.7375
+    },
+    {
+      "designation": "ALF Aql",
+      "name": "Altair",
+      "type": "STAR",
+      "decDeg": 8.8683,
+      "magnitude": 0.77,
+      "constellation": "Aquila",
+      "raDeg": 297.6945
+    },
+    {
+      "designation": "GAM Aql",
+      "name": "Tarazed",
+      "type": "STAR",
+      "decDeg": 10.6133,
+      "magnitude": 2.72,
+      "constellation": "Aquila",
+      "raDeg": 296.571
+    },
+    {
+      "designation": "ALF Cyg",
+      "name": "Deneb",
+      "type": "STAR",
+      "decDeg": 45.2803,
+      "magnitude": 1.25,
+      "constellation": "Cygnus",
+      "raDeg": 310.3575
+    },
+    {
+      "designation": "GAM Cyg",
+      "name": "Sadr",
+      "type": "STAR",
+      "decDeg": 40.2566,
+      "magnitude": 2.23,
+      "constellation": "Cygnus",
+      "raDeg": 311.5575
+    },
+    {
+      "designation": "ALF Cep",
+      "name": "Alderamin",
+      "type": "STAR",
+      "decDeg": 62.5856,
+      "magnitude": 2.45,
+      "constellation": "Cepheus",
+      "raDeg": 319.64549999999997
+    },
+    {
+      "designation": "DEL Cep",
+      "name": "Delta Cephei",
+      "type": "VARIABLE_STAR",
+      "decDeg": 58.415,
+      "magnitude": 3.75,
+      "constellation": "Cepheus",
+      "raDeg": 334.3665
+    },
+    {
+      "designation": "ALF Aqr",
+      "name": "Sadalmelik",
+      "type": "STAR",
+      "decDeg": -0.3198,
+      "magnitude": 2.95,
+      "constellation": "Aquarius",
+      "raDeg": 331.44599999999997
+    },
+    {
+      "designation": "BET Aqr",
+      "name": "Sadalsuud",
+      "type": "STAR",
+      "decDeg": -5.5711,
+      "magnitude": 2.87,
+      "constellation": "Aquarius",
+      "raDeg": 322.8885
+    },
+    {
+      "designation": "ALF Psc",
+      "name": "Alrescha",
+      "type": "DOUBLE_STAR",
+      "decDeg": 2.7637,
+      "magnitude": 3.79,
+      "constellation": "Pisces",
+      "raDeg": 30.516000000000002
+    },
+    {
+      "designation": "ALF And",
+      "name": "Alpheratz",
+      "type": "DOUBLE_STAR",
+      "decDeg": 29.0904,
+      "magnitude": 2.06,
+      "constellation": "Andromeda",
+      "raDeg": 2.097
+    },
+    {
+      "designation": "BET And",
+      "name": "Mirach",
+      "type": "STAR",
+      "decDeg": 35.6206,
+      "magnitude": 2.06,
+      "constellation": "Andromeda",
+      "raDeg": 17.433
+    },
+    {
+      "designation": "GAM And",
+      "name": "Almach",
+      "type": "DOUBLE_STAR",
+      "decDeg": 42.3297,
+      "magnitude": 2.1,
+      "constellation": "Andromeda",
+      "raDeg": 30.9735
+    },
+    {
+      "designation": "ALF Ari",
+      "name": "Hamal",
+      "type": "STAR",
+      "decDeg": 23.4624,
+      "magnitude": 2.0,
+      "constellation": "Aries",
+      "raDeg": 31.794000000000004
+    },
+    {
+      "designation": "BET Ari",
+      "name": "Sheratan",
+      "type": "DOUBLE_STAR",
+      "decDeg": 20.808,
+      "magnitude": 2.64,
+      "constellation": "Aries",
+      "raDeg": 28.659000000000002
+    },
+    {
+      "designation": "ALF Cas",
+      "name": "Schedar",
+      "type": "VARIABLE_STAR",
+      "decDeg": 56.5373,
+      "magnitude": 2.24,
+      "constellation": "Cassiopeia",
+      "raDeg": 10.1265
+    },
+    {
+      "designation": "BET Cas",
+      "name": "Caph",
+      "type": "VARIABLE_STAR",
+      "decDeg": 59.1498,
+      "magnitude": 2.27,
+      "constellation": "Cassiopeia",
+      "raDeg": 2.295
+    },
+    {
+      "designation": "GAM Cas",
+      "name": "Navi",
+      "type": "VARIABLE_STAR",
+      "decDeg": 60.7167,
+      "magnitude": 2.47,
+      "constellation": "Cassiopeia",
+      "raDeg": 14.174999999999999
+    },
+    {
+      "designation": "DEL Cas",
+      "name": "Ruchbah",
+      "type": "VARIABLE_STAR",
+      "decDeg": 60.2353,
+      "magnitude": 2.68,
+      "constellation": "Cassiopeia",
+      "raDeg": 21.4545
+    },
+    {
+      "designation": "EPS Cas",
+      "name": "Segin",
+      "type": "STAR",
+      "decDeg": 63.67,
+      "magnitude": 3.35,
+      "constellation": "Cassiopeia",
+      "raDeg": 28.6005
+    },
+    {
+      "designation": "ALF Per",
+      "name": "Mirfak",
+      "type": "STAR",
+      "decDeg": 49.8612,
+      "magnitude": 1.79,
+      "constellation": "Perseus",
+      "raDeg": 51.081
+    },
+    {
+      "designation": "BET Per",
+      "name": "Algol",
+      "type": "VARIABLE_STAR",
+      "decDeg": 40.9556,
+      "magnitude": 2.12,
+      "constellation": "Perseus",
+      "raDeg": 47.0415
+    },
+    {
+      "designation": "ZET Per",
+      "name": "Atik",
+      "type": "STAR",
+      "decDeg": 31.8842,
+      "magnitude": 2.85,
+      "constellation": "Perseus",
+      "raDeg": 58.8615
+    },
+    {
+      "designation": "EPS Per",
+      "name": "Adid Australis",
+      "type": "STAR",
+      "decDeg": 40.0106,
+      "magnitude": 2.9,
+      "constellation": "Perseus",
+      "raDeg": 59.536500000000004
+    },
+    {
+      "designation": "ALF Cet",
+      "name": "Menkar",
+      "type": "DOUBLE_STAR",
+      "decDeg": 4.0897,
+      "magnitude": 2.54,
+      "constellation": "Cetus",
+      "raDeg": 45.5685
+    },
+    {
+      "designation": "BET Cet",
+      "name": "Diphda",
+      "type": "STAR",
+      "decDeg": -17.9866,
+      "magnitude": 2.04,
+      "constellation": "Cetus",
+      "raDeg": 10.896
+    },
+    {
+      "designation": "OMI Cet",
+      "name": "Mira",
+      "type": "VARIABLE_STAR",
+      "decDeg": -2.9784,
+      "magnitude": 3.04,
+      "constellation": "Cetus",
+      "raDeg": 34.83
+    },
+    {
+      "designation": "ALF Eri",
+      "name": "Achernar",
+      "type": "STAR",
+      "decDeg": -57.2367,
+      "magnitude": 0.46,
+      "constellation": "Eridanus",
+      "raDeg": 24.429000000000002
+    },
+    {
+      "designation": "BET Eri",
+      "name": "Cursa",
+      "type": "STAR",
+      "decDeg": -5.0863,
+      "magnitude": 2.79,
+      "constellation": "Eridanus",
+      "raDeg": 76.9605
+    },
+    {
+      "designation": "GAM Eri",
+      "name": "Zaurak",
+      "type": "STAR",
+      "decDeg": -13.5085,
+      "magnitude": 2.97,
+      "constellation": "Eridanus",
+      "raDeg": 59.553000000000004
+    },
+    {
+      "designation": "THE Eri",
+      "name": "Acamar",
+      "type": "DOUBLE_STAR",
+      "decDeg": -40.3047,
+      "magnitude": 2.88,
+      "constellation": "Eridanus",
+      "raDeg": 44.5665
+    },
+    {
+      "designation": "ALF Hya",
+      "name": "Alphard",
+      "type": "STAR",
+      "decDeg": -8.6586,
+      "magnitude": 1.98,
+      "constellation": "Hydra",
+      "raDeg": 141.894
+    },
+    {
+      "designation": "GAM Hya",
+      "name": "Gamma Hydrae",
+      "type": "STAR",
+      "decDeg": -23.1711,
+      "magnitude": 3.0,
+      "constellation": "Hydra",
+      "raDeg": 199.7295
+    },
+    {
+      "designation": "ALF Crv",
+      "name": "Alchiba",
+      "type": "STAR",
+      "decDeg": -24.7288,
+      "magnitude": 4.02,
+      "constellation": "Corvus",
+      "raDeg": 182.48850000000002
+    },
+    {
+      "designation": "GAM Crv",
+      "name": "Gienah",
+      "type": "STAR",
+      "decDeg": -17.5419,
+      "magnitude": 2.59,
+      "constellation": "Corvus",
+      "raDeg": 183.9495
+    },
+    {
+      "designation": "BET Crv",
+      "name": "Kraz",
+      "type": "STAR",
+      "decDeg": -23.3966,
+      "magnitude": 2.65,
+      "constellation": "Corvus",
+      "raDeg": 187.113
+    },
+    {
+      "designation": "ALF Cru",
+      "name": "Acrux",
+      "type": "DOUBLE_STAR",
+      "decDeg": -63.0991,
+      "magnitude": 0.77,
+      "constellation": "Crux",
+      "raDeg": 186.64950000000002
+    },
+    {
+      "designation": "BET Cru",
+      "name": "Mimosa",
+      "type": "DOUBLE_STAR",
+      "decDeg": -59.6888,
+      "magnitude": 1.25,
+      "constellation": "Crux",
+      "raDeg": 191.9295
+    },
+    {
+      "designation": "GAM Cru",
+      "name": "Gacrux",
+      "type": "DOUBLE_STAR",
+      "decDeg": -57.1132,
+      "magnitude": 1.59,
+      "constellation": "Crux",
+      "raDeg": 187.791
+    },
+    {
+      "designation": "DEL Cru",
+      "name": "Imai",
+      "type": "VARIABLE_STAR",
+      "decDeg": -58.7489,
+      "magnitude": 2.79,
+      "constellation": "Crux",
+      "raDeg": 192.58200000000002
+    },
+    {
+      "designation": "ALF Cen",
+      "name": "Rigil Kentaurus",
+      "type": "DOUBLE_STAR",
+      "decDeg": -60.8339,
+      "magnitude": -0.01,
+      "constellation": "Centaurus",
+      "raDeg": 219.903
+    },
+    {
+      "designation": "BET Cen",
+      "name": "Hadar",
+      "type": "DOUBLE_STAR",
+      "decDeg": -60.373,
+      "magnitude": 0.61,
+      "constellation": "Centaurus",
+      "raDeg": 210.9555
+    },
+    {
+      "designation": "GAM Cen",
+      "name": "Muhlifain",
+      "type": "DOUBLE_STAR",
+      "decDeg": -48.9599,
+      "magnitude": 2.2,
+      "constellation": "Centaurus",
+      "raDeg": 188.916
+    },
+    {
+      "designation": "THE Cen",
+      "name": "Menkent",
+      "type": "STAR",
+      "decDeg": -36.37,
+      "magnitude": 2.06,
+      "constellation": "Centaurus",
+      "raDeg": 211.67249999999999
+    },
+    {
+      "designation": "EPS Cen",
+      "name": "Birdun",
+      "type": "DOUBLE_STAR",
+      "decDeg": -53.4663,
+      "magnitude": 2.3,
+      "constellation": "Centaurus",
+      "raDeg": 204.91649999999998
+    },
+    {
+      "designation": "ETA Cen",
+      "name": "Eta Centauri",
+      "type": "VARIABLE_STAR",
+      "decDeg": -42.1578,
+      "magnitude": 2.31,
+      "constellation": "Centaurus",
+      "raDeg": 218.8725
+    },
+    {
+      "designation": "ALF Lup",
+      "name": "Alpha Lupi",
+      "type": "DOUBLE_STAR",
+      "decDeg": -47.3883,
+      "magnitude": 2.3,
+      "constellation": "Lupus",
+      "raDeg": 217.8915
+    },
+    {
+      "designation": "BET Lup",
+      "name": "Beta Lupi",
+      "type": "STAR",
+      "decDeg": -43.1341,
+      "magnitude": 2.68,
+      "constellation": "Lupus",
+      "raDeg": 224.66400000000002
+    },
+    {
+      "designation": "ALF Car",
+      "name": "Canopus",
+      "type": "STAR",
+      "decDeg": -52.6957,
+      "magnitude": -0.74,
+      "constellation": "Carina",
+      "raDeg": 95.988
+    },
+    {
+      "designation": "BET Car",
+      "name": "Miaplacidus",
+      "type": "STAR",
+      "decDeg": -69.7172,
+      "magnitude": 1.69,
+      "constellation": "Carina",
+      "raDeg": 138.3
+    },
+    {
+      "designation": "EPS Car",
+      "name": "Avior",
+      "type": "DOUBLE_STAR",
+      "decDeg": -59.5097,
+      "magnitude": 1.86,
+      "constellation": "Carina",
+      "raDeg": 125.62799999999999
+    },
+    {
+      "designation": "IOT Car",
+      "name": "Aspidiske",
+      "type": "STAR",
+      "decDeg": -59.2751,
+      "magnitude": 2.21,
+      "constellation": "Carina",
+      "raDeg": 139.28099999999998
+    },
+    {
+      "designation": "THE Car",
+      "name": "Theta Carinae",
+      "type": "STAR",
+      "decDeg": -64.3945,
+      "magnitude": 2.74,
+      "constellation": "Carina",
+      "raDeg": 160.75199999999998
+    },
+    {
+      "designation": "ETA Car",
+      "name": "Eta Carinae",
+      "type": "VARIABLE_STAR",
+      "decDeg": -59.8652,
+      "magnitude": 3.18,
+      "constellation": "Carina",
+      "raDeg": 161.27849999999998
+    },
+    {
+      "designation": "ALF PAV",
+      "name": "Peacock",
+      "type": "STAR",
+      "decDeg": -56.7351,
+      "magnitude": 1.94,
+      "constellation": "Pavo",
+      "raDeg": 306.41249999999997
+    },
+    {
+      "designation": "ALF Tuc",
+      "name": "Alpha Tucanae",
+      "type": "STAR",
+      "decDeg": -60.2597,
+      "magnitude": 2.86,
+      "constellation": "Tucana",
+      "raDeg": 334.6245
+    },
+    {
+      "designation": "BET Tuc",
+      "name": "Beta Tucanae",
+      "type": "DOUBLE_STAR",
+      "decDeg": -62.9572,
+      "magnitude": 4.36,
+      "constellation": "Tucana",
+      "raDeg": 7.8854999999999995
+    },
+    {
+      "designation": "ALF Phe",
+      "name": "Ankaa",
+      "type": "STAR",
+      "decDeg": -42.3061,
+      "magnitude": 2.4,
+      "constellation": "Phoenix",
+      "raDeg": 6.5714999999999995
+    },
+    {
+      "designation": "ALF Hyi",
+      "name": "Alpha Hydri",
+      "type": "STAR",
+      "decDeg": -61.5701,
+      "magnitude": 2.86,
+      "constellation": "Hydrus",
+      "raDeg": 29.688000000000002
+    },
+    {
+      "designation": "BET Hyi",
+      "name": "Beta Hydri",
+      "type": "STAR",
+      "decDeg": -77.2542,
+      "magnitude": 2.82,
+      "constellation": "Hydrus",
+      "raDeg": 6.4575
+    },
+    {
+      "designation": "ALF Dor",
+      "name": "Alpha Doradus",
+      "type": "STAR",
+      "decDeg": -55.0451,
+      "magnitude": 3.27,
+      "constellation": "Dorado",
+      "raDeg": 68.5065
+    },
+    {
+      "designation": "ALF Ret",
+      "name": "Alpha Reticuli",
+      "type": "STAR",
+      "decDeg": -62.4736,
+      "magnitude": 3.33,
+      "constellation": "Reticulum",
+      "raDeg": 66.636
+    },
+    {
+      "designation": "ALF Cha",
+      "name": "Alpha Chamaeleontis",
+      "type": "STAR",
+      "decDeg": -76.92,
+      "magnitude": 4.07,
+      "constellation": "Chamaeleon",
+      "raDeg": 125.49450000000002
+    },
+    {
+      "designation": "ALF Vol",
+      "name": "Alpha Volantis",
+      "type": "STAR",
+      "decDeg": -66.3961,
+      "magnitude": 4.0,
+      "constellation": "Volans",
+      "raDeg": 135.618
+    },
+    {
+      "designation": "ALF Pic",
+      "name": "Alpha Pictoris",
+      "type": "STAR",
+      "decDeg": -61.9412,
+      "magnitude": 3.27,
+      "constellation": "Pictor",
+      "raDeg": 102.06
+    },
+    {
+      "designation": "ALF Men",
+      "name": "Alpha Mensae",
+      "type": "STAR",
+      "decDeg": -74.7531,
+      "magnitude": 5.09,
+      "constellation": "Mensa",
+      "raDeg": 92.55300000000001
+    },
+    {
+      "designation": "ALF Mus",
+      "name": "Alpha Muscae",
+      "type": "STAR",
+      "decDeg": -69.1357,
+      "magnitude": 2.69,
+      "constellation": "Musca",
+      "raDeg": 189.24450000000002
+    },
+    {
+      "designation": "BET Mus",
+      "name": "Beta Muscae",
+      "type": "DOUBLE_STAR",
+      "decDeg": -68.1083,
+      "magnitude": 3.04,
+      "constellation": "Musca",
+      "raDeg": 191.8425
+    },
+    {
+      "designation": "ALF Cir",
+      "name": "Alpha Circini",
+      "type": "DOUBLE_STAR",
+      "decDeg": -64.974,
+      "magnitude": 3.18,
+      "constellation": "Circinus",
+      "raDeg": 220.7655
+    },
+    {
+      "designation": "ALF Aps",
+      "name": "Alpha Apodis",
+      "type": "STAR",
+      "decDeg": -78.6951,
+      "magnitude": 3.83,
+      "constellation": "Apus",
+      "raDeg": 244.866
+    },
+    {
+      "designation": "ALF Oct",
+      "name": "Alpha Octantis",
+      "type": "STAR",
+      "decDeg": -77.3884,
+      "magnitude": 5.13,
+      "constellation": "Octans",
+      "raDeg": 315.6945
+    },
+    {
+      "designation": "ALF TrA",
+      "name": "Atria",
+      "type": "STAR",
+      "decDeg": -69.0277,
+      "magnitude": 1.91,
+      "constellation": "Triangulum Australe",
+      "raDeg": 252.16649999999998
+    },
+    {
+      "designation": "BET TrA",
+      "name": "Beta Trianguli Australis",
+      "type": "DOUBLE_STAR",
+      "decDeg": -63.4307,
+      "magnitude": 2.85,
+      "constellation": "Triangulum Australe",
+      "raDeg": 238.89000000000001
+    },
+    {
+      "designation": "ALF Hor",
+      "name": "Alpha Horologii",
+      "type": "STAR",
+      "decDeg": -42.2931,
+      "magnitude": 3.86,
+      "constellation": "Horologium",
+      "raDeg": 63.675000000000004
+    },
+    {
+      "designation": "ALF Scl",
+      "name": "Alpha Sculptoris",
+      "type": "STAR",
+      "decDeg": -29.3571,
+      "magnitude": 4.31,
+      "constellation": "Sculptor",
+      "raDeg": 14.562
+    },
+    {
+      "designation": "BET Scl",
+      "name": "Beta Sculptoris",
+      "type": "STAR",
+      "decDeg": -37.8181,
+      "magnitude": 4.38,
+      "constellation": "Sculptor",
+      "raDeg": 353.697
+    },
+    {
+      "designation": "ALF For",
+      "name": "Fornacis",
+      "type": "STAR",
+      "decDeg": -28.9891,
+      "magnitude": 3.85,
+      "constellation": "Fornax",
+      "raDeg": 47.191500000000005
+    },
+    {
+      "designation": "ALF Cae",
+      "name": "Alpha Caeli",
+      "type": "STAR",
+      "decDeg": -41.8637,
+      "magnitude": 4.45,
+      "constellation": "Caelum",
+      "raDeg": 70.57799999999999
+    },
+    {
+      "designation": "ALF Col",
+      "name": "Phact",
+      "type": "DOUBLE_STAR",
+      "decDeg": -34.0741,
+      "magnitude": 2.65,
+      "constellation": "Columba",
+      "raDeg": 84.8325
+    },
+    {
+      "designation": "BET Col",
+      "name": "Wazn",
+      "type": "STAR",
+      "decDeg": -35.7683,
+      "magnitude": 3.12,
+      "constellation": "Columba",
+      "raDeg": 86.85
+    },
+    {
+      "designation": "ALF Lep",
+      "name": "Arneb",
+      "type": "STAR",
+      "decDeg": -17.8222,
+      "magnitude": 2.59,
+      "constellation": "Lepus",
+      "raDeg": 83.1915
+    },
+    {
+      "designation": "BET Lep",
+      "name": "Nihal",
+      "type": "DOUBLE_STAR",
+      "decDeg": -20.7597,
+      "magnitude": 2.81,
+      "constellation": "Lepus",
+      "raDeg": 82.059
+    },
+    {
+      "designation": "ALF Equ",
+      "name": "Kitalpha",
+      "type": "DOUBLE_STAR",
+      "decDeg": 5.2472,
+      "magnitude": 3.92,
+      "constellation": "Equuleus",
+      "raDeg": 317.21999999999997
+    },
+    {
+      "designation": "ALF Del",
+      "name": "Sualocin",
+      "type": "DOUBLE_STAR",
+      "decDeg": 15.9121,
+      "magnitude": 3.77,
+      "constellation": "Delphinus",
+      "raDeg": 308.253
+    },
+    {
+      "designation": "BET Del",
+      "name": "Rotanev",
+      "type": "DOUBLE_STAR",
+      "decDeg": 14.5951,
+      "magnitude": 3.63,
+      "constellation": "Delphinus",
+      "raDeg": 311.0625
+    },
+    {
+      "designation": "ALF Sge",
+      "name": "Sham",
+      "type": "STAR",
+      "decDeg": 18.013,
+      "magnitude": 4.37,
+      "constellation": "Sagitta",
+      "raDeg": 299.8215
+    },
+    {
+      "designation": "ALF Vul",
+      "name": "Anser",
+      "type": "STAR",
+      "decDeg": 24.6649,
+      "magnitude": 4.44,
+      "constellation": "Vulpecula",
+      "raDeg": 292.1145
+    },
+    {
+      "designation": "ALF Lac",
+      "name": "Alpha Lacertae",
+      "type": "STAR",
+      "decDeg": 50.2825,
+      "magnitude": 3.77,
+      "constellation": "Lacerta",
+      "raDeg": 330.64799999999997
+    },
+    {
+      "designation": "ALF Lyn",
+      "name": "Alpha Lyncis",
+      "type": "DOUBLE_STAR",
+      "decDeg": 34.3921,
+      "magnitude": 3.13,
+      "constellation": "Lynx",
+      "raDeg": 140.25900000000001
+    },
+    {
+      "designation": "ALF Cam",
+      "name": "Alpha Camelopardalis",
+      "type": "STAR",
+      "decDeg": 66.3426,
+      "magnitude": 4.29,
+      "constellation": "Camelopardalis",
+      "raDeg": 73.512
+    },
+    {
+      "designation": "BET Cam",
+      "name": "Beta Camelopardalis",
+      "type": "DOUBLE_STAR",
+      "decDeg": 60.443,
+      "magnitude": 4.03,
+      "constellation": "Camelopardalis",
+      "raDeg": 75.8715
+    },
+    {
+      "designation": "ALF Dra",
+      "name": "Thuban",
+      "type": "STAR",
+      "decDeg": 64.3758,
+      "magnitude": 3.65,
+      "constellation": "Draco",
+      "raDeg": 211.1025
+    },
+    {
+      "designation": "GAM Dra",
+      "name": "Eltanin",
+      "type": "STAR",
+      "decDeg": 51.4889,
+      "magnitude": 2.23,
+      "constellation": "Draco",
+      "raDeg": 269.151
+    },
+    {
+      "designation": "BET Dra",
+      "name": "Rastaban",
+      "type": "DOUBLE_STAR",
+      "decDeg": 52.3014,
+      "magnitude": 2.79,
+      "constellation": "Draco",
+      "raDeg": 262.605
+    },
+    {
+      "designation": "ETA Dra",
+      "name": "Eta Draconis",
+      "type": "DOUBLE_STAR",
+      "decDeg": 61.5138,
+      "magnitude": 2.74,
+      "constellation": "Draco",
+      "raDeg": 245.9955
+    },
+    {
+      "designation": "IOT Dra",
+      "name": "Edasich",
+      "type": "STAR",
+      "decDeg": 58.9661,
+      "magnitude": 3.29,
+      "constellation": "Draco",
+      "raDeg": 231.231
+    },
+    {
+      "designation": "ALF Her",
+      "name": "Rasalgethi",
+      "type": "VARIABLE_STAR",
+      "decDeg": 14.3903,
+      "magnitude": 3.06,
+      "constellation": "Hercules",
+      "raDeg": 258.663
+    },
+    {
+      "designation": "BET Her",
+      "name": "Kornephoros",
+      "type": "STAR",
+      "decDeg": 21.4896,
+      "magnitude": 2.78,
+      "constellation": "Hercules",
+      "raDeg": 247.55699999999996
+    },
+    {
+      "designation": "ZET Her",
+      "name": "Zeta Herculis",
+      "type": "DOUBLE_STAR",
+      "decDeg": 31.6027,
+      "magnitude": 2.81,
+      "constellation": "Hercules",
+      "raDeg": 250.09650000000002
+    },
+    {
+      "designation": "DEL Her",
+      "name": "Sarin",
+      "type": "DOUBLE_STAR",
+      "decDeg": 24.8403,
+      "magnitude": 3.12,
+      "constellation": "Hercules",
+      "raDeg": 260.49449999999996
+    },
+    {
+      "designation": "ALF Ser",
+      "name": "Unukalhai",
+      "type": "STAR",
+      "decDeg": 6.4256,
+      "magnitude": 2.65,
+      "constellation": "Serpens",
+      "raDeg": 236.06550000000001
+    },
+    {
+      "designation": "ALF CrB",
+      "name": "Alphecca",
+      "type": "DOUBLE_STAR",
+      "decDeg": 26.7147,
+      "magnitude": 2.23,
+      "constellation": "Corona Borealis",
+      "raDeg": 233.67149999999998
+    },
+    {
+      "designation": "GAM CrB",
+      "name": "Gamma Coronae Borealis",
+      "type": "DOUBLE_STAR",
+      "decDeg": 26.2954,
+      "magnitude": 3.84,
+      "constellation": "Corona Borealis",
+      "raDeg": 235.9905
+    },
+    {
+      "designation": "ALF Sex",
+      "name": "Alpha Sextantis",
+      "type": "STAR",
+      "decDeg": -0.3726,
+      "magnitude": 4.49,
+      "constellation": "Sextans",
+      "raDeg": 151.98299999999998
+    },
+    {
+      "designation": "ALF LMi",
+      "name": "Praecipua",
+      "type": "DOUBLE_STAR",
+      "decDeg": 34.2146,
+      "magnitude": 3.83,
+      "constellation": "Leo Minor",
+      "raDeg": 163.332
+    },
+    {
+      "designation": "BET LMi",
+      "name": "Beta Leonis Minoris",
+      "type": "STAR",
+      "decDeg": 36.7072,
+      "magnitude": 4.21,
+      "constellation": "Leo Minor",
+      "raDeg": 156.84
+    },
+    {
+      "designation": "ALF CVn",
+      "name": "Cor Caroli",
+      "type": "DOUBLE_STAR",
+      "decDeg": 38.3185,
+      "magnitude": 2.89,
+      "constellation": "Canes Venatici",
+      "raDeg": 188.3415
+    },
+    {
+      "designation": "BET CVn",
+      "name": "Chara",
+      "type": "STAR",
+      "decDeg": 41.3564,
+      "magnitude": 4.26,
+      "constellation": "Canes Venatici",
+      "raDeg": 186.59099999999998
+    },
+    {
+      "designation": "ALF Com",
+      "name": "Alpha Comae Berenices",
+      "type": "DOUBLE_STAR",
+      "decDeg": 17.5292,
+      "magnitude": 4.32,
+      "constellation": "Coma Berenices",
+      "raDeg": 198.9735
+    },
+    {
+      "designation": "BET Com",
+      "name": "Beta Comae Berenices",
+      "type": "STAR",
+      "decDeg": 27.8762,
+      "magnitude": 4.26,
+      "constellation": "Coma Berenices",
+      "raDeg": 198.069
+    },
+    {
+      "designation": "ALF Crt",
+      "name": "Alkes",
+      "type": "STAR",
+      "decDeg": -18.2986,
+      "magnitude": 4.07,
+      "constellation": "Crater",
+      "raDeg": 164.91299999999998
+    },
+    {
+      "designation": "DEL Crt",
+      "name": "Delta Crateris",
+      "type": "STAR",
+      "decDeg": -14.7783,
+      "magnitude": 3.56,
+      "constellation": "Crater",
+      "raDeg": 170.571
+    },
+    {
+      "designation": "GAM Crt",
+      "name": "Gamma Crateris",
+      "type": "DOUBLE_STAR",
+      "decDeg": -17.684,
+      "magnitude": 4.07,
+      "constellation": "Crater",
+      "raDeg": 168.669
+    },
+    {
+      "designation": "ALF Ant",
+      "name": "Alpha Antliae",
+      "type": "STAR",
+      "decDeg": -31.0677,
+      "magnitude": 4.25,
+      "constellation": "Antlia",
+      "raDeg": 156.792
+    },
+    {
+      "designation": "ALF Pyx",
+      "name": "Alpha Pyxidis",
+      "type": "STAR",
+      "decDeg": -33.1865,
+      "magnitude": 3.68,
+      "constellation": "Pyxis",
+      "raDeg": 129.504
+    },
+    {
+      "designation": "ALF Pup",
+      "name": "Pi Puppis",
+      "type": "STAR",
+      "decDeg": -37.0975,
+      "magnitude": 2.71,
+      "constellation": "Puppis",
+      "raDeg": 109.2885
+    },
+    {
+      "designation": "TAU Pup",
+      "name": "Tau Puppis",
+      "type": "STAR",
+      "decDeg": -50.6149,
+      "magnitude": 2.94,
+      "constellation": "Puppis",
+      "raDeg": 108.981
+    },
+    {
+      "designation": "XI Pup",
+      "name": "Xi Puppis",
+      "type": "STAR",
+      "decDeg": -24.8597,
+      "magnitude": 3.45,
+      "constellation": "Puppis",
+      "raDeg": 112.4115
+    },
+    {
+      "designation": "RHO Pup",
+      "name": "Tureis",
+      "type": "STAR",
+      "decDeg": -24.3043,
+      "magnitude": 2.81,
+      "constellation": "Puppis",
+      "raDeg": 121.9125
+    },
+    {
+      "designation": "ZET Pup",
+      "name": "Naos",
+      "type": "STAR",
+      "decDeg": -40.0031,
+      "magnitude": 2.21,
+      "constellation": "Puppis",
+      "raDeg": 120.8895
+    },
+    {
+      "designation": "GAM VEL",
+      "name": "Regor",
+      "type": "DOUBLE_STAR",
+      "decDeg": -47.3366,
+      "magnitude": 1.83,
+      "constellation": "Vela",
+      "raDeg": 122.39099999999999
+    },
+    {
+      "designation": "DEL VEL",
+      "name": "Alsephina",
+      "type": "DOUBLE_STAR",
+      "decDeg": -54.7083,
+      "magnitude": 1.96,
+      "constellation": "Vela",
+      "raDeg": 131.1705
+    },
+    {
+      "designation": "LAM VEL",
+      "name": "Suhail",
+      "type": "STAR",
+      "decDeg": -43.432,
+      "magnitude": 2.21,
+      "constellation": "Vela",
+      "raDeg": 136.99499999999998
+    },
+    {
+      "designation": "KAP VEL",
+      "name": "Kappa Velorum",
+      "type": "STAR",
+      "decDeg": -55.0107,
+      "magnitude": 2.47,
+      "constellation": "Vela",
+      "raDeg": 139.8225
+    },
+    {
+      "designation": "MU VEL",
+      "name": "Mu Velorum",
+      "type": "DOUBLE_STAR",
+      "decDeg": -49.4202,
+      "magnitude": 2.69,
+      "constellation": "Vela",
+      "raDeg": 161.2005
+    },
+    {
+      "designation": "ALF Lac2",
+      "name": "Alpha Lacertae (var)",
+      "type": "VARIABLE_STAR",
+      "decDeg": 50.2825,
+      "magnitude": 3.77,
+      "constellation": "Lacerta",
+      "raDeg": 330.64799999999997
+    },
+    {
+      "designation": "ALF Leo2",
+      "name": "Regulus B",
+      "type": "DOUBLE_STAR",
+      "decDeg": 11.9672,
+      "magnitude": 8.13,
+      "constellation": "Leo",
+      "raDeg": 152.0925
+    },
+    {
+      "designation": "ALF Cyg2",
+      "name": "Deneb companion",
+      "type": "DOUBLE_STAR",
+      "decDeg": 45.2803,
+      "magnitude": 6.27,
+      "constellation": "Cygnus",
+      "raDeg": 310.3575
+    },
+    {
+      "designation": "ALF Ari2",
+      "name": "Arietis B",
+      "type": "DOUBLE_STAR",
+      "decDeg": 23.4624,
+      "magnitude": 7.86,
+      "constellation": "Aries",
+      "raDeg": 31.794000000000004
+    },
+    {
+      "designation": "ALF Cnc2",
+      "name": "Acubens B",
+      "type": "DOUBLE_STAR",
+      "decDeg": 11.8584,
+      "magnitude": 11.2,
+      "constellation": "Cancer",
+      "raDeg": 134.622
+    },
+    {
+      "designation": "ALF CMa2",
+      "name": "Sirius B (Pup)",
+      "type": "DOUBLE_STAR",
+      "decDeg": -16.7161,
+      "magnitude": 8.44,
+      "constellation": "Canis Major",
+      "raDeg": 101.28750000000001
+    },
+    {
+      "designation": "ALF CMi2",
+      "name": "Procyon B",
+      "type": "DOUBLE_STAR",
+      "decDeg": 5.225,
+      "magnitude": 10.82,
+      "constellation": "Canis Minor",
+      "raDeg": 114.825
+    },
+    {
+      "designation": "ALF Sco2",
+      "name": "Antares B",
+      "type": "DOUBLE_STAR",
+      "decDeg": -26.4319,
+      "magnitude": 5.5,
+      "constellation": "Scorpius",
+      "raDeg": 247.35150000000002
+    },
+    {
+      "designation": "ALF Lyr2",
+      "name": "Vega B",
+      "type": "DOUBLE_STAR",
+      "decDeg": 38.7837,
+      "magnitude": 9.5,
+      "constellation": "Lyra",
+      "raDeg": 279.23400000000004
+    },
+    {
+      "designation": "ALF Cen2",
+      "name": "Proxima Centauri",
+      "type": "VARIABLE_STAR",
+      "decDeg": -62.681,
+      "magnitude": 11.05,
+      "constellation": "Centaurus",
+      "raDeg": 217.42950000000002
+    },
+    {
+      "designation": "ALF PsA",
+      "name": "Fomalhaut",
+      "type": "DOUBLE_STAR",
+      "decDeg": -29.6222,
+      "magnitude": 1.16,
+      "constellation": "Piscis Austrinus",
+      "raDeg": 344.412
+    },
+    {
+      "designation": "ALF Gru",
+      "name": "Alnair",
+      "type": "STAR",
+      "decDeg": -46.961,
+      "magnitude": 1.74,
+      "constellation": "Grus",
+      "raDeg": 332.058
+    },
+    {
+      "designation": "BET Gru",
+      "name": "Tiaki",
+      "type": "STAR",
+      "decDeg": -46.8847,
+      "magnitude": 2.07,
+      "constellation": "Grus",
+      "raDeg": 340.66499999999996
+    },
+    {
+      "designation": "GAM Gru",
+      "name": "Aldhanab",
+      "type": "STAR",
+      "decDeg": -37.3644,
+      "magnitude": 3.0,
+      "constellation": "Grus",
+      "raDeg": 328.146
+    },
+    {
+      "designation": "ALF Ind",
+      "name": "Alpha Indi",
+      "type": "STAR",
+      "decDeg": -47.2915,
+      "magnitude": 3.11,
+      "constellation": "Indus",
+      "raDeg": 308.13300000000004
+    },
+    {
+      "designation": "ALF Mic",
+      "name": "Alpha Microscopii",
+      "type": "DOUBLE_STAR",
+      "decDeg": -33.7802,
+      "magnitude": 4.9,
+      "constellation": "Microscopium",
+      "raDeg": 312.591
+    },
+    {
+      "designation": "ALF Tel",
+      "name": "Alpha Telescopii",
+      "type": "STAR",
+      "decDeg": -45.9683,
+      "magnitude": 3.51,
+      "constellation": "Telescopium",
+      "raDeg": 275.259
+    },
+    {
+      "designation": "ALF Nor",
+      "name": "Alpha Normae",
+      "type": "STAR",
+      "decDeg": -47.5548,
+      "magnitude": 4.65,
+      "constellation": "Norma",
+      "raDeg": 248.04000000000002
+    },
+    {
+      "designation": "BET Nor",
+      "name": "Beta Normae",
+      "type": "STAR",
+      "decDeg": -50.1553,
+      "magnitude": 4.02,
+      "constellation": "Norma",
+      "raDeg": 242.93399999999997
+    },
+    {
+      "designation": "GAM Nor",
+      "name": "Gamma2 Normae",
+      "type": "STAR",
+      "decDeg": -50.1555,
+      "magnitude": 4.02,
+      "constellation": "Norma",
+      "raDeg": 244.9005
+    }
+  ]
+}

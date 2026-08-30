@@ -13,6 +13,17 @@ object EmbeddedCatalog {
     const val RESOURCE_PATH: String = "catalog.json"
 
     /**
+     * The set of catalogue shards shipped with the app, in load order.
+     * Later shards may override earlier ones on a duplicate designation
+     * (see [Catalog.merge]).
+     */
+    val DEFAULT_SHARDS: List<String> = listOf(
+        "catalog.json",
+        "stars.json",
+        "ngc.json",
+    )
+
+    /**
      * Parse the bundled catalogue JSON. The resource lookup is delegated
      * to a platform-specific reader injected via [reader]; the default
      * null reader lets tests inject a string directly via [parse].
@@ -26,4 +37,27 @@ object EmbeddedCatalog {
      * with the bundled version above.
      */
     fun fromJson(jsonText: String): Catalog = Catalog.parse(jsonText)
+
+    /**
+     * Combine multiple embedded shards into one [Catalog]. The
+     * [reader] function is called once per shard and must return the
+     * raw JSON text, or null if the shard is missing (e.g. on a
+     * stripped-down install). Missing shards are silently skipped.
+     */
+    fun loadFrom(
+        paths: List<String> = DEFAULT_SHARDS,
+        reader: (String) -> String? = { null },
+    ): Catalog {
+        val catalogs = paths.mapNotNull { p ->
+            val text = reader(p) ?: return@mapNotNull null
+            try {
+                Catalog.parse(text)
+            } catch (e: Exception) {
+                // Don't blow up the whole app for one bad shard; log and skip.
+                null
+            }
+        }
+        return if (catalogs.isEmpty()) Catalog.of(emptyList(), version = 0)
+        else Catalog.merge(*catalogs.toTypedArray())
+    }
 }

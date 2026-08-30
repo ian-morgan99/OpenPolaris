@@ -37,6 +37,7 @@ enum class ObjectType {
     SUPERNOVA_REMNANT,
     DOUBLE_STAR,
     VARIABLE_STAR,
+    COMET,
     OTHER,
 }
 
@@ -77,5 +78,22 @@ data class Catalog(
         /** Convenience loader for in-memory fixtures (used in tests). */
         fun of(objects: List<AstroObject>, version: Int = 1): Catalog =
             Catalog(version, objects)
+
+        /**
+         * Combine multiple catalogs into one. Later catalogs win on
+         * duplicate `designation` (so the bundled core catalog can be
+         * overridden by an up-to-date NGC/IC supplement, for example).
+         * Version of the first catalog is preserved.
+         */
+        fun merge(vararg catalogs: Catalog): Catalog {
+            require(catalogs.isNotEmpty()) { "merge requires at least one catalog" }
+            val seen = LinkedHashMap<String, AstroObject>()
+            for (c in catalogs) {
+                for (o in c.objects) {
+                    seen[o.designation] = o
+                }
+            }
+            return Catalog(catalogs[0].version, seen.values.toList())
+        }
     }
 }

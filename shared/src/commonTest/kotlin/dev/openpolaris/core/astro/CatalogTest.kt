@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  * The bundled catalogue must contain the alignment stars the goto
@@ -107,6 +108,79 @@ class CatalogTest {
             cat.objects.size >= 140,
             "catalog too small: ${cat.objects.size}",
         )
+    }
+
+    @Test
+    fun mergeDeduplicatesByDesignation() {
+        val a = Catalog.parse(
+            """{"version":1,"objects":[
+              |{"designation":"X","name":"X","type":"STAR","raDeg":1.0,"decDeg":2.0,"magnitude":1.0,"constellation":""}
+              |]}""".trimMargin()
+        )
+        val b = Catalog.parse(
+            """{"version":1,"objects":[
+              |{"designation":"X","name":"X v2","type":"STAR","raDeg":3.0,"decDeg":4.0,"magnitude":2.0,"constellation":""},
+              |{"designation":"Y","name":"Y","type":"STAR","raDeg":5.0,"decDeg":6.0,"magnitude":3.0,"constellation":""}
+              |]}""".trimMargin()
+        )
+        val merged = Catalog.merge(a, b)
+        // X deduped (last-write-wins, so X.name == "X v2"); Y added.
+        assertEquals(2, merged.objects.size)
+        val x = merged.objects.first { it.designation == "X" }
+        assertEquals("X v2", x.name)
+    }
+
+    @Test
+    fun loadFromMultipleShardsAggregatesObjects() {
+        val cat = EmbeddedCatalog.loadFrom(
+            paths = EmbeddedCatalog.DEFAULT_SHARDS,
+            reader = { path ->
+                this::class.java.classLoader
+                    ?.getResource(path)
+                    ?.readText()
+            }
+        )
+        // 140 catalog + 205 stars + 274 NGC = 619 minimum, no duplicates
+        // across shards (verified separately).
+        assertTrue(
+            cat.objects.size >= 619,
+            "expected ≥619 objects across shards, got ${cat.objects.size}",
+        )
+        val designations = cat.objects.map { it.designation }
+        val distinctCount = designations.toSet().size
+        if (designations.size != distinctCount) {
+            fail("duplicates across shards: ${designations.size} total vs $distinctCount distinct")
+        }
+    }
+
+    @Test
+    fun loadFromCanIncludeCometsShard() {
+        // The comets shard is not in DEFAULT_SHARDS (it's only loaded when
+        // the user is actively searching for comets). It is *not* parsed
+        // through the generic catalog loader (comets have orbital elements,
+        // not a fixed RA/Dec). It is loaded through Comets.fromShard, which
+        // uses the dedicated CometsShard type.
+        val text = this::class.java.classLoader
+            ?.getResource("comets.json")
+            ?.readText()
+            ?: error("comets.json not on classpath")
+        val comets = Comets.fromShard(text)
+        assertTrue(
+            comets.size >= 5,
+            "expected at least 5 comets, got ${comets.size}",
+        )
+        val halley = comets.firstOrNull { it.designation == "1P/Halley" }
+        assertNotNull(halley, "Halley not in comet shard")
+    }
+
+    @Test
+    fun loadFromSkipsMissingShards() {
+        // All shards "missing" — should return an empty catalog, not throw.
+        val cat = EmbeddedCatalog.loadFrom(
+            paths = listOf("does-not-exist-1.json", "does-not-exist-2.json"),
+            reader = { null }
+        )
+        assertEquals(0, cat.objects.size)
     }
 
     private fun loadBundled(): Catalog {

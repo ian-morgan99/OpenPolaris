@@ -58,6 +58,12 @@ class CommandTableTest {
         assertTrue(wire(CommandTable.CAM_SET_WB, CommandTable.CamParam(1)).contains("wb:1;"))
         assertTrue(wire(CommandTable.CAM_SET_FNUM, CommandTable.CamParam(5)).contains("fNum:5;"))
         assertTrue(wire(CommandTable.CAM_SET_EV, CommandTable.CamParam(2)).contains("ev:2;"))
+        assertTrue(wire(CommandTable.CAM_SET_FOCUS, CommandTable.CamParam(0)).contains("focus:0;"))
+        assertTrue(wire(CommandTable.CAM_SET_IMG_SIZE, CommandTable.CamParam(2)).contains("imgSize:2;"))
+        assertTrue(wire(CommandTable.CAM_SET_IMG_FMT, CommandTable.CamParam(1)).contains("imgFmt:1;"))
+        assertTrue(wire(CommandTable.CAM_SET_COLOR, CommandTable.CamParam(3)).contains("color:3;"))
+        assertTrue(wire(CommandTable.CAM_SET_SHUTTER, CommandTable.CamParam(4)).contains("shutter:4;"))
+        assertTrue(wire(CommandTable.CAM_SET_CAPTURE_MODE, CommandTable.CamParam(0)).contains("captureMode:0;"))
     }
 
     @Test
@@ -70,6 +76,12 @@ class CommandTableTest {
         assertEquals(CommandTable.CamParam(7), CommandTable.CAM_GET_WB.parse!!(frame("wb:7;ret:0;")))
         assertEquals(CommandTable.CamParam(2), CommandTable.CAM_GET_FNUM.parse!!(frame("fNum:2;ret:0;")))
         assertEquals(CommandTable.CamParam(9), CommandTable.CAM_GET_EV.parse!!(frame("ev:9;ret:0;")))
+        assertEquals(CommandTable.CamParam(0), CommandTable.CAM_GET_FOCUS.parse!!(frame("focus:0;ret:0;")))
+        assertEquals(CommandTable.CamParam(2), CommandTable.CAM_GET_IMG_SIZE.parse!!(frame("imgSize:2;ret:0;")))
+        assertEquals(CommandTable.CamParam(1), CommandTable.CAM_GET_IMG_FMT.parse!!(frame("imgFmt:1;ret:0;")))
+        assertEquals(CommandTable.CamParam(3), CommandTable.CAM_GET_COLOR.parse!!(frame("color:3;ret:0;")))
+        assertEquals(CommandTable.CamParam(4), CommandTable.CAM_GET_SHUTTER.parse!!(frame("shutter:4;ret:0;")))
+        assertEquals(CommandTable.CamParam(0), CommandTable.CAM_GET_CAPTURE_MODE.parse!!(frame("captureMode:0;ret:0;")))
     }
 
     @Test
@@ -85,11 +97,20 @@ class CommandTableTest {
 
     @Test
     fun cameraCodesAreInferredRange() {
-        for (d in listOf(CommandTable.CAM_GET_ISO, CommandTable.CAM_SET_ISO,
-                CommandTable.CAM_GET_WB, CommandTable.CAM_SET_WB,
-                CommandTable.CAM_GET_FNUM, CommandTable.CAM_SET_FNUM,
-                CommandTable.CAM_GET_EV, CommandTable.CAM_SET_EV,
-                CommandTable.CAM_GET_STATE, CommandTable.CAM_CAPTURE)) {
+        val all = listOf(
+            CommandTable.CAM_GET_ISO, CommandTable.CAM_SET_ISO,
+            CommandTable.CAM_GET_WB, CommandTable.CAM_SET_WB,
+            CommandTable.CAM_GET_FNUM, CommandTable.CAM_SET_FNUM,
+            CommandTable.CAM_GET_EV, CommandTable.CAM_SET_EV,
+            CommandTable.CAM_GET_FOCUS, CommandTable.CAM_SET_FOCUS,
+            CommandTable.CAM_GET_IMG_SIZE, CommandTable.CAM_SET_IMG_SIZE,
+            CommandTable.CAM_GET_IMG_FMT, CommandTable.CAM_SET_IMG_FMT,
+            CommandTable.CAM_GET_COLOR, CommandTable.CAM_SET_COLOR,
+            CommandTable.CAM_GET_SHUTTER, CommandTable.CAM_SET_SHUTTER,
+            CommandTable.CAM_GET_CAPTURE_MODE, CommandTable.CAM_SET_CAPTURE_MODE,
+            CommandTable.CAM_GET_STATE, CommandTable.CAM_CAPTURE,
+        )
+        for (d in all) {
             assertTrue(d.code in dev.openpolaris.core.protocol.Codes.CAMERA_BASE..dev.openpolaris.core.protocol.Codes.CAMERA_END,
                 "${d.name} code ${d.code} outside camera range")
         }

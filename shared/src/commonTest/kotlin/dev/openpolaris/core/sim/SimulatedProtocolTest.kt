@@ -55,6 +55,42 @@ class SimulatedProtocolTest {
     }
 
     @Test
+    fun cameraFocusGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_FOCUS, StringMap("focus" to 0)))
+        assertNotNull(sim.handle(Codes.CAM_GET_FOCUS, emptyMap()))
+    }
+
+    @Test
+    fun cameraImgSizeGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_IMG_SIZE, StringMap("imgSize" to 2)))
+        assertNotNull(sim.handle(Codes.CAM_GET_IMG_SIZE, emptyMap()))
+    }
+
+    @Test
+    fun cameraImgFmtGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_IMG_FMT, StringMap("imgFmt" to 1)))
+        assertNotNull(sim.handle(Codes.CAM_GET_IMG_FMT, emptyMap()))
+    }
+
+    @Test
+    fun cameraColorGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_COLOR, StringMap("color" to 3)))
+        assertNotNull(sim.handle(Codes.CAM_GET_COLOR, emptyMap()))
+    }
+
+    @Test
+    fun cameraShutterGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_SHUTTER, StringMap("shutter" to 4)))
+        assertNotNull(sim.handle(Codes.CAM_GET_SHUTTER, emptyMap()))
+    }
+
+    @Test
+    fun cameraCaptureModeGetAndSet() {
+        assertNotNull(sim.handle(Codes.CAM_SET_CAPTURE_MODE, StringMap("captureMode" to 0)))
+        assertNotNull(sim.handle(Codes.CAM_GET_CAPTURE_MODE, emptyMap()))
+    }
+
+    @Test
     fun wifiBandGet() {
         val resp = sim.handle(Codes.GET_WIFI_BAND, emptyMap())
         assertNotNull(resp)

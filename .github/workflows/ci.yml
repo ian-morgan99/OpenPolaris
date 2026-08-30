@@ -46,13 +46,13 @@ jobs:
           grep -E "nowarn|ignoreDisabledTargets" gradle.properties || true
 
       - name: Compile JVM sources
-        run: ./gradlew :shared:compileKotlinJvm :shared:compileTestKotlinJvm
+        run: ./gradlew :shared:compileKotlinJvm :shared:compileTestKotlinJvm :composeApp:compileKotlinJvm
 
       - name: Run shared JVM tests (rerun to surface ordering issues)
         run: ./gradlew :shared:jvmTest --rerun-tasks
 
-      - name: Run tools tests (stub-server + cli-probe)
-        run: ./gradlew :tools:stub-server:test :tools:cli-probe:test --rerun-tasks
+      - name: Run tools tests (bridge + stub-server + cli-probe)
+        run: ./gradlew :tools:bridge:test :tools:stub-server:test :tools:cli-probe:test --rerun-tasks
 
       - name: Upload JUnit XML
         if: always()

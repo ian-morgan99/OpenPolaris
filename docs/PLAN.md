@@ -209,24 +209,57 @@ agent, etc.). The plan is the source of truth for this rule.
 Open issues, in priority order. Tracked in the session todo mirror and on
 [GitHub issues](https://github.com/ian-morgan99/OpenPolaris/issues):
 
-- **#5 — AutoLevel settling condition quantified** ([PLAN-CRITICAL-REVIEW.md §F](./PLAN-CRITICAL-REVIEW.md#f-stream-11-settling-condition-not-quantified))
-  *(shipped, awaiting close)*. `AutoLevelController.run(timeout: Duration = 60.seconds)` returns
-  `AutoLevelResult = Completed(rollDeg, pitchDeg) | Failed(reason) | TimedOut`. Settling predicate
-  is **10 consecutive samples within ±0.01° of the running mean of (roll, pitch) on the tilt-state
-  push (538)**, not the RA/Dec position push (517) — see [Spec error §F](#spec-error-§f-517538)
-  below. 12 JVM tests, all green; `FakeMount` now emits a sustained ramp→settled 538 stream
-  (configurable via `timeToSettleMs`).
-- **#3 — session pause/resume hardening** ([PLAN-CRITICAL-REVIEW.md §J](./PLAN-CRITICAL-REVIEW.md#j-there-is-no-pause-and-resume-session-story-for-the-controllers)).
-  Four sub-tasks: (9.1) `Session.shutdown()` symmetric to `Session.connect()`, (9.2) `AppViewModel.disconnect()`,
-  (9.3) `onResume` reconnect, (9.4) JVM test for lifecycle. Ready to start now that #5's mount
-  contract is stable. The sub-task list above is the slice-boundary contract — shipping #3 means
-  shipping 9.1-9.4, not just `shutdown()`.
+- **#17 — polkit rule typo on the Wi-Fi scan policy** ([link](https://github.com/ian-morgan99/OpenPolaris/issues/17)).
+  The deployed `/etc/polkit-1/rules.d/99-openpolaris-wifi-scan.rules` references
+  `unix-group:admin`, which does not exist on Ubuntu (Ubuntu uses `sudo`). Each
+  `nmcli device wifi rescan` prompts the user. *Blocked on user* to run
+  `/tmp/openpolaris-fix-polkit-typo.sh` and confirm. A self-contained one-shot fix
+  is staged in the session workspace.
+- **#19 — plan refinement: `MountSession.tilt` SUSPEND+tryEmit contradiction +
+  plan/GitHub divergence on this worktree** ([link](https://github.com/ian-morgan99/OpenPolaris/issues/19)).
+  Surfaced by the critical review after Stream 7.5 (`56831b1`). Three sub-points:
+  (a) the next-slice queue on this branch differs from the plan's "Immediate next
+  actions" list — issue #6 was closed on a different branch without landing on
+  this worktree; (b) the SUSPEND+tryEmit contradiction in `MountSession.runReaderLoop`
+  is unaddressed on this branch; (c) the 3a/3b/3c sub-slices promised by issue #7
+  were never filed as separate issues. *Action: the next slice is the
+  SUSPEND+tryEmit fix + slow-collector regression test.*
 
-**Closed (recent):**
-- **#2 — non-functional acceptance bars** (shipped `4683ebf`): folds §B + §C + §D into the live
-  plan.
-- **#4 — `MountSession.lastError` ownership** (shipped `bcfc6e6` / `ea53bf0`, closed during the
-  #2 refresh).
+**Closed (recent, in this worktree's history):**
+- **#18 — Stream 7.5: in-VR recenter affordance (volume key + offset math)**
+  (shipped `56831b1`). 12 new `RecenterMathTest` cases; raw-vs-effective pose
+  split; `VRActivity.onKeyDown` consumes the volume-key event; toast debounced
+  via 0.5° epsilon. 220/220 `:shared:jvmTest` PASSED.
+- **#15 — VR marker reads live camera FoV from connected mount sensor**
+  (shipped `f948ced`). #16 — barrel-distortion shader routing
+  (shipped `ff81c2c`). #14 — `StateFlow` update on `lastSolveResult` change.
+  #13 — `confidence` thread-through on `GoToController.solveAndRefine`. #12 —
+  `SolveResult.timestampMs` for honest `ageMs`. #11 — Stream 7.4 plate-solve
+  target marker in VR (all shipped, all closed).
+- **#10 / #9 / #8 — Stream 7.3 g/h/i**: coroutine startup race in
+  `MountSession.tryConnect`; hard-coded preview ports + Connecting-state check;
+  `SimulatedMount` reader leak + save-failure status preservation. All closed.
+- **#7 — re-slice #3 into 3a/3b/3c** (planning, no code). Closed 2026-08-30T15:51:06Z
+  without the sub-issues being filed — see #19 sub-point (c) for the
+  reconciliation plan.
+- **#6 — `MountSession` background reader for `AutoLevelController.runAndAwait`**
+  (closed 2026-08-30T15:50:54Z). **Caveat per #19**: the work landed on a
+  different branch (`d693197` / `55c83f9` / `73474ed`); on this worktree's
+  branch, the bug the user reopened the issue for
+  (SUSPEND+tryEmit contradiction, 2026-08-30T10:17:50Z) is still present.
+  The next slice is the fix on this branch, not new code in #6.
+- **#5 — AutoLevel settling condition quantified** (shipped `4cb24bf` /
+  `4683ebf`, 12/12 JVM tests). `AutoLevelController.run(timeout: Duration = 60.seconds)`
+  returns `AutoLevelResult = Completed(rollDeg, pitchDeg) | Failed(reason) | TimedOut`.
+  Settling predicate is **10 consecutive samples within ±0.01° of the running
+  mean of (roll, pitch) on the tilt-state push (538)**, not the RA/Dec position
+  push (517) — see [Spec error §F](#spec-error-§f-517538) below.
+- **#3 — session pause/resume hardening** (shipped). Re-sliced into 3a/3b/3c
+  per #7; sub-issues to be filed as part of the #19 reconciliation.
+- **#2 — non-functional acceptance bars** (shipped `4683ebf`): folds §B + §C + §D
+  into the live plan.
+- **#4 — `MountSession.lastError` ownership** (shipped `bcfc6e6` / `ea53bf0`,
+  closed during the #2 refresh).
 
 ### Spec error §F (517/538)
 
@@ -238,20 +271,69 @@ tilt-state push, which is `SET_TILT_STATE = 538`. The implementation reads 538. 
 not block #5, but the spec wording in #5 and §F should be corrected when the issue is next
 touched.
 
-### Production gap: `MountSession` has no background reader
+### Production gap (closed, with caveat on this worktree): `MountSession` background reader
 
 `AutoLevelController.runAndAwait(timeout)` works in tests (the test source injects frames
 directly) and in `cli-probe` (the harness's per-call `request()` is the reader). On real
 hardware, `MountSession.request()` owns a per-call reader loop and there is no background reader
 that would let `runAndAwait` consume the 538 push frames. The settling predicate is correct;
-the data path from socket → controller still needs a session-level background reader. This is
-a new follow-up issue (likely the first item of #3, or a new #6), not part of #5's scope.
+the data path from socket → controller needs a session-level background reader. **Issue #6
+closed 2026-08-30T15:50:54Z** with reader work at `d693197` / `55c83f9` / `73474ed`.
+
+**Caveat per #19**: the reader's *connect-time race fix* did land on this worktree (commit
+`55c83f9`, "plan-#7-3i: decouple reader race") but the SUSPEND+tryEmit contradiction
+in the publisher path is **still present** in `MountSession.runReaderLoop`. `_tilt`
+is configured with `onBufferOverflow = BufferOverflow.SUSPEND` and
+`extraBufferCapacity = 64` (lines 104-115), and the production reader at line 301
+publishes via `_tilt.tryEmit(...)` which is non-suspending and silently drops on
+backpressure. The fix lands in the next slice on this branch (see "Immediate next
+actions" item 2 below). The reopen critique in issue #6 was never addressed on any
+branch.
 
 Known follow-up tickets (not yet filed): the MJPEG-decode-on-GL-thread issue
 ([PLAN-CRITICAL-REVIEW.md §I](./PLAN-CRITICAL-REVIEW.md#i-mjpeg-decode-on-the-gl-thread-is-unowned))
 is currently deferred-to-forever because the VR scene-graph work (§G) is the only path that would
 ever bring it back on the critical path. If the 50 fps VR bar above is to hold, the deferral needs
 to be made explicit in the VR workstream or §I will silently slip.
+
+## Plan / GitHub reconciliation
+
+The plan and the GitHub issue mirror are both sources of truth. They drift when
+one is updated without the other. The drift observed during the critical review
+after Stream 7.5:
+
+- **2026-08-30T16:12:51Z (issue #19)**: the "Immediate next actions" list
+  named issue #6 as the next slice, but #6 was already closed (2026-08-30T15:50:54Z).
+  The connect-time race fix from #6 did land on this worktree (commit `55c83f9`),
+  but the SUSPEND+tryEmit critique in the #6 reopen was never addressed on any
+  branch and the bug is still present at `MountSession.kt` line 301.
+- **2026-08-30T15:51:06Z (issue #7 close)**: the re-slice commit proposed
+  sub-issues 3a/3b/3c, but no separate issues were filed. The plan's
+  "Issue #3a: `Session.shutdown` + JVM no-leak test" referenced an issue that
+  did not exist on GitHub.
+
+To prevent recurrence, the agent runs a reconciliation audit at the end of
+every critical review (and at the end of every slice, where the mirror-honesty
+bar of the "Non-functional acceptance" section already requires it). The audit
+is three commands, captured in the slice's commit body:
+
+```sh
+# (a) every "open" issue referenced in this plan is open on GitHub
+gh issue list --repo ian-morgan99/OpenPolaris --state open --limit 100
+
+# (b) every "next-slice" / "shipped" claim in this plan has a corresponding
+#     issue, open or closed, in the right state
+gh issue list --repo ian-morgan99/OpenPolaris --state all --limit 100
+
+# (c) the worktree's branch has the SHAs cited in the plan
+git log --oneline -50
+```
+
+A divergence between (a)/(b) and the plan body is a first-class failure of the
+repository-mirror-honesty bar in the "Non-functional acceptance" section. The
+slice is not mergeable until the divergence is fixed (either the issue list is
+reconciled by reopening/closing/filing issues, or the plan is corrected and
+the change is cited in the commit body).
 
 ## Risk register
 
@@ -291,8 +373,13 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
     sealed `AutoLevelResult`, injectable `sampleSource`, `runAndAwait(timeout)`, `AppViewModel`
     wired, `FakeMount` ramp→settled 538 stream). Issue #5 closed. Note the
     [517/538 spec error](#spec-error-§f-517538) flagged in both #5 and §F. Production gap:
-    real-hardware `MountSession` has no background reader; this is issue #6 (open, with
-    `enhancement` label).
+    real-hardware `MountSession` had no background reader; the connect-time race fix
+    landed in commit `55c83f9` (plan-#7-3i). #6 was opened 2026-08-30, reopened the same
+    day with a sharp critique of the SUSPEND+tryEmit loss path, and re-closed
+    2026-08-30T15:50:54Z. The reopen critique was never addressed on any branch. On this
+    worktree (HEAD `56831b1`), the bug is still present at `MountSession.kt` line 301 and
+    the next slice is the [issue #19 fix](https://github.com/ian-morgan99/OpenPolaris/issues/19)
+    (see "Immediate next actions" item 2).
   - §G (VR backlog) — partially shipped. 7.1-7.3 landed at `13d9cd0`; 7.4-7.10 outstanding,
     no owner. The "backlog in checkpoint 119" gap is the source of the §P risk-register entry
     below.
@@ -306,29 +393,57 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
 
 ## Immediate next actions
 
-In order, picked by the next agent:
+In order, picked by the next agent. **Note**: this list was rewritten after the
+critical review following Stream 7.5 (see [issue #19](https://github.com/ian-morgan99/OpenPolaris/issues/19)).
+It no longer references issue #6 as the next slice — #6 is closed and only the
+connect-time race fix (commit `55c83f9`) is on this worktree; the SUSPEND+tryEmit
+reopen critique was never addressed on any branch.
 
-1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE** (12/12 JVM tests, code
-   slice, issue #5 closed at commit `4cb24bf` / `4683ebf`).
-2. **Issue #6: `MountSession` background reader** — ships first. The `tilt: Flow<TiltSample>`
-   contract is on the critical path: it unblocks the 517/538 contract test (§L of
-   PLAN-CRITICAL-REVIEW), the production `AutoLevelController.runAndAwait` path, and issue #3a's
-   `Session.shutdown` JVM test (a real reader is what makes the no-leak assertion meaningful).
-   ~150-250 LoC + ~30 LoC JVM test. Hard-blocked on nothing.
-3. **§F contract test** (per §L of PLAN-CRITICAL-REVIEW) — add two tests to
+1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE**
+   (12/12 JVM tests, code slice, issue #5 closed at commit `4cb24bf` / `4683ebf`).
+2. **MountSession.tilt: fix the SUSPEND+tryEmit contradiction (issue #19 first
+   acceptance criterion)** — ships first. The reader at
+   `shared/.../MountSession.kt` line ~301 publishes via `_tilt.tryEmit(...)`, but
+   `_tilt` is configured with `onBufferOverflow = BufferOverflow.SUSPEND` and
+   `extraBufferCapacity = 64` (lines ~104-115). `tryEmit` never suspends, so the
+   SUSPEND policy is unreachable; the system is de facto lossy under backpressure
+   and the 10-consecutive-sample settling predicate can fail under load. Two
+   acceptable fixes:
+   - **(A)** change `onBufferOverflow` to `DROP_OLDEST` (or `BUFFERED`) and add
+     a `tilt.drops` counter, OR
+   - **(B)** change the reader to a suspending `emit(...)` and run the reader
+     in `Dispatchers.IO` so the suspending publish does not block the socket
+     read.
+   Whichever is chosen, the comment block at lines 292-300 must match the new
+   contract, and a `TiltStreamTest` regression test must exercise a slow
+   collector that produces >64 538 frames and assert the documented contract.
+   ~50-100 LoC + ~30 LoC JVM test. Hard-blocked on nothing.
+3. **§F contract test (per §L of PLAN-CRITICAL-REVIEW)** — add two tests to
    `AutoLevelControllerTest.kt`: `gimbalPosFrame517DoesNotFeedSettling` and
-   `tiltStateFrame538DoesFeedSettling`. Lands in the same commit as #6, since the test depends
-   on the production sample source. Without this test, the 517/538 spec error fix is
-   unverified against future refactor.
-4. **Issue #7: re-slice #3 into 3a/3b/3c** — planning commit, no code. Closes the
-   `next-slice-ready` rule 4 violation §K surfaces.
-5. **Issue #3a: `Session.shutdown` + JVM no-leak test** — ~80 LoC. After #6 lands and
-   #7 is filed.
-6. **Stream 7.4-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11 owns
-   the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
-7. **Stream 5.3 real-mount smoke** — blocked on user hardware.
-8. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
+   `tiltStateFrame538DoesFeedSettling`. Lands in the same commit as item 2, since
+   the test depends on the production sample source. Without this test, the
+   517/538 spec error fix is unverified against future refactor.
+4. **File 3a/3b/3c as separate issues (issue #19 acceptance criterion)** —
+   planning commits, no code. Closes the `next-slice-ready` rule 4 violation
+   §K surfaces. 3a.1 = `AutoLevelController.stop()` + restart test (no leak);
+   3a.2 = `_tilt.value` survives stop/start; 3b.1 = scope cancel
+   mid-`runAndAwait` returns `Failed("cancelled")` within 1s; 3b.2 = no leftover
+   coroutines (via `kotlinx.coroutines.debug`); 3c.1-3c.4 = SessionMarker,
+   SessionStore, file-backed, auto-reconnect prompt.
+5. **Issue #3a.1: `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
+   items 2-4 land.
+6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
+   owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
+   7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped
+   `56831b1`; 7.6 (VR recenter persistence across sessions) is the natural
+   successor to 7.5.
+7. **Issue #17: polkit rule typo** — blocked on user; reminder pinged at
+   session start.
+8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
+9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-The next agent MUST NOT skip step 2 — every other item depends on the `MountSession`
-reader contract being stable. If a reviewing agent files a P0 (label `priority/p0`)
-in between, that preempts per the `next-slice-ready` condition 3.
+The next agent MUST NOT skip item 2 — every other code item depends on the
+`MountSession` reader contract being stable *and* the backpressure contract
+being honest. Items 4 (planning) can land in parallel with item 2. If a
+reviewing agent files a P0 (label `priority/p0`) in between, that preempts per
+the `next-slice-ready` condition 3.

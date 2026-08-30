@@ -205,7 +205,9 @@ condition failed and what the next step is (refine the spec, ask the user, wait 
 agent, etc.). The plan is the source of truth for this rule.
 
 **Source of truth for the slice order.** The "Immediate next actions"
-items 5-12 are a *cached* queue for this worktree. The authoritative
+items 7-12 are a *cached* queue for this worktree (items 1-5 and 6 are
+all struck-and-DONE; item 6 is the 2026-08-30T19:05:00Z #21 strike).
+The authoritative
 order is the live issue list, sorted by label and creation date:
 [p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)
 and [p2 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp2+sort%3Acreated-asc).
@@ -224,7 +226,7 @@ All one-off infrastructure issues filed against this worktree are now closed. Th
 | # | Priority | Issue | Title | Depends on |
 |---|----------|-------|-------|-----------|
 | 3a.1 | p1 | [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) (closed) | `Session.shutdown` no-leak JVM test | — | DONE (`e873bb0`) |
-| 3a.2 | p1 | [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) | `_tilt.value` survives `Session.stop()`/`start()` | 3a.1 |
+| 3a.2 | p1 | [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) (closed) | `_tilt.value` survives `Session.stop()`/`start()` | 3a.1 | DONE (`bec69c4`) |
 | 3b.1 | p1 | [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) | `runAndAwait` cancellation returns `Failed("cancelled")` within 1s | 3a.2 |
 | 3b.2 | p1 | [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) | No leftover coroutines after `runAndAwait` cancellation | 3b.1 |
 | 3c.1 | p2 | [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) | `SessionMarker` data class with `kotlinx.serialization` JSON | — |
@@ -233,7 +235,7 @@ All one-off infrastructure issues filed against this worktree are now closed. Th
 | 3c.4 | p2 | [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) | Auto-reconnect prompt on Wi-Fi loss (uses `SessionStore.latest()`) | 3c.3 |
 
 p1 sub-issues ship in queue order before any p2 work begins (see
-"Immediate next actions" items 6-12 and the
+"Immediate next actions" items 7-12 and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 p2 sub-issues are deferred until the p1 queue is empty or until a
 reviewing agent assigns a new owner.
@@ -348,6 +350,44 @@ after Stream 7.5:
   deployed file, not in any in-repo copy — `git ls-files | grep polkit`
   returns nothing). The "Immediate next actions" item 7 is struck
   and renumbered as DONE; items 8-9 are renumbered to 7-8.
+  _(Renumbered 2026-08-30T19:05:00Z by the #21 closure: the polkit rule
+  is now item 6 of the first list, and the Stream 7.6/5.3/6.2 sub-list
+  starts at item 7 — see the footer below.)_
+- **2026-08-30T19:05:00Z (issue #21 closed, commit `bec69c4`)**: the
+  3a.2 contract — `_tilt.value` survives `Session.stop()`/`start()` —
+  was already shipped in commit `bec69c4` ("plan-#7-3a:
+  AutoLevelController stop+restart JVM contract") on
+  `agents/connectivity-tests-for-polaris`. The issue body referred
+  to `MountSession._tilt.value`, which doesn't compile against the
+  current code: `MountSession._tilt` is a
+  `MutableSharedFlow<TiltSample>` with `replay=0` (no `.value`); the
+  actual `tilt.value` lives in `AutoLevelController.tilt`, a
+  `StateFlow<Tilt?>`. The contract is fully pinned by three tests
+  added in `bec69c4` to
+  `AutoLevelControllerTest.kt`: `stopIsIdempotent` (L343),
+  `tiltValueSurvivesStop` (L364, asserts `a.tilt.value` survives
+  `a.stop()` at 1e-6 tolerance — well within the issue's ±0.001°
+  acceptance), and `restartAfterStopReceivesNewFrame` (L395, proves
+  no leaked first-scope collector and no reset of `_tilt`). The
+  implementation contract is `AutoLevelController.kt` L99-119:
+  `stop()` cancels `observeJob` and nulls it but does **not** touch
+  `_tilt`, so the value persists across `stop()`/`start()` cycles.
+  PLAN.md updated in three places: priorities table marks 3a.2
+  DONE with the `bec69c4` ref; the 18:48:00Z reconciliation entry's
+  "open = …" list drops #21; item 6 of "Immediate next actions" is
+  struck and renumbered as DONE with the shippable ref. Full
+  `:shared:jvmTest --rerun-tasks` is green at **223/223** (was 223,
+  +0 — the work landed in an earlier commit). Issue **#21 closed**
+  with a comment listing the test names with line numbers, the
+  implementation contract reference, the test pass count, and the
+  note that the issue body's `MountSession._tilt.value` reference
+  doesn't compile (the contract lives in `AutoLevelController.tilt`).
+  The plan and the mirror now agree: open = #22-#27; closed includes
+  #17, #19, #20, and #21 with the shippable refs. Next slice is
+  **#22** (3b.1 `runAndAwait` cancellation returns
+  `Failed("cancelled")` within 1s, p1) per item 7 of the "Immediate
+  next actions" list below (item 6 has been struck and marked DONE).
+  _Supersedes the 18:48:00Z "open = #21-#27" entry._
 - **2026-08-30T18:30:00Z (issue #20 closed, commit `e873bb0`)**: the
   `Session.shutdown` no-leak JVM test landed as `e873bb0` on
   `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
@@ -541,9 +581,23 @@ issue #19 is closed.
    PLAN.md updated in three places: priorities table marks 3a.1 DONE; the
    17:42:00Z reconciliation entry's "open = …" list drops #20; this item is
    struck and renumbered as DONE with the shippable ref.
-6. **Issue #21: 3a.2 `_tilt.value` survives `Session.stop()`/`start()`** — p1,
-   unblocks after #20. ~60 LoC. Live:
-   [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21).
+6. ~~**Issue #21: 3a.2 `_tilt.value` survives `Session.stop()`/`start()`** — p1,
+   unblocks after #20. ~60 LoC.~~ **DONE**
+   ([`bec69c4`](https://github.com/ian-morgan99/OpenPolaris/commit/bec69c4),
+   closed 2026-08-30T19:05Z, 223/223 jvmTest green). The issue body
+   referred to `MountSession._tilt.value`, which doesn't compile —
+   `MountSession._tilt` is a `MutableSharedFlow<TiltSample>` with
+   `replay=0` (no `.value`); the actual `tilt.value` lives in
+   `AutoLevelController.tilt` (a `StateFlow<Tilt?>`). The contract is
+   fully pinned by three tests in `AutoLevelControllerTest.kt`:
+   `stopIsIdempotent` (L343), `tiltValueSurvivesStop` (L364, asserts
+   `a.tilt.value` survives `a.stop()` at 1e-6 tolerance — well within
+   the issue's ±0.001° acceptance), and `restartAfterStopReceivesNewFrame`
+   (L395, proves no leaked first-scope collector and no reset of
+   `_tilt`). The implementation contract is in `AutoLevelController.kt`
+   L99-119: `stop()` cancels `observeJob` and sets it to `null` but
+   does **not** touch `_tilt`, so the value persists across cycles.
+   Items that referenced 6 now refer to item 7.
 7. **Issue #22: 3b.1 `runAndAwait` cancellation returns `Failed("cancelled")**
    **within 1s** — p1, unblocks after #21. ~60 LoC. Live:
    [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22).
@@ -563,22 +617,23 @@ issue #19 is closed.
     `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
     [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
 
-p1 sub-issues (#21-#23) ship in queue order before any p2 work begins
+p1 sub-issues (#22-#23) ship in queue order before any p2 work begins
 (see the `next-slice-ready` condition 4 in PLAN.md and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
-6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
+7. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
    owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
    7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped
    `56831b1`; 7.6 (VR recenter persistence across sessions) is the natural
    successor to 7.5.
-7. **Stream 5.3 real-mount smoke** — blocked on user hardware.
-8. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
+8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
+9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Items 2, 3, 5, and 7 have now landed (commits `7970e55` and `e873bb0`;
-#17 was a deployed-file fix that required no commit). The next agent
-MUST verify on resume that the worktree is at or past `21df458` and
-that `:shared:jvmTest --rerun-tasks` is still green at **223/223**
-before starting item 6. Item 4 (the filed #21-#27 sub-issues) is also
+Items 2, 3, 5, and **6** have now landed (commits `7970e55`,
+`e873bb0`, and `bec69c4`; #17 was a deployed-file fix that required
+no commit). The next agent MUST verify on resume that the worktree is
+at or past this commit and that `:shared:jvmTest --rerun-tasks` is
+still green at **223/223**
+before starting item 7 (Issue #22). Item 4 (the filed #21-#27 sub-issues) is also
 landed and should be confirmed in the worktree before any code change.
 If a reviewing agent files a P0 (label `priority/p0`) in between, that
 preempts per the `next-slice-ready` condition 3.

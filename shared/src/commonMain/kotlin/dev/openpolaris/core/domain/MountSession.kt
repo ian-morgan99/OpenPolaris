@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -91,11 +92,15 @@ class MountSession(
      *    a previous session that are still active will see an idle flow
      *    until the next session emits; collectors should cancel their
      *    own [kotlinx.coroutines.Job] on disconnect.
-     *  - The buffer is `Channel.BUFFERED` (64 by default) with
-     *    `SUSPEND` overflow so a slow consumer back-pressures the
-     *    reader rather than dropping samples silently. In practice the
-     *    only consumer is the AutoLevel controller, which samples far
-     *    faster than 538 frames arrive (every ~100 ms).
+     *  - The buffer is 64 with `DROP_OLDEST` overflow. A slow consumer
+     *    (e.g. UI thread doing a plate-solve) may cause older samples to
+     *    be dropped; each drop is counted in [tiltDrops] for observability.
+     *    The reader MUST NOT block on a full buffer — it owns the socket
+     *    and a stalled reader would wedge the entire mount channel. We
+     *    prefer losing a few intermediate samples over blocking. In
+     *    practice the only consumer is the AutoLevel controller, which
+     *    samples far faster than 538 frames arrive (every ~100 ms), so
+     *    drops should be zero in normal operation.
      *
      * Use [TiltSampleSource]-style adapters to bridge between this hot
      * [Flow] and the `suspend () -> Tilt?` shape [AutoLevelController]
@@ -106,13 +111,30 @@ class MountSession(
         // 538 frames arrive at ~10 Hz on the Polaris. Channel.BUFFERED is a
         // Channel-specific sentinel (-2), not a number, so we use an explicit
         // 64 here. 64 gives ~6 seconds of headroom for a slow consumer
-        // (e.g. UI thread doing a plate-solve) before SUSPEND back-pressure
-        // kicks in. Going lower risks losing samples; going higher wastes
-        // memory for no practical benefit.
+        // (e.g. UI thread doing a plate-solve) before DROP_OLDEST starts
+        // evicting the oldest unread sample. Going lower risks visible
+        // jitter during a stall; going higher wastes memory for no
+        // practical benefit.
         extraBufferCapacity = 64,
-        onBufferOverflow = BufferOverflow.SUSPEND,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val tilt: Flow<TiltSample> = _tilt
+
+    /**
+     * Number of 538 (SET_TILT_STATE) samples the reader attempted to
+     * publish on [tilt] but were evicted by the SharedFlow buffer's
+     * DROP_OLDEST policy because no collector was keeping up. The
+     * counter exists for observability — `0` is the expected steady
+     * state. A non-zero value means a downstream consumer (typically
+     * the AutoLevel controller) is slower than the ~10 Hz push rate.
+     *
+     * Incremented on the reader coroutine; safe to read from any
+     * collector because [MutableStateFlow.update] is atomic. Reset to
+     * zero on [connect] so the count always reflects the current
+     * session.
+     */
+    private val _tiltDrops = MutableStateFlow(0L)
+    val tiltDrops: StateFlow<Long> = _tiltDrops
 
     /**
      * Test-only seam: directly publish a frame on [frames] without going
@@ -196,6 +218,10 @@ class MountSession(
                 // Clear any previous protocol error so observers can tell
                 // "the mount came back" from "no error has happened yet".
                 _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
+                // Reset drop counter so it always reflects the current
+                // session. Drift across reconnects would make the metric
+                // meaningless.
+                _tiltDrops.value = 0L
                 // Start the demux reader before issuing the handshake so
                 // the 284 response is dispatched to the waiter's deferred
                 // instead of being dropped on the floor.
@@ -289,15 +315,28 @@ class MountSession(
                         if (f.code == Codes.SET_TILT_STATE) {
                             val tilt = TiltCodec.parse(f)
                             if (tilt != null) {
-                                // tryEmit returns false only if the
-                                // SharedFlow buffer is full AND onBufferOverflow
-                                // is SUSPEND. With Channel.BUFFERED (64)
-                                // capacity this is effectively impossible in
-                                // practice — the controller samples on a
-                                // millisecond cadence while 538s arrive at
-                                // ~10 Hz. If it ever does happen we lose
-                                // exactly one sample, which is preferable to
-                                // blocking the socket reader.
+                                // _tilt is configured with DROP_OLDEST,
+                                // so tryEmit is non-suspending and never
+                                // returns false: if no collector has
+                                // drained the buffer, the oldest queued
+                                // sample is evicted to make room. The
+                                // return value is therefore ignored.
+                                //
+                                // The reader MUST stay non-suspending
+                                // because it owns the socket; a stalled
+                                // reader would wedge the entire mount
+                                // channel. We prefer losing a few
+                                // intermediate samples to a slow
+                                // consumer over blocking. Each emit
+                                // with zero live subscribers is
+                                // guaranteed to be lost (no buffer
+                                // drain can ever catch up) and is
+                                // counted in [tiltDrops]. Under-buffer
+                                // eviction (a slow but live
+                                // collector) is not separately
+                                // counted — [TiltStreamTest] covers
+                                // that path by comparing emitted
+                                // versus received counts.
                                 _tilt.tryEmit(
                                     TiltSample(
                                         pitchDeg = tilt.pitchDeg,
@@ -305,6 +344,9 @@ class MountSession(
                                         timestampMs = currentEpochMillis(),
                                     ),
                                 )
+                                if (_tilt.subscriptionCount.value == 0) {
+                                    _tiltDrops.update { it + 1 }
+                                }
                             }
                             continue
                         }

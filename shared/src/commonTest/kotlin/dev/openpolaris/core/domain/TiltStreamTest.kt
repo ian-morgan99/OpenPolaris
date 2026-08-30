@@ -202,4 +202,96 @@ class TiltStreamTest {
         assertEquals(1.50, second!!.pitchDeg, 1e-6)
         s.disconnect()
     }
+
+    // -------------------------------------------------------------------------
+    // Issue #19 — MountSession._tilt SUSPEND+tryEmit contradiction
+    // -------------------------------------------------------------------------
+    //
+    // The previous design configured _tilt with `BufferOverflow.SUSPEND` but
+    // the production reader called `tryEmit` (non-suspending, returns false on
+    // overflow). The contradiction made the SUSPEND policy unreachable: the
+    // reader ignored the false return value, so the system was de facto lossy
+    // AND the contract was incoherent. The fix switched to DROP_OLDEST so the
+    // reader can stay non-suspending, and exposes `tiltDrops` so the loss is
+    // visible. These tests pin the new contract end-to-end through
+    // `publishTiltForTest` (which uses the same `_tilt.tryEmit` path as the
+    // production reader, so it exercises the real SharedFlow configuration).
+    //
+    // Reference: PLAN-CRITICAL-REVIEW §K, PLAN.md "Production gap", #19.
+
+    @Test
+    fun zeroSubscriberPushesIncrementTiltDrops() = runTest {
+        // The reader MUST NOT block on a full buffer — it owns the socket.
+        // With DROP_OLDEST the SharedFlow's buffer is sized at 64, but
+        // when no collector is attached every emit is delivered to the
+        // floor (a no-op for downstream consumers) and is therefore a
+        // drop. Push 100 538 frames through the reader loop (not via
+        // publishTiltForTest — that seam bypasses the drop-counter
+        // increment because the counter is owned by the reader, not by
+        // the flow) and assert `tiltDrops` reflects the count exactly.
+        val conn = FakeConnection()
+        val s = MountSession({ conn }, readerScope = this)
+        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        s.connect()
+        // Reset baseline: connect() clears the counter to 0, so the
+        // current value is the start-of-test reference.
+        assertEquals(0L, s.tiltDrops.value, "tiltDrops must start at 0 after connect")
+
+        // Push 100 538 frames. Each is a different pitch value so the
+        // frame body is well-formed and TiltCodec.parse returns non-null.
+        repeat(100) { i ->
+            conn.responses += "1&538&2&pitch:${i.toDouble() * 0.01};roll:0.0;#"
+                .toByteArray(Charsets.US_ASCII)
+        }
+        // Drain virtual time so the reader loop processes all queued
+        // bytes and runs through the 538 demux for each frame.
+        advanceTimeBy(200)
+
+        assertEquals(
+            100L,
+            s.tiltDrops.value,
+            "100 538 frames with zero subscribers must all count as drops",
+        )
+        s.disconnect()
+    }
+
+    @Test
+    fun liveCollectorDoesNotIncrementTiltDrops() = runTest {
+        // Counterpart to the previous test: when a collector is attached
+        // and the buffer is not yet full, every emit is delivered to the
+        // collector and `tiltDrops` must remain zero. The reader's
+        // subscription-count guard means a live collector prevents drops
+        // from being counted.
+        val conn = FakeConnection()
+        val s = MountSession({ conn }, readerScope = this)
+        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        s.connect()
+
+        val collectorJob = launch {
+            s.tilt.take(10).toList()
+        }
+        // Let the subscription register before publishing.
+        runCurrent()
+
+        repeat(10) { i ->
+            s.publishTiltForTest(
+                TiltSample(
+                    pitchDeg = i.toDouble(),
+                    rollDeg = 0.0,
+                    timestampMs = i.toLong(),
+                )
+            )
+        }
+        // Drain virtual time so the SharedFlow delivers all 10 samples
+        // to the collector.
+        advanceTimeBy(50)
+        collectorJob.join()
+
+        assertEquals(
+            0L,
+            s.tiltDrops.value,
+            "10 emits with a live collector must not count as drops",
+        )
+        s.disconnect()
+    }
 }

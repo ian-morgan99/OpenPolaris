@@ -282,14 +282,16 @@ the data path from socket → controller needs a session-level background reader
 closed 2026-08-30T15:50:54Z** with reader work at `d693197` / `55c83f9` / `73474ed`.
 
 **Caveat per #19**: the reader's *connect-time race fix* did land on this worktree (commit
-`55c83f9`, "plan-#7-3i: decouple reader race") but the SUSPEND+tryEmit contradiction
-in the publisher path is **still present** in `MountSession.runReaderLoop`. `_tilt`
-is configured with `onBufferOverflow = BufferOverflow.SUSPEND` and
-`extraBufferCapacity = 64` (lines 104-115), and the production reader at line 301
-publishes via `_tilt.tryEmit(...)` which is non-suspending and silently drops on
-backpressure. The fix lands in the next slice on this branch (see "Immediate next
-actions" item 2 below). The reopen critique in issue #6 was never addressed on any
-branch.
+`55c83f9`, "plan-#7-3i: decouple reader race"). The SUSPEND+tryEmit contradiction
+in the publisher path was fixed in the #19 slice (see commit on this branch that
+replaces `BufferOverflow.SUSPEND` with `BufferOverflow.DROP_OLDEST` on
+`MountSession._tilt` and exposes `tiltDrops: StateFlow<Long>` so silent loss is
+visible). The reader's `tryEmit` is now intentional: with DROP_OLDEST it never
+returns false on a healthy buffer, and the `subscriptionCount == 0` guard
+increments the counter only when the emit is guaranteed lost. Two regression
+tests in `TiltStreamTest.kt` (`zeroSubscriberPushesIncrementTiltDrops`,
+`liveCollectorDoesNotIncrementTiltDrops`) pin the contract end-to-end through the
+real reader loop.
 
 Known follow-up tickets (not yet filed): the MJPEG-decode-on-GL-thread issue
 ([PLAN-CRITICAL-REVIEW.md §I](./PLAN-CRITICAL-REVIEW.md#i-mjpeg-decode-on-the-gl-thread-is-unowned))
@@ -305,9 +307,14 @@ after Stream 7.5:
 
 - **2026-08-30T16:12:51Z (issue #19)**: the "Immediate next actions" list
   named issue #6 as the next slice, but #6 was already closed (2026-08-30T15:50:54Z).
-  The connect-time race fix from #6 did land on this worktree (commit `55c83f9`),
-  but the SUSPEND+tryEmit critique in the #6 reopen was never addressed on any
-  branch and the bug is still present at `MountSession.kt` line 301.
+  The connect-time race fix from #6 did land on this worktree (commit `55c83f9`).
+  The SUSPEND+tryEmit critique in the #6 reopen is now fixed in the #19 slice:
+  `BufferOverflow.SUSPEND` → `BufferOverflow.DROP_OLDEST` on `_tilt`, plus a
+  new `tiltDrops: StateFlow<Long>` counter, plus two regression tests in
+  `TiltStreamTest.kt`. Full `:shared:jvmTest --rerun` is green at 222/222
+  (was 220, +2 from this slice). Issue #19 is closed. See the "Caveat per #19"
+  paragraph above and item 2 in the "Immediate next actions" list below for
+  the new contract.
 - **2026-08-30T15:51:06Z (issue #7 close)**: the re-slice commit proposed
   sub-issues 3a/3b/3c, but no separate issues were filed. The plan's
   "Issue #3a: `Session.shutdown` + JVM no-leak test" referenced an issue that
@@ -397,28 +404,32 @@ accounts/analytics, and all v2 enhancement features (rate trims, drift meter, sy
 In order, picked by the next agent. **Note**: this list was rewritten after the
 critical review following Stream 7.5 (see [issue #19](https://github.com/ian-morgan99/OpenPolaris/issues/19)).
 It no longer references issue #6 as the next slice — #6 is closed and only the
-connect-time race fix (commit `55c83f9`) is on this worktree; the SUSPEND+tryEmit
-reopen critique was never addressed on any branch.
+connect-time race fix (commit `55c83f9`) is on this worktree. The SUSPEND+tryEmit
+reopen critique has now been addressed on this worktree as item 2 below (see
+"Plan / GitHub reconciliation" 2026-08-30T16:12:51Z entry for the commit ref);
+issue #19 is closed.
 
 1. ~~Issue #5: ship the AutoLevel settling condition with tests.~~ **DONE**
    (12/12 JVM tests, code slice, issue #5 closed at commit `4cb24bf` / `4683ebf`).
 2. **MountSession.tilt: fix the SUSPEND+tryEmit contradiction (issue #19 first
-   acceptance criterion)** — ships first. The reader at
-   `shared/.../MountSession.kt` line ~301 publishes via `_tilt.tryEmit(...)`, but
-   `_tilt` is configured with `onBufferOverflow = BufferOverflow.SUSPEND` and
-   `extraBufferCapacity = 64` (lines ~104-115). `tryEmit` never suspends, so the
-   SUSPEND policy is unreachable; the system is de facto lossy under backpressure
-   and the 10-consecutive-sample settling predicate can fail under load. Two
-   acceptable fixes:
-   - **(A)** change `onBufferOverflow` to `DROP_OLDEST` (or `BUFFERED`) and add
-     a `tilt.drops` counter, OR
-   - **(B)** change the reader to a suspending `emit(...)` and run the reader
-     in `Dispatchers.IO` so the suspending publish does not block the socket
-     read.
-   Whichever is chosen, the comment block at lines 292-300 must match the new
-   contract, and a `TiltStreamTest` regression test must exercise a slow
-   collector that produces >64 538 frames and assert the documented contract.
-   ~50-100 LoC + ~30 LoC JVM test. Hard-blocked on nothing.
+   acceptance criterion)** — **DONE** on this worktree (commit on this branch;
+   see "Plan / GitHub reconciliation" 2026-08-30T16:12:51Z entry below).
+   Chose option **(A)**: `BufferOverflow.SUSPEND` → `BufferOverflow.DROP_OLDEST`
+   on `_tilt`, and exposed `tiltDrops: StateFlow<Long>` (reset to 0 on every
+   (re)connect) so silent loss is observable. The reader's `tryEmit` is now
+   intentional: with DROP_OLDEST it never returns false on a healthy buffer,
+   and the `subscriptionCount == 0` guard after each emit increments the
+   counter only when the emit is guaranteed lost. The comment block at the
+   reader was rewritten to document the honest contract. Two regression tests
+   in `TiltStreamTest.kt` pin the contract end-to-end through the real reader
+   loop:
+   - `zeroSubscriberPushesIncrementTiltDrops` — 100 538 frames pushed through
+     `FakeConnection` with no collector attached → `tiltDrops == 100`.
+   - `liveCollectorDoesNotIncrementTiltDrops` — `take(10).toList()` collector
+     drains 10 frames → `tiltDrops == 0`.
+   Full `:shared:jvmTest --rerun` is green at **222/222** (was 220, +2 from
+   this slice). Issue #19 is closed with a comment documenting the four-file
+   edit list and the new test coverage.
 3. **§F contract test (per §L of PLAN-CRITICAL-REVIEW)** — add two tests to
    `AutoLevelControllerTest.kt`: `gimbalPosFrame517DoesNotFeedSettling` and
    `tiltStateFrame538DoesFeedSettling`. Lands in the same commit as item 2, since

@@ -84,6 +84,7 @@ fun OpenPolarisApp(
                 Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi = vm::connectWifi) }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Tonight -> CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
@@ -95,13 +96,14 @@ private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
     Slew("Slew"),
     Camera("Cam"),
+    Tonight("Night"),
     Readme("?"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
 @Composable
 private fun CalloutRail(vertical: Boolean, modifier: Modifier = Modifier, onSelect: (Callout) -> Unit) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Readme)
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Tonight, Callout.Readme)
     if (vertical) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             items.forEach { c -> CalloutButton(c, onSelect) }

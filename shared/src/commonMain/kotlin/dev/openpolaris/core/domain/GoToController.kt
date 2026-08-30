@@ -3,6 +3,7 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.solver.PlateSolver
 import dev.openpolaris.core.solver.SolveHint
+import dev.openpolaris.core.solver.SolveResult
 import dev.openpolaris.core.solver.StarDetection
 import kotlinx.coroutines.delay
 
@@ -117,8 +118,10 @@ class GoToController(
      * observer site, hands the detections to the [solver], and on a
      * confident solve feeds the result into [refine].
      *
-     * Returns the solve's RA/Dec on success, or null on no-solve / no
-     * gimbal position feedback.
+     * Returns the full [SolveResult] (RA/Dec, confidence, matched-star count,
+     * and the wall-clock timestamp the match converged at) on success, or
+     * null on no-solve / no gimbal position feedback. Callers that only
+     * care about the coordinates can read `result.raDeg` / `result.decDeg`.
      */
     suspend fun solveAndRefine(
         solver: PlateSolver,
@@ -130,7 +133,7 @@ class GoToController(
         latDeg: Double,
         lngEastDeg: Double,
         jdUtc: Double,
-    ): Pair<Double, Double>? {
+    ): SolveResult? {
         val reqResult = session.request(Codes.GET_GIMBAL_POS, parse = GimbalPosition::fromFrame517)
         val pos = (reqResult as? MountSession.CmdResult.Ok)?.value
         if (pos == null) return null
@@ -151,7 +154,7 @@ class GoToController(
             lngEastDeg = lngEastDeg,
             jdUtc = jdUtc,
         )
-        return result.raDeg to result.decDeg
+        return result
     }
 
     companion object {

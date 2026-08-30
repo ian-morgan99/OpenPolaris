@@ -768,26 +768,16 @@ class AppViewModel(
                         "Plate-solve failed (no confident match)"
                     }
                 } else {
-                    lastSolveResult = SolveResult(
-                        raDeg = result.first,
-                        decDeg = result.second,
-                        // Confidence and matched-star count aren't returned by
-                        // solveAndRefine — they live in the raw solver
-                        // result, which solveAndRefine currently drops. The
-                        // pane shows "solved" without those fields for now;
-                        // a follow-up PR will thread them through. The
-                        // placeholder values below are the v1 "good enough"
-                        // floor (0.6 confidence, 3-star minimum) so the
-                        // SolveResult init contract is satisfied.
-                        confidence = 0.6,
-                        matchedStars = 3,
-                        // Stamp at the moment the result lands in the
-                        // viewmodel, so MainActivity.onLaunchVr can report
-                        // a honest `ageMs` to the VR marker (issue #12).
-                        timestampMs = System.currentTimeMillis(),
-                    )
-                    statusMessage = "Solved RA %.4f° Dec %.4f° — mount refined to target"
-                        .format(result.first, result.second)
+                    // solveAndRefine now returns the full SolveResult
+                    // (RA/Dec, confidence, matched-star count, and the
+                    // timestamp the match converged at — stamped inside
+                    // the solver). Threading the real values through here
+                    // means the VR marker can show honest confidence and
+                    // honest age, and the status message can mention the
+                    // match quality. See issue #13.
+                    lastSolveResult = result
+                    statusMessage = "Solved RA %.4f° Dec %.4f° — %.0f%% conf, %d stars — mount refined to target"
+                        .format(result.raDeg, result.decDeg, result.confidence * 100.0, result.matchedStars)
                 }
             } finally {
                 solveInProgress = false

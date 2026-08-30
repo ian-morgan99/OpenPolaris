@@ -303,11 +303,27 @@ class AppViewModelSolveNowTest {
                 kotlin.math.abs(result.decDeg - truthDec) < 1.0,
                 "expected decDeg ≈ $truthDec, got ${result.decDeg}",
             )
-            assertEquals(0.6, result.confidence, 0.001)
-            assertEquals(3, result.matchedStars)
+            // Confidence and matchedStars now flow from the real
+            // PyramidMatcher (issue #13); the old placeholders (0.6, 3)
+            // are gone. Assert they are non-zero and that the solve
+            // meets the matcher's gate.
+            assertTrue(
+                result.confidence >= 0.5,
+                "expected confidence ≥ 0.5 from real solver, got ${result.confidence}",
+            )
+            assertTrue(
+                result.matchedStars >= 3,
+                "expected matchedStars ≥ 3 from real solver, got ${result.matchedStars}",
+            )
             assertTrue(
                 vm.statusMessage.startsWith("Solved RA"),
                 "expected 'Solved RA …' status, got '${vm.statusMessage}'",
+            )
+            // Status message should now report real match quality
+            // (issue #13), not just RA/Dec.
+            assertTrue(
+                vm.statusMessage.contains("conf") && vm.statusMessage.contains("stars"),
+                "expected status to report conf & stars, got '${vm.statusMessage}'",
             )
         } finally {
             // Tear down the session so MountSession.disconnect cancels

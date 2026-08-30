@@ -305,6 +305,18 @@ The plan and the GitHub issue mirror are both sources of truth. They drift when
 one is updated without the other. The drift observed during the critical review
 after Stream 7.5:
 
+- **2026-08-30T17:42:00Z (issue #19 closed, commit `7970e55`)**: the SUSPEND+tryEmit
+  fix per the 2026-08-30T16:12:51Z entry landed as `7970e55` on
+  `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
+  `MountSession.kt` (DROP_OLDEST + `tiltDrops` counter + reader comment), and
+  `TiltStreamTest.kt` (two regression tests). PLAN.md updated in three places
+  ("Caveat per #19", the 16:12:51Z reconciliation entry, and "Immediate next
+  actions" item 2). Full `:shared:jvmTest --rerun-tasks` is green at 222/222.
+  Issue **#19 closed** with a comment listing the four-file edit list, the two
+  new test names and assertions, and the test pass count. The plan and the
+  mirror now agree: open = #17, #20-#27; closed includes #19 with the
+  shippable ref. Next slice is **#20** (3a.1 `Session.shutdown` no-leak JVM
+  test, p1) per item 5 of the "Immediate next actions" list below.
 - **2026-08-30T16:12:51Z (issue #19)**: the "Immediate next actions" list
   named issue #6 as the next slice, but #6 was already closed (2026-08-30T15:50:54Z).
   The connect-time race fix from #6 did land on this worktree (commit `55c83f9`).
@@ -453,8 +465,9 @@ issue #19 is closed.
    [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) 3c.4 auto-reconnect prompt (p2).
    p1 sub-issues unblock after item 2 lands; p2 sub-issues are deferred
    to a later slice.
-5. **Issue #3a.1: `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
-   items 2-4 land.
+5. **Issue #20: 3a.1 `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
+   items 2-4 land. The live issue is the source of truth:
+   [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20).
 6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
    owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
    7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped
@@ -465,8 +478,10 @@ issue #19 is closed.
 8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
 9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-The next agent MUST NOT skip item 2 — every other code item depends on the
-`MountSession` reader contract being stable *and* the backpressure contract
-being honest. Items 4 (planning) can land in parallel with item 2. If a
-reviewing agent files a P0 (label `priority/p0`) in between, that preempts per
-the `next-slice-ready` condition 3.
+Item 2 has now landed (commit `7970e55`); the next agent MUST verify on resume
+that the worktree is at or past `7970e55` and that `:shared:jvmTest --rerun-tasks`
+is still green at 222/222 before starting item 5. Items 3 (§F contract test)
+and 4 (the filed #20-#27 sub-issues) are next-slice dependencies for item 5
+and should be confirmed in the worktree before any code change. If a reviewing
+agent files a P0 (label `priority/p0`) in between, that preempts per the
+`next-slice-ready` condition 3.

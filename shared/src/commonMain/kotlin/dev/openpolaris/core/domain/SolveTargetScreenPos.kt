@@ -13,10 +13,12 @@ import kotlin.math.tan
  * RA/Dec (the centre of the camera's current view). The user can also
  * have a *target* in RA/Dec (e.g. an NGC object the user wants to
  * centre). The target's position on screen is the small-angle offset
- * (ΔRA · cos(δ), Δδ) projected through the VR camera's per-axis FoV
- * into a normalized 2D position in `[-1, +1]` for each axis. The
- * `(0, 0)` origin is the screen centre (where the crosshair sits);
- * positive `x` is right; positive `y` is up.
+ * (ΔRA · cos(δ), Δδ) divided by the VR camera's per-axis FoV, so the
+ * output is in *units of the full FoV*: the visible disc spans
+ * `[-0.5, +0.5]` on each axis, the frame edge is at `±1.0`, and any
+ * value past the frame is off-screen. The `(0, 0)` origin is the
+ * screen centre (where the crosshair sits); positive `x` is right;
+ * positive `y` is up.
  *
  * **Sign convention.** ΔRA is `targetRA − fieldRA` and is
  * *east-positive* (RA increases eastward on the sky, which is
@@ -25,11 +27,12 @@ import kotlin.math.tan
  * flip it again if the lens inverts — keep this contract clean here
  * and let the caller decide.
  *
- * **Off-screen.** When the magnitude on either axis is `> 1.0`, the
- * target is outside the visible frustum. Callers typically clamp
- * the magnitude to a small "edge" position so the user can see which
- * direction to slew. The function returns a struct with both the
- * raw and clamped coordinates so the caller can decide.
+ * **Off-screen.** When `|x| > 0.5` or `|y| > 0.5`, the target is past
+ * the visible frame edge. Callers typically clamp
+ * the magnitude to a small "edge" position (see [clampedToEdge]) so
+ * the user can see which direction to slew. The function returns a
+ * struct with both the raw and clamped coordinates so the caller can
+ * decide.
  *
  * **JVM-testable.** All inputs are pure doubles; no Android, GL, or
  * sensor types. Lives in `commonMain` so the multiplatform test

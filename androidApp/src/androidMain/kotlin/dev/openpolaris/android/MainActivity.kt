@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.rememberCoroutineScope
+import dev.openpolaris.core.domain.AstroMath
 import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
@@ -71,9 +72,43 @@ class MainActivity : ComponentActivity() {
                     // of hard-coding 192.168.43.1:8080 in VRActivity's
                     // companion defaults). Reading from viewModel.{host,port}
                     // keeps the two screens in sync.
+                    //
+                    // 7.4 (slice 2): also pass the most recent plate-solve
+                    // (field centre) and the user-entered GoTo target so
+                    // VRActivity can draw a reticle at the target's
+                    // projected screen position. If there is no solve yet,
+                    // the marker is silently hidden — we do not refuse to
+                    // launch VR. The target strings are parsed with
+                    // AstroMath so they share the validation the
+                    // "Slew to target" button uses; an unparsable target
+                    // also bails on the marker (no error UX in this path).
+                    val solve = viewModel.lastSolveResult
+                    val targetRaDeg = AstroMath.parseRa(viewModel.gotoRa)
+                    val targetDecDeg = AstroMath.parseDec(viewModel.gotoDec)
                     val intent = Intent(this, VRActivity::class.java).apply {
                         putExtra(VRActivity.EXTRA_HOST, viewModel.host)
                         putExtra(VRActivity.EXTRA_PORT, viewModel.port)
+                        if (solve != null && targetRaDeg != null && targetDecDeg != null) {
+                            putExtra(VRActivity.EXTRA_SOLVE_RA_DEG, solve.raDeg)
+                            putExtra(VRActivity.EXTRA_SOLVE_DEC_DEG, solve.decDeg)
+                            putExtra(VRActivity.EXTRA_SOLVE_CONFIDENCE, solve.confidence.toFloat())
+                            // 7.4 follow-up: SolveResult has no timestamp, so
+                            // ageMs is reported as 0 — i.e. the marker is
+                            // drawn at full alpha. That's the honest answer
+                            // given the data we have; a stale "solved long
+                            // ago" solve will still draw, but the operator
+                            // can see the RA/Dec in the HUD before the
+                            // marker disappears.
+                            putExtra(VRActivity.EXTRA_SOLVE_AGE_MS, 0L)
+                            putExtra(VRActivity.EXTRA_TARGET_RA_DEG, targetRaDeg)
+                            putExtra(VRActivity.EXTRA_TARGET_DEC_DEG, targetDecDeg)
+                            // 60°×45° matches the VRActivity defaults
+                            // (DEFAULT_FOV_X_DEG / DEFAULT_FOV_Y_DEG). A
+                            // future stream will read the live camera FoV
+                            // from the connected mount's sensor.
+                            putExtra(VRActivity.EXTRA_FOV_X_DEG, 60f)
+                            putExtra(VRActivity.EXTRA_FOV_Y_DEG, 45f)
+                        }
                     }
                     startActivity(intent)
                 },

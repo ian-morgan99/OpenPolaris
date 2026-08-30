@@ -22,7 +22,9 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import dev.openpolaris.core.domain.PreviewController
+import dev.openpolaris.core.domain.SolveTargetProjector
 import dev.openpolaris.core.domain.VrStereoShaders
+import dev.openpolaris.core.solver.SolveResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.microedition.khronos.egl.EGLConfig
@@ -112,6 +114,29 @@ class VRActivity : ComponentActivity() {
         hudPort = intent.getIntExtra(EXTRA_PORT, DEFAULT_PORT)
 
         renderer = StereoRenderer()
+
+        // 7.4 — read solve/target marker extras if present. Absent if
+        // the launching screen had no solve yet (very first launch, or
+        // the user hasn't run Solve). Absent → marker is hidden; no
+        // crash, no fallback math.
+        val solveRa = intent.getDoubleExtra(EXTRA_SOLVE_RA_DEG, Double.NaN)
+        if (!solveRa.isNaN()) {
+            val solveDec = intent.getDoubleExtra(EXTRA_SOLVE_DEC_DEG, Double.NaN)
+            val targetRa = intent.getDoubleExtra(EXTRA_TARGET_RA_DEG, Double.NaN)
+            val targetDec = intent.getDoubleExtra(EXTRA_TARGET_DEC_DEG, Double.NaN)
+            if (!solveDec.isNaN() && !targetRa.isNaN() && !targetDec.isNaN()) {
+                renderer.setSolveTarget(
+                    fieldRaDeg = solveRa,
+                    fieldDecDeg = solveDec,
+                    targetRaDeg = targetRa,
+                    targetDecDeg = targetDec,
+                    confidence = intent.getFloatExtra(EXTRA_SOLVE_CONFIDENCE, 0.6f),
+                    ageMs = intent.getLongExtra(EXTRA_SOLVE_AGE_MS, 0L),
+                    fovXDeg = intent.getFloatExtra(EXTRA_FOV_X_DEG, DEFAULT_FOV_X_DEG),
+                    fovYDeg = intent.getFloatExtra(EXTRA_FOV_Y_DEG, DEFAULT_FOV_Y_DEG),
+                )
+            }
+        }
         glView = GLSurfaceView(this).apply {
             setEGLContextClientVersion(2)
             setRenderer(renderer)
@@ -323,8 +348,26 @@ class VRActivity : ComponentActivity() {
     companion object {
         const val EXTRA_HOST = "dev.openpolaris.android.VR_HOST"
         const val EXTRA_PORT = "dev.openpolaris.android.VR_PORT"
+        // Stream 7.4 — solve-target marker overlay (issue #11).
+        // All seven are present only when the caller has a fresh solve
+        // AND a target configured. Absent → marker is hidden.
+        const val EXTRA_SOLVE_RA_DEG = "dev.openpolaris.android.VR_SOLVE_RA"
+        const val EXTRA_SOLVE_DEC_DEG = "dev.openpolaris.android.VR_SOLVE_DEC"
+        const val EXTRA_SOLVE_CONFIDENCE = "dev.openpolaris.android.VR_SOLVE_CONF"
+        const val EXTRA_SOLVE_AGE_MS = "dev.openpolaris.android.VR_SOLVE_AGE_MS"
+        const val EXTRA_TARGET_RA_DEG = "dev.openpolaris.android.VR_TARGET_RA"
+        const val EXTRA_TARGET_DEC_DEG = "dev.openpolaris.android.VR_TARGET_DEC"
+        const val EXTRA_FOV_X_DEG = "dev.openpolaris.android.VR_FOV_X"
+        const val EXTRA_FOV_Y_DEG = "dev.openpolaris.android.VR_FOV_Y"
         const val DEFAULT_HOST = "192.168.43.1"
         const val DEFAULT_PORT = 8080
+        // Cardboard v1 reference viewer profile — used when the caller
+        // doesn't pass a FoV (e.g. a future test harness). Matches the
+        // test defaults in SolveTargetProjectorTest.
+        const val DEFAULT_FOV_X_DEG = 60f
+        const val DEFAULT_FOV_Y_DEG = 45f
+        // Marker dims after 5 min since the solve was recorded.
+        const val MARKER_MAX_AGE_MS = 5L * 60L * 1000L
     }
 }
 
@@ -397,6 +440,53 @@ class StereoRenderer : GLSurfaceView.Renderer {
         pitch = p
     }
 
+    // Stream 7.4 — plate-solve target marker overlay (issue #11).
+    // All eight are written by [setSolveTarget] from the UI thread and
+    // read by the GL thread inside [drawSolveMarker] once per frame.
+    // @Volatile guarantees publication of each field individually;
+    // the GL thread reads them in a stable order so any inconsistency
+    // is at most one frame's worth, and the confidence/fov values are
+    // coerced at the setter so out-of-range extras can't crash the
+    // draw path.
+    @Volatile private var solveFieldRaDeg: Double = 0.0
+    @Volatile private var solveFieldDecDeg: Double = 0.0
+    @Volatile private var solveTargetRaDeg: Double = 0.0
+    @Volatile private var solveTargetDecDeg: Double = 0.0
+    @Volatile private var solveConfidence: Float = 0f
+    @Volatile private var solveFovXDeg: Float = 0f
+    @Volatile private var solveFovYDeg: Float = 0f
+    @Volatile private var solveRecordedAtMs: Long = 0L
+    /** True when the launching Intent supplied a valid solve + target. */
+    @Volatile private var hasSolveTarget: Boolean = false
+
+    fun setSolveTarget(
+        fieldRaDeg: Double,
+        fieldDecDeg: Double,
+        targetRaDeg: Double,
+        targetDecDeg: Double,
+        confidence: Float,
+        ageMs: Long,
+        fovXDeg: Float,
+        fovYDeg: Float,
+    ) {
+        val c = confidence.coerceIn(0f, 1f)
+        // Sanity-check the FoV — refuse to crash on bogus extras.
+        val fx = if (fovXDeg > 0f) fovXDeg else 60f
+        val fy = if (fovYDeg > 0f) fovYDeg else 45f
+        solveFieldRaDeg = fieldRaDeg
+        solveFieldDecDeg = fieldDecDeg
+        solveTargetRaDeg = targetRaDeg
+        solveTargetDecDeg = targetDecDeg
+        solveConfidence = c
+        solveFovXDeg = fx
+        solveFovYDeg = fy
+        // The launch-time age, recorded against the system clock at
+        // launch, lets [drawSolveMarker] age out cleanly without a
+        // second source of truth.
+        solveRecordedAtMs = System.currentTimeMillis() - ageMs
+        hasSolveTarget = true
+    }
+
     override fun onSurfaceCreated(gl: GLES20?, config: EGLConfig?) {
         GLES20.glClearColor(0f, 0f, 0f, 1f)
         // Shader source lives in `commonMain` (`VrStereoShaders`) so its
@@ -439,10 +529,12 @@ class StereoRenderer : GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, halfW, eyeHeight)
         drawEye(-0.08f, halfW.toFloat(), eyeHeight.toFloat())
         drawCrosshair(halfW.toFloat(), eyeHeight.toFloat())
+        drawSolveMarker(halfW.toFloat(), eyeHeight.toFloat())
 
         GLES20.glViewport(halfW, 0, halfW, eyeHeight)
         drawEye(0.08f, halfW.toFloat(), eyeHeight.toFloat())
         drawCrosshair(halfW.toFloat(), eyeHeight.toFloat())
+        drawSolveMarker(halfW.toFloat(), eyeHeight.toFloat())
 
         // FPS accounting — once per second, take a sample.
         fpsFrames++
@@ -487,6 +579,110 @@ class StereoRenderer : GLSurfaceView.Renderer {
         // 2) White reticle on top.
         drawLines(segments, offsetX = 0f, offsetY = 0f,
             color = floatArrayOf(1f, 1f, 1f, 1f), lineWidth = 2f, aspect = aspect)
+    }
+
+    /**
+     * Stream 7.4 — draws a small circle at the on-screen position of the
+     * GoTo target, offset from the field centre by the angular separation
+     * between the plate-solve result (field) and the configured target.
+     *
+     * Math lives in [SolveTargetScreenPos] (commonMain, JVM-tested). This
+     * method is only the renderer: it asks the math for (x, y) in the
+     * `[-0.5, +0.5]` visible-disc space, converts to per-eye NDC, draws a
+     * 16-segment circle outline, and colours it by solve confidence.
+     *
+     * The marker dims and hides as the solve ages (default 5 min — see
+     * [companion.MARKER_MAX_AGE_MS] in VRActivity), so an obsolete solve
+     * doesn't lie to the user about where the target is.
+     *
+     * No-op when [setSolveTarget] was never called or the solve has
+     * aged out. Cheap on purpose: 32 vertices, 1 draw call, reuses the
+     * existing [lineProgram] shader so we don't add GL state.
+     */
+    private fun drawSolveMarker(viewW: Float, viewH: Float) {
+        if (!hasSolveTarget) return
+        val now = System.currentTimeMillis()
+        val age = now - solveRecordedAtMs
+        if (age < 0L || age > MARKER_MAX_AGE_MS) return
+
+        // The math is a pure data class: it expects (field, target)
+        // SolveResult snapshots that the UI thread captures at launch
+        // time. matchedStars=4 is a safe lower bound (the data class
+        // init requires >= 3) and signals "trustworthy enough" without
+        // bringing in a synthetic timestamp.
+        val fieldSolve = SolveResult(
+            raDeg = solveFieldRaDeg,
+            decDeg = solveFieldDecDeg,
+            confidence = 1.0,
+            matchedStars = 4,
+        )
+        val targetSolve = SolveResult(
+            raDeg = solveTargetRaDeg,
+            decDeg = solveTargetDecDeg,
+            confidence = 1.0,
+            matchedStars = 4,
+        )
+        val pos = SolveTargetProjector.project(
+            target = targetSolve,
+            field = fieldSolve,
+            fovXDeg = solveFovXDeg.toDouble(),
+            fovYDeg = solveFovYDeg.toDouble(),
+        )
+        val aspect = viewW / viewH
+
+        // SolveTargetProjector returns the raw (x, y) in [-0.5, +0.5]
+        // visible-disc space; anything outside is offScreen. When
+        // offScreen we snap the magnitude to ~0.95 of the disc so the
+        // user can see which way to slew.
+        val (cx, cy) = if (pos.offScreen) {
+            val e = pos.clampedToEdge()
+            e.x to e.y
+        } else {
+            pos.x to pos.y
+        }
+
+        // Convert visible-disc coords to NDC for this eye.
+        val ndcX = (2f * aspect * cx).toFloat()
+        val ndcY = (2f * cy).toFloat()
+
+        // Marker geometry: 16-segment circle outline in NDC. Radius
+        // chosen to be readable at 60° FoV but not so big it overlaps
+        // the crosshair. ~3% of the screen height.
+        val radius = 0.03f
+        val segments = 16
+        val verts = FloatArray(segments * 4) // (x0, y0, x1, y1) per segment
+        for (i in 0 until segments) {
+            val theta0 = (2.0 * Math.PI * i / segments).toFloat()
+            val theta1 = (2.0 * Math.PI * (i + 1) / segments).toFloat()
+            val j = i * 4
+            verts[j]     = ndcX + radius * kotlin.math.cos(theta0)
+            verts[j + 1] = ndcY + radius * kotlin.math.sin(theta0)
+            verts[j + 2] = ndcX + radius * kotlin.math.cos(theta1)
+            verts[j + 3] = ndcY + radius * kotlin.math.sin(theta1)
+        }
+
+        // Confidence → colour and alpha. Spec from issue #11:
+        //   conf ≥ 0.8 → green
+        //   0.6 ≤ conf < 0.8 → yellow
+        //   conf < 0.6 → white-dim
+        // Alpha additionally fades with age so the marker visibly dies
+        // instead of popping off at exactly 5 min.
+        val conf = solveConfidence
+        val ageFrac = (1f - age.toFloat() / MARKER_MAX_AGE_MS).coerceIn(0f, 1f)
+        val baseAlpha = if (conf >= 0.8f) {
+            floatArrayOf(0.2f, 1f, 0.2f, 0.9f)
+        } else if (conf >= 0.6f) {
+            floatArrayOf(1f, 0.85f, 0.2f, 0.85f)
+        } else {
+            floatArrayOf(0.85f, 0.85f, 0.85f, 0.6f)
+        }
+        val color = floatArrayOf(baseAlpha[0], baseAlpha[1], baseAlpha[2], baseAlpha[3] * ageFrac)
+
+        // Drop shadow first for legibility on bright nebulosity.
+        drawLines(verts, offsetX = 0.003f, offsetY = -0.003f,
+            color = floatArrayOf(0f, 0f, 0f, 0.7f), lineWidth = 3f, aspect = aspect)
+        drawLines(verts, offsetX = 0f, offsetY = 0f,
+            color = color, lineWidth = 2f, aspect = aspect)
     }
 
     /**

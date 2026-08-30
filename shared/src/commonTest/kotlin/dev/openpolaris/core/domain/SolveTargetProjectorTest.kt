@@ -110,6 +110,26 @@ class SolveTargetProjectorTest {
     }
 
     @Test
+    fun clampedToEdgePreservesDirection() {
+        // off-screen target in the upper-left quadrant (RA+Dec opposite)
+        // should clamp to a point in the upper-left, not rotate.
+        val p = SolveTargetProjector.project(
+            target = solve(ra = 300.0, dec = 75.0),
+            field = solve(ra = 180.0, dec = 0.0),
+            fovXDeg = 60.0,
+            fovYDeg = 45.0,
+        )
+        assertTrue(p.offScreen)
+        val angleBefore = kotlin.math.atan2(p.y, p.x)
+        val e = p.clampedToEdge()
+        val angleAfter = kotlin.math.atan2(e.y, e.x)
+        assertEquals(angleBefore, angleAfter, 1e-9)
+        // also: the clamped point is on the visible disc
+        val r = kotlin.math.sqrt(e.x * e.x + e.y * e.y)
+        assertTrue(r <= 0.96, "clamped r should be on the disc, was $r")
+    }
+
+    @Test
     fun decCompensatesRaAtHighDeclination() {
         // At dec=80, cos(80)≈0.174. So a 10° RA step projects to a
         // much smaller screen offset than at the equator.

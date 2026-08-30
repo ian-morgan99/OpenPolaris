@@ -23,6 +23,7 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import dev.openpolaris.core.domain.MarkerStateBus
+import dev.openpolaris.core.domain.MarkerWarp
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.SolveTargetProjector
 import dev.openpolaris.core.domain.VrStereoShaders
@@ -716,6 +717,18 @@ class StereoRenderer : GLSurfaceView.Renderer {
         val ndcX = (2f * aspect * cx).toFloat()
         val ndcY = (2f * cy).toFloat()
 
+        // Issue #16: route the marker through the same warp as the eye
+        // textures, so the user perceives the marker at the same NDC the
+        // eye shader uses to sample the underlying image. Without this
+        // the marker drifts in VR because the eye texture is pan-shifted
+        // by the head pose while the marker is drawn at flat NDC.
+        // [MarkerWarp] is the JVM-testable seam in front of
+        // [CardboardWarp.vertexPosition] so the lockstep is asserted in
+        // unit tests and any future barrel-distortion change in the eye
+        // shader (which would touch `CardboardWarp` constants) moves the
+        // marker identically without further code changes here.
+        val (warpedX, warpedY) = MarkerWarp.warpNdc(ndcX to ndcY, yaw, pitch)
+
         // Marker geometry: 16-segment circle outline in NDC. Radius
         // chosen to be readable at 60° FoV but not so big it overlaps
         // the crosshair. ~3% of the screen height.
@@ -726,10 +739,10 @@ class StereoRenderer : GLSurfaceView.Renderer {
             val theta0 = (2.0 * Math.PI * i / segments).toFloat()
             val theta1 = (2.0 * Math.PI * (i + 1) / segments).toFloat()
             val j = i * 4
-            verts[j]     = ndcX + radius * kotlin.math.cos(theta0)
-            verts[j + 1] = ndcY + radius * kotlin.math.sin(theta0)
-            verts[j + 2] = ndcX + radius * kotlin.math.cos(theta1)
-            verts[j + 3] = ndcY + radius * kotlin.math.sin(theta1)
+            verts[j]     = warpedX + radius * kotlin.math.cos(theta0)
+            verts[j + 1] = warpedY + radius * kotlin.math.sin(theta0)
+            verts[j + 2] = warpedX + radius * kotlin.math.cos(theta1)
+            verts[j + 3] = warpedY + radius * kotlin.math.sin(theta1)
         }
 
         // Confidence → colour and alpha. Spec from issue #11:

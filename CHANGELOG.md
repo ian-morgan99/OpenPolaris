@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `:tools:cli-probe:liveBurst` gradle task. Use this against a real
   gimbal once the `Polaris_XXXX` AP is in range; the simulator sees
   the same traffic.
+- `scripts/live-smoke.sh` (Step 3 of `PLANNING-2026-08.md`): automates
+  the network-state check, the gimbal TCP reachability check, and the
+  post-connect pre-camera burst probe. Refuses to fire the burst
+  unless the host is on a `polaris_*` AP (because from the tplink
+  subnet, `192.168.0.1` is the TP-Link admin page, not the gimbal).
+  Use `nmcli connection up polaris_d13e86` first, then
+  `scripts/live-smoke.sh` (or `scripts/live-smoke.sh --check` to
+  probe reachability without firing the burst). Output is appended
+  to `/tmp/openpolaris-live-smoke.log` and rotated past 1 MB so it
+  can be captured across many runs and pasted into
+  `polaris-re-results.md` §10 to tune the `fromFrame` parsers.
 
 ### Changed
 - **License:** GPL-3.0 → **MIT**.  The OpenPolaris codebase has not

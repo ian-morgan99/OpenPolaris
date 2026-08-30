@@ -2,7 +2,8 @@ package dev.openpolaris.core.protocol
 
 /**
  * Parses mount responses. Tolerant by design: unknown keys are ignored, malformed segments
- * are skipped, and values are taken after the LAST ':' in each segment (per firmware behavior).
+ * are skipped, and values are taken after the FIRST ':' in each segment so values
+ * containing colons (e.g. ISO-8601 timestamps) survive intact.
  */
 class ResponseParser {
 

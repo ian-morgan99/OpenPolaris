@@ -204,6 +204,14 @@ agent otherwise:
 condition failed and what the next step is (refine the spec, ask the user, wait for the review
 agent, etc.). The plan is the source of truth for this rule.
 
+**Source of truth for the slice order.** The "Immediate next actions"
+items 5-12 are a *cached* queue for this worktree. The authoritative
+order is the live issue list, sorted by label and creation date:
+[p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)
+and [p2 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp2+sort%3Acreated-asc).
+If a reviewing agent files a new `priority/p0` or re-prioritises an
+existing issue, that preempts the cached order per condition 3 above.
+
 ## Current stream priorities
 
 Open issues, in priority order. Tracked in the session todo mirror and on
@@ -215,15 +223,25 @@ Open issues, in priority order. Tracked in the session todo mirror and on
   `nmcli device wifi rescan` prompts the user. *Blocked on user* to run
   `/tmp/openpolaris-fix-polkit-typo.sh` and confirm. A self-contained one-shot fix
   is staged in the session workspace.
-- **#19 — plan refinement: `MountSession.tilt` SUSPEND+tryEmit contradiction +
-  plan/GitHub divergence on this worktree** ([link](https://github.com/ian-morgan99/OpenPolaris/issues/19)).
-  Surfaced by the critical review after Stream 7.5 (`56831b1`). Three sub-points:
-  (a) the next-slice queue on this branch differs from the plan's "Immediate next
-  actions" list — issue #6 was closed on a different branch without landing on
-  this worktree; (b) the SUSPEND+tryEmit contradiction in `MountSession.runReaderLoop`
-  is unaddressed on this branch; (c) the 3a/3b/3c sub-slices promised by issue #7
-  were never filed as separate issues. *Action: the next slice is the
-  SUSPEND+tryEmit fix + slow-collector regression test.*
+
+### 3a/3b/3c queue (Stream 3 — session lifecycle, filed 2026-08-30T17:18Z)
+
+| # | Priority | Issue | Title | Depends on |
+|---|----------|-------|-------|-----------|
+| 3a.1 | p1 | [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) | `Session.shutdown` no-leak JVM test | — |
+| 3a.2 | p1 | [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) | `_tilt.value` survives `Session.stop()`/`start()` | 3a.1 |
+| 3b.1 | p1 | [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) | `runAndAwait` cancellation returns `Failed("cancelled")` within 1s | 3a.2 |
+| 3b.2 | p1 | [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) | No leftover coroutines after `runAndAwait` cancellation | 3b.1 |
+| 3c.1 | p2 | [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) | `SessionMarker` data class with `kotlinx.serialization` JSON | — |
+| 3c.2 | p2 | [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) | `SessionStore` interface (save, loadAll, delete, latest) | 3c.1 |
+| 3c.3 | p2 | [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26) | `FileSessionStore` in `androidApp/src/androidMain` | 3c.2 |
+| 3c.4 | p2 | [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) | Auto-reconnect prompt on Wi-Fi loss (uses `SessionStore.latest()`) | 3c.3 |
+
+p1 sub-issues ship in queue order before any p2 work begins (see
+"Immediate next actions" items 5-12 and the
+[live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
+p2 sub-issues are deferred until the p1 queue is empty or until a
+reviewing agent assigns a new owner.
 
 **Closed (recent, in this worktree's history):**
 - **#18 — Stream 7.5: in-VR recenter affordance (volume key + offset math)**
@@ -442,11 +460,14 @@ issue #19 is closed.
    Full `:shared:jvmTest --rerun` is green at **222/222** (was 220, +2 from
    this slice). Issue #19 is closed with a comment documenting the four-file
    edit list and the new test coverage.
-3. **§F contract test (per §L of PLAN-CRITICAL-REVIEW)** — add two tests to
-   `AutoLevelControllerTest.kt`: `gimbalPosFrame517DoesNotFeedSettling` and
-   `tiltStateFrame538DoesFeedSettling`. Lands in the same commit as item 2, since
-   the test depends on the production sample source. Without this test, the
-   517/538 spec error fix is unverified against future refactor.
+3. ~~**§F contract test (per §L of PLAN-CRITICAL-REVIEW)** — add two tests to
+   `AutoLevelControllerTest.kt`.~~ **DONE** in commit `7970e55`. The shipped
+   tests are `gimbalPosFrame517DoesNotFeedTilt` (line 272) and
+   `tiltStateFrame538DoesFeedTilt` (line 298). Both pass in
+   `:shared:jvmTest --rerun-tasks` at 222/222. The original "Settling" suffix
+   was renamed to "Tilt" before commit because the test asserts the *tilt
+   stream* contract (no 517 frame ever feeds `_tilt`), not the *settling*
+   contract. PLAN-CRITICAL-REVIEW §F wording is updated accordingly.
 4. **File 3a/3b/3c as separate issues (issue #19 acceptance criterion)** —
    planning commits, no code. Closes the `next-slice-ready` rule 4 violation
    §K surfaces. 3a.1 = `AutoLevelController.stop()` + restart test (no leak);
@@ -468,6 +489,32 @@ issue #19 is closed.
 5. **Issue #20: 3a.1 `Session.shutdown` + JVM no-leak test** — ~80 LoC. After
    items 2-4 land. The live issue is the source of truth:
    [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20).
+6. **Issue #21: 3a.2 `_tilt.value` survives `Session.stop()`/`start()`** — p1,
+   unblocks after #20. ~60 LoC. Live:
+   [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21).
+7. **Issue #22: 3b.1 `runAndAwait` cancellation returns `Failed("cancelled")`
+   within 1s** — p1, unblocks after #21. ~60 LoC. Live:
+   [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22).
+8. **Issue #23: 3b.2 No leftover coroutines after `runAndAwait` cancellation**
+   (gated on `-Pkotlinx.coroutines.debug=true`) — p1, unblocks after #22.
+   ~60 LoC. Live:
+   [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23).
+9. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
+   JSON** — p2, deferred to a later slice. ~80 LoC. Live:
+   [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24).
+10. **Issue #25: 3c.2 `SessionStore` interface (save, loadAll, delete, latest)**
+    — p2, deferred. ~80 LoC. Live:
+    [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25).
+11. **Issue #26: 3c.3 `FileSessionStore` in `androidApp/src/androidMain`**
+    (atomic temp+rename) — p2, deferred. ~100 LoC. Live:
+    [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26).
+12. **Issue #27: 3c.4 Auto-reconnect prompt on Wi-Fi loss** (uses
+    `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
+    [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
+
+p1 sub-issues (#20-#23) ship in queue order before any p2 work begins
+(see the `next-slice-ready` condition 4 in PLAN.md and the
+[live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 6. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
    owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
    7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped
@@ -478,10 +525,10 @@ issue #19 is closed.
 8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
 9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Item 2 has now landed (commit `7970e55`); the next agent MUST verify on resume
-that the worktree is at or past `7970e55` and that `:shared:jvmTest --rerun-tasks`
-is still green at 222/222 before starting item 5. Items 3 (§F contract test)
-and 4 (the filed #20-#27 sub-issues) are next-slice dependencies for item 5
-and should be confirmed in the worktree before any code change. If a reviewing
+Items 2 and 3 have now landed (commit `7970e55`); the next agent MUST verify
+on resume that the worktree is at or past `7970e55` and that
+`:shared:jvmTest --rerun-tasks` is still green at 222/222 before starting
+item 5. Item 4 (the filed #20-#27 sub-issues) is also landed and should
+be confirmed in the worktree before any code change. If a reviewing
 agent files a P0 (label `priority/p0`) in between, that preempts per the
 `next-slice-ready` condition 3.

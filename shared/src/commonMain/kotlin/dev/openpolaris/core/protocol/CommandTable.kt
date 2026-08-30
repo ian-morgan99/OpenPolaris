@@ -7,6 +7,11 @@ import dev.openpolaris.core.domain.MountState
  * Table-driven command registry (ARCHITECTURE §3.2). One descriptor per code:
  * how to build the payload and how to interpret the response frame.
  * PROTOCOL.md is the human mirror of this table.
+ *
+ * Markers:
+ * - "VERIFIED" — wire format observed in RE + tests pass.
+ * - "RE" — wire format lifted from RE but not yet tested against firmware.
+ * - "UNVERIFIED" — code extracted from RE; payload/payload-keys are educated guesses.
  */
 object CommandTable {
 
@@ -29,6 +34,11 @@ object CommandTable {
         Codes.GET_GIMBAL_POS, "gimbal position",
         parse = GimbalPosition::fromFrame517,
     )
+
+    /** Push every 2s while battery poller is active. */
+    val BATTERY_STATUS = Descriptor<Unit>(Codes.BATTERY_STATUS, "battery status")
+    val BATTERY_DETAIL = Descriptor<Unit>(Codes.BATTERY_DETAIL, "battery detail")
+    val WIFI_BAND = Descriptor<Unit>(Codes.GET_WIFI_BAND, "wifi band")
 
     // ---- tracking ------------------------------------------------------------
 
@@ -109,6 +119,16 @@ object CommandTable {
     val JOG_H_ANGLE = Descriptor<Int>(Codes.GIMBAL_HADJ_ANGLE, "jog yaw angle", payload = { "time:$it;" })
     val JOG_V_ANGLE = Descriptor<Int>(Codes.GIMBAL_VADJ_ANGLE, "jog pitch angle", payload = { "time:$it;" })
 
+    // ---- system (RE) -----------------------------------------------------------
+
+    /** Push current extended-axis / tripod state. */
+    val EX_AXIS_STA = Descriptor<Unit>(Codes.EX_AXIS_STA, "ex axis state")
+    /** Gimbal RTC millis. (RE) */
+    val SET_SYSTEM_TIME = Descriptor<Long>(Codes.SET_SETTLING_TIME, "set system time (RE: uses 544)",
+        payload = { "time:$it;" })
+    /** Diagnostic echo — firmwares reply with the same string. (RE) */
+    val TEST_STEP = Descriptor<String>(Codes.SP_TEST, "test step", payload = { "step:$it;" })
+
     // ---- camera (UNVERIFIED codes — see Codes.kt note; payloads are ground truth) --
 
     /** Camera parameter value: an index into the firmware-sorted option list. */
@@ -141,14 +161,94 @@ object CommandTable {
     /** Trigger a single exposure via the CableRelease task path (SP_CableReleaseMakePhoto). */
     val CAM_CAPTURE = Descriptor<Unit>(Codes.CAM_CAPTURE, "capture photo")
 
+    // ---- file / SD (RE) --------------------------------------------------------
+
+    /** Page of files: `type:%d;page:%d;` request, `type:0;page:0;...;#` reply. */
+    data class FileListRequest(val type: Int, val page: Int)
+    val FILE_LIST = Descriptor<FileListRequest>(Codes.FILE_LIST, "file list",
+        payload = { "type:${it.type};page:${it.page};" })
+    val FILE_DELETE = Descriptor<Int>(Codes.FILE_DELETE, "file delete",
+        payload = { "id:$it;" })
+    val FILE_RENAME = Descriptor<Pair<Int, String>>(Codes.FILE_RENAME, "file rename",
+        payload = { (id, name) -> "id:$id;name:$name;" })
+    val FILE_PROTECT = Descriptor<Pair<Int, Int>>(Codes.FILE_PROTECT, "file protect",
+        payload = { (id, prot) -> "id:$id;prot:$prot;" })
+    val FILE_INFO = Descriptor<Int>(Codes.FILE_INFO, "file info",
+        payload = { "id:$it;" })
+    val FILE_SD_STATUS = Descriptor<Unit>(Codes.FILE_SD_STATUS, "file sd status")
+    val FILE_SD_FORMAT = Descriptor<Unit>(Codes.FILE_SD_FORMAT, "file sd format")
+    val FILE_SET_TYPE = Descriptor<Int>(Codes.FILE_SET_TYPE, "file set type",
+        payload = { "type:$it;" })
+    val FILE_UPLOAD_FW = Descriptor<String>(Codes.FILE_UPLOAD_FW, "file upload fw (RE: path)",
+        payload = { "path:$it;" })
+    val FILE_UPLOAD_CHUNK = Descriptor<String>(Codes.FILE_UPLOAD_CHUNK, "file upload chunk",
+        payload = { "data:$it;" })
+    val FILE_UPLOAD_END = Descriptor<Unit>(Codes.FILE_UPLOAD_END, "file upload end")
+
+    // ---- WiFi / system (RE) ----------------------------------------------------
+
+    val SET_WIFI_BAND = Descriptor<Int>(Codes.SET_WIFI_BAND, "set wifi band",
+        payload = { "band:$it;" })
+    val WIFI_SCAN = Descriptor<Unit>(Codes.WIFI_SCAN, "wifi scan")
+    val WIFI_LIST = Descriptor<Unit>(Codes.WIFI_LIST, "wifi list")
+    val WIFI_CONNECT = Descriptor<String>(Codes.WIFI_CONNECT, "wifi connect (RE: ssid)",
+        payload = { "ssid:$it;" })
+    val WIFI_DISCONNECT = Descriptor<Unit>(Codes.WIFI_DISCONNECT, "wifi disconnect")
+    val WIFI_STATUS = Descriptor<Unit>(Codes.WIFI_STATUS, "wifi status")
+    val WIFI_RSSI = Descriptor<Unit>(Codes.WIFI_RSSI, "wifi rssi")
+    val SYS_VERSION = Descriptor<Unit>(Codes.SYS_VERSION, "sys version")
+    val SYS_SERIAL = Descriptor<Unit>(Codes.SYS_SERIAL, "sys serial")
+    val SYS_FW_UPGRADE = Descriptor<Int>(Codes.SYS_FW_UPGRADE, "sys fw upgrade (RE: state)",
+        payload = { "state:$it;" })
+    val SYS_FW_PROGRESS = Descriptor<Unit>(Codes.SYS_FW_PROGRESS, "sys fw progress")
+    val SYS_REBOOT = Descriptor<Unit>(Codes.SYS_REBOOT, "sys reboot")
+    val SYS_SHUTDOWN = Descriptor<Unit>(Codes.SYS_SHUTDOWN, "sys shutdown")
+    val SYS_TIME = Descriptor<Long>(Codes.SYS_TIME, "sys time",
+        payload = { "time:$it;" })
+    val SYS_TIMEZONE = Descriptor<Int>(Codes.SYS_TIMEZONE, "sys timezone",
+        payload = { "tz:$it;" })
+    val SYS_LANGUAGE = Descriptor<Int>(Codes.SYS_LANGUAGE, "sys language",
+        payload = { "lang:$it;" })
+    val SYS_BUZZER = Descriptor<Boolean>(Codes.SYS_BUZZER, "sys buzzer",
+        payload = { "en:${if (it) 1 else 0};" })
+    val SYS_LED = Descriptor<Boolean>(Codes.SYS_LED, "sys led",
+        payload = { "en:${if (it) 1 else 0};" })
+    val SYS_LOG = Descriptor<Unit>(Codes.SYS_LOG, "sys log")
+
+    // ---- OMS operational mode (RE) --------------------------------------------
+
+    /** OMS = On-Mount State. 824 pushes current OMS + error state. */
+    val OMS_RUN_STATE = Descriptor<Unit>(Codes.OMS_RUN_STATE, "oms run state")
+    val OMS_TASK_LIST = Descriptor<Unit>(Codes.OMS_TASK_LIST, "oms task list")
+
+    // ---- app handshake / token (RE) -------------------------------------------
+
+    val APP_PASSWORD_INFO = Descriptor<Unit>(Codes.APP_PASSWORD_INFO, "app password info")
+    val APP_TOKEN = Descriptor<Unit>(Codes.APP_TOKEN, "app token")
+    val APP_PING = Descriptor<Unit>(Codes.APP_PING, "app ping")
+    val APP_HELLO = Descriptor<Unit>(Codes.APP_HELLO, "app hello")
+
     val ALL: Map<Int, List<Descriptor<*>>> =
-        listOf(MODE_STATE, GIMBAL_POS, TRACK_START, TRACK_STOP, TRACK_HALF_SPEED, AHRS,
-            GOTO_AZ_ALT, GOTO_CANCEL, ALIGN_STAR, POS_RESET, JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
+        listOf(
+            MODE_STATE, GIMBAL_POS, BATTERY_STATUS, BATTERY_DETAIL, WIFI_BAND,
+            TRACK_START, TRACK_STOP, TRACK_HALF_SPEED, AHRS,
+            GOTO_AZ_ALT, GOTO_CANCEL, ALIGN_STAR, POS_RESET,
+            JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
             DITHER_GET, DITHER_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
             SETTLING_TIME_GET, SETTLING_TIME_SET,
+            EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
-            CAM_GET_EV, CAM_SET_EV, CAM_GET_STATE, CAM_CAPTURE)
-            .groupBy { it.code }
+            CAM_GET_EV, CAM_SET_EV, CAM_GET_STATE, CAM_CAPTURE,
+            FILE_LIST, FILE_DELETE, FILE_RENAME, FILE_PROTECT, FILE_INFO,
+            FILE_SD_STATUS, FILE_SD_FORMAT, FILE_SET_TYPE, FILE_UPLOAD_FW,
+            FILE_UPLOAD_CHUNK, FILE_UPLOAD_END,
+            SET_WIFI_BAND, WIFI_SCAN, WIFI_LIST, WIFI_CONNECT, WIFI_DISCONNECT,
+            WIFI_STATUS, WIFI_RSSI, SYS_VERSION, SYS_SERIAL, SYS_FW_UPGRADE,
+            SYS_FW_PROGRESS, SYS_REBOOT, SYS_SHUTDOWN, SYS_TIME, SYS_TIMEZONE,
+            SYS_LANGUAGE, SYS_BUZZER, SYS_LED, SYS_LOG,
+            OMS_RUN_STATE, OMS_TASK_LIST,
+            APP_PASSWORD_INFO, APP_TOKEN, APP_PING, APP_HELLO,
+        ).groupBy { it.code }
 
     fun describe(code: Int): String =
         ALL[code]?.joinToString("/") { it.name } ?: "code $code"

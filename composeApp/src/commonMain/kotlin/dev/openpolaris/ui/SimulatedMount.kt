@@ -2,6 +2,7 @@ package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.sim.SimulatedProtocol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -10,25 +11,28 @@ import kotlin.time.Duration.Companion.milliseconds
  * In-process simulated mount for demo mode. Implements Connection but never touches
  * the network: writes are parsed as commands and answered with plausible frames
  * queued on the read side, so the real MountSession request/response path is exercised.
+ *
+ * The protocol logic itself lives in [SimulatedProtocol] so it can be shared with the
+ * standalone `tools/stub-server` TCP runner.
  */
-class SimulatedMount(private val scope: CoroutineScope) {
+class SimulatedMount(@Suppress("UNUSED_PARAMETER") scope: CoroutineScope) {
 
-    var tracking = false
-    var halfSpeed = false
-    var ahrs = true
-    var yaw = 0f
-    var pitch = 0f
+    val sim = SimulatedProtocol()
 
-    // Simulated camera parameter indices (demo mode).
-    var isoIndex = 5
-    var wbIndex = 2
-    var fNumIndex = 3
-    var evIndex = 4
+    var tracking: Boolean get() = sim.tracking; set(v) { sim.tracking = v }
+    var halfSpeed: Boolean get() = sim.halfSpeed; set(v) { sim.halfSpeed = v }
+    var ahrs: Boolean get() = sim.ahrs; set(v) { sim.ahrs = v }
+    var yaw: Float get() = sim.yaw; set(v) { sim.yaw = v }
+    var pitch: Float get() = sim.pitch; set(v) { sim.pitch = v }
+    var isoIndex: Int get() = sim.isoIndex; set(v) { sim.isoIndex = v }
+    var wbIndex: Int get() = sim.wbIndex; set(v) { sim.wbIndex = v }
+    var fNumIndex: Int get() = sim.fNumIndex; set(v) { sim.fNumIndex = v }
+    var evIndex: Int get() = sim.evIndex; set(v) { sim.evIndex = v }
 
-    private val conn = SimConnection()
+    private val conn = SimConnection(sim)
     val session = dev.openpolaris.core.domain.MountSession({ conn })
 
-    private inner class SimConnection : Connection {
+    private class SimConnection(private val sim: SimulatedProtocol) : Connection {
         val inbox = ArrayDeque<ByteArray>()
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) { /* always ok */ }
@@ -36,42 +40,12 @@ class SimulatedMount(private val scope: CoroutineScope) {
         override suspend fun write(data: ByteArray) {
             val text = String(data, Charsets.US_ASCII)
             val f = ResponseParser().parseFrame(text.trimEnd('#')) ?: return
-            handle(f.code, f.fields)
-        }
-
-        private fun handle(code: Int, fields: Map<String, String>) {
-            when (code) {
-                284 -> queue(
-                    "1&284&2&mode:${if (tracking) 2 else 0};battery:76;charge:0;" +
-                        "track:${if (tracking) 1 else 0};halfSpeed:${if (halfSpeed) 0 else 1};" +
-                        "ahrs:${if (ahrs) 1 else 0};#"
-                )
-                517 -> {
-                    if (tracking) yaw = (yaw + 0.05f) % 360f
-                    queue("1&517&2&yaw:$yaw;pitch:$pitch;roll:0.0;#")
-                }
-                531 -> tracking = fields["state"] == "1"
-                536 -> halfSpeed = fields["halfSpeed"] == "0" // inverted quirk
-                520 -> ahrs = fields["state"] == "1"
-                519 -> {
-                    yaw = fields["az"]?.toFloatOrNull() ?: yaw
-                    pitch = fields["alt"]?.toFloatOrNull() ?: pitch
-                    queue("1&519&2&result:ok;#")
-                }
-                258 -> queue("1&258&2&iso:$isoIndex;ret:0;#")
-                259 -> { isoIndex = fields["iso"]?.toIntOrNull() ?: isoIndex; queue("1&259&2&ret:0;#") }
-                260 -> queue("1&260&2&wb:$wbIndex;ret:0;#")
-                261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
-                262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
-                263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
-                264 -> queue("1&264&2&ev:$evIndex;ret:0;#")
-                265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
-                266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")
-                267 -> queue("1&267&2&state:1;bulb:0;c:1;#")
+            for (response in sim.handle(f.code, f.fields)) {
+                queueBytes(response)
             }
         }
 
-        fun queue(frameText: String) = synchronized(inbox) { inbox += frameText.toByteArray(Charsets.US_ASCII) }
+        fun queueBytes(bytes: ByteArray) = synchronized(inbox) { inbox += bytes }
 
         override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
             // Poll briefly for a queued response so request() sees it within its timeout.

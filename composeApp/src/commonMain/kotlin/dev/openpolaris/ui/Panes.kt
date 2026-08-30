@@ -48,7 +48,7 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: 
             }
             if (onFindWifi != null) {
                 OutlinedButton(onClick = onFindWifi) {
-                    Text("Find mount Wi-Fi…")
+                    Text("Connect mount Wi-Fi…")
                 }
             }
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)

@@ -19,12 +19,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("dev.openpolaris.probe.MainKt")
-}
-
-tasks.register<JavaExec>("burst") {
-    group = "application"
-    description = "Send a burst of codes to the stub. Args: <host> <port> <code,code,...>"
-    classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("dev.openpolaris.probe.BurstKt")
+    mainClass.set("dev.openpolaris.stub.MainKt")
 }

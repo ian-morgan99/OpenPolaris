@@ -46,10 +46,10 @@ import dev.openpolaris.core.domain.format2
 fun OpenPolarisApp(
     windowSizeClass: WindowSizeClass,
     connectionFactory: () -> Connection,
-    onFindWifi: (() -> Unit)? = null,
+    connectWifi: (suspend (String) -> Unit) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
-    val vm = AppViewModel(scope, connectionFactory)
+    val vm = AppViewModel(scope, connectionFactory, connectWifi)
     var dialog by remember { mutableStateOf<Callout?>(null) }
     val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
@@ -81,7 +81,7 @@ fun OpenPolarisApp(
             }
 
             when (dialog) {
-                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
+                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi = vm::connectWifi) }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }

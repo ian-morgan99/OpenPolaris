@@ -7,7 +7,16 @@ import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 
-class JvmConnection : Connection {
+class JvmConnection(
+    /**
+     * When non-null, every [connect] call binds the socket to this local
+     * address before dialing. Used to anchor the connection to a dedicated
+     * Wi-Fi interface (e.g. `wlp8s0`) so the gimbal traffic never leaves
+     * via the LAN NIC. Leave null on platforms that don't expose a NIC
+     * binding (e.g. mobile, CI).
+     */
+    @Volatile var bindTo: java.net.InetAddress? = null,
+) : Connection {
     private var socket: Socket? = null
     private var input: InputStream? = null
     private var output: OutputStream? = null
@@ -16,6 +25,7 @@ class JvmConnection : Connection {
         withContext(Dispatchers.IO) {
             val s = Socket()
             s.tcpNoDelay = true
+            bindTo?.let { s.bind(InetSocketAddress(it, 0)) }
             s.connect(InetSocketAddress(host, port), timeoutMs)
             socket = s
             input = s.getInputStream()

@@ -76,6 +76,14 @@ class AppViewModel(
     var host by mutableStateOf("192.168.0.1")
         private set
 
+    // 3b.5-BUG: live (committed) port, read by MountSession() and the
+    // persisted marker. Defaults to 9090 to match prior hard-coded
+    // behaviour; settable through [updatePort] from the UI.
+    var port by mutableStateOf(9090)
+        private set
+
+    fun updatePort(p: Int) { port = p }
+
     var mount by mutableStateOf(MountState())
         private set
 
@@ -100,6 +108,9 @@ class AppViewModel(
     // tears down.
     private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
+    // The simulated mount (only set in demo mode). Held so disconnect()
+    // can cancel its private reader scope.
+    private var demoSim: SimulatedMount? = null
 
     // Live preview of the camera MJPEG stream. Independent of the control
     // socket so a slow preview frame can never block the mount poll loop.
@@ -134,6 +145,17 @@ class AppViewModel(
     val draftHost: StateFlow<String> = _draftHost.asStateFlow()
 
     fun updateDraftHost(h: String) { _draftHost.value = h }
+
+    // 3b.5-BUG: parallel of [draftHost] for the persisted [ReconnectPrompt.port].
+    // Pre-fix, port had no draft/edit field at all and was a private mutableStateOf
+    // hard-coded to 9090 in both connect() and saveMarker(). The user could
+    // never change the port; even if they could, it was silently dropped on
+    // round-trip. ReconnectDialog now exposes this as a numeric field and
+    // acceptReconnect() reads it instead of the persisted prompt value.
+    private val _draftPort = MutableStateFlow("")
+    val draftPort: StateFlow<String> = _draftPort.asStateFlow()
+
+    fun updateDraftPort(p: String) { _draftPort.value = p }
 
     // 3c.5: handle to the in-flight connect coroutine so [cancelReconnect]
     // can interrupt a hung `s.connect()`. Null between connects. Set by
@@ -183,14 +205,21 @@ class AppViewModel(
             // Seed the host-edit field with the saved host so the
             // OutlinedTextField in the dialog has something to show.
             _draftHost.value = marker.host
+            // 3b.5-BUG: same seeding for port. Without this the port
+            // text field starts blank on first prompt and any
+            // acceptReconnect() derivation has nothing to fall back on
+            // except the prompt's port. We prefer the persisted value so
+            // the dialog round-trips whatever the user last accepted.
+            _draftPort.value = marker.port.toString()
         }
     }
 
     /**
      * User accepted the prompt. Sets [host] to the persisted host (or the
      * user's edited [draftHost] if non-blank) and calls [connect] using the
-     * persisted port. Clears the prompt synchronously so the dialog closes
-     * before the connection attempt begins. Sets [reconnecting] true so the
+     * persisted port (or the user's edited [draftPort] if a valid integer).
+     * Clears the prompt synchronously so the dialog closes before the
+     * connection attempt begins. Sets [reconnecting] true so the
      * (now-closed) dialog swap-in spinner and the dedicated "Cancel" path
      * become active. A successful connect will overwrite the marker with
      * fresh state; a cancelled connect leaves the marker untouched so the
@@ -199,19 +228,31 @@ class AppViewModel(
     fun acceptReconnect() {
         val prompt = _reconnectPrompt.value ?: return
         val targetHost = _draftHost.value.trim().ifBlank { prompt.host }
+        // 3b.5-BUG: derive the target port the same way. We *do not* trust
+        // the persisted prompt's port if the user has typed something on
+        // this surface, even when the typed value is unchanged (it gets
+        // reseeded to the persisted value by tryReconnectIfMarkerExists),
+        // because the user may have *just* edited it. An unparseable edit
+        // (e.g. "" or "abc") falls back to the persisted port, mirroring
+        // the host behavior.
+        val targetPort = _draftPort.value.trim().toIntOrNull() ?: prompt.port
         _reconnectPrompt.value = null
         host = targetHost
-        // If the user typed a different host, the existing marker is now
-        // stale. Persist a fresh one BEFORE launching connect so a
+        // 3b.5-BUG: commit the chosen port to the live field BEFORE
+        // connect() reads it. MountSession is constructed with `port`,
+        // not the prompt value, and saveMarker() also reads `port`. If
+        // the user typed a different port, the existing marker is now
+        // stale — persist a fresh one BEFORE launching connect so a
         // successful connect-time saveMarker() does not race with a
-        // user-visible "still pointing at the old host" prompt on the
-        // next launch.
-        if (targetHost != prompt.host) {
+        // user-visible "still pointing at the old port" prompt on the
+        // next launch. Same precedence as host: prompt.stale ↔ live != prompt.
+        port = targetPort
+        if (targetHost != prompt.host || targetPort != prompt.port) {
             val pos = position
             val writeResult = sessionStore.write(
                 SessionMarker(
                     host = targetHost,
-                    port = prompt.port,
+                    port = targetPort,
                     lastConnectedAtEpochMs = nowMs(),
                     lastMountMode = prompt.mountMode,
                     lastTrackingStarted = prompt.trackingStarted,
@@ -280,6 +321,8 @@ class AppViewModel(
             // the next successful connect that writes a new marker) can
             // re-seed it from the fresh marker's host.
             _draftHost.value = ""
+            // 3b.5-BUG: same clearing for the port-edit buffer.
+            _draftPort.value = ""
             statusMessage = if (removed) "Forgot saved mount" else "No saved mount to forget"
         }
     }
@@ -303,7 +346,11 @@ class AppViewModel(
         val pos = position
         val marker = SessionMarker(
             host = host,
-            port = 9090,
+            // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field
+            // which acceptReconnect() / connect() committed before this
+            // call. For a non-reconnect connect(), port is whatever the
+            // user last set it to (defaults to 9090).
+            port = port,
             lastConnectedAtEpochMs = nowMs(),
             lastMountMode = mount.mode,
             lastTrackingStarted = mount.tracking == true,
@@ -322,9 +369,22 @@ class AppViewModel(
     }
 
     fun connect() {
+        // 3d D2 + 3e E1: disconnect() now preserves any pending
+        // "Could not save updated host: …" message (see the comment
+        // in disconnect()), so the save-failure context survives the
+        // disconnect-and-reconnect cycle intact. The terminal-status
+        // branch in [connectJob] combines the save-failure message
+        // with the connect-outcome message into a single status line
+        // so the user sees both: the marker write failed AND the
+        // live connect failed.
         disconnect()
         demoMode = false
-        val s = MountSession(connectionFactory, host, 9090)
+        // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field which
+        // acceptReconnect() committed before calling connect() (in the
+        // reconnect path) or which the user set via the UI before pressing
+        // Connect on a fresh connect. The control socket endpoint and the
+        // persisted marker must agree, so both read from the same field.
+        val s = MountSession(connectionFactory, host, port)
         session = s
         controller = TrackingController(s)
         cameraController = dev.openpolaris.core.domain.CameraController(s)
@@ -350,13 +410,40 @@ class AppViewModel(
         // write-failure message until the next terminal status lands.
         connectJob = scope.launch {
             try {
+                // 3d D2: a preceding "Could not save updated host: …" message
+                // (set synchronously in acceptReconnect when the marker
+                // write failed) is the *cause* of the failure the user is
+                // about to see, not a separate fact — the connect itself
+                // is about to fail because the marker on disk is stale.
+                // Preserve that message across the terminal-status update
+                // so the user sees both: the save failure AND the
+                // connection failure. Without this, the "Could not
+                // reach …" line would silently clobber the save-failure
+                // context and the user would have no idea why their
+                // edit was lost.
+                //
+                // [disconnect()] preserves the save-failure message
+                // (see its comment), so reading statusMessage here
+                // inside the launched coroutine still returns the
+                // "Could not save updated host: …" line that
+                // acceptReconnect set synchronously. Match the EXACT
+                // prefix from acceptReconnect, NOT any past combined
+                // " — and could not reach …" message — a retry that
+                // again fails to save would re-trigger the snapshot,
+                // but a retry after a prior combined failure would
+                // NOT (no "Could not save" prefix). This keeps each
+                // connect attempt's status chain self-contained.
+                val pendingSaveFailure = statusMessage
+                    .takeIf { it.startsWith("Could not save updated host:") }
                 if (s.connect()) {
                     statusMessage = "Connected"
                     saveMarker()
                     startPolling(s)
                     startPreview()
                 } else {
-                    statusMessage = "Could not reach $host — try Demo mode"
+                    statusMessage = pendingSaveFailure?.let { saveMsg ->
+                        "$saveMsg — and could not reach $host. Try Demo mode."
+                    } ?: "Could not reach $host — try Demo mode"
                 }
             } finally {
                 _reconnecting.value = false
@@ -365,10 +452,23 @@ class AppViewModel(
     }
 
     /** Simulator mode: no hardware needed; drives a fake session locally. */
-    fun connectDemo() {
+    /**
+     * Spin up a fully simulated mount session.
+     *
+     * @param startPolling when true (default for the UI button) the launch
+     *   will start the mount-state poll loop; when false, the call returns
+     *   after writing the marker. Tests that only want to assert the
+     *   marker-save path pass `false` so that `advanceUntilIdle()` does
+     *   not run the poll loop forever.
+     */
+    fun connectDemo(startPolling: Boolean = true) {
         disconnect()
         demoMode = true
-        val sim = SimulatedMount(scope)
+        val sim = SimulatedMount()
+        // Hold a reference so disconnect() can cancel the private reader
+        // scope (otherwise the long-lived reader coroutine keeps the
+        // SupervisorJob alive past the lifetime of the AppViewModel).
+        demoSim = sim
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
@@ -382,7 +482,9 @@ class AppViewModel(
             // return value the same way `connect()` does.)
             saveMarker()
             statusMessage = "Demo mode (simulated mount)"
-            startPolling(sim.session)
+            if (startPolling) {
+                startPolling(sim.session)
+            }
             // No preview in demo mode: there is no MJPEG endpoint in the
             // simulator. PreviewController stays Idle, which the pane
             // renders as "Stream unavailable".
@@ -394,7 +496,21 @@ class AppViewModel(
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
-        _reconnecting.value = false
+        // Tear down the simulated mount's private reader scope so the
+        // long-lived reader coroutine does not keep the dispatcher alive
+        // past the lifetime of this view model.
+        demoSim?.shutdown()
+        demoSim = null
+        // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"
+        // flag, not a "disconnect lifecycle" flag. The launched coroutine
+        // in connect() resets it in its `finally` block (line 411) and
+        // cancelReconnect() resets it synchronously (line 290). Resetting
+        // it here was the root cause of `connectClearsReconnectingOnSuccess`
+        // failing: acceptReconnect() set it true and then synchronously
+        // called connect(), which called disconnect() (here), which
+        // cleared it before the test could observe the in-flight state.
+        // The cancel path is unaffected because cancelReconnect() does
+        // not call disconnect() and has its own explicit reset.
         stopAutoLevel()
         cancelHelpersJobs()
         preview.stop()
@@ -412,7 +528,24 @@ class AppViewModel(
         position = null
         lastSolveResult = null
         solveInProgress = false
-        if (!demoMode) statusMessage = "Disconnected"
+        if (!demoMode) {
+            // 3e E1: acceptReconnect() may have just set
+            // statusMessage to "Could not save updated host: …"
+            // (the marker write failed, so the next launch will
+            // re-prompt with the OLD host). The user needs to see
+            // that error, not the generic "Disconnected" line. This
+            // branch is the only writer to statusMessage in
+            // disconnect(), and it is reached on every connect()
+            // (which calls disconnect() first) and on every
+            // explicit user disconnect — in both cases, a
+            // preceding save-failure error is the more useful
+            // thing to keep on screen until the next connect
+            // attempt overwrites it. Match the EXACT prefix used
+            // in acceptReconnect.
+            if (!statusMessage.startsWith("Could not save updated host:")) {
+                statusMessage = "Disconnected"
+            }
+        }
     }
 
     /**

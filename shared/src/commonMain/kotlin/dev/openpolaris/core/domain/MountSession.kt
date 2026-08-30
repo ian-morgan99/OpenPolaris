@@ -181,31 +181,43 @@ class MountSession(
     }
 
     private suspend fun tryConnect(): Boolean {
-        val conn = connectionFactory()
+        // 3b.5-BUG: connectionFactory() can throw (e.g. the test harness
+        // intentionally returns a throwing factory, or a real factory
+        // hits a permission failure before the socket is opened). Move
+        // it inside the try so the caller's `connect()` sees a clean
+        // `false` instead of an uncaught exception that would crash the
+        // launched coroutine. On failure, `conn` is null so the cleanup
+        // branch skips conn.close().
         return try {
-            conn.connect(host, port, timeoutMs = 5000)
-            connection = conn
-            // Clear any previous protocol error so observers can tell
-            // "the mount came back" from "no error has happened yet".
-            _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
-            // Start the demux reader before issuing the handshake so
-            // the 284 response is dispatched to the waiter's deferred
-            // instead of being dropped on the floor.
-            startReader()
-            // Lifecycle handshake: confirm the mount responds at all
-            // (PROTOCOL.md §4). Routes through the new demux path.
-            val handshake = request<ResponseParser.Frame>(
-                code = Codes.PUSH_MODE_STATE,
-                timeoutMs = 2000L,
-            ) { it }
-            if (handshake !is CmdResult.Ok) {
-                throw java.io.IOException("handshake failed: $handshake")
+            val conn = connectionFactory()
+            try {
+                conn.connect(host, port, timeoutMs = 5000)
+                connection = conn
+                // Clear any previous protocol error so observers can tell
+                // "the mount came back" from "no error has happened yet".
+                _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
+                // Start the demux reader before issuing the handshake so
+                // the 284 response is dispatched to the waiter's deferred
+                // instead of being dropped on the floor.
+                startReader()
+                // Lifecycle handshake: confirm the mount responds at all
+                // (PROTOCOL.md §4). Routes through the new demux path.
+                val handshake = request<ResponseParser.Frame>(
+                    code = Codes.PUSH_MODE_STATE,
+                    timeoutMs = 2000L,
+                ) { it }
+                if (handshake !is CmdResult.Ok) {
+                    throw java.io.IOException("handshake failed: $handshake")
+                }
+                true
+            } catch (e: Exception) {
+                stopReader()
+                conn.close()
+                connection = null
+                _state.value = _state.value.copy(connected = false)
+                false
             }
-            true
         } catch (e: Exception) {
-            stopReader()
-            conn.close()
-            connection = null
             _state.value = _state.value.copy(connected = false)
             false
         }

@@ -53,8 +53,19 @@ private class MarkerFakeConnection(
 ) : Connection {
     val written = mutableListOf<ByteArray>()
     val responses = mutableListOf<ByteArray>()
+    // 3b.5-BUG: capture the most recent connect() arguments so tests
+    // can assert the VM actually passed the port it claimed to (vs.
+    // silently falling back to 9090). Pre-fix these were always null
+    // because the test had no way to observe them — which is exactly
+    // why the bug shipped.
+    var lastHost: String? = null
+    var lastPort: Int? = null
+    var connectCallCount: Int = 0
 
     override suspend fun connect(host: String, port: Int, timeoutMs: Int) {
+        lastHost = host
+        lastPort = port
+        connectCallCount += 1
         if (failConnect) throw java.io.IOException("refused")
         if (hangConnect) {
             // Suspend forever so the AppViewModel's connectJob stays in
@@ -374,7 +385,7 @@ class AppViewModelSessionMarkerTest {
         val vm = newViewModel(this) { error("connect() not used in this test") }
         vm.nowMs = { 42_000L }
         try {
-            vm.connectDemo()
+            vm.connectDemo(startPolling = false)
             advanceUntilIdle()
             val readBack = store.read()
             assertNotNull(readBack, "marker should be written after successful connectDemo")
@@ -417,7 +428,7 @@ class AppViewModelSessionMarkerTest {
         val vm = newViewModel(this) { error("not used") }
         vm.nowMs = { 99_999L }
         try {
-            vm.connectDemo()
+            vm.connectDemo(startPolling = false)
             advanceUntilIdle()
             val readBack = store.read()
             assertNotNull(readBack)
@@ -619,6 +630,14 @@ class AppViewModelSessionMarkerTest {
         // (mount powered off, link down). The flag must still clear in
         // the failure branch so the user can see the failure status
         // and retry from the dialog.
+        //
+        // Note: we cannot assert the flag is set *after* acceptReconnect()
+        // returns, because the failure path is fully synchronous: the
+        // launch body's only work is a thrown connect that is caught
+        // and converted to a `false` return, then the `finally` clears
+        // the flag — all before acceptReconnect() returns. The success
+        // test can observe the in-flight state because the real connect
+        // suspends in `request()` awaiting a response.
         store = newStore()
         writeMarker()
         val conn = MarkerFakeConnection(failConnect = true)
@@ -627,7 +646,6 @@ class AppViewModelSessionMarkerTest {
             vm.tryReconnectIfMarkerExists()
             advanceUntilIdle()
             vm.acceptReconnect()
-            assertTrue(vm.reconnecting.value, "flag set after accept")
             advanceUntilIdle()
             assertFalse(
                 vm.reconnecting.value,
@@ -702,7 +720,7 @@ class AppViewModelSessionMarkerTest {
         // saveMarker() fires.
         try {
             assertNull(vm.position, "precondition: no 517 frame has landed yet")
-            vm.connectDemo()
+            vm.connectDemo(startPolling = false)
             advanceUntilIdle()
             val readBack = store.read()
             assertNotNull(readBack, "marker should be written after successful connectDemo")
@@ -1015,6 +1033,174 @@ class AppViewModelSessionMarkerTest {
                 vm.reconnecting.value,
                 "3e E2: _reconnecting must be cleared even when the connectionFactory throws",
             )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 3b.5-BUG: acceptReconnect() must honour the persisted port and
+    // must persist the (possibly edited) port on round-trip. Pre-fix,
+    // acceptReconnect() ignored ReconnectPrompt.port and hard-coded
+    // 9090 in both connect() and saveMarker(), so the user's port
+    // change was silently dropped on every relaunch.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun tryReconnectSeedsDraftPortFromMarker() = runTest(UnconfinedTestDispatcher()) {
+        // The port field in the dialog should be pre-populated with the
+        // marker's port so the user can edit it without re-typing.
+        store = newStore()
+        writeMarker(port = 12345)
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value)
+            assertEquals("12345", vm.draftPort.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptReconnectReconnectsOnPersistedPort() = runTest(UnconfinedTestDispatcher()) {
+        // The marker says the mount was last at port 12345. The user
+        // does not edit anything in the dialog. acceptReconnect() must
+        // pass 12345 to MountSession — not silently fall back to 9090.
+        store = newStore()
+        writeMarker(host = "192.168.43.42", port = 12345)
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertNotNull(vm.reconnectPrompt.value, "precondition: prompt should be populated")
+            assertEquals(12345, vm.reconnectPrompt.value!!.port)
+
+            vm.acceptReconnect()
+            advanceUntilIdle()
+
+            assertEquals("192.168.43.42", conn.lastHost, "host must round-trip from marker")
+            assertEquals(
+                12345,
+                conn.lastPort,
+                "3b.5-BUG: port must round-trip from marker (was hard-coded 9090 pre-fix)",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun acceptReconnectPersistsActualPort() = runTest(UnconfinedTestDispatcher()) {
+        // Round-trip: persist port 12345, then nudge the draft port to
+        // 23456 so acceptReconnect() rewrites the marker (it only writes
+        // when the chosen value differs from the persisted prompt value).
+        // The new marker must record 23456 — i.e. saveMarker() must use
+        // the port the connect actually used, not the 9090 it used to
+        // hard-code.
+        store = newStore()
+        writeMarker(port = 12345)
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        vm.nowMs = { 9_999L }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.updateDraftPort("23456")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            val readBack = store.read()
+            assertNotNull(readBack, "marker should be re-written after acceptReconnect with a changed port")
+            assertEquals(23456, readBack.port, "3b.5-BUG: saveMarker() must persist the chosen port, not 9090")
+            assertEquals(9_999L, readBack.lastConnectedAtEpochMs)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun acceptReconnectUsesEditedDraftPort() = runTest(UnconfinedTestDispatcher()) {
+        // The user types a new port in the dialog (e.g. they remembered
+        // the mount was actually on 23456). acceptReconnect() must:
+        //   1) pass 23456 to MountSession, and
+        //   2) persist 23456 in the new marker (so next launch's
+        //      prompt seeds draftPort with the value the user just
+        //      confirmed, not the original 12345).
+        store = newStore()
+        writeMarker(host = "192.168.43.42", port = 12345)
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        vm.nowMs = { 10_000L }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            assertEquals("12345", vm.draftPort.value, "precondition: draft seeded from marker")
+            vm.updateDraftPort("23456")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            assertEquals(23456, conn.lastPort, "3b.5-BUG: edited draft port must reach MountSession")
+            val readBack = store.read()
+            assertNotNull(readBack)
+            assertEquals(
+                23456,
+                readBack.port,
+                "3b.5-BUG: edited draft port must be persisted, not 12345 or 9090",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun acceptReconnectFallsBackToPromptPortWhenDraftPortIsBlank() = runTest(UnconfinedTestDispatcher()) {
+        // If the user clears the port field in the dialog (rare, but
+        // possible — the field is editable), acceptReconnect() should
+        // still be able to connect by falling back to the persisted
+        // ReconnectPrompt.port. This guarantees the dialog can never
+        // leave the user unable to reconnect.
+        store = newStore()
+        writeMarker(port = 12345)
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.tryReconnectIfMarkerExists()
+            advanceUntilIdle()
+            vm.updateDraftPort("")
+            vm.acceptReconnect()
+            advanceUntilIdle()
+            assertEquals(12345, conn.lastPort, "blank draftPort must fall back to persisted port")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+            advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun connectUsesLivePort() = runTest(UnconfinedTestDispatcher()) {
+        // Manually setting [AppViewModel.port] (e.g. via Panes.kt's
+        // port field) must be honoured by connect(). Pre-fix, connect()
+        // hard-coded 9090, so any user-typed port was silently
+        // ignored.
+        store = newStore()
+        val conn = MarkerFakeConnection()
+        val vm = newViewModel(this) { conn }
+        try {
+            vm.updatePort(31337)
+            vm.connect()
+            advanceUntilIdle()
+            assertEquals(31337, conn.lastPort, "3b.5-BUG: connect() must read live port, not 9090")
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

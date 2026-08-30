@@ -3,15 +3,30 @@ package dev.openpolaris.ui
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * In-process simulated mount for demo mode. Implements Connection but never touches
  * the network: writes are parsed as commands and answered with plausible frames
  * queued on the read side, so the real MountSession request/response path is exercised.
  */
-class SimulatedMount(private val scope: CoroutineScope) {
+class SimulatedMount {
+    /**
+     * The simulated mount owns its own private reader scope. The reader
+     * loop (long-lived, idle until a frame arrives) would otherwise pin
+     * the calling scope — particularly the test scope under
+     * `runTest(UnconfinedTestDispatcher())` — open and prevent
+     * `advanceUntilIdle()` from returning, hanging the test. Keeping
+     * the reader on a dedicated `SupervisorJob + Dispatchers.Unconfined`
+     * scope means the test scope only sees the short-lived request
+     * coroutines, not the persistent reader.
+     */
+    private val readerScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
 
     var tracking = false
     var halfSpeed = false
@@ -26,10 +41,19 @@ class SimulatedMount(private val scope: CoroutineScope) {
     var evIndex = 4
 
     private val conn = SimConnection()
-    val session = dev.openpolaris.core.domain.MountSession({ conn })
+    val session = dev.openpolaris.core.domain.MountSession(
+        connectionFactory = { conn },
+        readerScope = readerScope,
+    )
 
     private inner class SimConnection : Connection {
-        val inbox = ArrayDeque<ByteArray>()
+        // 3b.5-BUG follow-up: use a Channel instead of a polling inbox so
+        // read() suspends on a virtual-time-friendly primitive (the
+        // previous TimeSource.Monotonic + delay(5) loop burned ~200ms of
+        // real CPU per read under the test scheduler, which made every
+        // connectDemo test take ~30s of wall-clock and could cause the
+        // full test class to hang).
+        val inbox = Channel<ByteArray>(capacity = Channel.UNLIMITED)
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) { /* always ok */ }
 
@@ -71,24 +95,29 @@ class SimulatedMount(private val scope: CoroutineScope) {
             }
         }
 
-        fun queue(frameText: String) = synchronized(inbox) { inbox += frameText.toByteArray(Charsets.US_ASCII) }
-
-        override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
-            // Poll briefly for a queued response so request() sees it within its timeout.
-            val deadline = kotlin.time.TimeSource.Monotonic.markNow() + timeoutMs.milliseconds
-            while (true) {
-                synchronized(inbox) {
-                    if (inbox.isNotEmpty()) {
-                        val r = inbox.removeFirst()
-                        r.copyInto(buffer)
-                        return r.size
-                    }
-                }
-                if (deadline.hasPassedNow()) return -1
-                delay(5)
-            }
+        fun queue(frameText: String) {
+            inbox.trySend(frameText.toByteArray(Charsets.US_ASCII))
         }
 
-        override fun close() {}
+        override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
+            val bytes = withTimeoutOrNull(timeoutMs.toLong()) { inbox.receive() } ?: return -1
+            bytes.copyInto(buffer)
+            return bytes.size
+        }
+
+        override fun close() {
+            inbox.close()
+        }
+    }
+
+    /**
+     * Tear down the private reader scope. Call this when the simulated
+     * mount is no longer needed (typically in test teardown) so the
+     * long-lived reader coroutine is cancelled. Without it, the
+     * SupervisorJob would keep the dispatcher's thread alive past
+     * the test JVM's lifetime.
+     */
+    fun shutdown() {
+        readerScope.cancel()
     }
 }

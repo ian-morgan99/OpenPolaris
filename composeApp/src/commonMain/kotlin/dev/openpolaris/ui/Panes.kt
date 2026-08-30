@@ -21,7 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.domain.format2
 
 /**
@@ -39,6 +41,22 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: 
                 onValueChange = vm::updateHost,
                 label = { Text("Mount host") },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // 3b.5-BUG: port-edit field next to host. Pre-fix, the
+            // user had no way to change the port from the connection
+            // pane at all — `port` was a private mutableStateOf with
+            // no setter, hard-coded to 9090 in connect() and
+            // saveMarker(). Exposed here as a numeric field; if the
+            // user types a non-numeric value we silently fall back to
+            // the default 9090 (the previous valid value), which
+            // avoids ever setting [port] to 0 or -1.
+            OutlinedTextField(
+                value = vm.port.toString(),
+                onValueChange = { v -> vm.updatePort(v.toIntOrNull() ?: 9090) },
+                label = { Text("Port") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

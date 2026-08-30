@@ -64,7 +64,13 @@ fun ReconnectDialog(vm: AppViewModel) {
     val p = prompt!!
     val reconnecting by vm.reconnecting.collectAsState()
     val draftHost by vm.draftHost.collectAsState()
+    // 3b.5-BUG: parallel of [draftHost]. The persisted [ReconnectPrompt.port]
+    // seeds the field at tryReconnectIfMarkerExists() time; an empty
+    // [draftPort] would mean "the user cleared it on this surface",
+    // which we fall back to the persisted value for.
+    val draftPort by vm.draftPort.collectAsState()
     val targetHost = draftHost.ifBlank { p.host }
+    val targetPort = draftPort.ifBlank { p.port.toString() }
 
     if (reconnecting) {
         // 3c.5 in-flight state: single Cancel action so the user cannot
@@ -73,7 +79,10 @@ fun ReconnectDialog(vm: AppViewModel) {
         // (onDismissRequest no-op) — the only path out is Cancel.
         AlertDialog(
             onDismissRequest = { /* no-op: Cancel is the only exit */ },
-            title = { Text("Reconnecting to $targetHost…") },
+            // 3b.5-BUG: include the port in the in-flight title so the
+            // user has positive feedback that the dialog picked up
+            // their edited port (vs. silently falling back to 9090).
+            title = { Text("Reconnecting to $targetHost:$targetPort…") },
             text = {
                 Column {
                     Text("Connect attempt in progress.")
@@ -113,12 +122,34 @@ fun ReconnectDialog(vm: AppViewModel) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     modifier = Modifier,
                 )
+                // 3b.5-BUG: port-edit field. Pre-fix, the dialog had no
+                // way to change the port; the persisted value was
+                // silently dropped. The field uses KeyboardType.Number
+                // so the on-screen keyboard only shows digits. We
+                // deliberately do not clamp the value to 1..65535 here
+                // — acceptReconnect() falls back to the persisted
+                // [ReconnectPrompt.port] if the value cannot be parsed,
+                // and the Reconnect button below is disabled when the
+                // value is unparseable, so the user can never trigger
+                // a connect() with a port of 0 or -1.
+                OutlinedTextField(
+                    value = draftPort,
+                    onValueChange = { vm.updateDraftPort(it) },
+                    label = { Text("Port") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier,
+                )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = { vm.acceptReconnect() },
-                enabled = draftHost.isNotBlank(),
+                // 3b.5-BUG: the port must also be parseable before
+                // enabling the button. The host-only check (pre-fix)
+                // would let a user click Reconnect with a blank port
+                // and trigger the defensive fallback in acceptReconnect.
+                enabled = draftHost.isNotBlank() && draftPort.toIntOrNull() != null,
             ) { Text("Reconnect") }
         },
         dismissButton = {

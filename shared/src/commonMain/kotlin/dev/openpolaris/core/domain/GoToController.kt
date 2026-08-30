@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.protocol.Codes
 import kotlinx.coroutines.delay
 

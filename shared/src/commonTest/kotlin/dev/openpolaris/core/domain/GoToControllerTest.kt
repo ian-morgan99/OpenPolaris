@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.astro.AstroMath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import kotlin.math.abs

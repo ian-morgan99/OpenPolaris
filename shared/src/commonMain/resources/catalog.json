@@ -1,0 +1,1329 @@
+{
+  "version": 2,
+  "objects": [
+    {
+      "designation": "Polaris",
+      "name": "Polaris",
+      "type": "STAR",
+      "raDeg": 37.95,
+      "decDeg": 89.26,
+      "magnitude": 1.98,
+      "constellation": "Ursa Minor",
+      "description": "North pole star."
+    },
+    {
+      "designation": "Vega",
+      "name": "Vega",
+      "type": "STAR",
+      "raDeg": 279.23,
+      "decDeg": 38.78,
+      "magnitude": 0.03,
+      "constellation": "Lyra"
+    },
+    {
+      "designation": "Sirius",
+      "name": "Sirius",
+      "type": "STAR",
+      "raDeg": 101.29,
+      "decDeg": -16.72,
+      "magnitude": -1.46,
+      "constellation": "Canis Major",
+      "description": "Brightest star in the night sky."
+    },
+    {
+      "designation": "Arcturus",
+      "name": "Arcturus",
+      "type": "STAR",
+      "raDeg": 213.92,
+      "decDeg": 19.18,
+      "magnitude": -0.05,
+      "constellation": "Bo\u00f6tes"
+    },
+    {
+      "designation": "Capella",
+      "name": "Capella",
+      "type": "STAR",
+      "raDeg": 79.17,
+      "decDeg": 45.99,
+      "magnitude": 0.08,
+      "constellation": "Auriga"
+    },
+    {
+      "designation": "Rigel",
+      "name": "Rigel",
+      "type": "STAR",
+      "raDeg": 78.63,
+      "decDeg": -8.2,
+      "magnitude": 0.18,
+      "constellation": "Orion"
+    },
+    {
+      "designation": "Procyon",
+      "name": "Procyon",
+      "type": "STAR",
+      "raDeg": 114.83,
+      "decDeg": 5.22,
+      "magnitude": 0.4,
+      "constellation": "Canis Minor"
+    },
+    {
+      "designation": "Betelgeuse",
+      "name": "Betelgeuse",
+      "type": "STAR",
+      "raDeg": 88.79,
+      "decDeg": 7.41,
+      "magnitude": 0.42,
+      "constellation": "Orion",
+      "description": "Red supergiant, variable."
+    },
+    {
+      "designation": "Altair",
+      "name": "Altair",
+      "type": "STAR",
+      "raDeg": 297.7,
+      "decDeg": 8.87,
+      "magnitude": 0.77,
+      "constellation": "Aquila"
+    },
+    {
+      "designation": "Aldebaran",
+      "name": "Aldebaran",
+      "type": "STAR",
+      "raDeg": 68.98,
+      "decDeg": 16.51,
+      "magnitude": 0.86,
+      "constellation": "Taurus"
+    },
+    {
+      "designation": "Spica",
+      "name": "Spica",
+      "type": "STAR",
+      "raDeg": 201.3,
+      "decDeg": -11.16,
+      "magnitude": 0.97,
+      "constellation": "Virgo"
+    },
+    {
+      "designation": "Antares",
+      "name": "Antares",
+      "type": "STAR",
+      "raDeg": 247.35,
+      "decDeg": -26.43,
+      "magnitude": 1.06,
+      "constellation": "Scorpius"
+    },
+    {
+      "designation": "Pollux",
+      "name": "Pollux",
+      "type": "STAR",
+      "raDeg": 116.33,
+      "decDeg": 28.03,
+      "magnitude": 1.15,
+      "constellation": "Gemini"
+    },
+    {
+      "designation": "Fomalhaut",
+      "name": "Fomalhaut",
+      "type": "STAR",
+      "raDeg": 344.41,
+      "decDeg": -29.62,
+      "magnitude": 1.16,
+      "constellation": "Piscis Austrinus"
+    },
+    {
+      "designation": "Deneb",
+      "name": "Deneb",
+      "type": "STAR",
+      "raDeg": 310.36,
+      "decDeg": 45.28,
+      "magnitude": 1.25,
+      "constellation": "Cygnus"
+    },
+    {
+      "designation": "Mimosa",
+      "name": "Mimosa",
+      "type": "STAR",
+      "raDeg": 191.57,
+      "decDeg": -59.69,
+      "magnitude": 1.25,
+      "constellation": "Crux"
+    },
+    {
+      "designation": "Regulus",
+      "name": "Regulus",
+      "type": "STAR",
+      "raDeg": 152.09,
+      "decDeg": 11.97,
+      "magnitude": 1.35,
+      "constellation": "Leo"
+    },
+    {
+      "designation": "Adhara",
+      "name": "Adhara",
+      "type": "STAR",
+      "raDeg": 104.65,
+      "decDeg": -28.97,
+      "magnitude": 1.5,
+      "constellation": "Canis Major"
+    },
+    {
+      "designation": "Castor",
+      "name": "Castor",
+      "type": "STAR",
+      "raDeg": 113.65,
+      "decDeg": 31.89,
+      "magnitude": 1.58,
+      "constellation": "Gemini"
+    },
+    {
+      "designation": "Shaula",
+      "name": "Shaula",
+      "type": "STAR",
+      "raDeg": 263.4,
+      "decDeg": -37.1,
+      "magnitude": 1.62,
+      "constellation": "Scorpius"
+    },
+    {
+      "designation": "Bellatrix",
+      "name": "Bellatrix",
+      "type": "STAR",
+      "raDeg": 81.28,
+      "decDeg": 6.35,
+      "magnitude": 1.64,
+      "constellation": "Orion"
+    },
+    {
+      "designation": "Elnath",
+      "name": "Elnath",
+      "type": "STAR",
+      "raDeg": 81.57,
+      "decDeg": 28.61,
+      "magnitude": 1.65,
+      "constellation": "Taurus"
+    },
+    {
+      "designation": "Miaplacidus",
+      "name": "Miaplacidus",
+      "type": "STAR",
+      "raDeg": 221.65,
+      "decDeg": -69.72,
+      "magnitude": 1.69,
+      "constellation": "Carina"
+    },
+    {
+      "designation": "Alnilam",
+      "name": "Alnilam",
+      "type": "STAR",
+      "raDeg": 84.05,
+      "decDeg": -1.2,
+      "magnitude": 1.7,
+      "constellation": "Orion",
+      "description": "Centre of Orion's belt."
+    },
+    {
+      "designation": "Alnair",
+      "name": "Alnair",
+      "type": "STAR",
+      "raDeg": 332.06,
+      "decDeg": -46.96,
+      "magnitude": 1.74,
+      "constellation": "Grus"
+    },
+    {
+      "designation": "Alnitak",
+      "name": "Alnitak",
+      "type": "STAR",
+      "raDeg": 85.19,
+      "decDeg": -1.94,
+      "magnitude": 1.74,
+      "constellation": "Orion"
+    },
+    {
+      "designation": "Dubhe",
+      "name": "Dubhe",
+      "type": "STAR",
+      "raDeg": 165.93,
+      "decDeg": 61.75,
+      "magnitude": 1.79,
+      "constellation": "Ursa Major"
+    },
+    {
+      "designation": "Mirfak",
+      "name": "Mirfak",
+      "type": "STAR",
+      "raDeg": 51.08,
+      "decDeg": 49.86,
+      "magnitude": 1.79,
+      "constellation": "Perseus"
+    },
+    {
+      "designation": "Wezen",
+      "name": "Wezen",
+      "type": "STAR",
+      "raDeg": 107.1,
+      "decDeg": -26.39,
+      "magnitude": 1.83,
+      "constellation": "Canis Major"
+    },
+    {
+      "designation": "Kaus Australis",
+      "name": "Kaus Australis",
+      "type": "STAR",
+      "raDeg": 276.04,
+      "decDeg": -34.38,
+      "magnitude": 1.85,
+      "constellation": "Sagittarius"
+    },
+    {
+      "designation": "M1",
+      "type": "SUPERNOVA_REMNANT",
+      "raDeg": 83.6331,
+      "decDeg": 22.0145,
+      "name": "Crab Nebula",
+      "magnitude": 8.4,
+      "constellation": "Taurus",
+      "sizeArcmin": 6.0,
+      "description": "SN 1054 remnant."
+    },
+    {
+      "designation": "M2",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 323.3625,
+      "decDeg": -0.8233,
+      "magnitude": 6.5,
+      "constellation": "Aquarius",
+      "sizeArcmin": 16.0
+    },
+    {
+      "designation": "M3",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 205.5485,
+      "decDeg": 28.3773,
+      "magnitude": 6.2,
+      "constellation": "Canes Venatici",
+      "sizeArcmin": 18.0
+    },
+    {
+      "designation": "M4",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 245.8967,
+      "decDeg": -26.5258,
+      "magnitude": 5.9,
+      "constellation": "Scorpius",
+      "sizeArcmin": 26.0
+    },
+    {
+      "designation": "M5",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 229.6383,
+      "decDeg": 2.081,
+      "magnitude": 5.7,
+      "constellation": "Serpens",
+      "sizeArcmin": 23.0
+    },
+    {
+      "designation": "M6",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 265.0692,
+      "decDeg": -32.2533,
+      "name": "Butterfly Cluster",
+      "magnitude": 4.2,
+      "constellation": "Scorpius",
+      "sizeArcmin": 15.0
+    },
+    {
+      "designation": "M7",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 268.4625,
+      "decDeg": -34.7933,
+      "name": "Ptolemy Cluster",
+      "magnitude": 3.3,
+      "constellation": "Scorpius",
+      "sizeArcmin": 80.0
+    },
+    {
+      "designation": "M8",
+      "type": "NEBULA",
+      "raDeg": 270.9042,
+      "decDeg": -24.3867,
+      "name": "Lagoon Nebula",
+      "magnitude": 6.0,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 90.0,
+      "description": "Emission nebula."
+    },
+    {
+      "designation": "M9",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 259.7992,
+      "decDeg": -18.5163,
+      "magnitude": 7.7,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M10",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 254.2877,
+      "decDeg": -4.1003,
+      "magnitude": 6.6,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 20.0
+    },
+    {
+      "designation": "M11",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 282.7708,
+      "decDeg": -6.2717,
+      "name": "Wild Duck Cluster",
+      "magnitude": 6.3,
+      "constellation": "Scutum",
+      "sizeArcmin": 14.0
+    },
+    {
+      "designation": "M12",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 251.8092,
+      "decDeg": -1.9483,
+      "magnitude": 6.7,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 16.0
+    },
+    {
+      "designation": "M13",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 250.4233,
+      "decDeg": 36.4603,
+      "name": "Hercules Cluster",
+      "magnitude": 5.8,
+      "constellation": "Hercules",
+      "sizeArcmin": 20.0,
+      "description": "Showpiece globular."
+    },
+    {
+      "designation": "M14",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 264.4008,
+      "decDeg": -3.2459,
+      "magnitude": 7.6,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 11.0
+    },
+    {
+      "designation": "M15",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 322.4929,
+      "decDeg": 12.167,
+      "magnitude": 6.2,
+      "constellation": "Pegasus",
+      "sizeArcmin": 18.0
+    },
+    {
+      "designation": "M16",
+      "type": "NEBULA",
+      "raDeg": 274.7,
+      "decDeg": -13.8067,
+      "name": "Eagle Nebula",
+      "magnitude": 6.0,
+      "constellation": "Serpens",
+      "sizeArcmin": 35.0,
+      "description": "Pillars of Creation."
+    },
+    {
+      "designation": "M17",
+      "type": "NEBULA",
+      "raDeg": 275.1962,
+      "decDeg": -16.1717,
+      "name": "Omega Nebula",
+      "magnitude": 6.0,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 11.0
+    },
+    {
+      "designation": "M18",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 274.9958,
+      "decDeg": -17.1,
+      "magnitude": 6.9,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M19",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 255.6575,
+      "decDeg": -26.268,
+      "magnitude": 6.8,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 14.0
+    },
+    {
+      "designation": "M20",
+      "type": "NEBULA",
+      "raDeg": 270.675,
+      "decDeg": -23.03,
+      "name": "Trifid Nebula",
+      "magnitude": 6.3,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 28.0,
+      "description": "Emission/reflection."
+    },
+    {
+      "designation": "M21",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 271.05,
+      "decDeg": -22.5,
+      "magnitude": 6.5,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 13.0
+    },
+    {
+      "designation": "M22",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 279.0996,
+      "decDeg": -23.9047,
+      "magnitude": 5.1,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 32.0
+    },
+    {
+      "designation": "M23",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 269.15,
+      "decDeg": -19.0167,
+      "magnitude": 5.5,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 27.0
+    },
+    {
+      "designation": "M24",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 274.25,
+      "decDeg": -18.55,
+      "name": "Sagittarius Star Cloud",
+      "magnitude": 4.6,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 90.0,
+      "description": "Dense Milky Way patch."
+    },
+    {
+      "designation": "M25",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 277.9333,
+      "decDeg": -19.25,
+      "magnitude": 4.6,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 32.0
+    },
+    {
+      "designation": "M26",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 281.3208,
+      "decDeg": -9.3833,
+      "magnitude": 8.0,
+      "constellation": "Scutum",
+      "sizeArcmin": 15.0
+    },
+    {
+      "designation": "M27",
+      "type": "PLANETARY_NEBULA",
+      "raDeg": 299.9013,
+      "decDeg": 22.7211,
+      "name": "Dumbbell Nebula",
+      "magnitude": 7.5,
+      "constellation": "Vulpecula",
+      "sizeArcmin": 8.0,
+      "description": "Bright planetary nebula."
+    },
+    {
+      "designation": "M28",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 276.137,
+      "decDeg": -24.8697,
+      "magnitude": 6.9,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 11.0
+    },
+    {
+      "designation": "M29",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 305.9875,
+      "decDeg": 38.5333,
+      "magnitude": 7.1,
+      "constellation": "Cygnus",
+      "sizeArcmin": 12.0
+    },
+    {
+      "designation": "M30",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 325.0921,
+      "decDeg": -23.1799,
+      "magnitude": 7.2,
+      "constellation": "Capricornus",
+      "sizeArcmin": 12.0
+    },
+    {
+      "designation": "M31",
+      "type": "GALAXY",
+      "raDeg": 10.6847,
+      "decDeg": 41.2687,
+      "name": "Andromeda Galaxy",
+      "magnitude": 3.4,
+      "constellation": "Andromeda",
+      "sizeArcmin": 190.0,
+      "description": "Nearest large spiral."
+    },
+    {
+      "designation": "M32",
+      "type": "GALAXY",
+      "raDeg": 10.6743,
+      "decDeg": 40.8652,
+      "magnitude": 8.1,
+      "constellation": "Andromeda",
+      "sizeArcmin": 8.0,
+      "description": "M31 satellite."
+    },
+    {
+      "designation": "M33",
+      "type": "GALAXY",
+      "raDeg": 23.4621,
+      "decDeg": 30.6602,
+      "name": "Triangulum Galaxy",
+      "magnitude": 5.7,
+      "constellation": "Triangulum",
+      "sizeArcmin": 70.0,
+      "description": "Local Group spiral."
+    },
+    {
+      "designation": "M34",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 40.5042,
+      "decDeg": 42.7617,
+      "magnitude": 5.5,
+      "constellation": "Perseus",
+      "sizeArcmin": 35.0
+    },
+    {
+      "designation": "M35",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 92.225,
+      "decDeg": 24.3367,
+      "magnitude": 5.3,
+      "constellation": "Gemini",
+      "sizeArcmin": 28.0
+    },
+    {
+      "designation": "M36",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 84.0833,
+      "decDeg": 34.135,
+      "magnitude": 6.3,
+      "constellation": "Auriga",
+      "sizeArcmin": 12.0
+    },
+    {
+      "designation": "M37",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 88.075,
+      "decDeg": 32.55,
+      "magnitude": 6.2,
+      "constellation": "Auriga",
+      "sizeArcmin": 24.0
+    },
+    {
+      "designation": "M38",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 82.175,
+      "decDeg": 35.85,
+      "magnitude": 7.4,
+      "constellation": "Auriga",
+      "sizeArcmin": 21.0
+    },
+    {
+      "designation": "M39",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 322.875,
+      "decDeg": 48.4333,
+      "magnitude": 4.6,
+      "constellation": "Cygnus",
+      "sizeArcmin": 32.0
+    },
+    {
+      "designation": "M40",
+      "type": "DOUBLE_STAR",
+      "raDeg": 185.55,
+      "decDeg": 58.0833,
+      "name": "Winnecke 4",
+      "magnitude": 8.4,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 0.8,
+      "description": "Optical double."
+    },
+    {
+      "designation": "M41",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 101.5042,
+      "decDeg": -20.7567,
+      "magnitude": 4.5,
+      "constellation": "Canis Major",
+      "sizeArcmin": 38.0
+    },
+    {
+      "designation": "M42",
+      "type": "NEBULA",
+      "raDeg": 83.8221,
+      "decDeg": -5.3911,
+      "name": "Orion Nebula",
+      "magnitude": 4.0,
+      "constellation": "Orion",
+      "sizeArcmin": 85.0,
+      "description": "Brightest nebula in northern sky."
+    },
+    {
+      "designation": "M43",
+      "type": "NEBULA",
+      "raDeg": 83.88,
+      "decDeg": -5.27,
+      "name": "De Mairan's Nebula",
+      "magnitude": 9.0,
+      "constellation": "Orion",
+      "sizeArcmin": 20.0,
+      "description": "Northern part of Orion complex."
+    },
+    {
+      "designation": "M44",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 130.025,
+      "decDeg": 19.67,
+      "name": "Beehive Cluster",
+      "magnitude": 3.7,
+      "constellation": "Cancer",
+      "sizeArcmin": 95.0,
+      "description": "Praesepe."
+    },
+    {
+      "designation": "M45",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 56.87,
+      "decDeg": 24.1167,
+      "name": "Pleiades",
+      "magnitude": 1.6,
+      "constellation": "Taurus",
+      "sizeArcmin": 110.0,
+      "description": "Seven Sisters."
+    },
+    {
+      "designation": "M46",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 115.4458,
+      "decDeg": -14.8167,
+      "magnitude": 6.1,
+      "constellation": "Puppis",
+      "sizeArcmin": 27.0
+    },
+    {
+      "designation": "M47",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 114.1458,
+      "decDeg": -14.4833,
+      "magnitude": 4.4,
+      "constellation": "Puppis",
+      "sizeArcmin": 30.0
+    },
+    {
+      "designation": "M48",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 123.425,
+      "decDeg": -5.8,
+      "magnitude": 5.5,
+      "constellation": "Hydra",
+      "sizeArcmin": 54.0
+    },
+    {
+      "designation": "M49",
+      "type": "GALAXY",
+      "raDeg": 187.4446,
+      "decDeg": 8.0004,
+      "magnitude": 8.4,
+      "constellation": "Virgo",
+      "sizeArcmin": 10.0
+    },
+    {
+      "designation": "M50",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 105.6792,
+      "decDeg": -8.3667,
+      "magnitude": 5.9,
+      "constellation": "Monoceros",
+      "sizeArcmin": 16.0
+    },
+    {
+      "designation": "M51",
+      "type": "GALAXY",
+      "raDeg": 202.4696,
+      "decDeg": 47.1953,
+      "name": "Whirlpool Galaxy",
+      "magnitude": 8.4,
+      "constellation": "Canes Venatici",
+      "sizeArcmin": 11.0,
+      "description": "Interacting spiral."
+    },
+    {
+      "designation": "M52",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 351.2,
+      "decDeg": 61.5833,
+      "magnitude": 6.9,
+      "constellation": "Cassiopeia",
+      "sizeArcmin": 13.0
+    },
+    {
+      "designation": "M53",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 198.2304,
+      "decDeg": 18.1681,
+      "magnitude": 7.6,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 13.0
+    },
+    {
+      "designation": "M54",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 283.7637,
+      "decDeg": -30.4798,
+      "magnitude": 7.6,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M55",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 294.9988,
+      "decDeg": -30.9648,
+      "magnitude": 6.3,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 19.0
+    },
+    {
+      "designation": "M56",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 289.15,
+      "decDeg": 30.1833,
+      "magnitude": 8.3,
+      "constellation": "Lyra",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M57",
+      "type": "PLANETARY_NEBULA",
+      "raDeg": 283.3963,
+      "decDeg": 33.0292,
+      "name": "Ring Nebula",
+      "magnitude": 8.8,
+      "constellation": "Lyra",
+      "sizeArcmin": 1.4,
+      "description": "Classic ring."
+    },
+    {
+      "designation": "M58",
+      "type": "GALAXY",
+      "raDeg": 189.4325,
+      "decDeg": 11.8181,
+      "magnitude": 9.7,
+      "constellation": "Virgo",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M59",
+      "type": "GALAXY",
+      "raDeg": 190.5096,
+      "decDeg": 11.6469,
+      "magnitude": 9.6,
+      "constellation": "Virgo",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M60",
+      "type": "GALAXY",
+      "raDeg": 190.9167,
+      "decDeg": 11.5526,
+      "magnitude": 8.8,
+      "constellation": "Virgo",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M61",
+      "type": "GALAXY",
+      "raDeg": 185.4787,
+      "decDeg": 4.4736,
+      "magnitude": 9.7,
+      "constellation": "Virgo",
+      "sizeArcmin": 6.0
+    },
+    {
+      "designation": "M62",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 255.3033,
+      "decDeg": -30.1124,
+      "magnitude": 6.5,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 14.0
+    },
+    {
+      "designation": "M63",
+      "type": "GALAXY",
+      "raDeg": 198.9554,
+      "decDeg": 42.0293,
+      "name": "Sunflower Galaxy",
+      "magnitude": 8.6,
+      "constellation": "Canes Venatici",
+      "sizeArcmin": 12.0
+    },
+    {
+      "designation": "M64",
+      "type": "GALAXY",
+      "raDeg": 194.1822,
+      "decDeg": 21.6826,
+      "name": "Black Eye Galaxy",
+      "magnitude": 8.5,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M65",
+      "type": "GALAXY",
+      "raDeg": 169.7333,
+      "decDeg": 13.0922,
+      "magnitude": 9.3,
+      "constellation": "Leo",
+      "sizeArcmin": 8.0,
+      "description": "Leo Triplet."
+    },
+    {
+      "designation": "M66",
+      "type": "GALAXY",
+      "raDeg": 170.0625,
+      "decDeg": 12.9913,
+      "magnitude": 8.9,
+      "constellation": "Leo",
+      "sizeArcmin": 8.0,
+      "description": "Leo Triplet."
+    },
+    {
+      "designation": "M67",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 132.8458,
+      "decDeg": 11.8133,
+      "magnitude": 6.1,
+      "constellation": "Cancer",
+      "sizeArcmin": 25.0
+    },
+    {
+      "designation": "M68",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 189.8666,
+      "decDeg": -26.7444,
+      "magnitude": 7.7,
+      "constellation": "Hydra",
+      "sizeArcmin": 12.0
+    },
+    {
+      "designation": "M69",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 277.8463,
+      "decDeg": -32.3481,
+      "magnitude": 7.6,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M70",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 280.8042,
+      "decDeg": -32.2922,
+      "magnitude": 7.9,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 8.0
+    },
+    {
+      "designation": "M71",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 298.4438,
+      "decDeg": 18.7793,
+      "magnitude": 8.2,
+      "constellation": "Sagitta",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M72",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 313.3654,
+      "decDeg": -12.5373,
+      "magnitude": 9.3,
+      "constellation": "Aquarius",
+      "sizeArcmin": 6.0
+    },
+    {
+      "designation": "M73",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 314.75,
+      "decDeg": -12.6333,
+      "magnitude": 9.0,
+      "constellation": "Aquarius",
+      "sizeArcmin": 3.0,
+      "description": "Asterism."
+    },
+    {
+      "designation": "M74",
+      "type": "GALAXY",
+      "raDeg": 24.1742,
+      "decDeg": 15.7836,
+      "magnitude": 9.4,
+      "constellation": "Pisces",
+      "sizeArcmin": 10.0,
+      "description": "Phantom Galaxy."
+    },
+    {
+      "designation": "M75",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 301.52,
+      "decDeg": -21.9222,
+      "magnitude": 8.5,
+      "constellation": "Sagittarius",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M76",
+      "type": "PLANETARY_NEBULA",
+      "raDeg": 25.5821,
+      "decDeg": 51.5754,
+      "name": "Little Dumbbell",
+      "magnitude": 10.1,
+      "constellation": "Perseus",
+      "sizeArcmin": 3.0
+    },
+    {
+      "designation": "M77",
+      "type": "GALAXY",
+      "raDeg": 40.6696,
+      "decDeg": -0.0133,
+      "magnitude": 8.9,
+      "constellation": "Cetus",
+      "sizeArcmin": 7.0,
+      "description": "Seyfert galaxy."
+    },
+    {
+      "designation": "M78",
+      "type": "NEBULA",
+      "raDeg": 86.6792,
+      "decDeg": 0.0786,
+      "magnitude": 8.3,
+      "constellation": "Orion",
+      "sizeArcmin": 8.0,
+      "description": "Reflection nebula."
+    },
+    {
+      "designation": "M79",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 81.0438,
+      "decDeg": -24.5244,
+      "magnitude": 7.7,
+      "constellation": "Lepus",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M80",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 244.2604,
+      "decDeg": -22.9764,
+      "magnitude": 7.3,
+      "constellation": "Scorpius",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M81",
+      "type": "GALAXY",
+      "raDeg": 148.8882,
+      "decDeg": 69.0653,
+      "name": "Bode's Galaxy",
+      "magnitude": 6.9,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 27.0
+    },
+    {
+      "designation": "M82",
+      "type": "GALAXY",
+      "raDeg": 148.9696,
+      "decDeg": 69.6797,
+      "name": "Cigar Galaxy",
+      "magnitude": 8.4,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 11.0,
+      "description": "Starburst galaxy."
+    },
+    {
+      "designation": "M83",
+      "type": "GALAXY",
+      "raDeg": 204.2538,
+      "decDeg": -29.8654,
+      "name": "Southern Pinwheel",
+      "magnitude": 7.5,
+      "constellation": "Hydra",
+      "sizeArcmin": 13.0
+    },
+    {
+      "designation": "M84",
+      "type": "GALAXY",
+      "raDeg": 186.2655,
+      "decDeg": 12.887,
+      "magnitude": 9.1,
+      "constellation": "Virgo",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M85",
+      "type": "GALAXY",
+      "raDeg": 186.3504,
+      "decDeg": 18.1911,
+      "magnitude": 9.1,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M86",
+      "type": "GALAXY",
+      "raDeg": 186.5494,
+      "decDeg": 12.9462,
+      "magnitude": 8.9,
+      "constellation": "Virgo",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M87",
+      "type": "GALAXY",
+      "raDeg": 187.7059,
+      "decDeg": 12.3911,
+      "name": "Virgo A",
+      "magnitude": 8.6,
+      "constellation": "Virgo",
+      "sizeArcmin": 8.0,
+      "description": "First imaged black hole (2019)."
+    },
+    {
+      "designation": "M88",
+      "type": "GALAXY",
+      "raDeg": 187.9967,
+      "decDeg": 14.4203,
+      "magnitude": 9.6,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M89",
+      "type": "GALAXY",
+      "raDeg": 188.9159,
+      "decDeg": 12.5563,
+      "magnitude": 9.8,
+      "constellation": "Virgo",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M90",
+      "type": "GALAXY",
+      "raDeg": 189.2076,
+      "decDeg": 13.1626,
+      "magnitude": 9.5,
+      "constellation": "Virgo",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M91",
+      "type": "GALAXY",
+      "raDeg": 188.8579,
+      "decDeg": 14.4963,
+      "magnitude": 10.2,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M92",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 259.2807,
+      "decDeg": 43.1359,
+      "magnitude": 6.4,
+      "constellation": "Hercules",
+      "sizeArcmin": 14.0
+    },
+    {
+      "designation": "M93",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 116.1542,
+      "decDeg": -23.8567,
+      "magnitude": 6.2,
+      "constellation": "Puppis",
+      "sizeArcmin": 22.0
+    },
+    {
+      "designation": "M94",
+      "type": "GALAXY",
+      "raDeg": 192.7212,
+      "decDeg": 41.1204,
+      "name": "Cat's Eye Galaxy",
+      "magnitude": 8.2,
+      "constellation": "Canes Venatici",
+      "sizeArcmin": 11.0
+    },
+    {
+      "designation": "M95",
+      "type": "GALAXY",
+      "raDeg": 160.9908,
+      "decDeg": 11.7038,
+      "magnitude": 9.7,
+      "constellation": "Leo",
+      "sizeArcmin": 7.0,
+      "description": "Barred spiral."
+    },
+    {
+      "designation": "M96",
+      "type": "GALAXY",
+      "raDeg": 161.6906,
+      "decDeg": 11.82,
+      "magnitude": 9.2,
+      "constellation": "Leo",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M97",
+      "type": "PLANETARY_NEBULA",
+      "raDeg": 168.6987,
+      "decDeg": 55.0192,
+      "name": "Owl Nebula",
+      "magnitude": 9.9,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 3.0
+    },
+    {
+      "designation": "M98",
+      "type": "GALAXY",
+      "raDeg": 183.4513,
+      "decDeg": 14.9006,
+      "magnitude": 10.1,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 10.0
+    },
+    {
+      "designation": "M99",
+      "type": "GALAXY",
+      "raDeg": 184.7067,
+      "decDeg": 14.4163,
+      "magnitude": 9.9,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M100",
+      "type": "GALAXY",
+      "raDeg": 185.7287,
+      "decDeg": 15.8226,
+      "magnitude": 9.3,
+      "constellation": "Coma Berenices",
+      "sizeArcmin": 7.0
+    },
+    {
+      "designation": "M101",
+      "type": "GALAXY",
+      "raDeg": 210.8023,
+      "decDeg": 54.3486,
+      "name": "Pinwheel Galaxy",
+      "magnitude": 7.9,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 29.0
+    },
+    {
+      "designation": "M102",
+      "type": "GALAXY",
+      "raDeg": 226.6229,
+      "decDeg": 55.7644,
+      "name": "Spindle Galaxy",
+      "magnitude": 9.9,
+      "constellation": "Draco",
+      "sizeArcmin": 5.0,
+      "description": "Identity disputed; often NGC 5866."
+    },
+    {
+      "designation": "M103",
+      "type": "CLUSTER_OPEN",
+      "raDeg": 23.3417,
+      "decDeg": 60.65,
+      "magnitude": 7.4,
+      "constellation": "Cassiopeia",
+      "sizeArcmin": 6.0
+    },
+    {
+      "designation": "M104",
+      "type": "GALAXY",
+      "raDeg": 189.9976,
+      "decDeg": -11.6231,
+      "name": "Sombrero Galaxy",
+      "magnitude": 8.0,
+      "constellation": "Virgo",
+      "sizeArcmin": 9.0
+    },
+    {
+      "designation": "M105",
+      "type": "GALAXY",
+      "raDeg": 161.9567,
+      "decDeg": 12.5816,
+      "magnitude": 9.3,
+      "constellation": "Leo",
+      "sizeArcmin": 5.0
+    },
+    {
+      "designation": "M106",
+      "type": "GALAXY",
+      "raDeg": 184.74,
+      "decDeg": 47.3037,
+      "magnitude": 8.4,
+      "constellation": "Canes Venatici",
+      "sizeArcmin": 19.0
+    },
+    {
+      "designation": "M107",
+      "type": "CLUSTER_GLOBULAR",
+      "raDeg": 248.1325,
+      "decDeg": -13.0537,
+      "magnitude": 7.9,
+      "constellation": "Ophiuchus",
+      "sizeArcmin": 10.0
+    },
+    {
+      "designation": "M108",
+      "type": "GALAXY",
+      "raDeg": 167.8788,
+      "decDeg": 55.6741,
+      "magnitude": 10.0,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 8.0
+    },
+    {
+      "designation": "M109",
+      "type": "GALAXY",
+      "raDeg": 179.3996,
+      "decDeg": 53.3744,
+      "magnitude": 9.8,
+      "constellation": "Ursa Major",
+      "sizeArcmin": 8.0
+    },
+    {
+      "designation": "M110",
+      "type": "GALAXY",
+      "raDeg": 10.0921,
+      "decDeg": 41.6854,
+      "magnitude": 8.5,
+      "constellation": "Andromeda",
+      "sizeArcmin": 19.0,
+      "description": "M31 satellite."
+    }
+  ]
+}

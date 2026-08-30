@@ -1,4 +1,4 @@
-package dev.openpolaris.core.domain
+package dev.openpolaris.core.astro
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

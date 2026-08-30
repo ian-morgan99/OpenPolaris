@@ -10,6 +10,7 @@ import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.GoToController
 import dev.openpolaris.core.domain.HelpersController
+import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
@@ -526,7 +527,10 @@ class AppViewModel(
         settlingInput = ""
         mount = MountState()
         position = null
-        lastSolveResult = null
+        _lastSolveResult.value = null
+        // Clear the VR marker bus too so a stale solve doesn't linger
+        // on the headset after the user disconnects.
+        MarkerStateBus.reset()
         solveInProgress = false
         if (!demoMode) {
             // 3e E1: acceptReconnect() may have just set
@@ -686,9 +690,17 @@ class AppViewModel(
      * pressed "Solve now" and the solver returned a confident
      * match. The pane surfaces RA/Dec / confidence / matched-star
      * count for the operator to decide whether to "Sync to target".
+     *
+     * Stream 7.4 (issue #14): a [StateFlow] rather than Compose
+     * state, so the VR activity (which runs on the Android side
+     * and cannot observe Compose state) can `collect` it in its
+     * `lifecycleScope` and push each emission to the renderer's
+     * `setSolveTarget` — re-solves while VR is open update the
+     * marker within one frame instead of waiting for the next
+     * launch.
      */
-    var lastSolveResult by mutableStateOf<SolveResult?>(null)
-        private set
+    private val _lastSolveResult = MutableStateFlow<SolveResult?>(null)
+    val lastSolveResult: StateFlow<SolveResult?> = _lastSolveResult.asStateFlow()
 
     /** True while [solveNow] is running. Gates the "Solve now" button. */
     var solveInProgress by mutableStateOf(false)
@@ -775,7 +787,12 @@ class AppViewModel(
                     // means the VR marker can show honest confidence and
                     // honest age, and the status message can mention the
                     // match quality. See issue #13.
-                    lastSolveResult = result
+                    _lastSolveResult.value = result
+                    // Push the same value to the process-wide bus so the
+                    // VR marker (a separate Android Activity with no
+                    // reference to this AppViewModel) updates on a
+                    // re-solve while it's open. See issue #14.
+                    MarkerStateBus.publish(result)
                     statusMessage = "Solved RA %.4f° Dec %.4f° — %.0f%% conf, %d stars — mount refined to target"
                         .format(result.raDeg, result.decDeg, result.confidence * 100.0, result.matchedStars)
                 }
@@ -801,7 +818,9 @@ class AppViewModel(
      * need to assert [disconnect] clears the cached solve.
      */
     internal fun testSetLastSolve(raDeg: Double, decDeg: Double) {
-        lastSolveResult = SolveResult(raDeg, decDeg, 0.6, 3)
+        val r = SolveResult(raDeg, decDeg, 0.6, 3)
+        _lastSolveResult.value = r
+        MarkerStateBus.publish(r)
     }
 
     /**

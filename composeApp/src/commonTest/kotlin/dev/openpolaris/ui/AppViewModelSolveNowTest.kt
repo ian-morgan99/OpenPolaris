@@ -207,7 +207,7 @@ class AppViewModelSolveNowTest {
         try {
             vm.solveNow(frameW, frameH)
             assertEquals("Not connected", vm.statusMessage)
-            assertNull(vm.lastSolveResult)
+            assertNull(vm.lastSolveResult.value)
         } finally {
             vm.preview.shutdown()
         }
@@ -293,7 +293,7 @@ class AppViewModelSolveNowTest {
             advanceUntilIdle()
 
             assertNull(conn.failMessage, "FakeConnection error: ${conn.failMessage}")
-            val result = vm.lastSolveResult
+            val result = vm.lastSolveResult.value
             assertNotNull(result, "expected lastSolveResult, status='${vm.statusMessage}'")
             assertTrue(
                 kotlin.math.abs(result.raDeg - truthRa) < 1.0,
@@ -348,7 +348,7 @@ class AppViewModelSolveNowTest {
 
             vm.disconnect()
             advanceUntilIdle()
-            assertNull(vm.lastSolveResult)
+            assertNull(vm.lastSolveResult.value)
             assertEquals(false, vm.solveInProgress)
         } finally {
             vm.preview.shutdown()

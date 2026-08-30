@@ -21,6 +21,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.SolveTargetProjector
 import dev.openpolaris.core.domain.VrStereoShaders
@@ -54,6 +55,7 @@ class VRActivity : ComponentActivity() {
     private var sensorManager: SensorManager? = null
     private var rotationVector: Sensor? = null
     private var collectJob: Job? = null
+    private var markerBusJob: Job? = null
 
     // Overlay widgets (set in onCreate; read by the HUD tick).
     private lateinit var hudText: TextView
@@ -137,6 +139,10 @@ class VRActivity : ComponentActivity() {
                 )
             }
         }
+        // #14. Start the live-update collector after the Intent-extras
+        // snapshot so the first emission (if any) lands on the first
+        // rendered frame instead of the second.
+        startMarkerBus()
         glView = GLSurfaceView(this).apply {
             setEGLContextClientVersion(2)
             setRenderer(renderer)
@@ -299,6 +305,7 @@ class VRActivity : ComponentActivity() {
         sensorManager?.unregisterListener(headListener)
         glView.onPause()
         stopPreview()
+        stopMarkerBus()
         hudTickHandler?.removeCallbacks(hudTick)
         super.onPause()
     }
@@ -343,6 +350,28 @@ class VRActivity : ComponentActivity() {
         collectJob?.cancel()
         collectJob = null
         if (::preview.isInitialized) preview.stop()
+    }
+
+    /**
+     * #14. Subscribe to [MarkerStateBus] so the VR marker overlay updates
+     * live when a re-solve completes while this activity is open. The
+     * Intent-extras snapshot in [onCreate] seeds the first frame; this
+     * collector takes over from there. StateFlow delivers the latest
+     * emission to a new subscriber on collect, so any solve that
+     * completed between onCreate and the first collect is captured.
+     * No-op if already running (mirrors [startPreview]).
+     */
+    private fun startMarkerBus() {
+        if (markerBusJob?.isActive == true) return
+        markerBusJob = lifecycleScope.launch {
+            MarkerStateBus.solve.collect { result -> renderer.setSolve(result) }
+        }
+    }
+
+    /** #14. Idempotent; called from onPause to release the collector. */
+    private fun stopMarkerBus() {
+        markerBusJob?.cancel()
+        markerBusJob = null
     }
 
     companion object {
@@ -485,6 +514,34 @@ class StereoRenderer : GLSurfaceView.Renderer {
         // second source of truth.
         solveRecordedAtMs = System.currentTimeMillis() - ageMs
         hasSolveTarget = true
+    }
+
+    /**
+     * Update only the four solve-side fields (RA/Dec/confidence/timestamp)
+     * without touching the target, FoV, or `hasSolveTarget` flag. Used by
+     * the live [MarkerStateBus] collector (issue #14) so a re-solve while
+     * VR is open updates the marker within one frame, without clobbering
+     * the launch-time seed.
+     *
+     * `null` hides the marker but keeps the target/FoV in place — the
+     * next non-null emission restores it.
+     */
+    fun setSolve(result: dev.openpolaris.core.solver.SolveResult?) {
+        if (result == null) {
+            solveFieldRaDeg = 0.0
+            solveFieldDecDeg = 0.0
+            solveConfidence = 0f
+            // Leave solveRecordedAtMs untouched; drawSolveMarker checks
+            // confidence == 0f and short-circuits before reading age.
+            return
+        }
+        solveFieldRaDeg = result.raDeg
+        solveFieldDecDeg = result.decDeg
+        solveConfidence = result.confidence.toFloat().coerceIn(0f, 1f)
+        // The new solve's recorded-at timestamp, so the marker honestly
+        // ages from the *new* solve (not the launch-time one). See #12.
+        solveRecordedAtMs = if (result.timestampMs > 0L) result.timestampMs
+            else System.currentTimeMillis()
     }
 
     override fun onSurfaceCreated(gl: GLES20?, config: EGLConfig?) {

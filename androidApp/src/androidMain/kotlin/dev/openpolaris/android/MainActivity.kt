@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                     // AstroMath so they share the validation the
                     // "Slew to target" button uses; an unparsable target
                     // also bails on the marker (no error UX in this path).
-                    val solve = viewModel.lastSolveResult
+                    val solve = viewModel.lastSolveResult.value
                     val targetRaDeg = AstroMath.parseRa(viewModel.gotoRa)
                     val targetDecDeg = AstroMath.parseDec(viewModel.gotoDec)
                     val intent = Intent(this, VRActivity::class.java).apply {

@@ -19,6 +19,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -217,11 +219,12 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     Text(if (vm.solveInProgress) "Solving…" else "Solve now")
                 }
             }
-            val solve = vm.lastSolveResult
-            if (solve != null) {
+            val solve by vm.lastSolveResult.collectAsState()
+            val solved = solve
+            if (solved != null) {
                 Text(
                     "Last solve: RA %.4f°  Dec %.4f°  (matched=%d, conf=%.2f)".format(
-                        solve.raDeg, solve.decDeg, solve.matchedStars, solve.confidence,
+                        solved.raDeg, solved.decDeg, solved.matchedStars, solved.confidence,
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )

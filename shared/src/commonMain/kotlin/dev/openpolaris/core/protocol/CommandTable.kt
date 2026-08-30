@@ -1,7 +1,12 @@
 package dev.openpolaris.core.protocol
 
+import dev.openpolaris.core.domain.BatteryDetail
+import dev.openpolaris.core.domain.CameraInfo
+import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountState
+import dev.openpolaris.core.domain.OmsState
+import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TaskList
 
 /**
@@ -195,6 +200,39 @@ object CommandTable {
 
     /** Trigger a single exposure via the CableRelease task path (SP_CableReleaseMakePhoto). */
     val CAM_CAPTURE = Descriptor<Unit>(Codes.CAM_CAPTURE, "capture photo")
+
+    // ---- post-connect burst ---------------------------------------------------
+    //
+    // The order here MUST match `tools/cli-probe/.../Burst.kt` so the
+    // simulator and the live device see the same traffic.
+    // See docs/PLANNING-2026-08.md Step 5.
+
+    /**
+     * One GET step in the pre-camera burst. [parse] is reused from the matching
+     * descriptor in this table where one exists (battery / SD / OMS / ex-axis)
+     * and inlined for codes that don't have a descriptor yet (808/809/802/543).
+     */
+    data class BurstStep<T>(val code: Int, val parse: (ResponseParser.Frame) -> T?)
+
+    /** Pre-camera GETs fired in order after the lifecycle handshake. */
+    val BURST_PRE_CAMERA: List<BurstStep<*>> = listOf(
+        BurstStep<String>(808) { it["ver"] },
+        BurstStep<String>(809) { it["sn"] },
+        BurstStep<Int>(802) { it.int("band") },
+        BurstStep<BatteryDetail>(778) { BatteryDetail.fromFrame(it) },
+        BurstStep<BatteryDetail>(779) { BatteryDetail.fromFrame(it) },
+        BurstStep<SdStatus>(775) { SdStatus.fromFrame(it) },
+        BurstStep<OmsState>(824) { OmsState.fromFrame(it) },
+        BurstStep<ExAxisState>(524) { ExAxisState.fromFrame(it) },
+        BurstStep<Int>(543) { it.int("time") },
+    )
+
+    /**
+     * Camera info GETs (10 codes). Each response merges one field into a
+     * running [CameraInfo] snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
+     * NOT part of this — they feed the CaptureState pipeline / capture button.
+     */
+    val BURST_CAMERA_CODES: List<Int> = listOf(258, 260, 262, 264, 268, 270, 272, 274, 276, 278)
 
     // ---- file / SD (RE) --------------------------------------------------------
 

@@ -1,5 +1,6 @@
 package dev.openpolaris.core.protocol
 
+import dev.openpolaris.core.domain.CameraInfo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -93,6 +94,69 @@ class CommandTableTest {
         assertEquals(CommandTable.CaptureState(0, 0, 0), parse(f2))
         val f3 = ResponseParser().parseFrame("1&0&2&junk;")!!
         assertEquals(null, parse(f3))
+    }
+
+    // ---- post-connect burst ----
+
+    @Test
+    fun burstPreCameraMatchesPlanningOrder() {
+        // Source of truth: docs/PLANNING-2026-08.md step 5.
+        val expected = listOf(808, 809, 802, 778, 779, 775, 824, 524, 543)
+        assertEquals(expected, CommandTable.BURST_PRE_CAMERA.map { it.code })
+    }
+
+    @Test
+    fun burstPreCameraParsersCoverAllSteps() {
+        // Each step's parser should produce a non-null value when handed a
+        // minimal synthetic frame that the code's real protocol message
+        // contains. This proves the parser actually parses, not just that
+        // a function reference exists.
+        val keyByCode = mapOf(
+            808 to "ver", 809 to "sn", 802 to "band", 543 to "time",
+        )
+        for (step in CommandTable.BURST_PRE_CAMERA) {
+            val key = keyByCode[step.code] ?: continue // 778/779/775/824/524 use domain-specific helpers
+            val p = ResponseParser()
+            val f = p.parseFrame("1&0&2&$key:7;")!!
+            val v = step.parse(f)
+            assertTrue(v != null, "step ${step.code} returned null on a $key:7; frame")
+        }
+    }
+
+    @Test
+    fun burstCameraCodesAreTenInCameraRange() {
+        assertEquals(10, CommandTable.BURST_CAMERA_CODES.size)
+        for (c in CommandTable.BURST_CAMERA_CODES) {
+            assertTrue(
+                c in dev.openpolaris.core.protocol.Codes.CAMERA_BASE..dev.openpolaris.core.protocol.Codes.CAMERA_END,
+                "camera burst code $c outside camera range",
+            )
+        }
+        // 266 (STATE) and 267 (CAPTURE) are explicitly NOT in the burst — they
+        // feed the CaptureState pipeline / capture button.
+        assertTrue(266 !in CommandTable.BURST_CAMERA_CODES)
+        assertTrue(267 !in CommandTable.BURST_CAMERA_CODES)
+    }
+
+    @Test
+    fun burstCameraCodesAllHandledByCameraInfo() {
+        // CameraInfo.fromFrame returns the same snapshot unchanged for unknown
+        // codes. For each code in the burst, apply a frame carrying a real
+        // value under the key the camera-info merge expects; the resulting
+        // snapshot must differ from the empty starting snapshot.
+        val keyByCode = mapOf(
+            258 to "iso", 260 to "wb", 262 to "fNum", 264 to "ev",
+            268 to "focus", 270 to "imgSize", 272 to "imgFmt",
+            274 to "color", 276 to "shutter", 278 to "captureMode",
+        )
+        for (c in CommandTable.BURST_CAMERA_CODES) {
+            val key = keyByCode[c] ?: error("missing key mapping for code $c")
+            val p = ResponseParser()
+            val f = p.parseFrame("1&0&2&$key:7;")!!
+            val before = CameraInfo()
+            val after = CameraInfo.fromFrame(c, f, before)
+            assertTrue(after != before, "CameraInfo.fromFrame did nothing for code $c")
+        }
     }
 
     @Test

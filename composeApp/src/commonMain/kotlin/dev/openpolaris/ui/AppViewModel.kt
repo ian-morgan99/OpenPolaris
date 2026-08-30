@@ -226,34 +226,20 @@ class AppViewModel(
     // See docs/PLANNING-2026-08.md Step 5.
 
     private suspend fun postConnectBurst(s: MountSession) {
-        runCatching { s.request<String>(808) { it["ver"] } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) firmwareVersion = it.value }
-        runCatching { s.request<String>(809) { it["sn"] } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) serialNumber = it.value }
-        runCatching { s.request<Int>(802) { it.int("band") } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) wifiBand = it.value }
-        runCatching { s.request<BatteryDetail>(778) { BatteryDetail.fromFrame(it) } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) batteryDetail = it.value }
-        runCatching { s.request<BatteryDetail>(779) { BatteryDetail.fromFrame(it) } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) batteryDetail = it.value }
-        runCatching { s.request<SdStatus>(775) { SdStatus.fromFrame(it) } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) sdStatus = it.value }
-        runCatching { s.request<OmsState>(824) { OmsState.fromFrame(it) } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) omsState = it.value }
-        runCatching { s.request<ExAxisState>(524) { ExAxisState.fromFrame(it) } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) exAxisState = it.value.state }
-        // Settling time GET (543) — the real protocol has a separate get code.
-        // Tolerate Timeout on builds that only expose the SETTER.
-        runCatching { s.request<Int>(543) { it.int("time") } }
-            .onSuccess { if (it is MountSession.CmdResult.Ok) settlingTime = it.value }
+        for (step in CommandTable.BURST_PRE_CAMERA) {
+            runCatching {
+                @Suppress("UNCHECKED_CAST")
+                val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+                if (r is MountSession.CmdResult.Ok) applyBurstValue(step.code, r.value)
+            }
+        }
 
         // Camera parameter burst (10 GETs). Each merges one field into the
         // running CameraInfo snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
         // NOT part of this — they feed the CaptureState pipeline / capture button.
         runCatching {
-            val codes = listOf(258, 260, 262, 264, 268, 270, 272, 274, 276, 278)
             var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
-            for (c in codes) {
+            for (c in CommandTable.BURST_CAMERA_CODES) {
                 val r = s.request<ResponseParser.Frame>(c) { it }
                 if (r is MountSession.CmdResult.Ok) {
                     snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
@@ -263,32 +249,43 @@ class AppViewModel(
         }
     }
 
+    /**
+     * Dispatch a single parsed pre-camera burst value to the right observable.
+     * Centralised here so the 8 `refresh*()` methods and the burst share one
+     * code-to-field mapping.
+     */
+    private fun applyBurstValue(code: Int, value: Any) {
+        when (code) {
+            808 -> firmwareVersion = value as String
+            809 -> serialNumber = value as String
+            802 -> wifiBand = value as Int
+            778, 779 -> batteryDetail = value as BatteryDetail
+            775 -> sdStatus = value as SdStatus
+            824 -> omsState = value as OmsState
+            524 -> exAxisState = (value as ExAxisState).state
+            543 -> settlingTime = value as Int
+        }
+    }
+
     /** Re-fire a single code from the post-connect burst on demand. */
-    fun refreshFirmware()   = scope.launch { session?.let { s ->
-        (s.request<String>(808) { it["ver"] } as? MountSession.CmdResult.Ok)?.let { firmwareVersion = it.value }
-    } }
-    fun refreshSerial()     = scope.launch { session?.let { s ->
-        (s.request<String>(809) { it["sn"] } as? MountSession.CmdResult.Ok)?.let { serialNumber = it.value }
-    } }
-    fun refreshWifiBand()   = scope.launch { session?.let { s ->
-        (s.request<Int>(802) { it.int("band") } as? MountSession.CmdResult.Ok)?.let { wifiBand = it.value }
-    } }
-    fun refreshBattery()    = scope.launch { session?.let { s ->
-        (s.request<BatteryDetail>(778) { BatteryDetail.fromFrame(it) } as? MountSession.CmdResult.Ok)?.let { batteryDetail = it.value }
-        (s.request<BatteryDetail>(779) { BatteryDetail.fromFrame(it) } as? MountSession.CmdResult.Ok)?.let { batteryDetail = it.value }
-    } }
-    fun refreshSdStatus()   = scope.launch { session?.let { s ->
-        (s.request<SdStatus>(775) { SdStatus.fromFrame(it) } as? MountSession.CmdResult.Ok)?.let { sdStatus = it.value }
-    } }
-    fun refreshOmsState()   = scope.launch { session?.let { s ->
-        (s.request<OmsState>(824) { OmsState.fromFrame(it) } as? MountSession.CmdResult.Ok)?.let { omsState = it.value }
-    } }
-    fun refreshExAxis()     = scope.launch { session?.let { s ->
-        (s.request<ExAxisState>(524) { ExAxisState.fromFrame(it) } as? MountSession.CmdResult.Ok)?.let { exAxisState = it.value.state }
-    } }
-    fun refreshSettling()   = scope.launch { session?.let { s ->
-        (s.request<Int>(543) { it.int("time") } as? MountSession.CmdResult.Ok)?.let { settlingTime = it.value }
-    } }
+    fun refreshFirmware()   = refreshBurstStep(808)
+    fun refreshSerial()     = refreshBurstStep(809)
+    fun refreshWifiBand()   = refreshBurstStep(802)
+    fun refreshBattery()    { refreshBurstStep(778); refreshBurstStep(779) }
+    fun refreshSdStatus()   = refreshBurstStep(775)
+    fun refreshOmsState()   = refreshBurstStep(824)
+    fun refreshExAxis()     = refreshBurstStep(524)
+    fun refreshSettling()   = refreshBurstStep(543)
+
+    private fun refreshBurstStep(code: Int) = scope.launch {
+        val s = session ?: return@launch
+        val step = CommandTable.BURST_PRE_CAMERA.firstOrNull { it.code == code } ?: return@launch
+        runCatching {
+            @Suppress("UNCHECKED_CAST")
+            val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+            if (r is MountSession.CmdResult.Ok) applyBurstValue(code, r.value)
+        }
+    }
 
     fun setSettlingTimeMs(ms: Int) = scope.launch {
         val s = session ?: return@launch

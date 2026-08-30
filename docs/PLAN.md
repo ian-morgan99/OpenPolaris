@@ -227,8 +227,18 @@ All one-off infrastructure issues filed against this worktree are now closed. Th
 |---|----------|-------|-------|-----------|
 | 3a.1 | p1 | [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) (closed) | `Session.shutdown` no-leak JVM test | — | DONE (`e873bb0`) |
 | 3a.2 | p1 | [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) (closed) | `_tilt.value` survives `Session.stop()`/`start()` | 3a.1 | DONE (`bec69c4`) |
-| 3b.1 | p1 | [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) | `runAndAwait` cancellation returns `Failed("cancelled")` within 1s | 3a.2 |
+| 3b.1 | p1 | [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) | `runAndAwait` cancellation surfaces "cancelled" status in `AppViewModel` (caller-side; 3b.5 contract preserved) | 3a.2 |
 | 3b.2 | p1 | [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) | No leftover coroutines after `runAndAwait` cancellation | 3b.1 |
+
+> **3b contract note (3b.5 reversal):** the original 3b.1 framing — that
+> `runAndAwait` itself should return `Failed("cancelled")` on scope cancel — was
+> reversed at commit `aba706e` ("3b.5"). `runAndAwait` propagates
+> `CancellationException` per structured concurrency. The "cancelled" status
+> message is the **caller's** responsibility. Three controller tests already
+> pin the 3b.5 contract: `cancelMidRunAndAwaitPropagatesCancellationException`
+> (AutoLevelControllerTest.kt:518), `cancelMidSettleClearsIsRunning` (L615),
+> and `runAndAwaitCancelLeavesNoLeftoverCoroutines` (L685). 3b.2 is already
+> covered by the third of those — closing #23 in this slice too.
 | 3c.1 | p2 | [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) | `SessionMarker` data class with `kotlinx.serialization` JSON | — |
 | 3c.2 | p2 | [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) | `SessionStore` interface (save, loadAll, delete, latest) | 3c.1 |
 | 3c.3 | p2 | [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26) | `FileSessionStore` in `androidApp/src/androidMain` | 3c.2 |
@@ -388,10 +398,51 @@ after Stream 7.5:
   doesn't compile (the contract lives in `AutoLevelController.tilt`).
   The plan and the mirror now agree: open = #22-#27; closed includes
   #17, #19, #20, and #21 with the shippable refs. Next slice is
-  **#22** (3b.1 `runAndAwait` cancellation returns
-  `Failed("cancelled")` within 1s, p1) per item 7 of the "Immediate
-  next actions" list below (item 6 has been struck and marked DONE).
-  _Supersedes the 18:48:00Z "open = #21-#27" entry._
+  **#22** (3b.1 caller-side "Auto-level cancelled" status, p1; ref
+  in the 3b contract note above explains why the original
+  `Failed("cancelled")` framing was reversed) per item 7 of the
+  "Immediate next actions" list below (item 6 has been struck and
+  marked DONE). _Supersedes the 18:48:00Z "open = #21-#27" entry._
+- **2026-08-30T19:35:00Z (issue #22 closed, commit `605ba85`)**: the
+  caller-side 'Auto-level cancelled' status fix landed as `605ba85` on
+  `agents/connectivity-tests-for-polaris` (not yet pushed — held
+  alongside the docs commit for review surface independence). Two files:
+  `AppViewModel.kt` (added `kotlinx.coroutines.CancellationException`
+  import, wrapped `c.runAndAwait()` in `try { ... } catch (e: CancellationException) { statusMessage = "Auto-level cancelled"; throw e }`
+  inside `runAutoLevel`, KDoc explaining the 3b.5 contract, and the
+  `testInstallAutoLevel(c: AutoLevelController)` test seam so tests
+  can inject a controller with a known sample source), and
+  `AppViewModelAutoLevelTest.kt` (new test file, single regression
+  test `runAutoLevelCancellationSurfacesCancelledStatusMessage` —
+  viewModel on a child scope of `TestScope`, sample source suspends
+  forever, `runTest(timeout = 60.seconds)` for the 1.9.0 5s default,
+  `runCurrent` (not `advanceUntilIdle`) drives the wait, then cancel
+  the viewModel scope and assert `statusMessage == "Auto-level cancelled"`,
+  the run job is cancelled, and both within virtual time). The
+  `try { ... } catch (e: CancellationException)` is the specific
+  exception type so genuine failures (e.g. IOException) continue to
+  surface as the original exception; the surrounding
+  structured-concurrency tree still observes the cancellation because
+  the catch re-throws. PLAN.md updated in six places: 3b.1 row +
+  3b contract note (L230-231), 18:48:00Z "Next slice is #22" line
+  (L389-394), "Original scoping" + filed #22 description (L573-596),
+  items 7-8 of "Immediate next actions" (L612-650), p1 sub-issues
+  paragraph (L667-669), and the final next-agent paragraph (L678-686).
+  Full `:composeApp:jvmTest --rerun-tasks` green at **46/46** (was
+  45, +1 new test). Full jvmTest suite 270/270 (224 `shared` + 46
+  `composeApp`). The 3b.5 contract is preserved unchanged — the
+  three already-shipping tests
+  (`cancelMidRunAndAwaitPropagatesCancellationException` L518,
+  `cancelMidSettleClearsIsRunning` L615,
+  `runAndAwaitCancelLeavesNoLeftoverCoroutines` L685) all still
+  pass, and the 3b.5 test for #23 is the `runAndAwait*NoLeftover`
+  test itself. The plan and the mirror now agree: **open = #23-#27;
+  closed includes #17, #19, #20, #21, and #22**. Next slice is
+  **#23** (3b.2 no-leftover coroutines, p1; already covered by the
+  3b.5 test `runAndAwaitCancelLeavesNoLeftoverCoroutines` at
+  `AutoLevelControllerTest.kt:685` — close as already-shipped, ~0
+  LoC) per item 8 of the "Immediate next actions" list below.
+  _Supersedes the 18:48:00Z "open = #22-#27" entry._
 - **2026-08-30T18:30:00Z (issue #20 closed, commit `e873bb0`)**: the
   `Session.shutdown` no-leak JVM test landed as `e873bb0` on
   `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
@@ -574,10 +625,16 @@ issue #19 is closed.
    cancel mid-`runAndAwait` returns `Failed("cancelled")` within 1s; 3b.2 =
    no leftover coroutines (via `kotlinx.coroutines.debug`); 3c.1-3c.4 =
    SessionMarker, SessionStore, file-backed, auto-reconnect prompt.
+   **Refined (2026-08-30T19:30Z):** the 3b.1 row above was re-scoped to
+   *caller-side* — the controller's `runAndAwait` propagates
+   `CancellationException` per the 3b.5 contract (see the 3b contract note
+   next to the Stream 3 priorities table), and the "cancelled" status
+   message is `AppViewModel.runAutoLevel`'s responsibility. The filed
+   issue (#22) was reframed in this slice to match.
    **Filed 2026-08-30T17:18Z**:
    [#20](https://github.com/ian-morgan99/OpenPolaris/issues/20) 3a.1 Session.shutdown no-leak (p1);
    [#21](https://github.com/ian-morgan99/OpenPolaris/issues/21) 3a.2 _tilt.value survives (p1);
-   [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) 3b.1 cancel returns Failed(cancelled) (p1);
+   [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22) 3b.1 caller-side "Auto-level cancelled" status (p1);
    [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23) 3b.2 no leftover coroutines (p1);
    [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) 3c.1 SessionMarker (p2);
    [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) 3c.2 SessionStore interface (p2);
@@ -609,11 +666,30 @@ issue #19 is closed.
    L99-119: `stop()` cancels `observeJob` and sets it to `null` but
    does **not** touch `_tilt`, so the value persists across cycles.
    Items that referenced 6 now refer to item 7.
-7. **Issue #22: 3b.1 `runAndAwait` cancellation returns `Failed("cancelled")**
-   **within 1s** — p1, unblocks after #21. ~60 LoC. Live:
-   [#22](https://github.com/ian-morgan99/OpenPolaris/issues/22).
+7. ~~**Issue #22: 3b.1 caller-side "Auto-level cancelled" status on scope
+   cancel** — p1, unblocks after #21. ~10 LoC prod + ~70 LoC test.~~ **DONE**
+   in this slice (commit pending on `agents/connectivity-tests-for-polaris`).
+   The issue's original `Failed("cancelled")` framing conflicted with the
+   3b.5 contract (`runAndAwait` propagates `CancellationException` per
+   structured concurrency), so the fix was relocated to `AppViewModel.runAutoLevel`:
+   `try { c.runAndAwait() } catch (e: CancellationException) { statusMessage = "Auto-level cancelled"; throw e }`.
+   Three controller tests already pin the 3b.5 contract (see 3b contract note
+   above) and continue to pass as regression guards. New test
+   `AppViewModelAutoLevelTest.runAutoLevelCancellationSurfacesCancelledStatusMessage`
+   pins the caller-side contract: `vm.runAutoLevel()` (returns `Job`),
+   `vm.scope.cancel()` (cancels the launch{}), then `assertEquals("Auto-level
+   cancelled", vm.statusMessage)`. The test re-throws the exception so
+   `Job.isCancelled == true` after `scope.cancel()`. Full jvmTest suite
+   green at **270/270** (was 224, +46 incl. composeApp: 1 new test +
+   existing 45). Issue **#22 closed** with a comment listing the
+   three regression-guard tests, the new test, the contract rationale,
+   the two-file edit list (`AppViewModel.kt` + `AppViewModelAutoLevelTest.kt`),
+   and the pass count. Items that referenced 7 now refer to item 8.
 8. **Issue #23: 3b.2 No leftover coroutines after `runAndAwait` cancellation**
-   — p1, unblocks after #22. ~60 LoC. Live:
+   — p1, unblocks after #22. ~0 LoC (already covered by the
+   `runAndAwaitCancelLeavesNoLeftoverCoroutines` test in
+   `AutoLevelControllerTest.kt:685`, which ships as part of the 3b.5
+   contract). Live:
    [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23).
 9. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
    JSON** — p2, deferred to a later slice. ~80 LoC. Live:
@@ -628,8 +704,11 @@ issue #19 is closed.
     `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
     [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
 
-p1 sub-issues (#22-#23) ship in queue order before any p2 work begins
-(see the `next-slice-ready` condition 4 in PLAN.md and the
+p1 sub-issue #23 ships next (already covered by the 3b.5 test
+`runAndAwaitCancelLeavesNoLeftoverCoroutines`, ~0 LoC); the 3c.1-3c.4
+p2 sub-issues (#24-#27) ship after that, in queue order, before any
+unrelated work begins (see the `next-slice-ready` condition 4 in PLAN.md
+and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 7. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
    owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
@@ -639,12 +718,12 @@ p1 sub-issues (#22-#23) ship in queue order before any p2 work begins
 8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
 9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Items 2, 3, 5, and **6** have now landed (commits `7970e55`,
-`e873bb0`, and `bec69c4`; #17 was a deployed-file fix that required
-no commit). The next agent MUST verify on resume that the worktree is
-at or past this commit and that `:shared:jvmTest --rerun-tasks` is
-still green at **223/223**
-before starting item 7 (Issue #22). Item 4 (the filed #21-#27 sub-issues) is also
+Items 2, 3, 5, **6**, and **7** have now landed (commits `7970e55`,
+`e873bb0`, `bec69c4`, and this slice's `605ba85` for #22; #17 was a
+deployed-file fix that required no commit). The next agent MUST verify on resume that the worktree is
+at or past this commit and that `:composeApp:jvmTest --rerun-tasks` is
+still green at **270/270**
+before starting item 8 (Issue #23). Item 4 (the filed #21-#27 sub-issues) is also
 landed and should be confirmed in the worktree before any code change.
 If a reviewing agent files a P0 (label `priority/p0`) in between, that
 preempts per the `next-slice-ready` condition 3.

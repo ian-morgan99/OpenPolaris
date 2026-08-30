@@ -443,6 +443,27 @@ after Stream 7.5:
   `AutoLevelControllerTest.kt:685` — close as already-shipped, ~0
   LoC) per item 8 of the "Immediate next actions" list below.
   _Supersedes the 18:48:00Z "open = #22-#27" entry._
+- **2026-08-30T20:10:00Z (issue #23 closed as already-shipped, no new
+  code)**: 3b.2 ("no leftover coroutines after `runAndAwait`
+  cancellation") was always the behavioral guarantee of the 3b.5
+  contract shipped in `e873bb0` (the `Session.shutdown` no-leak fix);
+  the existing 3b.5 regression test
+  `runAndAwaitCancelLeavesNoLeftoverCoroutines` at
+  `AutoLevelControllerTest.kt:685` already enumerates `parent.children`
+  and asserts the count returns to zero after `cancelAndJoin() +
+  yield()` — structurally equivalent to
+  `DebugProbes.dumpCoroutines()` returning to baseline. Closing the
+  issue as already-shipped keeps the 3b critical path DONE. The
+  `DebugProbes` mechanism + `-Pkotlinx.coroutines.debug=true` Gradle
+  property gate from the issue body is captured as a *future
+  enhancement* for diagnostic-grade observability in production-style
+  runs; tracked implicitly in §"Immediate next actions" item 11 (new).
+  No new LoC shipped. PLAN.md updated in two places: this reconciliation
+  entry and the trailing "Items 2, 3, 5, 6, 7" paragraph (now extends
+  to item 8 DONE). The plan and the mirror now agree: **open = #24-#27;
+  closed includes #17, #19, #20, #21, #22, and #23**. Next slice is
+  **#24** (3c.1, p2) per item 9 of the "Immediate next actions" list
+  below. _Supersedes the 19:35:00Z "open = #23-#27" entry._
 - **2026-08-30T18:30:00Z (issue #20 closed, commit `e873bb0`)**: the
   `Session.shutdown` no-leak JVM test landed as `e873bb0` on
   `agents/connectivity-tests-for-polaris` (pushed to origin). Four files:
@@ -685,28 +706,46 @@ issue #19 is closed.
    three regression-guard tests, the new test, the contract rationale,
    the two-file edit list (`AppViewModel.kt` + `AppViewModelAutoLevelTest.kt`),
    and the pass count. Items that referenced 7 now refer to item 8.
-8. **Issue #23: 3b.2 No leftover coroutines after `runAndAwait` cancellation**
+8. ~~**Issue #23: 3b.2 No leftover coroutines after `runAndAwait` cancellation**
    — p1, unblocks after #22. ~0 LoC (already covered by the
    `runAndAwaitCancelLeavesNoLeftoverCoroutines` test in
    `AutoLevelControllerTest.kt:685`, which ships as part of the 3b.5
-   contract). Live:
-   [#23](https://github.com/ian-morgan99/OpenPolaris/issues/23).
-9. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
-   JSON** — p2, deferred to a later slice. ~80 LoC. Live:
-   [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24).
-10. **Issue #25: 3c.2 `SessionStore` interface (save, loadAll, delete, latest)**
+   contract). Live: #23.~~ **DONE** in this slice. The
+   behavioral guarantee ("no leftover coroutines after
+   `runAndAwait` cancellation") is verified by the existing 3b.5
+   regression test at
+   `AutoLevelControllerTest.kt:685` via `parent.children`
+   enumeration (structurally equivalent to the DebugProbes
+   mechanism). Issue #23 closed with a comment explaining the
+   equivalence and listing what is **not** covered (a
+   diagnostic-grade `DebugProbes.dumpCoroutines()` snapshot test,
+   tracked as item 9 below for traceability).
+9. **(Future, optional) Add a diagnostic-grade `DebugProbes.dumpCoroutines()`
+   snapshot test for `runAndAwait` cancellation** — not a p1 contract;
+   the existing child-counting regression test (3b.5) is sufficient for
+   the behavioral guarantee. This is the production-grade observability
+   hook the original Issue #23 body proposed: it would require the
+   `kotlinx-coroutines-debug` artifact on the test classpath, the
+   `-Pkotlinx.coroutines.debug=true` Gradle property to enable the
+   agent at runtime, and a `DebugProbes.dumpCoroutines()` call to
+   capture the live coroutine count. Useful for "show me a stack trace
+   of every live coroutine right now" diagnostics, but not a contract
+   test. Deferred until a real diagnostic need arises.
+10. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
+    JSON** — p2, deferred to a later slice. ~80 LoC. Live:
+    [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24).
+11. **Issue #25: 3c.2 `SessionStore` interface (save, loadAll, delete, latest)**
     — p2, deferred. ~80 LoC. Live:
     [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25).
-11. **Issue #26: 3c.3 `FileSessionStore` in `androidApp/src/androidMain`**
+12. **Issue #26: 3c.3 `FileSessionStore` in `androidApp/src/androidMain`**
     (atomic temp+rename) — p2, deferred. ~100 LoC. Live:
     [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26).
-12. **Issue #27: 3c.4 Auto-reconnect prompt on Wi-Fi loss** (uses
+13. **Issue #27: 3c.4 Auto-reconnect prompt on Wi-Fi loss** (uses
     `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
     [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
 
-p1 sub-issue #23 ships next (already covered by the 3b.5 test
-`runAndAwaitCancelLeavesNoLeftoverCoroutines`, ~0 LoC); the 3c.1-3c.4
-p2 sub-issues (#24-#27) ship after that, in queue order, before any
+p1 sub-issues #17, #19, #20, #21, #22, and #23 are all closed; the
+3c.1-3c.4 p2 sub-issues (#24-#27) ship next, in queue order, before any
 unrelated work begins (see the `next-slice-ready` condition 4 in PLAN.md
 and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
@@ -718,12 +757,13 @@ and the
 8. **Stream 5.3 real-mount smoke** — blocked on user hardware.
 9. **Stream 6.2 iOS / desktop test surface** — blocked on user build.
 
-Items 2, 3, 5, **6**, and **7** have now landed (commits `7970e55`,
-`e873bb0`, `bec69c4`, and this slice's `605ba85` for #22; #17 was a
-deployed-file fix that required no commit). The next agent MUST verify on resume that the worktree is
+Items 2, 3, 5, **6**, **7**, and **8** have now landed (commits `7970e55`,
+`e873bb0`, `bec69c4`, this slice's `605ba85` for #22, and the
+already-shipped 3b.5 contract for #23 closed without a new commit; #17
+was a deployed-file fix that required no commit). The next agent MUST verify on resume that the worktree is
 at or past this commit and that `:composeApp:jvmTest --rerun-tasks` is
 still green at **270/270**
-before starting item 8 (Issue #23). Item 4 (the filed #21-#27 sub-issues) is also
+before starting item 9 (Issue #24). Item 4 (the filed #21-#27 sub-issues) is also
 landed and should be confirmed in the worktree before any code change.
 If a reviewing agent files a P0 (label `priority/p0`) in between, that
 preempts per the `next-slice-ready` condition 3.

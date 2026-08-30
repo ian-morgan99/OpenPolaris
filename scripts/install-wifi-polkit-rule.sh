@@ -3,7 +3,7 @@
 # Will prompt ONCE for the sudo password; after that, the rule stops the loop.
 set -euo pipefail
 
-RULE_SRC="/home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/50-openpolaris-wifi-scan.rules"
+RULE_SRC="/home/ian/Documents/VSCodeProjects/OpenPolaris/scripts/polkit/50-openpolaris-wifi-scan.rules"
 RULE_DST="/etc/polkit-1/rules.d/50-openpolaris-wifi-scan.rules"
 
 if [[ ! -f "$RULE_SRC" ]]; then

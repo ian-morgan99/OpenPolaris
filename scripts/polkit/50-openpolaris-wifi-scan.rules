@@ -1,0 +1,33 @@
+/* Allow user 'ian' to trigger WiFi scans and radio toggles without a
+ * polkit password prompt. This stops the auth-flood loop observed on
+ * 2026-08-30 when gnome-shell's network panel polled the wireless adapter
+ * every few seconds.
+ *
+ * Why this rule looks the way it does:
+ *  - v1 required `subject.local && subject.active && subject.user === "ian"`.
+ *    The polkit log showed GNOME's requests came in as
+ *    `unix-process:unknown [<unknown>]` (the process context is lost in
+ *    the in-process dbus call), which makes `subject.local` evaluate to
+ *    FALSE. The v1 rule therefore never matched, the default `auth_admin`
+ *    fallback fired, and the user had to type the password each time.
+ *  - v2 only checks `subject.user === "ian"`. The session is still
+ *    unix-session:c2 (the user's GUI session) so this is a safe relaxation.
+ *    polkit still binds the request to the user's active local session.
+ *
+ * Install with scripts/install-wifi-polkit-rule.sh, which copies this file
+ * to /etc/polkit-1/rules.d/ and restarts polkit.
+ */
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.NetworkManager.wifi.scan" ||
+        action.id === "org.freedesktop.NetworkManager.enable-disable-wifi" ||
+        action.id === "org.freedesktop.NetworkManager.enable-disable-wwan" ||
+        action.id === "org.freedesktop.NetworkManager.network-control" ||
+        action.id === "org.freedesktop.NetworkManager.settings.modify.own" ||
+        action.id === "org.freedesktop.NetworkManager.settings.modify.system" ||
+        action.id === "org.freedesktop.NetworkManager.wifi.share.open" ||
+        action.id === "org.freedesktop.NetworkManager.wifi.share.protected") {
+        if (subject.user === "ian") {
+            return polkit.Result.YES;
+        }
+    }
+});

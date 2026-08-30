@@ -468,6 +468,8 @@ real gimbal. Document the answer in
 | `cmdType=2` is wrong for some code class | Med | Silently misinterpreted | Burst probe captures both requests AND replies; mismatch obvious |
 | Auth-flood returns if user opens gnome-control-center wifi | Mitigated by Step 1 | Re-blocking | polkit rule covers wifi scan + enable-disable + network-control |
 | NM profile is wrong (PSK when it should be OPEN, or vice versa) | Low | Won't associate | `nmcli connection show polaris_d13e86` to inspect; remove and re-add as needed |
+| Decompile cache lost (`/tmp/benro-decompile/` wiped) | Already happened | RE findings are now only in distilled form | All decisions traceable through `polaris-re-results.md`; if raw `.java` is needed again, re-decompile from the BenroConnect APK in the `benropolarispatcher` repo |
+| Live burst response format diverges from `fromFrame` parsers | Med | Burst parses, but fields stay null | `BatteryDetail`/`SdStatus`/`OmsState`/`ExAxisState` use `runCatching` so the burst stays non-fatal; mismatches surface in the log, then we tune the parsers |
 
 ---
 
@@ -504,20 +506,22 @@ Don't go chasing these until Steps 1-6 are verified:
 | `tools/stub-server` | Standalone TCP server (the stub). |
 | `/home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/polaris-re-results.md` | Authoritative RE reference (894 lines). |
 | `/home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/50-openpolaris-wifi-scan.rules` | Polkit rule, ready to install. |
-| `/tmp/benro-decompile/sources/com/snoppa/polaris/singleton/PolarisOrderCommunication.java` | Central TCP protocol class. Wire format at `sendOrder` line 1439. |
-| `/tmp/benro-decompile/sources/com/snoppa/application/singleton/WifiBroadcast.java` | BLE + connect control. `tryBleAwakenWifi` at line 1150. |
-| `/tmp/benro-decompile/sources/com/snoppa/application/oksocket/WifiSocketHelper.java` | TCP socket + `socketReadResponse` line 167. |
-| `/tmp/benro-decompile/sources/com/snoppa/application/bean/theta/BLEMessageModel.java` | BT message codes + frame format. |
-| `/tmp/benro-decompile/sources/com/snoppa/application/utils/PhoneConnectUtils.java` | WiFi config (OPEN network confirmed). |
-| `/tmp/benro-decompile/sources/com/snoppa/application/constant/polaris/PolarisCMD.java` | All code constants. |
+| `/tmp/benro-decompile/sources/...` *(cache wiped, lost since prior session)* | The original decompiled BenroConnect Java sources. The distilled findings are in `polaris-re-results.md`; the raw `.java` files must be re-decompiled from the APK in `benropolarispatcher` repo if any of them are needed again. |
+| `polaris-re-results.md` §8 (`PolarisOrderCommunication`) | Central TCP protocol class — wire format at `sendOrder` line 1439. |
+| `polaris-re-results.md` §8 (`WifiBroadcast`) | BLE + connect control — `tryBleAwakenWifi` at line 1150. |
+| `polaris-re-results.md` §8 (`WifiSocketHelper`) | TCP socket + `socketReadResponse` line 167. |
+| `polaris-re-results.md` §8 (`BLEMessageModel`) | BT message codes + frame format. |
+| `polaris-re-results.md` §8 (`PhoneConnectUtils`) | WiFi config (OPEN network confirmed). |
+| `polaris-re-results.md` §5 + §9 (`PolarisCMD`) | All code constants + per-code one-liner map. |
 
 ---
 
-## Next steps in priority order
+## TL;DR — next steps in priority order
 
 These are the highest-leverage things to do next, in order. Each
 is blocked on the one above it; if the user is short on time,
-work top-down.
+work top-down. (The detailed Step 1–9 breakdown with full context
+is above in "Next steps in priority order".)
 
 1. **Install the polkit rule** (one sudo, 30 s).
    `scripts/install-wifi-polkit-rule.sh`. This is the single

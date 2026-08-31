@@ -1,0 +1,102 @@
+=== TIMESTAMP Mon Aug 31 18:18:50 UTC 2026 ===
+--- upgrade procs ---
+  248 root       0:04 ./polestar_app
+ 1370 root       0:00 sh -c scp -t /app/sd/FwPkt.zip
+ 1371 root       0:00 scp -t /app/sd/FwPkt.zip
+--- FwPkt.zip size (still being pushed?) ---
+-rwxr-xr-x    1 root     root       6881280 Aug 31 18:18 /app/sd/FwPkt.zip
+--- installed FwVer ---
+FwVer:4.0.0.32;date:2025.05.09;
+--- Mlog last 8 ---
+[m[m[18:18:05:600 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361d0000265a ;
+[m[18:18:05:600 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
+[m[m[18:18:35:686 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361d0000265a ;
+[m[18:18:35:686 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
+--- Clog last 8 ---
+--- 9090 listener ---
+tcp        0      0 0.0.0.0:9090            0.0.0.0:*               LISTEN      248/polestar_app
+--- wifi/bt cfg ---
+id:d13e86;band:0;
+--- HDR dir ---
+total 32
+drwxr-xr-x    2 root     root         16384 Aug 31 17:58 .
+drwxr-xr-x   10 root     root         16384 Aug 31 18:16 ..
+--- mount points for /app/sd ---
+/dev/mmcblk0p1 on /app/sd type vfat (rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=continue)
+
+
+=== TIMESTAMP Mon Aug 31 18:26:51 UTC 2026 ===  (~8 min into push)
+-rwxr-xr-x    1 root     root      30375936 Aug 31 18:26 /app/sd/FwPkt.zip
+scp -t PIDs 1370/1371 still alive
+
+
+=== TIMESTAMP Mon Aug 31 18:27:30 UTC 2026 ===
+-rwxr-xr-x    1 root     root      30900224 Aug 31 18:27 /app/sd/FwPkt.zip
+md5 = f79a4eeef070ea9d9db4aa80a0db0dbe  (transient — file still growing)
+
+
+=== TIMESTAMP Mon Aug 31 18:32:21 UTC 2026 ===  (~14 min into push)
+-rwxr-xr-x    1 root     root      43450368 Aug 31 18:32 /app/sd/FwPkt.zip
+md5 = 66ea42b2e2de188bcd42f924b2fcfb44  (still transient)
+Patcher repo build sizes: 68,434,386 / 68,468,962 / 68,434,386 / 68,484,216
+                       (~68MB; this upload is heading there at ~50KB/s)
+Estimated time to finish: ~14 min more at 50KB/s × 25MB remaining.
+
+Note: no FwVer change yet — the device will not install until the polestar_app
+detects a complete FwPkt.zip + reboot, OR the user triggers the upgrade manually.
+
+================================================================================
+POST-PUSH MONITORING (autonomous, 18:44 - 19:06 UTC)
+================================================================================
+2026-08-31T18:07:05Z
+
+
+- scp PIDs gone by 18:44 (push complete, file 68,599,228 bytes, md5 90bdad51...)
+- FwPkt.zip mtime 18:40:02 (unchanged)
+- 18:50-ish: polestar_app (PID 2301) restarted externally (by user)
+- 18:54:02: Mlog.txt truncated to 0 bytes (polestar_app init)
+- 18:55:10: Mlog grew to 60KB (only 525 temp pushes captured — no upgrade markers)
+- 18:57: Mlog truncated again to 0
+- 19:06:04: Mlog still 0 bytes; polestar_app idle (1 sec CPU total)
+- FwVer still 4.0.0.32; /app/sd/FwPkt/ does not exist
+
+DIAGNOSIS
+---------
+The state machine in polestar_app fired but said "no need upgrade" and
+bailed out. Confirmed by inspecting the package:
+
+  $ unzip -l /app/sd/FwPkt.zip
+  FwPkt/firmwareInfo                                     399 bytes
+  FwPkt/gimbal/polaris413_2.0.0.22.bin               84,284 bytes
+  FwPkt/gimbal/polaris403_2.0.0.22.bin               84,328 bytes
+  FwPkt/camera/config                                    326 bytes
+  FwPkt/camera/uImage                              4,188,435 bytes
+  FwPkt/camera/rootfs.ubifs                      21,102,592 bytes
+  FwPkt/camera/appfs.ubifs                       64,487,424 bytes
+
+  All entries dated 05-09-2025 15:09 -- same as factory FwVer date.
+
+This FwPkt.zip is the FACTORY package, not a custom build. The state
+machine correctly identified it as "no need upgrade" because the
+gimbal/camera firmware versions inside it match what's already
+installed (gimbal 2.0.0.22, camera FwVer 4.0.0.32 2025-05-09).
+
+WHAT TO DO NEXT
+---------------
+- Confirm with user: is this the right FwPkt.zip? (patcher output dir?)
+- If user has a different/custom build, push THAT to /app/sd/FwPkt.zip
+  while polestar_app is stopped, then restart polestar_app.
+- Alternative: extract the zip into /app/sd/FwPkt/ directly (the state
+  machine can also read from the directory).
+
+EVIDENCE FOR FIRMWARE-VERSION COMPARISON
+----------------------------------------
+$ strings /app/bin/polestar_app | grep -E "no need|do upgrade|SP_OmsUpgrade"
+oms upgrade start reply:do upgrade
+oms upgrade start reply:fail
+oms upgrade start reply:no need upgrade        <-- this branch fired
+SP_OmsUpgradeCheckFwPkt
+SP_OmsUpgradeFromSd
+SP_OmsUpgradeMsgProc
+
+The "no need upgrade" branch is the one that runs on identical packages.

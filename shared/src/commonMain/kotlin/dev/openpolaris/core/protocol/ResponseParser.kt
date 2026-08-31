@@ -46,14 +46,15 @@ class ResponseParser {
             val start = next.first
             val end = text.indexOf('#', start)
             if (end < 0) break
-            parseFrame(text.substring(start, end + 1))?.let {
-                frames += it
+            val fr = parseFrame(text.substring(start, end + 1))
+            if (fr != null) {
+                frames += fr
                 consumed = end + 1
                 searchFrom = end + 1
-                return@let
+            } else {
+                // Unparseable candidate: skip past the matched opener to avoid an infinite loop.
+                searchFrom = start + next.second
             }
-            // Unparseable candidate: skip past the matched opener to avoid an infinite loop.
-            searchFrom = start + next.second
         }
         return frames to consumed
     }
@@ -83,10 +84,6 @@ class ResponseParser {
         while (i < text.length) {
             val c = text[i]
             if (c.isDigit()) {
-                // walk back over consecutive digits
-                var j = i
-                while (j > 0 && text[j - 1].isDigit()) j--
-                // i is the first digit of a run
                 val atIdx = text.indexOf('@', i)
                 if (atIdx > i && text.indexOf('#', atIdx) > atIdx) {
                     return i
@@ -109,9 +106,9 @@ class ResponseParser {
         return parseRequestFrame(trimmed) ?: parseResponseFrame(trimmed)
     }
 
-    /** `&<code>&<type>&<payload>` — request shape. */
+    /** `1&<code>&<type>&<payload>` — request shape (captured live 2026-08-30). */
     private fun parseRequestFrame(body: String): Frame? {
-        if (!body.startsWith('&')) return null
+        // Body may start with "1" (app→gimbal style captured live) or "&" (legacy shape).
         val segs = body.split('&')
         if (segs.size < 4) return null
         val code = segs[1].trim().toIntOrNull() ?: return null

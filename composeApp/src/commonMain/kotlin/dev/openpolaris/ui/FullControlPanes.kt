@@ -105,14 +105,26 @@ private fun SettlingRow(vm: AppViewModel) {
 private fun LimitsRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Limits", modifier = Modifier.width(110.dp))
-        Text(vm.limitsEnabled?.let { if (it) "ON" else "OFF" } ?: "—", modifier = Modifier.width(48.dp))
-        Switch(
-            enabled = FeatureFlags.isEnabled("advancedAstro"),
-            checked = vm.limitsEnabled == true,
-            onCheckedChange = vm::setLimits,
+        Text(
+            vm.limitsEnabled?.let { if (it) "ON" else "OFF" } ?: "—",
+            modifier = Modifier.width(48.dp),
+            fontWeight = FontWeight.SemiBold,
         )
-        Spacer(Modifier.width(8.dp))
-        Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        if (FeatureFlags.isEnabled("limitsWrite")) {
+            Switch(
+                checked = vm.limitsEnabled == true,
+                onCheckedChange = vm::setLimits,
+            )
+            Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        } else {
+            // Read-only: the write path is gated off, so we surface the value
+            // the mount reports but offer no toggle. The user can still see
+            // the current state and hit Refresh to re-read.
+            Text(
+                "read-only (set limitsWrite=true in config to toggle)",
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
         Spacer(Modifier.width(8.dp))
         OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
     }
@@ -122,16 +134,31 @@ private fun LimitsRow(vm: AppViewModel) {
 private fun AutoLevelRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Auto-level", modifier = Modifier.width(110.dp))
-        Text(vm.autoLevelEnabled?.let { if (it) "EN" else "DIS" } ?: "—", modifier = Modifier.width(48.dp))
-        Switch(
-            enabled = FeatureFlags.isEnabled("autoLevel"),
-            checked = vm.autoLevelEnabled == true,
-            onCheckedChange = vm::setAutoLevelEnabled,
+        Text(
+            vm.autoLevelEnabled?.let { if (it) "ENABLED" else "DISABLED" } ?: "—",
+            modifier = Modifier.width(80.dp),
+            fontWeight = FontWeight.SemiBold,
         )
-        Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick = vm::runAutoLevel) { Text("Run now") }
-        Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+        if (FeatureFlags.isEnabled("autoLevel")) {
+            Switch(
+                checked = vm.autoLevelEnabled == true,
+                onCheckedChange = vm::setAutoLevelEnabled,
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = vm::runAutoLevel) { Text("Run now") }
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+        } else {
+            // Read-only: the toggle and Run-now are both unsafe (we have
+            // not verified the wire round-trip on real hardware), so we
+            // show the cached value and let the user refresh.
+            Text(
+                "read-only (set autoLevel=true in config to enable)",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+        }
     }
 }
 
@@ -241,6 +268,17 @@ private fun LedRow(vm: AppViewModel) {
 private fun WifiRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("WiFi band", modifier = Modifier.width(110.dp))
+        Text(
+            // 802 returns 0=2.4 GHz, 1=5 GHz on every firmware we've seen.
+            when (vm.wifiBand) {
+                0 -> "2.4 GHz"
+                1 -> "5 GHz"
+                null -> "—"
+                else -> "code=${vm.wifiBand}"
+            },
+            modifier = Modifier.width(80.dp),
+            fontWeight = FontWeight.SemiBold,
+        )
         OutlinedButton(
             enabled = FeatureFlags.isEnabled("wifiScan"),
             onClick = vm::refreshWifiScan,
@@ -254,8 +292,11 @@ private fun WifiRow(vm: AppViewModel) {
             OutlinedButton(onClick = vm::disconnectWifi) { Text("Disconnect") }
         }
     } else {
+        // Read-only: scanning is safe, but the connect/disconnect path is
+        // gated off because we have not verified the round-trip on real
+        // hardware (and a mis-typed SSID can lock you out of the head).
         Text(
-            "WiFi connect is off in config (only scan/list is exposed).",
+            "Connect/disable hidden — set wifiConnect=true in config to surface.",
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -266,10 +307,17 @@ private fun RebootRow(vm: AppViewModel) {
     var dialog by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Reboot", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
-        Button(
-            enabled = FeatureFlags.isEnabled("allowReboot"),
-            onClick = { dialog = true },
-        ) { Text("Reboot mount") }
+        if (FeatureFlags.isEnabled("allowReboot")) {
+            Button(onClick = { dialog = true }) { Text("Reboot mount") }
+        } else {
+            // Read-only: destructive action gated off. The user can still see
+            // what the action is — they just can't fire it from the app.
+            Text(
+                "disabled — set allowReboot=true in config to enable",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
     if (dialog) {
         AlertDialog(
@@ -293,10 +341,17 @@ private fun ShutdownRow(vm: AppViewModel) {
     var dialog by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Shutdown", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
-        Button(
-            enabled = FeatureFlags.isEnabled("allowShutdown"),
-            onClick = { dialog = true },
-        ) { Text("Shutdown mount") }
+        if (FeatureFlags.isEnabled("allowShutdown")) {
+            Button(onClick = { dialog = true }) { Text("Shutdown mount") }
+        } else {
+            // Read-only: the head does not power itself back on, so this is
+            // destructive enough that it stays behind a flag.
+            Text(
+                "disabled — set allowShutdown=true in config to enable",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
     if (dialog) {
         AlertDialog(
@@ -362,14 +417,21 @@ private fun FileRow(vm: AppViewModel, file: dev.openpolaris.core.domain.FileEntr
         Text("#${file.id}", modifier = Modifier.width(40.dp))
         Text(file.name, modifier = Modifier.weight(1f), maxLines = 1)
         if (file.prot != 0) Text("🔒", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(
-            enabled = FeatureFlags.isEnabled("fileManagerMutate"),
-            onClick = { vm.protectFile(file.id, if (file.prot == 0) 1 else 0) },
-        ) { Text(if (file.prot == 0) "Protect" else "Unprotect") }
-        Button(
-            enabled = FeatureFlags.isEnabled("fileManagerMutate"),
-            onClick = { vm.deleteFile(file.id) },
-        ) { Text("Delete") }
+        if (FeatureFlags.isEnabled("fileManagerMutate")) {
+            OutlinedButton(
+                onClick = { vm.protectFile(file.id, if (file.prot == 0) 1 else 0) },
+            ) { Text(if (file.prot == 0) "Protect" else "Unprotect") }
+            Button(
+                onClick = { vm.deleteFile(file.id) },
+            ) { Text("Delete") }
+        } else {
+            // Read-only: file delete/protect is destructive enough that we
+            // never expose it without an explicit config flip.
+            Text(
+                "read-only",
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
     }
 }
 
@@ -378,12 +440,16 @@ private fun FormatRow(vm: AppViewModel) {
     var dialog by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("SD format", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
-        Button(
-            enabled = FeatureFlags.isEnabled("fileManagerFormat"),
-            onClick = { dialog = true },
-        ) { Text("Format SD card") }
-        if (!FeatureFlags.isEnabled("fileManagerFormat")) {
-            Text("(enable fileManagerFormat in config)", style = MaterialTheme.typography.labelSmall)
+        if (FeatureFlags.isEnabled("fileManagerFormat")) {
+            Button(onClick = { dialog = true }) { Text("Format SD card") }
+        } else {
+            // Read-only: SD format is destructive — every photo on the card
+            // is gone forever. Stays behind a config flag.
+            Text(
+                "disabled — set fileManagerFormat=true in config to enable",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
     if (dialog) {

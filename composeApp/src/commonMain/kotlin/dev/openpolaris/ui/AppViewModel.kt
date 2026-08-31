@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
+import dev.openpolaris.core.domain.AutoLevelController
+import dev.openpolaris.core.domain.MountSessionTiltSampleSource
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.astro.Catalog
 import dev.openpolaris.core.astro.CometOrbitalElements
@@ -15,6 +17,7 @@ import dev.openpolaris.core.astro.SessionMarker
 import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.DeviceInfo
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
@@ -25,6 +28,7 @@ import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TaskList
+import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -32,11 +36,14 @@ import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.session.InMemorySessionStore
 import dev.openpolaris.core.session.SessionStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
@@ -103,6 +110,17 @@ class AppViewModel(
     var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
+    /** 780 — device info (hardware/software/serverVersion). Read-only,
+     *  populated by the post-connect burst. */
+    var deviceInfo by mutableStateOf<DeviceInfo?>(null)
+        private set
+
+    /** 525 — raw temperature/IMU read. Wire format is
+     *  `525@Tempa509ca361e0000275a ;#` (a hex blob, decoding is TODO). We
+     *  surface the raw hex so the user can see the value the mount reports. */
+    var temperature by mutableStateOf<Temperature?>(null)
+        private set
+
     /**
      * Live capture pipeline state (code 266). Polled on a separate 2s cadence
      * from the main 1Hz pose poll so that a slow/no-response 266 doesn't stall
@@ -148,6 +166,7 @@ class AppViewModel(
         session = s
         controller = TrackingController(s)
         cameraController = dev.openpolaris.core.domain.CameraController(s)
+        startAutoLevel(s)
         scope.launch {
             statusMessage = "Connecting to $host…"
             if (s.connect()) {
@@ -182,6 +201,7 @@ class AppViewModel(
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
+        startAutoLevel(sim.session)
         scope.launch {
             sim.session.connect()
             statusMessage = "Demo mode (simulated mount)"
@@ -208,12 +228,19 @@ class AppViewModel(
         settlingTime = null
         exAxisState = null
         cameraInfo = null
+        deviceInfo = null
+        temperature = null
         captureState = null
         // Drop any pending prompt so a stale "Return to M31?" does not
         // pop on the next connect before [maybeOfferReconnect] has a
         // chance to re-evaluate.
         pendingReconnectMarker = null
         if (!demoMode) statusMessage = "Disconnected"
+        // Tear down the auto-level controller in its own coroutine so we can
+        // call the suspending stopAutoLevel() from a non-suspending context.
+        // Safe to fire-and-forget: stopAutoLevel only cancels jobs that
+        // belong to this VM, and the controller's stop() is idempotent.
+        scope.launch { stopAutoLevel() }
     }
 
     private fun startPolling(s: MountSession) {
@@ -298,7 +325,7 @@ class AppViewModel(
 
     /**
      * Dispatch a single parsed pre-camera burst value to the right observable.
-     * Centralised here so the 8 `refresh*()` methods and the burst share one
+     * Centralised here so the `refresh*()` methods and the burst share one
      * code-to-field mapping.
      */
     private fun applyBurstValue(code: Int, value: Any) {
@@ -311,6 +338,8 @@ class AppViewModel(
             824 -> omsState = value as OmsState
             524 -> exAxisState = (value as ExAxisState).state
             543 -> settlingTime = value as Int
+            780 -> deviceInfo = value as DeviceInfo
+            525 -> temperature = value as Temperature
         }
     }
 
@@ -323,6 +352,38 @@ class AppViewModel(
     fun refreshOmsState()   = refreshBurstStep(824)
     fun refreshExAxis()     = refreshBurstStep(524)
     fun refreshSettling()   = refreshBurstStep(543)
+    fun refreshDeviceInfo() = refreshBurstStep(780)
+    fun refreshTemperature() = refreshBurstStep(525)
+
+    /**
+     * Fire every read-back in the pre-camera burst in a single coroutine.
+     * Used by the Device info pane's "Refresh all" button so a single tap
+     * re-reads every observable without each control having its own button.
+     */
+    fun refreshAllDeviceInfo() = scope.launch {
+        for (step in CommandTable.BURST_PRE_CAMERA) {
+            val s = session ?: return@launch
+            runCatching {
+                @Suppress("UNCHECKED_CAST")
+                val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+                if (r is MountSession.CmdResult.Ok) applyBurstValue(step.code, r.value)
+            }
+        }
+        // Re-fire the camera burst too — cameraInfo is part of "what the
+        // mount knows about itself" and the user expects the device-info
+        // refresh to update it.
+        val s = session ?: return@launch
+        runCatching {
+            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
+            for (c in CommandTable.BURST_CAMERA_CODES) {
+                val r = s.request<ResponseParser.Frame>(c) { it }
+                if (r is MountSession.CmdResult.Ok) {
+                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
+                }
+            }
+            cameraInfo = snapshot
+        }
+    }
 
     private fun refreshBurstStep(code: Int) = scope.launch {
         val s = session ?: return@launch
@@ -521,6 +582,80 @@ class AppViewModel(
     var autoLevelEnabled by mutableStateOf<Boolean?>(null)
         private set
 
+    /**
+     * Live tilt readback from [AutoLevelController]. Pushed from the 538 frame
+     * stream while auto-level is running. Displayed as a read-only row in the
+     * Full control pane so the user can see the current pitch/roll even when
+     * they don't have a safe write path for it.
+     */
+    var autoLevelTilt by mutableStateOf<AutoLevelController.Tilt?>(null)
+        private set
+
+    /**
+     * True while a `runAndAwait()` settling loop is in flight. Drives a
+     * "Running…" badge next to the AutoLevel row.
+     */
+    var autoLevelRunning by mutableStateOf(false)
+        private set
+
+    private var autoLevelController: AutoLevelController? = null
+    private val autoLevelJobs: MutableList<Job> = mutableListOf()
+
+    /**
+     * Bring up the auto-level controller and wire its three state flows
+     * (enabled / tilt / running) into Compose-observable fields. Called from
+     * [connect] (and [connectDemo]) so the readback is always live.
+     *
+     * Each collector is launched on the VM scope so a disconnect cleanly
+     * cancels them. We hold the [Job]s in [autoLevelJobs] so [stopAutoLevel]
+     * can join them before tearing down the controller.
+     */
+    private fun startAutoLevel(s: MountSession) {
+        // Wire the AutoLevelController's settling loop to the session's
+        // non-conflating tilt push stream (issue #6). The default
+        // sampleSource reads from `session.frames` filtered to 538 — that
+        // is a conflated StateFlow that drops intermediate samples, fatal
+        // for AHRS settling. Use the buffered [MountSession.tilt] flow
+        // via [MountSessionTiltSampleSource] so every 538 push arrives in
+        // order.
+        val pushSource = MountSessionTiltSampleSource(s)
+        val sampleSource: suspend () -> AutoLevelController.Tilt? = {
+            pushSource.next()?.let {
+                AutoLevelController.Tilt(pitchDeg = it.pitchDeg, rollDeg = it.rollDeg)
+            }
+        }
+        val c = AutoLevelController(s, sampleSource)
+        autoLevelController = c
+        c.start(scope)
+        autoLevelJobs += scope.launch {
+            c.isEnabled.collect { autoLevelEnabled = it }
+        }
+        autoLevelJobs += scope.launch {
+            c.tilt.collect { autoLevelTilt = it }
+        }
+        autoLevelJobs += scope.launch {
+            c.isRunning.collect { autoLevelRunning = it }
+        }
+        // refreshEnabled is a suspend function; fire it on the VM scope so
+        // the connect path stays non-suspending and the initial 547 GET
+        // races with the controller's collector.
+        scope.launch { c.refreshEnabled() }
+    }
+
+    /**
+     * Tear down the auto-level controller: cancel the three collectors,
+     * stop the controller's job, null the state fields, and clear the
+     * 538 readback so a stale tilt doesn't linger on the next connect.
+     */
+    private suspend fun stopAutoLevel() {
+        for (j in autoLevelJobs) j.cancelAndJoin()
+        autoLevelJobs.clear()
+        autoLevelController?.stop()
+        autoLevelController = null
+        autoLevelTilt = null
+        autoLevelRunning = false
+    }
+
     fun refreshAutoLevel() {
         val s = session ?: run { statusMessage = "Not connected"; return }
         scope.launch {
@@ -539,10 +674,44 @@ class AppViewModel(
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
     }
 
-    /** Trigger one auto-level cycle (code 549). */
+    /**
+     * Trigger one auto-level cycle (code 549) and wait for the gimbal to settle.
+     *
+     * The settling loop lives in [AutoLevelController]: it fires 549, then
+     * consumes 538 push samples from the [MountSession.tilt] push stream
+     * until 10 consecutive samples land within [AutoLevelController.SETTLE_EPSILON_DEG]
+     * of their mean on both pitch and roll, or 60s elapses.
+     *
+     * Cancellation: if the calling scope is cancelled (e.g. the user hits
+     * disconnect), `CancellationException` is re-thrown after we set a
+     * friendly status. We deliberately do not catch `TimeoutCancellationException`
+     * because the controller already maps that to [AutoLevelResult.TimedOut].
+     */
     fun runAutoLevel() = scope.launch {
-        session?.send(CommandTable.AUTO_LEVEL_TRIGGER.code)
+        val c = autoLevelController
+        if (c == null) {
+            statusMessage = "Not connected"
+            return@launch
+        }
         statusMessage = "Auto-level started"
+        try {
+            // Hard cap at 75s in case the controller's 60s internal timeout
+            // is bypassed (e.g. by a wedged sampleSource). 75s gives the
+            // controller a comfortable buffer.
+            val result = withTimeoutOrNull(75_000) { c.runAndAwait() }
+                ?: AutoLevelController.AutoLevelResult.TimedOut
+            statusMessage = when (result) {
+                is AutoLevelController.AutoLevelResult.Completed ->
+                    "Auto-level settled (roll=%.3f° pitch=%.3f°)".format(result.rollDeg, result.pitchDeg)
+                is AutoLevelController.AutoLevelResult.Failed ->
+                    "Auto-level failed: ${result.reason}"
+                AutoLevelController.AutoLevelResult.TimedOut ->
+                    "Auto-level timed out (gimbal did not settle within 60s)"
+            }
+        } catch (e: CancellationException) {
+            statusMessage = "Auto-level cancelled"
+            throw e
+        }
     }
 
     /** Reset gimbal position reference (code 523). */

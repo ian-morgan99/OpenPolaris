@@ -34,6 +34,17 @@ package dev.openpolaris.core.config
  * - `full*` flags bundle larger surface areas (file manager, OMS
  *   scheduler, system settings) so the user can flip them on as a group
  *   instead of per-cmd.
+ *
+ * Policy (issue tracker: "show every parameter, every safe switch"):
+ * - **Every read** the protocol returns is rendered in the DeviceInfo pane,
+ *   with no flag required. Reads are safe.
+ * - **Every verified write** is reachable without a config flag flip. The
+ *   `systemSettings` and `advancedAstro` toggles default to ON. Kiosk
+ *   builds can opt out by setting them to false.
+ * - **Every unverified or destructive write** stays behind its flag and
+ *   degrades to a read-only display of the current value when the flag is
+ *   off. The user always sees the mount's state — they just can't change
+ *   it without an explicit config flip.
  */
 object FeatureFlags {
 
@@ -55,8 +66,17 @@ object FeatureFlags {
     // ---- advanced astro (verified, but convenience) ------------------------
 
     /** Helpers pane: dither (539/540), settling time (543/544). Verified
-     *  round-trip on the live burst. */
+     *  round-trip on the live burst. ON by default — every safe switch
+     *  should be reachable. The "Run auto-level now" action and the
+     *  unverified limit-write path stay behind [autoLevel] and [limitsWrite]. */
     const val advancedAstro: Boolean = true
+
+    /** Device-info pane: every read-back the burst pulls in (firmware, serial,
+     *  WiFi band, battery detail, SD, OMS, ex-axis, camera info, device info,
+     *  temperature). Read-only, no wire side effect, ON by default. Setting
+     *  this to false hides the pane — does NOT stop the post-connect burst
+     *  itself, which is governed by [postConnectBurst]. */
+    const val deviceInfo: Boolean = true
 
     /** Limits (541/542) — wire format is a best-effort guess, NOT verified
      *  on real hardware. Split out from [advancedAstro] so the verified
@@ -90,9 +110,12 @@ object FeatureFlags {
     // ---- system / WiFi ----------------------------------------------------
 
     /** System settings (810-829): time, timezone, language, buzzer, LED.
-     *  All write paths in this group are UNVERIFIED on real hardware,
-     *  so the whole group is OFF by default. */
-    const val systemSettings: Boolean = false
+     *  Writes verified round-trip on the live burst (see
+     *  docs/PROTOCOL-CODE-AUDIT-2026-08-31.md). ON by default — every safe
+     *  switch should be reachable without a config flag flip. If you want to
+     *  forbid setSystemTime/setTimezone/setLanguage/setBuzzer/setLed calls
+     *  (e.g. on a kiosk build), set this to false. */
+    const val systemSettings: Boolean = true
 
     /** WiFi scan / list (770-771) — read-only, verified. */
     const val wifiScan: Boolean = true

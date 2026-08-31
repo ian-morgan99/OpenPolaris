@@ -72,14 +72,13 @@ class ResponseParser {
         while (i < text.length) {
             val c = text[i]
             if (c.isDigit()) {
-                // walk back over consecutive digits
-                var j = i
-                while (j > 0 && text[j - 1].isDigit()) j--
-                // i is the first digit of a run
+                // i is the first digit of a run (a previous walk-back handled runs).
                 val atIdx = text.indexOf('@', i)
+                if (atIdx < 0) return -1                  // no response envelope possible anywhere
                 if (atIdx > i && text.indexOf('#', atIdx) > atIdx) {
                     return i
                 }
+                // No @ after this digit run, or no terminator — jump past the @ and keep scanning.
                 i = atIdx + 1
             } else {
                 i++

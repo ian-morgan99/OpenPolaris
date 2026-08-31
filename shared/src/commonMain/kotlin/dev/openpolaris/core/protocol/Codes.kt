@@ -67,9 +67,17 @@ object Codes {
     const val SYS_FORMAT = 282
     /** Live-captured camera info: `286@manufacturer:...;model:...;state:N;storage:N;photoFormat:N;#`. */
     const val CAM_INFO = 286
-    /** Live-captured focus adjust: `311@ret:-1;#` (or ret:0 on success). */
+    /** Live-captured focus adjust: `311@ret:-1;#` (or ret:0 on success).
+     *  Format on send: `mode:<str>;adj:<str2>;` per
+     *  PolarisOrderCommunication.java:583 / PolarisCMD.SP_SET_FOCUS_ADJ. */
     const val CAM_FOCUS = 311
-    /** Live-captured video record: `527@ret:0;#`. */
+    /** Camera liveview SET (PolarisCMD.SP_SET_CAMERA_PREVIEW). Sends
+     *  `state:1;` to start, `state:0;` to stop. */
+    const val CAM_LIVEVIEW_SET = 291
+    /** Camera liveview GET (PolarisCMD.SP_GET_CAMERA_PREVIEW). */
+    const val CAM_LIVEVIEW_GET = 292
+    /** Live-captured video record / SET YAW (PolarisCMD.SP_SET_YAW = 527).
+     *  Gimbal emits `527@ret:0;#` on success. */
     const val CAM_VIDEO = 527
 
     // ---- calibration / star-alignment ---------------------------------------
@@ -124,7 +132,10 @@ object Codes {
     const val CAM_SET_CAPTURE_MODE = 279
     // 280..299 reserved (other per-camera params)
     // 300..310 reserved (firmware-specific knobs)
-    const val CAM_LIVEVIEW_START = 311
+    // 311 = focus adjust (CAM_FOCUS, see above)
+    // 291/292 = liveview SET/GET (CAM_LIVEVIEW_SET/GET, see above; decompile:
+    //          SP_SET_CAMERA_PREVIEW=291 sends state:1/0, SP_GET_CAMERA_PREVIEW=292
+    //          queries the current state)
 
     // ---- file / SD-card management (subtype 2) -----------------------------
     const val FILE_LIST = 770       // enum FILE_TYPE_* (0=all, 1=normal, ...)

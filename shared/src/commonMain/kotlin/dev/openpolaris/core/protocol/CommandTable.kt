@@ -181,10 +181,16 @@ object CommandTable {
         payload = { "step:$it;" },
     )
 
-    /** 527 — video record. `state:0/1;` toggles recording. */
-    val CAM_VIDEO = Descriptor<Boolean>(
-        Codes.CAM_VIDEO, "video record",
-        payload = { "state:${if (it) 1 else 0};" },
+    /**
+     * 527 — `SP_SET_YAW`. Used during gimbal calibration to push the user's
+     * phone heading (compass) plus lat/lng. Sent as type=3.
+     * Decompile: `PolarisOrderCommunication.java:891`
+     *   `sendOrder(527, 3, "compass:..;lat:..;lng:..;")`.
+     */
+    data class YawCalibration(val compass: String, val lat: Float, val lng: Float)
+    val SET_YAW = Descriptor<YawCalibration>(
+        Codes.CAM_VIDEO, "set yaw (calibration)",
+        payload = { "compass:${it.compass};lat:${it.lat};lng:${it.lng};" },
     )
 
     /** 520 — generic action ack (`ret:0` on success). Used by capture/auto-level triggers. */
@@ -377,7 +383,7 @@ object CommandTable {
             SETTLING_TIME_GET, SETTLING_TIME_SET,
             EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
             DEVICE_INFO, GET_TEMPERATURE, CAM_INFO, SYS_FORMAT,
-            CAM_FOCUS, CAM_VIDEO, ACK_GENERIC, STATE_DUMP,
+            CAM_FOCUS, SET_YAW, ACK_GENERIC, STATE_DUMP,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
             CAM_GET_EV, CAM_SET_EV,
             CAM_GET_FOCUS, CAM_SET_FOCUS,

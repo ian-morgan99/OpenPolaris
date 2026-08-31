@@ -68,6 +68,18 @@ class SimulatedProtocol {
     var token = "0"
     var pingCounter = 0
 
+    // ---- live-captured codes (firmware 6.0.0.54 baseline) --------------------
+    /** Synthetic hex IMU/temperature frame — see live capture 2026-08-30. */
+    var temperatureHex = "509ca361e0000275a"
+    /** Whether the stub currently reports a camera attached (286). */
+    var cameraAttached = false
+    /** 287 secrets — base64 inside the real wire. */
+    var gimbalPasswordB64 = "MTIzNA=="
+    var securityAnswerB64 = "Q2hyaXN0b3BoZXI="
+    var securityQIndex = 3
+    /** 287 state-dump security question text (gimbal renders this on the screen). */
+    var securityQuestionText = "What is your name?"
+
     // ---- file system ----------------------------------------------------------
     var fileCount = 12
     var sdStatus = 0   // 0 = present, 1 = formatting, 2 = error
@@ -221,10 +233,14 @@ class SimulatedProtocol {
             Codes.CAM_CAPTURE -> out += response(
                 "1&${Codes.CAM_CAPTURE}&2&state:1;bulb:0;c:1;#"
             )
-            Codes.CAM_LIVEVIEW_START -> {
-                liveview = true
-                out += response("1&${Codes.CAM_LIVEVIEW_START}&2&ret:0;#")
+            Codes.CAM_LIVEVIEW_SET -> {
+                // `state:1;` to start, `state:0;` to stop.
+                liveview = (fields["state"]?.toIntOrNull() ?: 0) != 0
+                out += response("1&${Codes.CAM_LIVEVIEW_SET}&2&ret:0;#")
             }
+            Codes.CAM_LIVEVIEW_GET -> out += response(
+                "1&${Codes.CAM_LIVEVIEW_GET}&2&state:${if (liveview) 1 else 0};#"
+            )
 
             // ---- file / SD management --------------------------------------
             Codes.FILE_LIST -> {
@@ -391,6 +407,56 @@ class SimulatedProtocol {
                 val step = fields["step"]?.toIntOrNull() ?: 0
                 out += response("1&${Codes.SP_TEST}&2&step:$step;ret:0;#")
             }
+
+            // ---- live-captured codes (firmware 6.0.0.54, 2026-08-30) ------
+            // 287 is a one-shot state-dump that batches whatever else the
+            // gimbal wants to push; the mobile app tolerates extra blocks on
+            // the same socket read. The simulator emits just the state-dump
+            // block with the live-captured format: it does NOT match any
+            // PolarisCMD.java symbol (the app never sends 287 — it just
+            // harvests whatever the gimbal pushes). We model it as a
+            // compact state snapshot.
+            Codes.STATE_DUMP -> {
+                out += response(
+                    "1&${Codes.STATE_DUMP}&2&" +
+                        "hw:1.1.1.2;sw:$fwVersion;exAxis:;sv:1;ov: ;" +
+                        "password:$gimbalPasswordB64;" +
+                        "securityQ:$securityQIndex;" +
+                        "securityA:$securityAnswerB64;" +
+                        "q:$securityQuestionText;#"
+                )
+            }
+            Codes.DEVICE_INFO -> out += response(
+                "1&${Codes.DEVICE_INFO}&2&hw:1.1.1.2;sw:$fwVersion;exAxis:;sv:1;ov: ;#"
+            )
+            // 525 returns Tempa<hex16> as a single token with no colon; the
+            // mobile parser recovers it from the raw payload (Temperature
+            // domain class). Trailing space-before-`;` is intentional in the
+            // live wire format.
+            Codes.GET_TEMPERATURE -> out += response(
+                "1&${Codes.GET_TEMPERATURE}&2&Tempa$temperatureHex ;#"
+            )
+            Codes.SYS_FORMAT -> {
+                val fmt = fields["format"]?.toIntOrNull() ?: 0
+                out += response("1&${Codes.SYS_FORMAT}&2&format:$fmt;ret:0;#")
+            }
+            Codes.CAM_INFO -> {
+                val manu = if (cameraAttached) "sony" else "none"
+                val model = if (cameraAttached) "A7" else "none"
+                val state = if (cameraAttached) 0 else -5
+                out += response(
+                    "1&${Codes.CAM_INFO}&2&manufacturer:$manu;model:$model;" +
+                        "state:$state;storage:121866;photoFormat:0;#"
+                )
+            }
+            Codes.CAM_FOCUS -> {
+                val mode = fields["mode"] ?: "0"
+                val adj = fields["adj"] ?: "0"
+                out += response("1&${Codes.CAM_FOCUS}&2&mode:$mode;adj:$adj;ret:-1;#")
+            }
+            Codes.CAM_VIDEO -> out += response(
+                "1&${Codes.CAM_VIDEO}&2&ret:0;#"
+            )
 
             // ---- default: generic ack so callers see success -------------- 
             else -> out += response("1&$code&2&ret:0;#")

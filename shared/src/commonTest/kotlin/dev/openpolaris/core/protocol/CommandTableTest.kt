@@ -237,9 +237,11 @@ class CommandTableTest {
     }
 
     @Test
-    fun videoRecordPayloadEncodesState() {
-        assertTrue(wire(CommandTable.CAM_VIDEO, true).contains("state:1;"))
-        assertTrue(wire(CommandTable.CAM_VIDEO, false).contains("state:0;"))
+    fun setYawPayloadEncodesCompassAndLatLng() {
+        val w = wire(CommandTable.SET_YAW, CommandTable.YawCalibration("120.5", 51.5f, -0.1f))
+        assertTrue(w.contains("compass:120.5;"))
+        assertTrue(w.contains("lat:51.5"))
+        assertTrue(w.contains("lng:-0.1"))
     }
 
     @Test
@@ -251,7 +253,7 @@ class CommandTableTest {
             CommandTable.CAM_INFO,
             CommandTable.SYS_FORMAT,
             CommandTable.CAM_FOCUS,
-            CommandTable.CAM_VIDEO,
+            CommandTable.SET_YAW,
             CommandTable.ACK_GENERIC,
             CommandTable.STATE_DUMP,
         )) {

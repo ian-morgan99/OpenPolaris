@@ -220,6 +220,51 @@ data class TaskList(
     }
 }
 
+/**
+ * 770 — a single SD-card file entry returned inside the FILE_LIST body.
+ *
+ * Firmware format per record (RE): `id:N;name:X;prot:N;`
+ * The full list is `count:N;id:N;name:X;prot:N;id:N;name:X;prot:N;...;`.
+ * Mirrors the [Task] / [TaskList] split-on-`id:`-with-prefix idiom.
+ */
+data class FileEntry(
+    val id: Int,
+    val name: String,
+    val prot: Int,
+) {
+    companion object {
+        fun fromSegment(seg: String): FileEntry? {
+            val id = seg.intField("id") ?: return null
+            val name = seg.strField("name") ?: return null
+            val prot = seg.intField("prot") ?: 0
+            return FileEntry(id, name, prot)
+        }
+    }
+}
+
+/**
+ * 770 — paginated SD-card file list.
+ *
+ * The first record carries the `count:N;` prefix (or any other list-level
+ * field); the rest are individual files. Empty payload returns an empty list
+ * (the firmware does this when no files match the requested `type`).
+ */
+data class FileList(
+    val count: Int? = null,
+    val files: List<FileEntry> = emptyList(),
+) {
+    companion object {
+        fun fromFrame(f: ResponseParser.Frame): FileList? {
+            val raw = f.raw ?: return null
+            val records = TaskList.splitTaskRecords(raw)
+            if (records.isEmpty()) return FileList()
+            val count = records.first().intField("count")
+            val files = records.mapNotNull { FileEntry.fromSegment(it) }
+            return FileList(count, files)
+        }
+    }
+}
+
 /** 524 — ex-axis state (e.g. pan head, follow focus). */
 data class ExAxisState(val state: Int) {
     companion object {

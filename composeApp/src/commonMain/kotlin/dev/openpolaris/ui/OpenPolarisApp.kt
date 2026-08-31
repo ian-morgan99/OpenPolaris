@@ -85,6 +85,9 @@ fun OpenPolarisApp(
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Tonight -> CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Helpers -> CalloutDialog("Helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
+                Callout.System -> CalloutDialog("System", { dialog = null }) { SystemPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Files -> CalloutDialog("Files", { dialog = null }) { FilesPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
@@ -97,13 +100,19 @@ private enum class Callout(val glyph: String) {
     Slew("Slew"),
     Camera("Cam"),
     Tonight("Night"),
+    Helpers("Help"),
+    System("Sys"),
+    Files("Files"),
     Readme("?"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
 @Composable
 private fun CalloutRail(vertical: Boolean, modifier: Modifier = Modifier, onSelect: (Callout) -> Unit) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Tonight, Callout.Readme)
+    val items = listOf(
+        Callout.Connection, Callout.Slew, Callout.Camera, Callout.Tonight,
+        Callout.Helpers, Callout.System, Callout.Files, Callout.Readme,
+    )
     if (vertical) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             items.forEach { c -> CalloutButton(c, onSelect) }

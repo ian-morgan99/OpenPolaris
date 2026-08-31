@@ -3,6 +3,7 @@ package dev.openpolaris.core.protocol
 import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.ExAxisState
+import dev.openpolaris.core.domain.FileList
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.OmsState
@@ -111,6 +112,13 @@ object CommandTable {
 
     val DITHER_GET = Descriptor<Int?>(Codes.GET_DITHER_STATE, "dither get", parse = { it.int("state") })
     val DITHER_SET = Descriptor<Boolean>(Codes.SET_DITHER_STATE, "dither set", payload = { "state:${if (it) 1 else 0};" })
+
+    /** UNVERIFIED: LIMITS wire format is a best-effort guess mirrored from
+     *  the TILT pattern. Validate against real hardware before relying on
+     *  the round-trip — for now the parser returns Int? and the VM
+     *  translates !=0 to true. */
+    val LIMITS_GET = Descriptor<Int?>(Codes.GET_LIMIT_STATE, "limits get", parse = { it.int("state") })
+    val LIMITS_SET = Descriptor<Boolean>(Codes.SET_LIMIT_STATE, "limits set", payload = { "state:${if (it) 1 else 0};" })
 
     val AUTO_LEVEL_GET_EN = Descriptor<Int?>(Codes.GET_AUTO_LEVEL_EN, "auto level en get", parse = { it.int("en") })
     val AUTO_LEVEL_SET_EN = Descriptor<Boolean>(Codes.SET_AUTO_LEVEL_EN, "auto level en set", payload = { "en:${if (it) 1 else 0};" })
@@ -240,7 +248,9 @@ object CommandTable {
     /** Page of files: `type:%d;page:%d;` request, `type:0;page:0;...;#` reply. */
     data class FileListRequest(val type: Int, val page: Int)
     val FILE_LIST = Descriptor<FileListRequest>(Codes.FILE_LIST, "file list",
-        payload = { "type:${it.type};page:${it.page};" })
+        payload = { "type:${it.type};page:${it.page};" },
+        parse = FileList::fromFrame,
+    )
     val FILE_DELETE = Descriptor<Int>(Codes.FILE_DELETE, "file delete",
         payload = { "id:$it;" })
     val FILE_RENAME = Descriptor<Pair<Int, String>>(Codes.FILE_RENAME, "file rename",
@@ -318,7 +328,7 @@ object CommandTable {
             TRACK_START, TRACK_STOP, TRACK_HALF_SPEED, AHRS,
             GOTO_AZ_ALT, GOTO_CANCEL, ALIGN_STAR, POS_RESET,
             JOG_H_SPEED, JOG_V_SPEED, JOG_H_ANGLE, JOG_V_ANGLE,
-            DITHER_GET, DITHER_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
+            DITHER_GET, DITHER_SET, LIMITS_GET, LIMITS_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
             SETTLING_TIME_GET, SETTLING_TIME_SET,
             EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,

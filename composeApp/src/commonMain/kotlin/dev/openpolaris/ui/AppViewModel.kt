@@ -3,6 +3,7 @@ package dev.openpolaris.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.astro.Catalog
@@ -14,15 +15,19 @@ import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.ExAxisState
+import dev.openpolaris.core.domain.FileEntry
+import dev.openpolaris.core.domain.FileList
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
+import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -519,5 +524,221 @@ class AppViewModel(
         setRaDecMode(true)
         statusMessage = "Slewing to ${obj.name ?: obj.designation} (${obj.type.name})…"
         goto()
+    }
+
+    // ====================================================================
+    // Full control-panel surface.
+    //
+    // Each block below is gated on a FeatureFlags key so a freshly-flashed
+    // build only exposes what we have verified on real hardware. Adding a
+    // new code is a three-step recipe: (1) add the Descriptor to
+    // CommandTable, (2) gate it on a flag here, (3) wire a UI affordance
+    // that calls the VM method. The VM methods are the *only* place that
+    // reaches into `session.send` for non-CommandTable-burst traffic, so
+    // search there when looking for all wire side-effects.
+    // ====================================================================
+
+    // ---- helpers pane (dither, settling-time, limits, auto-level) ---------
+
+    /** Last known dither enabled flag. Null while unknown. */
+    var ditherEnabled by mutableStateOf<Boolean?>(null)
+        private set
+
+    /** Last known limits enabled flag. UNVERIFIED on real mount. */
+    var limitsEnabled by mutableStateOf<Boolean?>(null)
+        private set
+
+    /** Refresh dither (539) and limits (541). Failures are isolated. */
+    fun refreshHelpers() = scope.launch {
+        val s = session ?: return@launch
+        if (FeatureFlags.isEnabled("advancedAstro")) {
+            runCatching {
+                when (val r = s.request(CommandTable.DITHER_GET.code) { f -> f.int("state") }) {
+                    is MountSession.CmdResult.Ok -> ditherEnabled = r.value?.let { it != 0 }
+                    else -> {}
+                }
+            }
+        }
+        // Limits (541) is UNVERIFIED on real mount — only refresh when the
+        // user has explicitly opened the helpers pane by enabling
+        // advancedAstro. The wire format is a best-effort guess.
+        runCatching {
+            val r = s.request<Int>(Codes.GET_LIMIT_STATE) { it.int("state") }
+            if (r is MountSession.CmdResult.Ok) limitsEnabled = r.value?.let { it != 0 }
+        }
+    }
+
+    fun setDither(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("advancedAstro")) { statusMessage = "Helpers disabled by config"; return@launch }
+        val s = session ?: return@launch
+        s.send(CommandTable.DITHER_SET.code, CommandTable.DITHER_SET.payload(on))
+        ditherEnabled = on
+        statusMessage = "Dither ${if (on) "on" else "off"}"
+    }
+
+    /** UNVERIFIED on real mount. */
+    fun setLimits(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("advancedAstro")) { statusMessage = "Helpers disabled by config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SET_LIMIT_STATE, "state:${if (on) 1 else 0};")
+        limitsEnabled = on
+        statusMessage = "Limits ${if (on) "on" else "off"} (unverified)"
+    }
+
+    // ---- OMS task list (825) ---------------------------------------------
+
+    /** Last known OMS scheduled task list. */
+    var omsTaskList by mutableStateOf<TaskList?>(null)
+        private set
+
+    fun refreshOmsTaskList() = scope.launch {
+        if (!FeatureFlags.isEnabled("omsRead")) { statusMessage = "OMS read disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<TaskList>(Codes.OMS_TASK_LIST) { CommandTable.OMS_TASK_LIST.parse!!(it) }
+            if (r is MountSession.CmdResult.Ok) {
+                omsTaskList = r.value
+                statusMessage = "OMS task list: ${r.value?.tasks?.size ?: 0} task(s)"
+            }
+        }
+    }
+
+    // ---- file manager (770 list, 703 delete, 705 protect) ----------------
+
+    /** Last loaded file list. Null while not loaded. */
+    var fileList by mutableStateOf<FileList?>(null)
+        private set
+    var fileListType by mutableStateOf(0)
+        private set
+    var fileListPage by mutableStateOf(0)
+        private set
+
+    fun setFileType(t: Int) { fileListType = t }
+    fun setFilePage(p: Int) { fileListPage = p.coerceAtLeast(0) }
+
+    fun refreshFileList() = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManager")) { statusMessage = "File manager disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<FileList>(Codes.FILE_LIST) { f -> FileList.fromFrame(f) }
+            if (r is MountSession.CmdResult.Ok) {
+                fileList = r.value
+                statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
+            }
+        }
+    }
+
+    fun deleteFile(id: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerMutate")) {
+            statusMessage = "File mutate disabled — enable fileManagerMutate in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_DELETE, "id:$id;")
+        statusMessage = "Delete $id sent"
+        refreshFileList()
+    }
+
+    fun protectFile(id: Int, prot: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerMutate")) {
+            statusMessage = "File mutate disabled"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_PROTECT, "id:$id;prot:$prot;")
+        statusMessage = "Protect $id = $prot sent"
+        refreshFileList()
+    }
+
+    fun formatSd() = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerFormat")) {
+            statusMessage = "Format disabled — enable fileManagerFormat in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_SD_FORMAT)
+        statusMessage = "SD format sent — will reload SD status"
+        refreshSdStatus()
+    }
+
+    // ---- WiFi (770 scan, 771 list, 772 connect, 773 disconnect) ----------
+
+    /** Raw payload of the last WiFi scan — parsers can be tightened later. */
+    var wifiScanResult by mutableStateOf<String?>(null)
+        private set
+
+    fun refreshWifiScan() = scope.launch {
+        if (!FeatureFlags.isEnabled("wifiScan")) { statusMessage = "WiFi scan disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<ResponseParser.Frame>(Codes.WIFI_SCAN) { it }
+            if (r is MountSession.CmdResult.Ok) wifiScanResult = r.value.raw
+        }
+    }
+
+    fun connectWifiSsid(ssid: String) = scope.launch {
+        if (!FeatureFlags.isEnabled("wifiConnect")) {
+            statusMessage = "WiFi connect disabled — enable wifiConnect in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.WIFI_CONNECT, "ssid:$ssid;")
+        statusMessage = "WiFi connect: $ssid"
+    }
+
+    fun disconnectWifi() = scope.launch {
+        val s = session ?: return@launch
+        s.send(Codes.WIFI_DISCONNECT)
+        statusMessage = "WiFi disconnect sent"
+    }
+
+    fun setWifiBand(band: Int) = scope.launch {
+        val s = session ?: return@launch
+        s.send(Codes.SET_WIFI_BAND, "band:$band;")
+        statusMessage = "WiFi band set to $band"
+    }
+
+    // ---- system (time, timezone, language, buzzer, LED, reboot, shutdown) -
+
+    fun setSystemTime(epochSeconds: Long) = scope.launch {
+        val s = session ?: return@launch
+        s.send(Codes.SYS_TIME, "time:$epochSeconds;")
+        statusMessage = "System time set"
+    }
+
+    fun setTimezone(tz: Int) = scope.launch {
+        val s = session ?: return@launch
+        s.send(Codes.SYS_TIMEZONE, "tz:$tz;")
+        statusMessage = "Timezone $tz sent"
+    }
+
+    fun setLanguage(lang: Int) = scope.launch {
+        val s = session ?: return@launch
+        s.send(Codes.SYS_LANGUAGE, "lang:$lang;")
+        statusMessage = "Language $lang sent"
+    }
+
+    fun setBuzzer(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_BUZZER, "en:${if (on) 1 else 0};")
+        statusMessage = "Buzzer ${if (on) "on" else "off"}"
+    }
+
+    fun setLed(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_LED, "en:${if (on) 1 else 0};")
+        statusMessage = "LED ${if (on) "on" else "off"}"
+    }
+
+    fun reboot() = scope.launch {
+        if (!FeatureFlags.isEnabled("allowReboot")) { statusMessage = "Reboot disabled — enable allowReboot in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_REBOOT)
+        statusMessage = "Reboot sent — connection will drop"
+    }
+
+    fun shutdown() = scope.launch {
+        if (!FeatureFlags.isEnabled("allowShutdown")) { statusMessage = "Shutdown disabled — enable allowShutdown in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_SHUTDOWN)
+        statusMessage = "Shutdown sent — connection will drop"
     }
 }

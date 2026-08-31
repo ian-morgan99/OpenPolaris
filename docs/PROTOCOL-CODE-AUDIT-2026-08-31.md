@@ -212,6 +212,14 @@ This audit is the source of a multi-PR effort:
 | PR 4 | OMS block 817–823 | **pending** (depends on PR 3 — see audit header in Codes.kt) | — |
 | PR 5 | harden the catalog (CI assertions) | **partial** (first half shipped; second half needs design decision on 808/809) | `855e1f9` |
 
+> **Cross-project note.** When any of these PRs is shipped, check whether the
+> behavior change has firmware implications. If yes, open a patcher issue,
+> apply the `affects-patcher` label on this side, and reference
+> `ian-morgan99/benro-polaris-firmware-patcher#NN` in the body. See
+> [`docs/CROSS-PROJECT.md`](./CROSS-PROJECT.md). PR 3 did **not** trigger this
+> convention — it is a constant rename plus audit annotations only, with no
+> wire-level behavior change.
+
 ### PR 1 (urgent, blocks camera UI): camera block
 - Replace the 22 `CAM_GET_*/SET_*` constants with a smaller set of 12 `SP_SET_*` /
   `SP_GET_*_INFO` constants matching the decompile.

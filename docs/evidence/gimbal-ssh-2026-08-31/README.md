@@ -2,16 +2,21 @@
 
 > Captured during a live SSH session against a powered-on Benro Polaris gimbal.
 > The gimbal was connected to its own WPA2 AP at `192.168.0.1`.
-> We logged in as `root` with an empty password (confirmed cryptographically
-> against `/etc/shadow` from the static firmware analysis — see
-> [`polaris-re-results.md`](../../evidence/../../.copilot/session-state/815128f2-43b6-4a3c-bb00-459e11c34c36/files/polaris-re-results.md)).
-> The host on this side is the user's dev box; the gimbal is the device under test.
+> We logged in as `root` with an empty password (consistent with the
+> `PermitRootLogin yes` / `PermitEmptyPasswords yes` configuration found in
+> `sshd_config.txt` — see `MANIFEST.md` for capture details and the
+> redaction log).
+> The gimbal is the device under test; client identifiers in `dmesg.txt`
+> have been redacted (see `MANIFEST.md`).
 
-This directory is the **authoritative ground truth** for the live state of the
-gimbal. The static reverse-engineering (RE) results from
-[`/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher/builds/2026-08-30-padded-appfs/`](/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher/builds/2026-08-30-padded-appfs/)
-predicted everything we saw live, **validating the entire firmware-analysis
-pipeline**.
+This directory contains **observed evidence** captured from one specific
+gimbal unit running one specific firmware build (the running build is
+documented in `fw-install-flow.txt`). The static reverse-engineering work
+that motivates the OpenPolaris app is recorded in
+`docs/FIRMWARE-ANALYSIS-ALPACA.md` and related firmware-analysis documents
+in the `docs/` tree. Where the static RE made predictions that can be
+checked against this captured evidence, section 7 lists them; the comparison
+is observational only, on this device, on this firmware.
 
 ---
 
@@ -371,3 +376,21 @@ User has 10 candidate FwPkt.zip packages to try. Test loop:
    or `crc[%d] != %d`
 5. On PASS, wait for reboot and verify `/app/FwVer` updated
 6. On FAIL, capture the mismatch line and try the next package
+
+---
+
+## 13. Handover document (2026-08-31)
+
+See [`HANDOVER-2026-08-31.md`](HANDOVER-2026-08-31.md) for a complete
+self-contained handover for the next agent. The investigation has
+narrowed to: **the install flow is not being triggered**, not
+"triggered but failing" — different failure mode from the earlier
+silent-reject postmortem. The three open hypotheses (wrong path,
+daemon not running, missing precondition like the 810 command) and
+the recommended next-test sequence are in §5 and §6 of the handover.
+
+Key context the next agent needs:
+- 4 build zips, not 9. The user has 100 attempts, not 1000.
+- All 4 builds pass `verify_firmwareinfo.py`; integrity check is solved offline.
+- The blocker is sshd — the gimbal sleeps and must be woken from the phone.
+- Do not commit the uncommitted Kotlin changes as part of this work.

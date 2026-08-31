@@ -34,6 +34,9 @@ boundary change, parser-breaking structural difference.
   [label filter](https://github.com/ian-morgan99/benro-polaris-firmware-patcher/issues?q=is%3Aissue+is%3Aopen+label%3Aneeds-protocol-re)
 - Mirror of this file on the patcher side:
   [`benro-polaris-firmware-patcher/docs/CROSS-PROJECT.md`](https://github.com/ian-morgan99/benro-polaris-firmware-patcher/blob/main/docs/CROSS-PROJECT.md)
+- Seed issues (first live example of the cross-link):
+  OpenPolaris [#31](https://github.com/ian-morgan99/OpenPolaris/issues/31) ↔
+  patcher [#25](https://github.com/ian-morgan99/benro-polaris-firmware-patcher/issues/25)
 
 ## Source-of-truth files (this repo)
 

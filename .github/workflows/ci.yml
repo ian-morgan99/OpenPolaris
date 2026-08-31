@@ -81,7 +81,7 @@ jobs:
           echo "See the *junit-results* artifact for the failing tests." >> "$GITHUB_STEP_SUMMARY"
 
   lint:
-    name: Lint (ktlint-detekt placeholder)
+    name: Lint (ktlint-detekt placeholder + evidence-bundle check)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     continue-on-error: true
@@ -100,3 +100,99 @@ jobs:
         run: |
           find . -name "*.kt" -not -path "*/build/*" -not -path "*/.gradle/*" | wc -l
           echo "Note: this is a placeholder. Add ktlint/detekt later — see docs/PLANNING-2026-08.md §Next steps."
+
+      - name: Evidence-bundle secret/path lint
+        # Fails the build if docs/evidence/ contains absolute local paths,
+        # session-state links, password-hash formats, or private-key headers.
+        # Added for issue #29 — see docs/evidence/gimbal-ssh-2026-08-31/MANIFEST.md.
+        run: |
+          set -u
+          EVDIR="docs/evidence"
+          if [ ! -d "$EVDIR" ]; then
+            echo "::notice::No $EVDIR directory; nothing to lint."
+            exit 0
+          fi
+          FAIL=0
+          scan() {
+            local label="$1"; shift
+            local pattern="$1"; shift
+            local allow_files=("$@")
+            # Build grep -v args for allowlisted files (so we can ignore the
+            # explanatory redaction block in etc-passwd.txt and the gimbal
+            # MAC allowlist).
+            local exclude=()
+            for f in "${allow_files[@]}"; do
+              exclude+=( --exclude="$(basename "$f")" )
+            done
+            # shellcheck disable=SC2086
+            local hits
+            hits=$(grep -RIEn --binary-files=without-match \
+              "${exclude[@]}" "$pattern" "$EVDIR" || true)
+            if [ -n "$hits" ]; then
+              echo "::error file=docs/evidence::Evidence-bundle lint failed: $label"
+              echo "$hits"
+              FAIL=1
+            fi
+          }
+
+          # 1. Absolute local paths (Linux or Windows)
+          scan "absolute local path /home/..." '(^|/)(home|root)/[A-Za-z0-9._-]+(/|$)' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+          scan "absolute Windows path C:\\Users\\..." 'C:\\Users\\' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+
+          # 2. .copilot/session-state references
+          scan ".copilot/session-state link" '\.copilot/session-state' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+
+          # 3. /etc/shadow content (the redaction block is the only allowed mention)
+          scan "/etc/shadow content" '/etc/shadow' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+
+          # 4. crypt(3) hash format ($1$, $6$, $y$ — and the modern $6$rounds=N$
+          # variant) — allow only in MANIFEST/README where the format is discussed.
+          scan "password-hash format" '\$[16y]\$((rounds=[0-9]+\$)?[A-Za-z0-9./]{4,}\$[A-Za-z0-9./]+)' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+
+          # 5. Private-key headers
+          scan "private-key header" 'BEGIN .* PRIVATE KEY' \
+            "$EVDIR/MANIFEST.md"
+
+          # 6. Non-allowlisted MAC addresses (allow gimbal's own MAC only).
+          # Walk every .txt under evidence; for each line that matches a MAC,
+          # ensure it is the gimbal MAC or the broadcast/loopback/ff:ff:ff MAC.
+          while IFS= read -r f; do
+            while IFS= read -r line; do
+              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
+              [ -z "$mac" ] && continue
+              case "$mac" in
+                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                   FAIL=1 ;;
+              esac
+            done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
+          done < <(find "$EVDIR" -type f -name '*.txt')
+
+          # 7. Over-claim phrases removed in the issue #29 redaction.
+          # MANIFEST.md is allowlisted because it describes what the redaction
+          # changed; HANDOVER may legitimately reference the redaction history.
+          # Match by basename so the allowlist survives new evidence subdirs.
+          OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md")
+          while IFS= read -r f; do
+            bn="$(basename "$f")"
+            skip=0
+            for allow in "${OVERCLAIM_ALLOW_BN[@]}"; do
+              [ "$bn" = "$allow" ] && skip=1 && break
+            done
+            [ "$skip" -eq 1 ] && continue
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+              echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
+              FAIL=1
+            fi
+          done < <(find "$EVDIR" -type f -name '*.md')
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "::error::docs/evidence/ lint FAILED. See errors above. Do not commit sensitive material — see MANIFEST.md."
+            exit 1
+          fi
+          echo "Evidence-bundle lint OK ($EVDIR)."

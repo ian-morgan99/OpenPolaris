@@ -223,4 +223,59 @@ class SimulatedProtocolTest {
         // c is the capture counter; the sim always emits 0 for 266 GETs.
         assertEquals(0, parsed.c)
     }
+
+    /**
+     * Audit roadmap PR 5: every descriptor in CommandTable.ALL with a typed `parse`
+     * lambda must be explicitly dispatched by SimulatedProtocol. The signal is the
+     * typed parser: a real handler returns a payload that decodes into T; a code
+     * that fell through to the generic default branch returns `ret:0` only, which
+     * the typed parser rejects. The audit doc's specific deliverable was
+     * "every `CommandTable` descriptor that has a non-`null` `parse` lambda must
+     * have a matching `SimulatedProtocol` dispatch entry" — see
+     * docs/PROTOCOL-CODE-AUDIT-2026-08-31.md PR 5 (lines 233-238).
+     */
+    @Test
+    fun commandTableCodesAreDispatchedInSimulator() {
+        val parser = ResponseParser()
+        for (descriptor in dev.openpolaris.core.protocol.CommandTable.ALL.values.flatten()) {
+            val parseLambda = descriptor.parse ?: continue
+            val resp = sim.handle(descriptor.code, emptyMap())
+            assertNotNull(
+                resp,
+                "${descriptor.name} (code ${descriptor.code}): handle() returned null",
+            )
+            assertTrue(
+                resp.isNotEmpty(),
+                "${descriptor.name} (code ${descriptor.code}): handle() returned no frames",
+            )
+            val frame = String(resp[0])
+            assertTrue(
+                frame.endsWith("#"),
+                "${descriptor.name} (code ${descriptor.code}): frame missing trailing #: $frame",
+            )
+            val parsedFrame = parser.parseFrame(frame)
+            assertNotNull(
+                parsedFrame,
+                "${descriptor.name} (code ${descriptor.code}): ResponseParser rejected frame: $frame",
+            )
+            val parsed = parseLambda(parsedFrame)
+            assertNotNull(
+                parsed,
+                "${descriptor.name} (code ${descriptor.code}): typed parser returned null for: $frame — " +
+                    "code likely fell through to the generic default branch in SimulatedProtocol.handle()",
+            )
+        }
+    }
+
+    // The second PR-5 idea (asserting every SET-style descriptor must produce
+    // an ack response) was dropped: many of the SET codes in CommandTable
+    // (e.g. SET_SETTLING_TIME = 544, FILE_UPLOAD_CHUNK = 794, FILE_UPLOAD_END
+    // = 795, all 10 CAM_SET_*) are marked UNVERIFIED or "(gap)" in
+    // docs/PROTOCOL-CODE-AUDIT-2026-08-31.md — we don't know whether the
+    // real firmware acks them. Pre-existing tests in this file already
+    // encode the "fire-and-forget" assumption for several of them. Adding a
+    // blanket "all SETs must ack" assertion would either force us to invent
+    // behavior for speculative codes, or break intentional pre-existing
+    // tests. Reintroduce this assertion case-by-case as codes become
+    // verified via live capture.
 }

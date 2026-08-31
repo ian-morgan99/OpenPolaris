@@ -191,8 +191,16 @@ class SimulatedProtocol {
                 }
                 out += response("1&$code&2&state:$ditherState;#")
             }
-            Codes.GET_LIMIT_STATE, Codes.SET_LIMIT_STATE -> {
-                out += response("1&$code&2&ret:0;#")
+            // LIMITS_GET is UNVERIFIED — the typed parser (CommandTable.LIMITS_GET)
+            // expects `state:X` mirroring the TILT pattern, but the real wire
+            // format isn't captured. Report the current toggle state so the
+            // round-trip works; revisit when live capture is available.
+            Codes.GET_LIMIT_STATE -> out += response(
+                "1&${Codes.GET_LIMIT_STATE}&2&state:${if (autoLevelEnabled) 1 else 0};#"
+            )
+            Codes.SET_LIMIT_STATE -> {
+                val s = fields["state"]?.toIntOrNull()
+                if (s != null) autoLevelEnabled = s != 0
             }
             Codes.GET_SETTLING_TIME -> out += response(
                 "1&${Codes.GET_SETTLING_TIME}&2&time:$settlingTime;#"

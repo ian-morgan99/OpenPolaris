@@ -54,6 +54,31 @@ jobs:
       - name: Run tools tests (bridge + stub-server + cli-probe)
         run: ./gradlew :tools:bridge:test :tools:stub-server:test :tools:cli-probe:test --rerun-tasks
 
+      # Regression for #30: a fresh clone must be able to run the smoke task
+      # against the stub. We start stub-server in the background, run the
+      # non-destructive smoke pass, then shut the stub down. If the smoke
+      # main class is missing or the build script mis-references it, this
+      # step fails fast (exit != 0 from the smoke run).
+      - name: Run cli-probe smoke against the stub (regression for #30)
+        run: |
+          set -e
+          ./gradlew :tools:stub-server:installDist -q
+          STUB_BIN="tools/stub-server/build/install/stub-server/bin/stub-server"
+          "$STUB_BIN" --port 9099 >/tmp/polaris-stub.log 2>&1 &
+          STUB_PID=$!
+          trap 'kill $STUB_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/9099) 2>/dev/null; then break; fi
+            sleep 0.5
+          done
+          # Fail fast if the stub process died.
+          if ! kill -0 "$STUB_PID" 2>/dev/null; then
+            echo "stub-server failed to start; log follows:" >&2
+            cat /tmp/polaris-stub.log >&2
+            exit 1
+          fi
+          ./gradlew :tools:cli-probe:smoke --console=plain --args='127.0.0.1 9099'
+
       - name: Upload JUnit XML
         if: always()
         uses: actions/upload-artifact@v4

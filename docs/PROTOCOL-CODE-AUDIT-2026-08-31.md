@@ -209,8 +209,10 @@ This audit is the source of a multi-PR effort:
 | PR 1 | camera block 258–311 | **pending** (large-surface; needs sign-off before renumbering `CAM_*` constants) | — |
 | PR 2 | file/SD block 770–798 | **pending** (depends on PR 1) | — |
 | PR 3 | WiFi/system 799–816 (cellular reclassification) | **shipped 2026-08-31** | `7df0d8e` |
-| PR 4 | OMS block 817–823 | **pending** (depends on PR 3 — see audit header in Codes.kt) | — |
-| PR 5 | harden the catalog (CI assertions) | **partial** (first half shipped; second half needs design decision on 808/809) | `855e1f9` |
+| PR 4a | OMS block 817–823 (annotate variant — keep our names, add audit docstrings) | **shipped 2026-08-31** | `693d5d8` |
+| PR 4b | OMS block 817–823 (full renumber to `SP_OMS_*`) | **pending** (needs sign-off) | — |
+| PR 5a | harden the catalog (CI assertion: every `CommandTable` parse lambda has matching `SimulatedProtocol` dispatch) | **shipped 2026-08-31** | `855e1f9` |
+| PR 5b | harden the catalog (canonical-list allowlist gate on `BurstTest`) | **shipped 2026-08-31** | `39491f1` |
 
 > **Cross-project note.** When any of these PRs is shipped, check whether the
 > behavior change has firmware implications. If yes, open a patcher issue,
@@ -243,17 +245,115 @@ This audit is the source of a multi-PR effort:
 - Keep WiFi band (802/803) as-is.
 - Reclassify 808/809 to cellular if live-capture confirms.
 
-### PR 4 (when implementing OMS panel): OMS block
-- Realign 817–823 to the correct `SP_OMS_*` constants.
-- Either find a home for our `APP_*` handshake codes or document them as
-  app-private.
+### PR 4a (done) / PR 4b (when implementing OMS panel): OMS block
+- **PR 4a (shipped `693d5d8`):** add audit docstrings to 817–825. Keep our
+  names. Captures the decompile reading as evidence without taking the
+  renumber risk.
+- **PR 4b (pending):** realign 817–823 to the correct `SP_OMS_*` constants.
+  Either find a home for our `APP_*` handshake codes (820–823) or document
+  them as app-private (likely they are; see audit docstring on `APP_TOKEN = 821`).
 
-### PR 5 (always): harden the catalog
-- Add a CI assertion that every `CommandTable` descriptor that has a non-`null`
-  `parse` lambda must have a matching `SimulatedProtocol` dispatch entry.
-- Add a test that every `Codes.*` constant that is exercised in `BurstTest`
-  is one of the verified codes (currently 808, 809, 802, 778, 779, 775, 824,
-  524, 543, 780, 525 — minus 808, 809 which are now suspect).
+### PR 5a (done) / PR 5b (done) / future PR 5: harden the catalog
+- **PR 5a (shipped `855e1f9`):** CI assertion that every `CommandTable`
+  descriptor with a non-`null` `parse` lambda has a matching `SimulatedProtocol`
+  dispatch entry.
+- **PR 5b (shipped `39491f1`):** canonical-list allowlist gate. The `BurstTest`
+  `--full` codeset is pinned to `CommandTable.BURST_PRE_CAMERA_CODES`, and
+  that constant is in turn pinned to the audit doc's live-captured set
+  (808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525). Either side of
+  the gate must move in lockstep with the other.
+- **Future PR 5:** 808 and 809 are still suspect — the decompile reads them
+  as `SP_SOCKET_CLIENT_TYPE` (response) and `SP_SET_CELLULAR_APN`. Resolve
+  via live-capture of the actual `ver:` and `sn:` payload source. Until then,
+  treat PR 5b's allowlist as the de-facto gate.
+
+## How to verify each PR on hardware
+
+The protocol's "ground truth" is the live gimbal at `192.168.0.1:9090`. The
+catalog is a *model* of that ground truth; this section is the test plan that
+turns each PR from "code matches decompile" into "code matches the gimbal".
+
+### Pre-flight (every PR)
+
+1. **Wake the head.** Walk the gimbal off sleep (pick it up, jog the joystick,
+   or send a UDP probe). The polestar_app does *not* respond on `9090` when
+   the head is asleep, even though its wifi AP is up. The bundled
+   `wake-and-probe.sh` script automates a BT-wake pulse + SSH/UDP first-look:
+   ```bash
+   ./docs/evidence/gimbal-ssh-2026-08-31/wake-and-probe.sh
+   ```
+   See the script's header comment for the BT-MAC + flow.
+2. **Confirm the API is alive.**
+   ```bash
+   nc -w 2 -z 192.168.0.1 9090 && echo ok || echo dead
+   ```
+3. **Firmware on the head should be the factory build (4.0.0.32).** The
+   `FwPkt.zip` at `/app/sd/FwPkt.zip` is the factory image; the in-flight
+   firmware update is **not** the place to verify these PRs — the update may
+   change the OMS surface, which would invalidate the §4.7 reclassification.
+4. **Capture a baseline.** Run
+   ```bash
+   ./gradlew :tools:cli-probe:run --args="burst --full"
+   ```
+   before *and* after the PR. The two traces should be byte-identical for
+   PRs 3, 4a, 5a, 5b (no behaviour change). PRs 1, 2, 4b will *intentionally*
+   diverge — that is the verification.
+
+### PR 3 (shipped — `7df0d8e`)
+
+No new behaviour. The constant rename of `WIFI_BAND = 799` → `GET_CELLULAR_STATE`
+is only safe because no `CommandTable` descriptor references 799. To confirm:
+```bash
+grep -RIn "Codes\.WIFI_BAND\|Codes\.GET_CELLULAR_STATE" shared tools composeApp
+# Should show only Codes.kt (definition) and SimulatedProtocol.kt:329
+# (dispatch). No consumer should reference the old name.
+```
+
+### PR 4a (shipped — `693d5d8`)
+
+No new behaviour. The audit docstrings in `Codes.kt:222-275` are the change;
+they are visible on every `:shared:jvmTest` and `:shared:lintKotlinMain` run.
+Diff to look for:
+```bash
+git show 693d5d8 -- shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt
+```
+
+### PR 4b / PR 1 / PR 2 (pending — wholesale renumber)
+
+The verification is: **the live gimbal must respond to the new code with the
+expected payload shape.** For each renamed constant, send a one-shot frame
+and check the response.
+
+Worked example (planned for PR 4b):
+```kotlin
+// expected: app-ping ack on the NEW code for "upgrade progress"
+sendFrame(SP_OMS_PUSH_UPGRADE_PROGRESS)  // 822 in either naming
+expect response.startsWith("ret:0;")
+```
+If the response comes back on a *different* code, the decompile is wrong, and
+the PR is not safe to merge.
+
+### PR 5a / PR 5b (shipped — `855e1f9` / `39491f1`)
+
+CI-only. Run
+```bash
+./gradlew :shared:jvmTest :tools:cli-probe:test --rerun-tasks
+```
+PR 5a's assertion (every `CommandTable` parse lambda has a matching
+`SimulatedProtocol` dispatch) fires if you add a new descriptor without
+dispatch. PR 5b's assertion (the `BurstTest --full` codeset equals
+`CommandTable.BURST_PRE_CAMERA_CODES`, and that constant equals the audit
+doc's live-captured set) fires if you reorder `BURST_PRE_CAMERA` without
+updating the audit doc.
+
+### Rollback (any PR)
+
+The audit doc is the rollback plan:
+1. `git revert <commit>` — no behaviour lost because none was added.
+2. Re-run `./tools/wake-and-probe.sh` — the live trace should be identical
+   to the pre-PR trace (modulo the PR's intentional changes).
+3. If the live trace diverges, the PR is wrong, not the gimbal. Reopen the
+   audit doc and either amend the decompile reading or capture more data.
 
 ## What this audit did NOT find
 

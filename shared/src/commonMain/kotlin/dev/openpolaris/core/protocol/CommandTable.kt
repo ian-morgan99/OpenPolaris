@@ -248,8 +248,7 @@ object CommandTable {
     /** Page of files: `type:%d;page:%d;` request, `type:0;page:0;...;#` reply. */
     data class FileListRequest(val type: Int, val page: Int)
     val FILE_LIST = Descriptor<FileListRequest>(Codes.FILE_LIST, "file list",
-        payload = { "type:${it.type};page:${it.page};" },
-        parse = FileList::fromFrame,
+        payload = { req: FileListRequest -> "type:${req.type};page:${req.page};" },
     )
     val FILE_DELETE = Descriptor<Int>(Codes.FILE_DELETE, "file delete",
         payload = { "id:$it;" })

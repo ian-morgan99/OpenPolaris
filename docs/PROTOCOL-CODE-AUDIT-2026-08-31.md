@@ -202,6 +202,16 @@ The OMS codes 817–823 are **all** mis-numbered in our catalog.
 
 This audit is the source of a multi-PR effort:
 
+### PR status
+
+| PR | Scope | Status | Commit |
+|---|---|---|---|
+| PR 1 | camera block 258–311 | **pending** (large-surface; needs sign-off before renumbering `CAM_*` constants) | — |
+| PR 2 | file/SD block 770–798 | **pending** (depends on PR 1) | — |
+| PR 3 | WiFi/system 799–816 (cellular reclassification) | **shipped 2026-08-31** | `7df0d8e` |
+| PR 4 | OMS block 817–823 | **pending** (depends on PR 3 — see audit header in Codes.kt) | — |
+| PR 5 | harden the catalog (CI assertions) | **partial** (first half shipped; second half needs design decision on 808/809) | `855e1f9` |
+
 ### PR 1 (urgent, blocks camera UI): camera block
 - Replace the 22 `CAM_GET_*/SET_*` constants with a smaller set of 12 `SP_SET_*` /
   `SP_GET_*_INFO` constants matching the decompile.

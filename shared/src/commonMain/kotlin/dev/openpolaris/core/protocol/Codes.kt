@@ -220,19 +220,64 @@ object Codes {
     const val SYS_TIME = 814        // decompile: SP_GET_CELLULAR_HV ⚠
     const val SYS_TIMEZONE = 815    // decompile: SP_GET_AUTO_OFF_SW ⚠
     const val SYS_LANGUAGE = 816    // decompile: SP_SET_AUTO_OFF_SW (`sw:0/1;`) ⚠
+    // ---- OMS (Object Management System) — subtype 2 ------------------------
+    //
+    // PR-4 audit (2026-08-31, annotate variant): the decompile of polestar_app
+    // places an **OMS / firmware-upgrade block** at 817-825. Our catalog named
+    // these as buzzer/led/log/handshake placeholders before the OMS surface
+    // was known. Live capture confirms the *behaviour* of 822, 823, 824, 825
+    // (app-ping ack, app-hello ack, run-state push, task-list push) so the
+    // dispatch is correct; only the *names* are wrong. Until a live-capture
+    // experiment reclassifies them, both naming schemes coexist below:
+    //
+    //   817  SYS_BUZZER              = decompile: SP_OMS_ADD                  (live: `en:0/1;`)
+    //   818  SYS_LED                 = decompile: SP_OMS_VERSION              (live: `en:0/1;`)
+    //   819  SYS_LOG                 = decompile: SP_OMS_UPGRADE_START        (H1 hypothesis: app sends 819 before FwPkt.zip)
+    //   820  APP_PASSWORD_INFO       = decompile: SP_OMS_LOAD_UPGRADE_FW_STATE (corpus only)
+    //   821  APP_TOKEN               = decompile: SP_OMS_PUSH_UPGRADE_STATUS  (corpus only)
+    //   822  APP_PING                = decompile: SP_OMS_PUSH_UPGRADE_PROGRESS (✓ live `ret:0;`)
+    //   823  APP_HELLO               = decompile: SP_OMS_BAT_STATE            (✓ live `ret:0;`)
+    //   824  OMS_RUN_STATE           = decompile: SP_OMS_RUN_STATE            (✓ live `state:0;`) — both agree
+    //   825  OMS_TASK_LIST           = decompile: SP_UPGRADE_RESULT_EXIT       (✓ live `count:N;...;name:X;`)
+    //
+    // See docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §4.6 (lines 179-198) for the
+    // full reclassification table.
     const val SYS_BUZZER = 817
+    // audit: decompile says SP_OMS_ADD (4th OMS-related constant in the
+    // decompile, not 1st). Our `SYS_BUZZER` name comes from the live-capture
+    // payload `en:0/1;` (a buzzer-enable toggle). Reclassify when a live
+    // experiment confirms the decompile's reading.
     const val SYS_LED = 818
+    // audit: decompile says SP_OMS_VERSION. Our `SYS_LED` name comes from
+    // the live-capture payload `en:0/1;` (an LED-enable toggle). Conflict
+    // is unresolved; payload shape is the deciding evidence today.
     const val SYS_LOG = 819
-
-    // ---- OMS (Object Management System) — subtype 2 -------------------------
-    const val OMS_RUN_STATE = 824
-    const val OMS_TASK_LIST = 825
-
-    // ---- handshake / probe (subtype 2) -------------------------------------
+    // audit: decompile says SP_OMS_UPGRADE_START. The Benro app sends
+    // 819 (`type:N;`) before dropping a firmware bundle, so it likely is
+    // the upgrade trigger — see H1 in KNOWLEDGE-SHARE-FOR-PATCHER.md. Live
+    // capture of the payload would close this.
     const val APP_PASSWORD_INFO = 820
+    // audit: decompile says SP_OMS_LOAD_UPGRADE_FW_STATE. Our
+    // `APP_PASSWORD_INFO` name is corpus-only; no live capture on the
+    // gimbal as of 2026-08-31.
     const val APP_TOKEN = 821
+    // audit: decompile says SP_OMS_PUSH_UPGRADE_STATUS. No live capture
+    // confirms either naming.
     const val APP_PING = 822
+    // audit: decompile says SP_OMS_PUSH_UPGRADE_PROGRESS. ✓ live
+    // (`ret:0;` ack in SimulatedProtocolTest.appHandshakeFlow). Behaviour
+    // is unambiguous; the *name* is the only question.
     const val APP_HELLO = 823
+    // audit: decompile says SP_OMS_BAT_STATE. ✓ live (`ret:0;` ack).
+    const val OMS_RUN_STATE = 824
+    // ✓ live (`state:0;` push). Both namings agree: our OMS_RUN_STATE
+    // and decompile's SP_OMS_RUN_STATE.
+    const val OMS_TASK_LIST = 825
+    // audit: decompile says SP_UPGRADE_RESULT_EXIT. Our `OMS_TASK_LIST`
+    // name comes from the live-captured payload shape
+    // (`count:N;id:N;state:N;name:X;` — see TaskList.fromFrame). The
+    // decompile's *exit* reading is the one we have not been able to
+    // reconcile. ✓ live (SimulatedProtocolTest.omsTaskList).
     const val SP_TEST = 526
 
     // ----------------------------------------------------------------------

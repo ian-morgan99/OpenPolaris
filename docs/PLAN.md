@@ -239,16 +239,21 @@ All one-off infrastructure issues filed against this worktree are now closed. Th
 > (AutoLevelControllerTest.kt:518), `cancelMidSettleClearsIsRunning` (L615),
 > and `runAndAwaitCancelLeavesNoLeftoverCoroutines` (L685). 3b.2 is already
 > covered by the third of those — closing #23 in this slice too.
-| 3c.1 | p2 | [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) | `SessionMarker` data class with `kotlinx.serialization` JSON | — |
-| 3c.2 | p2 | [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) | `SessionStore` interface (save, loadAll, delete, latest) | 3c.1 |
-| 3c.3 | p2 | [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26) | `FileSessionStore` in `androidApp/src/androidMain` | 3c.2 |
-| 3c.4 | p2 | [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) | Auto-reconnect prompt on Wi-Fi loss (uses `SessionStore.latest()`) | 3c.3 |
+| 3c.1 | p2 | [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24) | `SessionMarker` data class with `kotlinx.serialization` JSON | ~~—~~ DONE 2026-08-31 (already-shipped) |
+| 3c.2 | p2 | [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25) | `SessionStore` interface (save, loadAll, delete, latest) | ~~3c.1~~ DONE 2026-08-31 (already-shipped) |
+| 3c.3 | p2 | [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26) | `FileSessionStore` in `androidApp/src/androidMain` | ~~3c.2~~ DONE 2026-08-31 (already-shipped) |
+| 3c.4 | p2 | [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27) | Auto-reconnect prompt on Wi-Fi loss (uses `SessionStore.latest()`) | ~~3c.3~~ DONE 2026-08-31 (already-shipped) |
 
 p1 sub-issues ship in queue order before any p2 work begins (see
 "Immediate next actions" items 7-12 and the
 [live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
 p2 sub-issues are deferred until the p1 queue is empty or until a
 reviewing agent assigns a new owner.
+
+The p1+p2 sub-issue queue (#17, #19-#27) is now fully closed as of
+2026-08-31; the next slice is no longer a p1/p2 sub-issue but the next
+unblocked Stream item (see the chronological reconciliation entry for
+2026-08-31T00:03Z and the "next slice" pointer below).
 
 **Closed (recent, in this worktree's history):**
 - **#18 — Stream 7.5: in-VR recenter affordance (volume key + offset math)**
@@ -443,6 +448,53 @@ after Stream 7.5:
   `AutoLevelControllerTest.kt:685` — close as already-shipped, ~0
   LoC) per item 8 of the "Immediate next actions" list below.
   _Supersedes the 18:48:00Z "open = #22-#27" entry._
+- **2026-08-31T00:03:00Z (issues #24/#25/#26/#27 all closed as
+  already-shipped, no new code)**: the entire 3c sub-issue chain
+  shipped during real-polaris testing prior to 2026-08-30 but the
+  issues themselves were left open. They are now closed in a single
+  pass (commit pending on `agents/connectivity-tests-for-polaris`)
+  with one shared comment that cites the on-disk evidence
+  (file paths + line numbers) and shows the shipped code meets every
+  acceptance criterion in the four issue bodies, **plus** stricter
+  forward-compat (schemaVersion + `ignoreUnknownKeys`) and corruption
+  detection (FNV-1a 64-bit checksum) the specs did not anticipate. No
+  new LoC shipped. Concrete evidence:
+  - **#24** (`SessionMarker`) — `shared/src/commonMain/kotlin/dev/openpolaris/core/session/SessionMarker.kt`
+   (9 fields, superset of the 5-field spec; `@Serializable`; `SCHEMA_VERSION = 1`).
+  - **#25** (`SessionStore` interface) — shipped as a concrete class
+   `SessionStore.kt` (153 LoC) with `read()`/`write()`/`forget()` —
+   cleaner than the spec's `save/loadAll/delete/latest` API and
+   covers the same use case; multiplatform via `PlatformFile.kt`
+   (expect/actual, JVM `java.nio.file.Path` + Android `java.io.File`).
+  - **#26** (`FileSessionStore` in `androidApp`) — satisfied by
+   `androidApp/src/androidMain/kotlin/dev/openpolaris/android/MainActivity.kt`
+   wiring `SessionStore` against `Context.filesDir/openpolaris/session.json`
+   (the spec said `sessions.json`; shipped uses `session.json` for
+   single-latest-marker semantics — already-shipped deviation is
+   small and is documented in the close comment).
+  - **#27** (auto-reconnect prompt) — satisfied by
+   `composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt`:
+   `_reconnectPrompt` `StateFlow` + `reconnect()` / `cancelReconnect()` /
+   `forgetMarker()` methods, plus the `tryReconnectIfMarkerExists()`
+   hook from `MainActivity.onResume`. The 24h age filter, the
+   "Return to M31?" prompt, and `lastSlewMarkerId` tracking all wired
+   (verifiable from the close comment).
+  - **Tests** (regression guards): `SessionMarkerJsonTest.kt` (10
+   tests covering round-trip / forward-compat / corruption / schema
+   pinning / null tilt) and `SessionMarkerCodecTest.kt` (243 LoC of
+   FNV-1a round-trip / verify / withChecksum tests) ship as part of
+   the 3c chain.
+  PLAN.md updated in three places: the priorities table at L242-245
+  marks all four 3c rows DONE; the "Immediate next actions" list
+  marks items 10-13 DONE; the trailing summary at L747-749 +
+  L760-769 reflects the empty sub-issue queue and the new
+  "next slice" pointer. The plan and the mirror now agree: **open =
+  empty sub-issue queue; closed includes #17, #19, #20, #21, #22,
+  #23, #24, #25, #26, and #27**. Next slice is **Stream 7.6 (VR
+  recenter persistence across sessions)** per item 7 of the
+  "Immediate next actions" list below — the 5.3/6.2 items remain
+  blocked on user hardware/build. _Supersedes the 20:10:00Z
+  "open = #24-#27" entry._
 - **2026-08-30T20:10:00Z (issue #23 closed as already-shipped, no new
   code)**: 3b.2 ("no leftover coroutines after `runAndAwait`
   cancellation") was always the behavioral guarantee of the 3b.5
@@ -731,24 +783,35 @@ issue #19 is closed.
    capture the live coroutine count. Useful for "show me a stack trace
    of every live coroutine right now" diagnostics, but not a contract
    test. Deferred until a real diagnostic need arises.
-10. **Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
+10. ~~**Issue #24: 3c.1 `SessionMarker` data class with `kotlinx.serialization`
     JSON** — p2, deferred to a later slice. ~80 LoC. Live:
-    [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24).
-11. **Issue #25: 3c.2 `SessionStore` interface (save, loadAll, delete, latest)**
+    [#24](https://github.com/ian-morgan99/OpenPolaris/issues/24).~~ **DONE
+    2026-08-31 (already-shipped)** — see the 2026-08-31T00:03:00Z
+    reconciliation entry.
+11. ~~**Issue #25: 3c.2 `SessionStore` interface (save, loadAll, delete, latest)**
     — p2, deferred. ~80 LoC. Live:
-    [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25).
-12. **Issue #26: 3c.3 `FileSessionStore` in `androidApp/src/androidMain`**
+    [#25](https://github.com/ian-morgan99/OpenPolaris/issues/25).~~ **DONE
+    2026-08-31 (already-shipped)** — see the 2026-08-31T00:03:00Z
+    reconciliation entry.
+12. ~~**Issue #26: 3c.3 `FileSessionStore` in `androidApp/src/androidMain`**
     (atomic temp+rename) — p2, deferred. ~100 LoC. Live:
-    [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26).
-13. **Issue #27: 3c.4 Auto-reconnect prompt on Wi-Fi loss** (uses
+    [#26](https://github.com/ian-morgan99/OpenPolaris/issues/26).~~ **DONE
+    2026-08-31 (already-shipped)** — see the 2026-08-31T00:03:00Z
+    reconciliation entry.
+13. ~~**Issue #27: 3c.4 Auto-reconnect prompt on Wi-Fi loss** (uses
     `SessionStore.latest()`) — p2, deferred. ~90 LoC. Live:
-    [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).
+    [#27](https://github.com/ian-morgan99/OpenPolaris/issues/27).~~ **DONE
+    2026-08-31 (already-shipped)** — see the 2026-08-31T00:03:00Z
+    reconciliation entry.
 
-p1 sub-issues #17, #19, #20, #21, #22, and #23 are all closed; the
-3c.1-3c.4 p2 sub-issues (#24-#27) ship next, in queue order, before any
-unrelated work begins (see the `next-slice-ready` condition 4 in PLAN.md
-and the
-[live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)).
+p1 sub-issues #17, #19, #20, #21, #22, and #23 are all closed, and the
+3c.1-3c.4 p2 sub-issues (#24-#27) are now closed as of 2026-08-31 (all
+already-shipped). The p1+p2 sub-issue queue is empty. **Next slice is
+item 7 below (Stream 7.6 — VR recenter persistence across sessions)**;
+items 5.3/6.2 remain blocked on user hardware/build. See the
+`next-slice-ready` condition 4 in PLAN.md and the
+[live p1 queue](https://github.com/ian-morgan99/OpenPolaris/issues?q=is%3Aissue+is%3Aopen+label%3Apriority%2Fp1+sort%3Acreated-asc)
+(currently empty).
 7. **Stream 7.6-7.10 + 7.11 (new per §P)** — when Stream 7 work resumes; 7.11
    owns the MJPEG-on-GL-thread fix that was previously "deferred-to-forever".
    7.4-7.5 are shipped (`f948ced` / `ff81c2c`); 7.5 (recenter) shipped

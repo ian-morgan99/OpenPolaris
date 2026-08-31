@@ -1,4 +1,8 @@
-sh: ssh-keygen: not found
-sh: ssh-keygen: not found
-sh: ssh-keygen: not found
-sh: ssh-keygen: not found
+# Host key fingerprint extraction was attempted but the gimbal's PATH did
+# not include ssh-keygen (the binary is not shipped in /app or busybox).
+# Therefore no SSH host-key fingerprint is in this bundle. The keys still
+# live on the device under /etc/ssh/, but the capture method failed.
+#
+# Implication: a follow-up capture should copy /etc/ssh/ssh_host_*_key.pub
+# off-device if SSH host-key identification is required. Until then, this
+# file records the (negative) result.

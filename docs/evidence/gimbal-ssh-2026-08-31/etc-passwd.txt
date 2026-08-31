@@ -1,7 +1,20 @@
-root:mkyV07dPTqJAc:0:0::/root:/bin/sh
-sshd:f.7q0WSaOJAxU:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin
+--- /etc/passwd (REDACTED: password hashes removed; usernames kept) ---
+root:[REDACTED]:0:0::/root:/bin/sh
+sshd:[REDACTED]:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin
 
+--- /etc/group (REDACTED: passwords removed; group membership kept) ---
 root::0:
 sshd:*:74:
 
-root:$6$QjYqPk0oXiw8hfjm$IQtydZ4CLSahJGa.S.P0.NmVhg03Sa/jq2DApWAL9EzISmNlzhbGXLsgdft8GS4aPJTTSlWzyRqy2r9NzvfI7/:586:0:99999:7:::
+--- /etc/shadow (REDACTED ENTIRELY) ---
+# /etc/shadow contents have been removed from this public evidence bundle.
+# A single $6$ (SHA-512) root password hash was visible on the captured
+# firmware. Do not publish the raw hash; the hash alone is sufficient for
+# an offline dictionary/rainbow-table attack against a short password. The
+# empty /etc/shadow root-password field observed in the static firmware
+# analysis (see ARCHITECTURE.md) is NOT visible here because the live
+# capture shows a hash was set.
+#
+# If you need a reproducer for a finding that depends on the root password
+# state, request the redacted raw file via the maintainers rather than
+# checking it in.

@@ -460,13 +460,13 @@ MACEVENT: WLC_E_IF 54, MAC 48:e7:da:d4:b5:73, status 0, reason 0, auth 0
 wl_process_host_event: Link event 16, flags 1, status 0
 MACEVENT: WLC_E_LINK UP
 wl_process_host_event: Link event 5, flags 0, status 0
-MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+MACEVENT: WLC_E_DEAUTH, MAC [REDACTED:client-mac]
 dhd_rx_frame: Got BRCM event packet in a chained packet.
 wl_process_host_event: Link event 5, flags 0, status 0
-MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+MACEVENT: WLC_E_DEAUTH, MAC [REDACTED:client-mac]
 dhd_rx_frame: Got BRCM event packet in a chained packet.
 wl_process_host_event: Link event 5, flags 0, status 0
-MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+MACEVENT: WLC_E_DEAUTH, MAC [REDACTED:client-mac]
 CFG80211-ERROR) wl_notify_connect_status_ap : 
 event WLC_E_DEAUTH(5) status 0 reason 7
 CFG80211-ERROR) wl_notify_connect_status_ap : 
@@ -474,11 +474,11 @@ event WLC_E_DEAUTH(5) status 0 reason 7
 CFG80211-ERROR) wl_notify_connect_status_ap : 
 event WLC_E_DEAUTH(5) status 0 reason 7
 wl_process_host_event: Link event 5, flags 0, status 0
-MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+MACEVENT: WLC_E_DEAUTH, MAC [REDACTED:client-mac]
 CFG80211-ERROR) wl_notify_connect_status_ap : 
 event WLC_E_DEAUTH(5) status 0 reason 7
-MACEVENT: WLC_E_AUTH_IND, MAC a6:cf:f9:ea:ea:49, Open System
-MACEVENT: WLC_E_REASSOC_IND, MAC a6:cf:f9:ea:ea:49
+MACEVENT: WLC_E_AUTH_IND, MAC [REDACTED:client-mac], Open System
+MACEVENT: WLC_E_REASSOC_IND, MAC [REDACTED:client-mac]
 CFG80211-ERROR) wl_cfg80211_change_station : 
 WLC_SCB_AUTHORIZE sta_flags_mask not set 
 hibvt-i2c 120b2000.i2c: wait idle abort!, RIS: 0x611
@@ -491,8 +491,8 @@ mmc0: new ultra high speed SDR104 SDXC card at address aaaa
 mmcblk0: mmc0:aaaa SD128 119 GiB 
  mmcblk0: p1
 FAT-fs (mmcblk0p1): Volume was not properly unmounted. Some data may be corrupt. Please run fsck.
-MACEVENT: WLC_E_AUTH_IND, MAC 4c:23:38:c8:7b:6f, Open System
-MACEVENT: WLC_E_ASSOC_IND, MAC 4c:23:38:c8:7b:6f
+MACEVENT: WLC_E_AUTH_IND, MAC [REDACTED:client-mac], Open System
+MACEVENT: WLC_E_ASSOC_IND, MAC [REDACTED:client-mac]
 CFG80211-ERROR) wl_cfg80211_change_station : 
 WLC_SCB_AUTHORIZE sta_flags_mask not set 
 DHCP - REQUEST [RX] [REQUEST]

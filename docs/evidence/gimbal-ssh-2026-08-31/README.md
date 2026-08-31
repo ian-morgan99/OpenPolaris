@@ -230,24 +230,46 @@ binary traffic to the gimbal goes to 9090.
 
 ---
 
-## 7. Why this validates the static RE
+## 7. Predictions checked against this capture
 
-The static RE in
-[`/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher/builds/2026-08-30-padded-appfs/`](/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher/builds/2026-08-30-padded-appfs/)
-found:
+The static firmware analysis work for the Benro Polaris is recorded in
+`docs/FIRMWARE-ANALYSIS-ALPACA.md` and related documents under
+`docs/firmware/`. That analysis is the source of the predictions below; the
+comparisons here are observational only, against this single capture. Do not
+generalise to other firmware builds, other units, or future releases.
 
-- `polestar_app` binary (24 MB unstripped) → confirmed running as PID 248
-- `pgphoto` wrapper (8 MB) → confirmed running as PID 249
-- `lighttpd` config → confirmed serving on 80/8080
+Predictions **confirmed by this capture**:
+
+- `polestar_app` binary (~24 MB unstripped) → confirmed running (see `ps.txt`)
+- `pgphoto` wrapper (~8 MB) → confirmed running (see `ps.txt`)
+- `lighttpd` config → confirmed serving on 80/8080 (see `netstat.txt`)
 - `hostapd` + `udhcpd` configs → confirmed running
 - `sshd_config` with `PermitRootLogin yes` + `PermitEmptyPasswords yes` →
-  confirmed live (we logged in with empty password)
-- Pre-generated host keys → confirmed fingerprints match exactly
-- `/etc/init.d/rcS` last line `/usr/local/bin/sshd` → confirmed live
-- `/etc/passwd` with root hash `mkyV07dPTqJAc` → confirmed live (the empty
-  password login succeeded)
-- No USB gadget in kernel → confirmed live (`/proc/net/tcp` has no
-  `usb0` interface, no `eth0`)
+  consistent with the live empty-password login (see `sshd_config.txt`)
+- `/etc/init.d/rcS` last line `/usr/local/bin/sshd` → consistent with the
+  running `sshd` process (see `ps.txt`)
+- No USB gadget in kernel → consistent (no `usb0` / `eth0` in `ip.txt`)
+- `pppd` binary in `/app/bin` but unused → consistent (no `ppp0` in `ip.txt`)
+- Binary protocol on port 9090 (TCP listener present) → consistent with
+  `netstat.txt`
+
+Predictions **not directly verified by this capture** (deliberate gaps):
+
+- **Pre-generated SSH host keys** — the static RE produced fingerprints;
+  this capture's `hostkeys.txt` shows that `ssh-keygen` is not on the
+  gimbal's PATH, so we did not extract fingerprints. A follow-up capture
+  should copy `/etc/ssh/ssh_host_*_key.pub` off-device.
+- **Password hash values in `/etc/passwd` and `/etc/shadow`** — this bundle
+  redacts the hash fields (see `MANIFEST.md`). We can confirm that `root`
+  has *a* password entry whose hash format matches the static RE, and that
+  empty-password login succeeds, but we do not commit the literal hash.
+
+Predictions **not yet testable from this capture**:
+
+- Camera-driver behaviour in the running `pgphoto` / `gphoto2` pair
+  (firmware version on disk is still the factory build — see
+  `fw-install-flow.txt`).
+- NNIE / VI / VPSS pipeline configuration under live load.
 - `pppd` binary in `/app/bin` but unused → confirmed live (no `ppp0`
   interface, no Quectel modem plugged in)
 - The protocol on port 9090 → confirmed live (TCP connect succeeds, nmap

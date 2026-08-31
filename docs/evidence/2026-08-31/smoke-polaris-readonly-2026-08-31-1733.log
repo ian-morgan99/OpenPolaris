@@ -1,0 +1,178 @@
+
+> Configure project :androidApp
+w: Kotlin Multiplatform <-> Android Gradle Plugin compatibility issue:
+The applied Android Gradle Plugin version (8.7.2) is higher 
+than the maximum known to the Kotlin Gradle Plugin.
+Tooling stability in such configuration isn't tested, please report encountered issues to https://kotl.in/issue
+
+Minimum supported Android Gradle Plugin version: 7.1
+Maximum tested Android Gradle Plugin version: 8.5
+
+To suppress this message add 'kotlin.mpp.androidGradlePluginCompatibility.nowarn=true' to your gradle.properties
+
+
+> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:compileKotlinJvm UP-TO-DATE
+> Task :shared:jvmProcessResources UP-TO-DATE
+> Task :shared:jvmMainClasses UP-TO-DATE
+> Task :shared:jvmJar UP-TO-DATE
+> Task :tools:cli-probe:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :tools:cli-probe:compileKotlin UP-TO-DATE
+> Task :tools:cli-probe:compileJava NO-SOURCE
+> Task :tools:cli-probe:processResources NO-SOURCE
+> Task :tools:cli-probe:classes UP-TO-DATE
+
+> Task :tools:cli-probe:smoke
+OpenPolaris smoke test -> 192.168.0.1:9090  (destructive=false)
+
+== 1. BURST_PRE_CAMERA (every control-panel refresh) ==
+SKIP  burst.0_808 (code=808) -- no immediate response (setter or push-mode)
+PASS  burst.1_809 (req=809) -- code=809 ret=-1
+PASS  burst.2_802 (req=802) -- code=802 band=0
+PASS  burst.3_778 (req=778) -- code=778 capacity=100 charge=2
+SKIP  burst.4_779 (code=779) -- no immediate response (setter or push-mode)
+PASS  burst.5_775 (req=775) -- code=775 status=1 totalspace=121866 freespace=121791 usespace=75
+PASS  burst.6_824 (req=824) -- code=824 state=0 | code=775 status=1 totalspace=121866 freespace=121791 usespace=75 | code=778 capacity=100 charge=2
+PASS  burst.7_524 (req=524) -- code=524 state=0 | code=517 yaw=1.556249 pitch=0.872693 roll=0.000000 | code=525 
+PASS  burst.8_543 (req=543) -- code=543 time=2
+PASS  burst.9_780 (req=780) -- code=780 hw=1.1.1.2 sw=6.0.0.54 exAxis= sv=1 ov=
+SKIP  burst.10_525 (code=525) -- no immediate response (setter or push-mode)
+
+== 2. Camera info burst (10 codes) ==
+PASS  cam.258 (req=258) -- code=258 ret=-1
+PASS  cam.260 (req=260) -- code=260 ret=-1
+SKIP  cam.262 (code=262) -- no immediate response (setter or push-mode)
+PASS  cam.264 (req=264) -- code=264 state=-1
+SKIP  cam.268 (code=268) -- no immediate response (setter or push-mode)
+SKIP  cam.270 (code=270) -- no immediate response (setter or push-mode)
+SKIP  cam.272 (code=272) -- no immediate response (setter or push-mode)
+SKIP  cam.274 (code=274) -- no immediate response (setter or push-mode)
+PASS  cam.276 (req=276) -- code=276 ret=-1
+SKIP  cam.278 (code=278) -- no immediate response (setter or push-mode)
+
+== 3. Push stream (polling loop) ==
+PASS  push.284 (req=284) -- code=284 mode=1 state=0
+SKIP  push.518 (code=518) -- no immediate response (setter or push-mode)
+PASS  push.778 (req=778) -- code=778 capacity=100 charge=2
+SKIP  push.779 (code=779) -- no immediate response (setter or push-mode)
+SKIP  push.266 (code=266) -- no immediate response (setter or push-mode)
+PASS  push.267 (req=267) -- code=525 
+
+== 4. File/SD reads ==
+PASS  file.770 (req=770) -- code=770 normal=0 lapse=0 focus=0 pan=0 sun=0 hdr=0 starskyStack=0
+PASS  file.775 (req=775) -- code=775 status=1 totalspace=121866 freespace=121791 usespace=75
+PASS  file.783 (req=783) -- code=783 ret=0
+SKIP  file.782 (code=782) -- no immediate response (setter or push-mode)
+PASS  file.788 (req=788) -- code=788 ret=-1 appTime= type=0 class=0 path= size=0 cTime= duration=0
+PASS  file.792 (req=792) -- code=792 devId=0 ret=0 | code=793 devId=0 state=-1
+SKIP  file.793 (code=793) -- no immediate response (setter or push-mode)
+
+== 5. System / device ==
+SKIP  sys.808 (code=808) -- no immediate response (setter or push-mode)
+PASS  sys.809 (req=809) -- code=809 ret=-1
+PASS  sys.814 (req=814) -- code=814 cellular=0 cellhwver=0 usbmode=1
+PASS  sys.815 (req=815) -- code=815 sw=0
+PASS  sys.816 (req=816) -- code=816 ret=0
+PASS  sys.780 (req=780) -- code=780 hw=1.1.1.2 sw=6.0.0.54 exAxis= sv=1 ov=
+SKIP  sys.525 (code=525) -- no immediate response (setter or push-mode)
+SKIP  sys.287 (code=287) -- no immediate response (setter or push-mode)
+SKIP  sys.526 (code=526) -- no immediate response (setter or push-mode)
+
+== 6. Wi-Fi ==
+PASS  wifi.799 (req=799) -- code=799 ret=-1
+PASS  wifi.800 (req=800) -- code=800 ret=-1
+PASS  wifi.801 (req=801) -- code=525 
+PASS  wifi.802 (req=802) -- code=802 band=0
+SKIP  wifi.806 (code=806) -- no immediate response (setter or push-mode)
+SKIP  wifi.807 (code=807) -- no immediate response (setter or push-mode)
+
+== 7. OMS / dither / limits / autoLevel / settling ==
+PASS  oms.824 (req=824) -- code=824 state=0 | code=775 status=1 totalspace=121866 freespace=121791 usespace=75 | code=778 capacity=100 charge=2
+SKIP  oms.825 (code=825) -- no immediate response (setter or push-mode)
+PASS  sys.539 (req=539) -- code=539 state=0
+PASS  sys.541 (req=541) -- code=541 state=0
+PASS  sys.547 (req=547) -- code=547 en=1
+PASS  sys.543 (req=543) -- code=543 time=2
+PASS  sys.537 (req=537) -- code=537 state=0
+
+== 8. Handshake / app ==
+PASS  app.820 (req=820) -- code=820 ret=-1
+SKIP  app.822 (code=822) -- no immediate response (setter or push-mode)
+SKIP  app.823 (code=823) -- no immediate response (setter or push-mode)
+PASS  app.517 (req=517) -- code=517 yaw=1.556255 pitch=0.872692 roll=0.000000
+PASS  app.524 (req=524) -- code=524 state=0 | code=517 yaw=1.556252 pitch=0.872694 roll=0.000000
+
+== 9. Camera info ==
+PASS  cam-info.286 (req=286) -- code=286 manufacturer=none model=none state=-5 storage=0 photoFormat=0
+PASS  cam-info.311 (req=311) -- code=311 ret=-1
+PASS  cam-info.258 (req=258) -- code=258 ret=-1
+PASS  cam-info.260 (req=260) -- code=260 ret=-1 | code=525 
+SKIP  cam-info.262 (code=262) -- no immediate response (setter or push-mode)
+PASS  cam-info.264 (req=264) -- code=264 state=-1
+SKIP  cam-info.268 (code=268) -- no immediate response (setter or push-mode)
+SKIP  cam-info.270 (code=270) -- no immediate response (setter or push-mode)
+SKIP  cam-info.272 (code=272) -- no immediate response (setter or push-mode)
+SKIP  cam-info.274 (code=274) -- no immediate response (setter or push-mode)
+PASS  cam-info.276 (req=276) -- code=276 ret=-1
+SKIP  cam-info.278 (code=278) -- no immediate response (setter or push-mode)
+
+== 10. Camera setters (DESTRUCTIVE=false) ==
+SKIP  camera setters -- set DESTRUCTIVE=1 to exercise
+
+== 11. Blocked operations (always skipped) ==
+SKIP  blocked code=812 -- never
+SKIP  blocked code=813 -- never
+SKIP  blocked code=776 -- never
+SKIP  blocked code=810 -- never
+SKIP  blocked code=530 -- never
+
+========================================
+PASS=44  FAIL=0  SKIP=35
+
+Skipped:
+  - burst.0_808
+  - burst.4_779
+  - burst.10_525
+  - cam.262
+  - cam.268
+  - cam.270
+  - cam.272
+  - cam.274
+  - cam.278
+  - push.518
+  - push.779
+  - push.266
+  - file.782
+  - file.793
+  - sys.808
+  - sys.525
+  - sys.287
+  - sys.526
+  - wifi.806
+  - wifi.807
+  - oms.825
+  - app.822
+  - app.823
+  - cam-info.262
+  - cam-info.268
+  - cam-info.270
+  - cam-info.272
+  - cam-info.274
+  - cam-info.278
+  - camera setters (DESTRUCTIVE=0)
+  - blocked 812
+  - blocked 813
+  - blocked 776
+  - blocked 810
+  - blocked 530
+
+All exercised tests PASSED.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 59s
+5 actionable tasks: 1 executed, 4 up-to-date

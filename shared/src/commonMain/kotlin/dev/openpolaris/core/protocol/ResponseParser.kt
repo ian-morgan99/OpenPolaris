@@ -2,7 +2,8 @@ package dev.openpolaris.core.protocol
 
 /**
  * Parses mount responses. Tolerant by design: unknown keys are ignored, malformed segments
- * are skipped, and values are taken after the LAST ':' in each segment (per firmware behavior).
+ * are skipped, and values are taken after the FIRST ':' in each segment so values
+ * containing colons survive intact.
  */
 class ResponseParser {
 
@@ -33,14 +34,15 @@ class ResponseParser {
             val start = next.first
             val end = text.indexOf('#', start)
             if (end < 0) break
-            parseFrame(text.substring(start, end + 1))?.let {
-                frames += it
+            val fr = parseFrame(text.substring(start, end + 1))
+            if (fr != null) {
+                frames += fr
                 consumed = end + 1
                 searchFrom = end + 1
-                return@let
+            } else {
+                // Unparseable candidate: skip past the matched opener to avoid an infinite loop.
+                searchFrom = start + next.second
             }
-            // Unparseable candidate: skip past the matched opener to avoid an infinite loop.
-            searchFrom = start + next.second
         }
         return frames to consumed
     }
@@ -96,11 +98,12 @@ class ResponseParser {
         return parseRequestFrame(trimmed) ?: parseResponseFrame(trimmed)
     }
 
-    /** `&<code>&<type>&<payload>` — request shape. */
+    /** `1&<code>&<type>&<payload>` — request shape (captured live 2026-08-30). */
     private fun parseRequestFrame(body: String): Frame? {
-        if (!body.startsWith('&')) return null
+        // Body may start with "1" (app→gimbal style captured live) or "&" (legacy shape).
         val segs = body.split('&')
         if (segs.size < 4) return null
+        // segs[0] is the "1" prefix when present, or empty for legacy.
         val code = segs[1].trim().toIntOrNull() ?: return null
         val payload = segs.drop(3).joinToString("&")
         return Frame(code, parseFields(payload), raw = payload)
@@ -117,17 +120,44 @@ class ResponseParser {
 
     companion object {
         /** Split `a:1;b:2;` into a map. Values are taken after the FIRST ':' so values
-         *  containing colons survive intact; malformed segments are skipped. */
+         *  containing colons survive intact; malformed segments are skipped.
+         *
+         *  Live-wire tolerations (2026-08-31, captured from gimbal sw:6.0.0.54):
+         *    - `-100ret:-1` — gimbal echoes the empty-payload sentinel as a *prefix*
+         *      on the next field name when a request returns an error and the original
+         *      request had an empty payload. We strip the `-100` prefix.
+         *    - `Temp<a509ca361e0000275a>` — gimbal's 525 connect-burst pushes an ID
+         *      wrapped in angle brackets with no `:` separator. We parse this as
+         *      `name<value>` → `{name: <value>}`.
+         */
         fun parseFields(payload: String): Map<String, String> {
             if (payload.isBlank() || payload == EMPTY_CONTENT) return emptyMap()
             val out = mutableMapOf<String, String>()
-            for (seg in payload.split(';')) {
+            for (raw in payload.split(';')) {
+                val seg = raw.trim()
                 if (seg.isBlank()) continue
-                val i = seg.indexOf(':')
-                if (i <= 0) continue
-                out[seg.substring(0, i).trim()] = seg.substring(i + 1).trim()
+                // Bug fix: strip echo '-100' sentinel used as field-name prefix.
+                // e.g. `-100ret:-1` → `ret:-1`
+                val stripped = if (seg.startsWith(ECHO_SENTINEL_PREFIX)) seg.substring(ECHO_SENTINEL_PREFIX.length) else seg
+                val colonIdx = stripped.indexOf(':')
+                if (colonIdx > 0) {
+                    out[stripped.substring(0, colonIdx).trim()] = stripped.substring(colonIdx + 1).trim()
+                    continue
+                }
+                // Bug fix: parse `name<value>` (525 connect-burst envelope) when there's no colon.
+                val ltIdx = stripped.indexOf('<')
+                val gtIdx = stripped.lastIndexOf('>')
+                if (ltIdx > 0 && gtIdx > ltIdx) {
+                    out[stripped.substring(0, ltIdx).trim()] = stripped.substring(ltIdx, gtIdx + 1).trim()
+                }
+                // Otherwise: malformed segment, skip (existing behaviour).
             }
             return out
         }
+
+        /** Live-discovered quirk: gimbal echoes `-100` as a prefix when a request with
+         *  an empty payload returns an error. Wire: `258@-100ret:-1;#`. The original
+         *  empty-payload sentinel `-100` ends up glued to the start of the next field. */
+        private const val ECHO_SENTINEL_PREFIX = "-100"
     }
 }

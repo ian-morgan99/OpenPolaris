@@ -161,4 +161,127 @@ class ResponseParserTest {
         assertEquals(284, frames[0].code)
         assertTrue(frames[0].fields.isEmpty())
     }
+
+    // -------- Wire-format quirks discovered 2026-08-31 (Phase 3 live capture) --------
+
+    @Test
+    fun `parses 264 error with missing trailing semicolon (quirk 1)`() {
+        // Live: "264@state:-1#" — note the absent ';' before '#'
+        val wire = "264@state:-1#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(264, f.code)
+        assertEquals(-1, f.int("state"))
+    }
+
+    @Test
+    fun `strips -100 echo prefix from 258 camera-code error (quirk 2)`() {
+        // Live: "258@-100ret:-1;#" — the -100 is the request payload echoed, with no ';' before ret
+        val wire = "258@-100ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(258, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `strips -100 echo prefix from 259 camera-code error (quirk 3)`() {
+        val wire = "259@-100ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(259, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `strips -100 echo prefix from 260 camera-code error (quirk 4)`() {
+        val wire = "260@-100ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(260, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `strips -100 echo prefix from 261 camera-code error (quirk 5)`() {
+        val wire = "261@-100ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(261, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `parses 263 state-only single-field error (quirk 6)`() {
+        val wire = "263@state:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(263, f.code)
+        assertEquals(-1, f.int("state"))
+    }
+
+    @Test
+    fun `parses 525 connect-burst Temp-angle-aid envelope with no colon (quirk 7)`() {
+        // Live (connect-burst): "525@Temp<a509ca361e0000275a>;#" — XML-like wrapper, no ':'
+        val wire = "525@Temp<a509ca361e0000275a>;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(525, f.code)
+        assertTrue("Temp" in f.fields, "expected Temp key, got keys=${f.fields.keys}")
+        assertEquals("<a509ca361e0000275a>", f["Temp"])
+    }
+
+    @Test
+    fun `strips -100 echo prefix from 276 camera-code error (quirk 8)`() {
+        val wire = "276@-100ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(276, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `parses 264 state-mirror with transformed negative value`() {
+        // Observed: request 264@state:1; yielded "264@state:-1002;#" — echo is transformed
+        // Encoding of -1002 is unknown (bitfield? hex?). Parser must accept the value as-is.
+        val wire = "264@state:-1002;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(264, f.code)
+        assertEquals(-1002, f.int("state"))
+    }
+
+    @Test
+    fun `connect-burst stream with 525 and standard 524 parses as 2 frames`() {
+        // Real connect-burst: 525 + 524 interleave during TCP-connect
+        val wire = "525@Temp<a509ca361e0000275a>;#524@state:0;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        assertEquals(2, frames.size)
+        assertEquals(525, frames[0].code)
+        assertEquals("<a509ca361e0000275a>", frames[0]["Temp"])
+        assertEquals(524, frames[1].code)
+        assertEquals(0, frames[1].int("state"))
+    }
+
+    @Test
+    fun `mixed camera-error quirks and standard responses parse cleanly`() {
+        // Realistic burst: 258 (camera error) + 524 (state) + 778 (battery) all interleaved
+        val wire = "258@-100ret:-1;#524@state:0;#778@capacity:63;charge:1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        assertEquals(3, frames.size)
+        assertEquals(258, frames[0].code)
+        assertEquals(-1, frames[0].int("ret"))
+        assertEquals(524, frames[1].code)
+        assertEquals(0, frames[1].int("state"))
+        assertEquals(778, frames[2].code)
+        assertEquals(63, frames[2].int("capacity"))
+        assertEquals(1, frames[2].int("charge"))
+    }
+
+    @Test
+    fun `parseFields directly handles -100 empty sentinel as empty map`() {
+        // Regression: -100 alone (no ';' after, no other segment) should still yield {}
+        val fields = ResponseParser.parseFields("-100")
+        assertTrue(fields.isEmpty(), "got=$fields")
+    }
 }

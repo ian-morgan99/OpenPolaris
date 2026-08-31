@@ -70,6 +70,11 @@ fun runServer(bind: String, port: Int): Int {
     val server = ServerSocket(port, 50, address)
     val boundPort = server.localPort
     System.out.println("polaris-stub listening on $bind:$boundPort")
+    // Self-test the parser at startup. A hang here (no log line) is itself the failure
+    // signal: findResponseStart() used to infinite-loop on a buffer with no '@'.
+    val parser = ResponseParser()
+    val (frames, _) = parser.parse("1&524&2&#".toByteArray(Charsets.US_ASCII))
+    System.out.println("parser self-test: ${frames.size} frame(s) parsed")
     val exec = Executors.newCachedThreadPool { r ->
         Thread(r, "polaris-stub-client-${CLIENT_ID.incrementAndGet()}").apply { isDaemon = true }
     }

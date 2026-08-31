@@ -44,9 +44,11 @@ class BurstTest {
     fun `parseBurstArgs --full uses the canonical pre-camera burst codes`() {
         val a = parseBurstArgs(arrayOf("h", "1", "--full"))
         assertTrue(a.full, "expected full=true when --full is passed")
-        // 9 codes in the canonical order: 808, 809, 802, 778, 779, 775, 824, 524, 543
+        // 11 codes in the canonical order: 808, 809, 802, 778, 779, 775, 824, 524, 543,
+        // then 780 (device info) and 525 (temperature) added after the 2026-08-30 live
+        // capture confirmed both endpoints reply on the real gimbal.
         assertEquals(
-            listOf(808, 809, 802, 778, 779, 775, 824, 524, 543),
+            listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525),
             a.codes,
         )
     }
@@ -84,6 +86,61 @@ class BurstTest {
         assertTrue(parsed.any { it.contains("code=524") && it.contains("state=") }, "missing 524: $parsed")
         assertTrue(parsed.any { it.contains("code=802") && it.contains("band=") }, "missing 802: $parsed")
         assertTrue(parsed.any { it.contains("code=824") && it.contains("running=") }, "missing 824: $parsed")
+    }
+
+    @Test
+    fun `runBurst against the stub handles the 2026-08-30 live-captured codes 780 and 525`() {
+        // 780 (device info) and 525 (temperature) were not in the original burst.
+        // They were added after the live capture at gimbal 192.168.0.1 on
+        // 2026-08-30 confirmed both endpoints reply on the real device. The
+        // simulator was extended to mimic them; this test guards the burst path
+        // (frame → parser → drain) for both.
+        val port = startStubServer()
+        val lines = runBurst(
+            BurstArgs("127.0.0.1", port, codes = listOf(780, 525)),
+            sink = {},
+        )
+        val parsed = lines.filter { it.startsWith("  code=") }
+        assertEquals(2, parsed.size, "expected 2 parsed lines, got:\n${lines.joinToString("\n")}")
+
+        // 780 has key:value fields (hw, sw, sv, …).
+        val p780 = parsed.firstOrNull { it.contains("code=780") }
+        assertTrue(p780 != null, "missing code=780 in parsed: $parsed")
+        assertTrue(p780!!.contains("hw="), "780 missing hw= field: $p780")
+        assertTrue(p780.contains("sw="), "780 missing sw= field: $p780")
+        assertTrue(p780.contains("sv="), "780 missing sv= field: $p780")
+
+        // 525 has a single Tempa<hex> token (no `:`), so the parser produces
+        // `code=525` with no trailing fields. The raw payload still shows up
+        // on the `drained` line — assert on that to keep the test honest.
+        val p525 = parsed.firstOrNull { it.contains("code=525") }
+        assertTrue(p525 != null, "missing code=525 in parsed: $parsed")
+        val drained = lines.filter { it.startsWith("  drained") }
+        assertTrue(
+            drained.any { it.contains("Tempa") },
+            "expected Tempa<hex> in a drained line for 525, got:\n${drained.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    fun `runBurst --full against the stub yields parsed lines for all 11 codes`() {
+        // End-to-end check: --full exercises every entry in the canonical
+        // BURST_PRE_CAMERA list, and the stub must respond to all 11.
+        // Use parseBurstArgs so the full code set is expanded from the flag.
+        val port = startStubServer()
+        val args = parseBurstArgs(arrayOf("127.0.0.1", port.toString(), "--full"))
+        val lines = runBurst(args, sink = {})
+        val parsed = lines.filter { it.startsWith("  code=") }
+        assertEquals(
+            11, parsed.size,
+            "expected 11 parsed lines for the full burst, got ${parsed.size}:\n${parsed.joinToString("\n")}"
+        )
+        for (c in listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525)) {
+            assertTrue(
+                parsed.any { it.contains("code=$c") },
+                "missing code=$c in full burst, got:\n${parsed.joinToString("\n")}"
+            )
+        }
     }
 
     // -- helpers --

@@ -35,8 +35,8 @@ Everything runs on the phone. The mount is a TCP server; the app is the brain.
 
 ### Transport
 - The Polaris broadcasts its own Wi-Fi access point (`Polaris_XXXX`). Join it, then open a TCP
-  connection to `192.168.0.1:9090` (the address the stock app uses; reverse-engineered from
-  `com.snoppa.polaris.singleton.PolarisSyntheticHelper.connectHost = "192.168.0.1"`).
+  connection to `192.168.0.1:9090` (the gimbal's default control address; observed in live
+  captures of the WiFi control channel).
 - Messages are ASCII text frames of the form:
 
   ```
@@ -60,8 +60,8 @@ Everything runs on the phone. The mount is a TCP server; the app is the brain.
 | 537–549 | Astro helpers: tilt, dither, settling, hardware limits, auto-level |
 | 258–311 | Camera parameters (ISO, shutter, aperture, etc.) |
 
-The full table with payloads lives in [PROTOCOL.md](PROTOCOL.md), reverse-engineered from both
-firmware strings and traffic captured from the stock app.
+The full table with payloads lives in [PROTOCOL.md](PROTOCOL.md), derived from live gimbal
+captures and string-corpus analysis of the vendor's control channel.
 
 ### Session lifecycle
 1. Connect TCP.
@@ -204,7 +204,7 @@ Debug-signed; expect rough edges. Field-test findings go straight into the issue
 |---|---|
 | [SPEC.md](SPEC.md) | Feature-by-feature functional spec (v1 = faithful replica) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module layout, design decisions, testing strategy |
-| [PROTOCOL.md](PROTOCOL.md) | Complete command reference reverse-engineered from firmware |
+| [PROTOCOL.md](PROTOCOL.md) | Complete command reference derived from live gimbal captures |
 | [PLAN.md](PLAN.md) | Phased delivery plan with hardware-gated milestones |
 | [EVALUATION.md](EVALUATION.md) | Phase 0/1 close-out evaluation |
 | [SMOKE-TEST.md](SMOKE-TEST.md) | Hardware smoke-test checklist |

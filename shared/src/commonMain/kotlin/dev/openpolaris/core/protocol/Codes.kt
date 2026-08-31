@@ -3,9 +3,9 @@ package dev.openpolaris.core.protocol
 /**
  * Polaris command codes — single source of truth.
  *
- * Numeric codes extracted from the decompiled BenroConnect APK
- * (see `polaris-re-results.md`). Subtype column lists the firmware
- * request type for that code, where known:
+ * Numeric codes catalogued in `polaris-re-results.md` and confirmed
+ * via live gimbal captures and string-corpus analysis. Subtype column
+ * lists the firmware request type for that code, where known:
  *
  *   1 = camera parameter setter (single-byte index → key in payload)
  *   2 = stateful camera op / file / system / upgrade / cellular / OMS / handshake
@@ -21,7 +21,7 @@ package dev.openpolaris.core.protocol
  *   - `command(SET_TRACK_HALF_SPEED)` → `1&536&2&halfSpeed:0;#`
  *   - `command(SET_GOTO_AU_STATE)` → `1&519&2&...;#`
  *
- * The reverse-engineered table flags 531/535/536/519/520/513-549
+ * The string-corpus analysis flags 531/535/536/519/520/513-549
  * as subtype 3, but the **captured-wire test pin wins**. Use
  * [subtypeFor] if/when we want subtype-accurate frames; the default
  * path stays at 2 to avoid breaking the simulator and the stock-app

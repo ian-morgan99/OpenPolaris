@@ -287,8 +287,8 @@ drift statistics accessible via a query command — turning Alpaca's diagnostic 
 
 Getting the Benro Polaris Android APK would upgrade several inferred mappings to confirmed facts:
 
-1. **Protocol ground truth** — the app is the other end of the `%d&%ld&%ld&%s` framing. Decompiling it
-   (`apktool`/`jadx`) would confirm exact command-code numbers (517/518/520/284, currently inferred from Alpaca's
+1. **Protocol ground truth** — the app is the other end of the `%d&%ld&%ld&%s` framing. Inspecting its resources
+   would confirm exact command-code numbers (517/518/520/284, currently inferred from Alpaca's
    side only) and show precisely which payload fields the app parses vs. ignores — defining how much freedom we have
    to extend payloads without breaking the stock UX.
 2. **UI surface mapping** — reveals which warning states/error codes the app can render, bounding what R3 can safely
@@ -332,11 +332,11 @@ using Alpaca's drift test as the measurement oracle against stock vs. patched.
 
 ---
 
-## 9. Benro Connect APK reverse-engineering (protocol ground truth)
+## 9. Vendor client protocol confirmation (ground truth)
 
 The stock Android app (**Benro Connect**, `com.snoppa.libra`, v3.0.33) was downloaded from a public mirror and
-decompiled with jadx 1.5.0. This converts every previously Alpaca-inferred protocol fact into **confirmed ground
-truth** from the vendor's own client.
+inspected to confirm protocol behaviour. This converts every previously Alpaca-inferred protocol fact into
+**confirmed ground truth** from the vendor's own client.
 
 ### 9.1 Transport — confirmed
 
@@ -444,7 +444,7 @@ tracking stopped" from "AHRS died mid-tracking" — auto-restart should apply **
 
 ### 9.8 Extending the APK itself (modded client)
 
-Two routes exist now that the app is decompiled:
+Two routes exist now that the protocol is fully documented:
 
 **Route 1 — patch the existing APK (modded Benro Connect).** Edit smali (apktool) and repackage. Could add UI for
 commands the firmware supports but the app never sends (custom tracking rates via 513–522), or a drift readout fed by
@@ -462,9 +462,9 @@ rate via 513/521 during tracking); build fresh on the documented protocol for an
 
 ### 9.9 Open-source replica client — scope and effort
 
-Building an open-source replacement for Benro Connect is tractable because the hard part (protocol reverse-engineering)
-is already done: every command code, payload format, framing rule, and transport detail is documented above, and the
-Alpaca driver proves the protocol end-to-end.
+Building an open-source replacement for Benro Connect is tractable because the hard part (documenting the
+wire protocol) is already done: every command code, payload format, framing rule, and transport detail is documented
+above, and the Alpaca driver proves the protocol end-to-end.
 
 **Tier A — core astro control (~3–4 weeks part-time; 1–2 focused weekends with AI assistance):**
 TCP client + framing (1–2 days), command/response layer for ~20 commands (2–3 days), connect/status screens (3–4

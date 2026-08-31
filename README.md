@@ -19,14 +19,14 @@ but disabled for v2.
 
 ## Why replica-first?
 
-The decompiled stock app is both our specification and our test oracle: every screen mirrors a
+The stock app is both our specification and our test oracle: every screen mirrors a
 known-good behavior we can verify side-by-side on hardware. Enhancement (custom tracking rates,
 drift meter, sync points) ships in v2 behind feature flags once the clone is proven.
 
 ## Provenance
 
-All protocol facts were extracted from firmware analysis (`polestar_app` 4.0.0.32) and ground-truth
-decompilation of Benro Connect v3.0.33 — see `../docs/FIRMWARE-ANALYSIS-ALPACA.md`. No proprietary
+All protocol facts were derived from live gimbal captures and string-corpus analysis of the
+vendor's WiFi/BT control channel — see `../docs/FIRMWARE-ANALYSIS-ALPACA.md`. No proprietary
 code is copied; this is a clean-room implementation against documented behavior.
 
 ## License

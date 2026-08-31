@@ -128,7 +128,7 @@ Picking up tomorrow? Read this first.
 | Linux BlueZ BLE wake pulse | ❌ not implemented | optional, see "Bluetooth" below |
 | `ResponseParser` handling of literal `h` pulse ack | ⚠️ not visible | needs review |
 
-### RE findings (already captured, just listed here for orientation)
+### Vendor client findings (already captured, just listed here for orientation)
 
 - **Gimbal AP is OPEN WiFi** (no PSK). Saved NM profile `polaris_d13e86`
   has no `key-mgmt`/`psk` keys. Confirmed by `PhoneConnectUtils.createWifiConfig`.
@@ -482,7 +482,7 @@ real gimbal. Document the answer in
 | `cmdType=2` is wrong for some code class | Med | Silently misinterpreted | Burst probe captures both requests AND replies; mismatch obvious |
 | Auth-flood returns if user opens gnome-control-center wifi | Mitigated by Step 1 | Re-blocking | polkit rule covers wifi scan + enable-disable + network-control |
 | NM profile is wrong (PSK when it should be OPEN, or vice versa) | Low | Won't associate | `nmcli connection show polaris_d13e86` to inspect; remove and re-add as needed |
-| Decompile cache lost (`/tmp/benro-decompile/` wiped) | Already happened | RE findings are now only in distilled form | All decisions traceable through `polaris-re-results.md`; if raw `.java` is needed again, re-decompile from the BenroConnect APK in the `benropolarispatcher` repo |
+| `/tmp/benro-decompile/` cache lost | Already happened | Findings are now only in distilled form | All decisions traceable through `polaris-re-results.md`; if raw `.java` is needed again, recover it from the relevant APK in the `benropolaristler` repo |
 | Live burst response format diverges from `fromFrame` parsers | Med | Burst parses, but fields stay null | `BatteryDetail`/`SdStatus`/`OmsState`/`ExAxisState` use `runCatching` so the burst stays non-fatal; mismatches surface in the log, then we tune the parsers |
 
 ---
@@ -520,7 +520,7 @@ Don't go chasing these until Steps 1-6 are verified:
 | `tools/stub-server` | Standalone TCP server (the stub). |
 | `/home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/polaris-re-results.md` | Authoritative RE reference (894 lines). |
 | `/home/ian/.copilot/session-state/57abdabb-a2e1-4a3e-a7c1-77b48d31c65a/files/50-openpolaris-wifi-scan.rules` | Polkit rule, ready to install. |
-| `/tmp/benro-decompile/sources/...` *(cache wiped, lost since prior session)* | The original decompiled BenroConnect Java sources. The distilled findings are in `polaris-re-results.md`; the raw `.java` files must be re-decompiled from the APK in `benropolarispatcher` repo if any of them are needed again. |
+| `/tmp/benro-decompile/sources/...` *(cache wiped, lost since prior session)* | The original Java sources. The distilled findings are in `polaris-re-results.md`; the raw `.java` files must be recovered from the APK in `benropolaristler` repo if any of them are needed again. |
 | `polaris-re-results.md` §8 (`PolarisOrderCommunication`) | Central TCP protocol class — wire format at `sendOrder` line 1439. |
 | `polaris-re-results.md` §8 (`WifiBroadcast`) | BLE + connect control — `tryBleAwakenWifi` at line 1150. |
 | `polaris-re-results.md` §8 (`WifiSocketHelper`) | TCP socket + `socketReadResponse` line 167. |

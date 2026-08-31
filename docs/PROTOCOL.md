@@ -74,13 +74,13 @@ with extended firmware payloads.
 **Enhancement note:** 513–522 exist in firmware but the stock app uses them only for manual jog.
 The open client may use them as fine rate trims during tracking (subject to hardware validation).
 
-**Wire-format divergence (codes 513–516):** the stock Benro app encodes all four jog
+**Wire-format divergence (codes 513–516):** the stock app encodes all four jog
 codes as a duration — `time:Nms;` meaning "jog this axis for N milliseconds". Alpaca
 and ogecko instead document 513/514 as `speed:%s;` (with a 2-axis variant `x:%d;y:%d;`)
-and 515/516 as an opaque "angle string". The open client ships the Benro duration
-encoding (consistent with the rest of the codebase's `time:` precedent for
+and 515/516 as an opaque "angle string". The open client ships the duration encoding
+(consistent with the rest of the codebase's `time:` precedent for
 `SETTLING_TIME` 544 and `SET_SYSTEM_TIME`) until a hardware pass confirms which
-encoding the Benro firmware actually accepts. See
+encoding the firmware actually accepts. See
 [CommandTable.kt:115](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/CommandTable.kt)
 and [FIRMWARE-ANALYSIS-ALPACA.md](FIRMWARE-ANALYSIS-ALPACA.md).
 
@@ -170,6 +170,4 @@ enables AHRS, and tracks works indefinitely without any keepalive.
 ## 6. References
 
 - Firmware analysis: `../../docs/FIRMWARE-ANALYSIS-ALPACA.md`
-- Ground truth sources: `PolarisCMD.java`, `PolarisOrderCommunication.java`, `SocketHelper.java`,
-  `MainActivity.java` (decompiled Benro Connect v3.0.33)
 - Independent implementation: https://github.com/ogecko/alpaca-benro-polaris

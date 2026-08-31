@@ -17,7 +17,7 @@ limited to a thin shell (~5%): socket implementation, MJPEG decode surface, perm
 | Option | Verdict |
 |---|---|
 | **Kotlin Multiplatform + Compose** | **Chosen.** Required once iOS + tablet joined the scope: one codebase ships Android, iOS, iPad, and desktop. Compose Multiplatform covers all UIs with adaptive layouts (`WindowSizeClass` for phone vs tablet two-pane). Native performance for MJPEG decode and planetarium math. |
-| Flutter | Viable alternative; slightly more mature iOS story today, but KMP keeps protocol layer in a language with first-class coroutines/sockets, matches the decompiled Java mental model, and preserves the JVM `cli-probe` tool for free. |
+| Flutter | Viable alternative; slightly more mature iOS story today, but KMP keeps protocol layer in a language with first-class coroutines/sockets, preserves the JVM `cli-probe` tool for free. |
 | React Native / web | Rejected: MJPEG rendering and long-lived socket reliability are friction points; astro users expect native feel. |
 | Two native apps (Swift + Kotlin) | Rejected outright by the iOS requirement: doubles every feature forever. |
 
@@ -143,7 +143,7 @@ current state without changing anything — useful for diagnostics and tests.
 
 | Layer | Approach |
 |---|---|
-| protocol | Unit tests: golden request strings vs known-correct frames captured from decompiled logic; parser fuzzing (truncated/garbled payloads must not throw) |
+| protocol | Unit tests: golden request strings vs known-correct frames captured from live gimbal traffic; parser fuzzing (truncated/garbled payloads must not throw) |
 | domain | State-machine tests: alignment flow, tracking transitions, reconnect handshake |
 | astro | Known-value tests (e.g., Polaris alt/az at reference location/time; sun rise/set for fixed date) |
 | integration | `tools/cli-probe` scripts run against real mount: connect→poll→jog→track→stop in <60 s |

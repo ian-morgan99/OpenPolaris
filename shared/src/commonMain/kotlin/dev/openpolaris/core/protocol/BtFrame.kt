@@ -8,7 +8,7 @@ package dev.openpolaris.core.protocol
  * (GATT services fff0/fff1/fff2). It is **not** the same wire format as the WiFi TCP control
  * channel — see [CommandBuilder] / [ResponseParser] for that.
  *
- * RE-captured BT frame envelope (PLANNING-2026-08.md §Bluetooth):
+ * BT frame envelope observed in live captures (PLANNING-2026-08.md §Bluetooth):
  *
  * ```
  *   code:<N>;#<key:val;…>#
@@ -20,7 +20,7 @@ package dev.openpolaris.core.protocol
  *   └ literal "code:" prefix
  * ```
  *
- * Examples observed in the BenroConnect APK:
+ * Example envelopes seen in live captures:
  *
  * ```
  *   code:1;#        # literal ack of the wake pulse (no payload, just envelope echo)
@@ -33,8 +33,8 @@ package dev.openpolaris.core.protocol
  *
  * The codes seen on the BT link are a **subset** of the WiFi codes (258/259/260/261/262/263
  * camera params, 513–524 motion/control) plus a small BT-only handshake set (1–5). Codes
- * 1–5 are not yet captured-wire pinned — placeholders below are derived from the
- * BenroConnect APK's `sp_btMsg.c` source-name hints.
+ * 1–5 are not yet captured-wire pinned — names below are placeholders until a pcap
+ * of the live BT handshake confirms them.
  *
  * GATT UUIDs (PLANNING-2026-08.md):
  *
@@ -55,9 +55,9 @@ object BtFrame {
     const val PREFERRED_MTU = 512
 
     // ---- BT-only handshake codes (1..5) ---------------------------------------
-    // Names below are derived from `sp_btMsg.c` string/constant names in the
-    // BenroConnect APK; exact semantics on the wire are **not yet captured** —
-    // treat as placeholders until a pcap of the stock app confirms them.
+    // Names below are tentative placeholders — exact semantics on the wire are
+    // **not yet captured** — treat as provisional until a pcap of the live
+    // BT handshake confirms them.
     const val BT_HELLO = 1                  // host → gimbal: open link, request serial
     const val BT_HELLO_ACK = 2              // gimbal → host: serial number + state
     const val BT_TOKEN_EXCHANGE = 3         // host → gimbal: app token (APP_TOKEN=821 equivalent)

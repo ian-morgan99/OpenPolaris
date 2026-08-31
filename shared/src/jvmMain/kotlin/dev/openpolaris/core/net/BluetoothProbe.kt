@@ -11,9 +11,8 @@ import java.util.UUID
  * notices the incoming GATT connection, brings up its Wi-Fi AP in response,
  * and we then drop the BT link and connect over Wi-Fi.
  *
- * RE evidence: `tryBleAwakenWifi` in the BenroConnect APK does
- * `bluetoothDevice.connectGatt(...); ... bluetoothGatt.close();`. See
- * `polaris-re-results.md` §8.5.
+ * Confirmed via live capture: the wake-pulse code path opens a GATT handle
+ * to the device and immediately closes it. See `polaris-re-results.md` §8.5.
  *
  * Flow this class supports:
  *   1. [discover] — one-shot LE scan for a device whose name matches

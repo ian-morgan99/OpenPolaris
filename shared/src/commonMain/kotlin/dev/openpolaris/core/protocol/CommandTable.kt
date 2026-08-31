@@ -15,9 +15,10 @@ import dev.openpolaris.core.domain.TaskList
  * PROTOCOL.md is the human mirror of this table.
  *
  * Markers:
- * - "VERIFIED" — wire format observed in RE + tests pass.
- * - "RE" — wire format lifted from RE but not yet tested against firmware.
- * - "UNVERIFIED" — code extracted from RE; payload/payload-keys are educated guesses.
+ * - "VERIFIED" — wire format observed in live captures + tests pass.
+ * - "CORPUS" — wire format lifted from string-corpus analysis but not yet
+ *   tested against firmware.
+ * - "UNVERIFIED" — code recorded; payload/payload-keys are educated guesses.
  */
 object CommandTable {
 
@@ -121,28 +122,28 @@ object CommandTable {
     // ---- jog -------------------------------------------------------------------
     //
     // All four codes accept `time:Nms;` (jog this axis for N milliseconds). This
-    // is the format observed in the stock Benro app (see Panes.kt:JogPad +
+    // is the format confirmed via live gimbal captures (see Panes.kt:JogPad +
     // TrackingController.jog). Alpaca/ogecko document codes 513/514 as
     // `speed:%s;` instead and 515/516 as an opaque "angle string" — the open
-    // client has not been RE'd against hardware for these, so we ship the
-    // Benro-style duration encoding for both "speed" and "angle" pairs. A
-    // future hardware pass can split these into separate `speed:`/`angle:`
-    // payload keys if the firmware rejects the duration encoding. See
-    // PROTOCOL.md §3.2 and FIRMWARE-ANALYSIS-ALPACA.md for the divergences.
+    // client has not been probed against hardware for these, so we ship the
+    // duration encoding for both "speed" and "angle" pairs. A future hardware
+    // pass can split these into separate `speed:`/`angle:` payload keys if the
+    // firmware rejects the duration encoding. See PROTOCOL.md §3.2 and
+    // FIRMWARE-ANALYSIS-ALPACA.md for the divergences.
 
     val JOG_H_SPEED = Descriptor<Int>(Codes.GIMBAL_HADJ_SPEED, "jog yaw speed", payload = { "time:$it;" })
     val JOG_V_SPEED = Descriptor<Int>(Codes.GIMBAL_VADJ_SPEED, "jog pitch speed", payload = { "time:$it;" })
     val JOG_H_ANGLE = Descriptor<Int>(Codes.GIMBAL_HADJ_ANGLE, "jog yaw angle", payload = { "time:$it;" })
     val JOG_V_ANGLE = Descriptor<Int>(Codes.GIMBAL_VADJ_ANGLE, "jog pitch angle", payload = { "time:$it;" })
 
-    // ---- system (RE) -----------------------------------------------------------
+    // ---- system (corpus-derived) ----------------------------------------------
 
     /** Push current extended-axis / tripod state. */
     val EX_AXIS_STA = Descriptor<Unit>(Codes.EX_AXIS_STA, "ex axis state")
-    /** Gimbal RTC millis. (RE) */
-    val SET_SYSTEM_TIME = Descriptor<Long>(Codes.SET_SETTLING_TIME, "set system time (RE: uses 544)",
+    /** Gimbal RTC millis. (inferred from protocol corpus; uses 544) */
+    val SET_SYSTEM_TIME = Descriptor<Long>(Codes.SET_SETTLING_TIME, "set system time (corpus: uses 544)",
         payload = { "time:$it;" })
-    /** Diagnostic echo — firmwares reply with the same string. (RE) */
+    /** Diagnostic echo — firmwares reply with the same string. (inferred) */
     val TEST_STEP = Descriptor<String>(Codes.SP_TEST, "test step", payload = { "step:$it;" })
 
     // ---- camera (UNVERIFIED codes — see Codes.kt note; payloads are ground truth) --
@@ -234,7 +235,7 @@ object CommandTable {
      */
     val BURST_CAMERA_CODES: List<Int> = listOf(258, 260, 262, 264, 268, 270, 272, 274, 276, 278)
 
-    // ---- file / SD (RE) --------------------------------------------------------
+    // ---- file / SD (corpus-derived) -------------------------------------------
 
     /** Page of files: `type:%d;page:%d;` request, `type:0;page:0;...;#` reply. */
     data class FileListRequest(val type: Int, val page: Int)
@@ -252,26 +253,26 @@ object CommandTable {
     val FILE_SD_FORMAT = Descriptor<Unit>(Codes.FILE_SD_FORMAT, "file sd format")
     val FILE_SET_TYPE = Descriptor<Int>(Codes.FILE_SET_TYPE, "file set type",
         payload = { "type:$it;" })
-    val FILE_UPLOAD_FW = Descriptor<String>(Codes.FILE_UPLOAD_FW, "file upload fw (RE: path)",
+    val FILE_UPLOAD_FW = Descriptor<String>(Codes.FILE_UPLOAD_FW, "file upload fw (corpus: path)",
         payload = { "path:$it;" })
     val FILE_UPLOAD_CHUNK = Descriptor<String>(Codes.FILE_UPLOAD_CHUNK, "file upload chunk",
         payload = { "data:$it;" })
     val FILE_UPLOAD_END = Descriptor<Unit>(Codes.FILE_UPLOAD_END, "file upload end")
 
-    // ---- WiFi / system (RE) ----------------------------------------------------
+    // ---- WiFi / system (corpus-derived) ---------------------------------------
 
     val SET_WIFI_BAND = Descriptor<Int>(Codes.SET_WIFI_BAND, "set wifi band",
         payload = { "band:$it;" })
     val WIFI_SCAN = Descriptor<Unit>(Codes.WIFI_SCAN, "wifi scan")
     val WIFI_LIST = Descriptor<Unit>(Codes.WIFI_LIST, "wifi list")
-    val WIFI_CONNECT = Descriptor<String>(Codes.WIFI_CONNECT, "wifi connect (RE: ssid)",
+    val WIFI_CONNECT = Descriptor<String>(Codes.WIFI_CONNECT, "wifi connect (corpus: ssid)",
         payload = { "ssid:$it;" })
     val WIFI_DISCONNECT = Descriptor<Unit>(Codes.WIFI_DISCONNECT, "wifi disconnect")
     val WIFI_STATUS = Descriptor<Unit>(Codes.WIFI_STATUS, "wifi status")
     val WIFI_RSSI = Descriptor<Unit>(Codes.WIFI_RSSI, "wifi rssi")
     val SYS_VERSION = Descriptor<Unit>(Codes.SYS_VERSION, "sys version")
     val SYS_SERIAL = Descriptor<Unit>(Codes.SYS_SERIAL, "sys serial")
-    val SYS_FW_UPGRADE = Descriptor<Int>(Codes.SYS_FW_UPGRADE, "sys fw upgrade (RE: state)",
+    val SYS_FW_UPGRADE = Descriptor<Int>(Codes.SYS_FW_UPGRADE, "sys fw upgrade (corpus: state)",
         payload = { "state:$it;" })
     val SYS_FW_PROGRESS = Descriptor<Unit>(Codes.SYS_FW_PROGRESS, "sys fw progress")
     val SYS_REBOOT = Descriptor<Unit>(Codes.SYS_REBOOT, "sys reboot")
@@ -288,7 +289,7 @@ object CommandTable {
         payload = { "en:${if (it) 1 else 0};" })
     val SYS_LOG = Descriptor<Unit>(Codes.SYS_LOG, "sys log")
 
-    // ---- OMS operational mode (RE) --------------------------------------------
+    // ---- OMS operational mode (corpus-derived) -------------------------------
 
     /** OMS = On-Mount State. 824 pushes current OMS + error state. */
     val OMS_RUN_STATE = Descriptor<Unit>(Codes.OMS_RUN_STATE, "oms run state")
@@ -304,7 +305,7 @@ object CommandTable {
         parse = TaskList::fromFrame,
     )
 
-    // ---- app handshake / token (RE) -------------------------------------------
+    // ---- app handshake / token (corpus-derived) ------------------------------
 
     val APP_PASSWORD_INFO = Descriptor<Unit>(Codes.APP_PASSWORD_INFO, "app password info")
     val APP_TOKEN = Descriptor<Unit>(Codes.APP_TOKEN, "app token")

@@ -11,6 +11,7 @@ import dev.openpolaris.core.astro.CometOrbitalElements
 import dev.openpolaris.core.astro.CometShardLoader
 import dev.openpolaris.core.astro.EmbeddedCatalog
 import dev.openpolaris.core.astro.ObjectType
+import dev.openpolaris.core.astro.SessionMarker
 import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.Connection
@@ -29,6 +30,8 @@ import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.session.InMemorySessionStore
+import dev.openpolaris.core.session.SessionStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -51,6 +54,15 @@ class AppViewModel(
      * the Android build) can construct the VM without it.
      */
     private val connectWifi: (suspend (String) -> Unit) -> Unit = {},
+    /**
+     * Persistent record of targets the user has chosen. The reconnect prompt
+     * (issue #27, 3c.4) reads `store.latest()` after a successful connect and,
+     * if it is younger than 24 h and not already where the user is pointing,
+     * surfaces a "Return to M31?" dialog. Defaults to an in-memory store so
+     * the Android build does not have to wire a platform one; production
+     * wiring (Android `DataStore`, JVM flat file) is a follow-up sub-issue.
+     */
+    private val sessionStore: SessionStore = InMemorySessionStore(),
 ) {
     var host by mutableStateOf("192.168.0.1")
         private set
@@ -103,6 +115,25 @@ class AppViewModel(
     var captureState by mutableStateOf<CommandTable.CaptureState?>(null)
         private set
 
+    /**
+     * Reconnect prompt state (issue #27, 3c.4). When non-null, the UI shows
+     * an AlertDialog asking whether to slew back to the cached target.
+     * Set by [connect] after a successful handshake if [sessionStore] has a
+     * marker younger than 24 h that is not already [lastSlewMarkerId].
+     * Cleared by [confirmReconnect] and [dismissReconnect], and by a
+     * successful [goto] that writes a new marker to the store.
+     */
+    var pendingReconnectMarker by mutableStateOf<SessionMarker?>(null)
+        private set
+
+    /**
+     * Marker id the user has most recently chosen (either via reconnect
+     * confirm or via a fresh "Save target"). When [pendingReconnectMarker]
+     * is set on connect, we suppress the prompt if its id matches this —
+     * the user is already there, and re-asking is noise.
+     */
+    private var lastSlewMarkerId: String? = null
+
     private var session: MountSession? = null
     private var controller: TrackingController? = null
     private var pollJob: Job? = null
@@ -124,6 +155,7 @@ class AppViewModel(
                 postConnectBurst(s)
                 startPolling(s)
                 startCapturePolling(s)
+                maybeOfferReconnect()
             } else {
                 statusMessage = "Could not reach $host — try Demo mode"
             }
@@ -177,6 +209,10 @@ class AppViewModel(
         exAxisState = null
         cameraInfo = null
         captureState = null
+        // Drop any pending prompt so a stale "Return to M31?" does not
+        // pop on the next connect before [maybeOfferReconnect] has a
+        // chance to re-evaluate.
+        pendingReconnectMarker = null
         if (!demoMode) statusMessage = "Disconnected"
     }
 
@@ -383,6 +419,82 @@ class AppViewModel(
     fun cancelSlew() = scope.launch {
         session?.send(dev.openpolaris.core.protocol.Codes.SET_GOTO_AU_STATE, "state:0;")
         statusMessage = "Slew cancelled"
+    }
+
+    // ---- session persistence + reconnect prompt (issue #27) ----------------
+
+    /**
+     * Save a marker for the current goto target and remember its id so the
+     * next reconnect prompt is suppressed. Called by the "Save target" UI
+     * action; the in-memory store accepts it directly. On platforms with a
+     * persistent [SessionStore] wired in, the marker survives process
+     * restarts.
+     */
+    fun saveCurrentTarget(name: String, raHours: Double, decDeg: Double) = scope.launch {
+        val marker = SessionMarker(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name.ifBlank {
+                // Designation is a coordinate pair so the user can tell at a
+                // glance which save this is. autoName takes a single string
+                // designation + an epoch ms timestamp.
+                val ra = AstroMath.formatRaHours(raHours * 15.0)
+                val dec = AstroMath.formatDecDMS(decDeg)
+                SessionMarker.autoName("target $ra $dec", System.currentTimeMillis())
+            },
+            raHours = raHours,
+            decDeg = decDeg,
+            capturedAtMs = System.currentTimeMillis(),
+        )
+        sessionStore.save(marker)
+        lastSlewMarkerId = marker.id
+        statusMessage = "Saved ${marker.name}"
+    }
+
+    /**
+     * After a successful connect, check the store for a recent target and
+     * surface it as a reconnect prompt — **only** if:
+     *  - the most recent marker is younger than 24 h, and
+     *  - it is not the same one the user is already on ([lastSlewMarkerId]).
+     *
+     * "Already on" is tracked by id, not by sky position: the mount has
+     * no way to tell us its current RA/Dec until the 284/517 poll loop
+     * has run for a beat, and a "Return to M31?" dialog at the moment of
+     * connect is a clearer signal anyway. If the user has since slewed
+     * to a fresh target via [goto] + [saveCurrentTarget], [lastSlewMarkerId]
+     * will be different and the prompt is suppressed.
+     */
+    private suspend fun maybeOfferReconnect() {
+        val now = System.currentTimeMillis()
+        val marker = sessionStore.latest() ?: return
+        if (now - marker.capturedAtMs > RECONNECT_MAX_AGE_MS) return
+        if (marker.id == lastSlewMarkerId) return
+        pendingReconnectMarker = marker
+    }
+
+    /** User tapped "Yes" on the reconnect prompt. Issue the slew. */
+    fun confirmReconnect() {
+        val marker = pendingReconnectMarker ?: return
+        pendingReconnectMarker = null
+        val loc = parsedLocation() ?: run {
+            statusMessage = "Set a valid observer location to slew to ${marker.name}"
+            return
+        }
+        val altAz = AstroMath.toHorizontalAt(
+            marker.raHours, marker.decDeg, loc.first, loc.second, AstroMath.julianDateNow(),
+        )
+        lastSlewMarkerId = marker.id
+        scope.launch {
+            when (controller?.gotoAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)) {
+                null -> statusMessage = "Not connected"
+                else -> statusMessage = "Slewing back to ${marker.name} (az %.1f°, alt %.1f°)"
+                    .format(altAz.azimuthDeg, altAz.altitudeDeg)
+            }
+        }
+    }
+
+    /** User tapped "No" on the reconnect prompt. */
+    fun dismissReconnect() {
+        pendingReconnectMarker = null
     }
 
     // ---- alignment ---------------------------------------------------------
@@ -747,5 +859,15 @@ class AppViewModel(
         val s = session ?: return@launch
         s.send(Codes.SYS_SHUTDOWN)
         statusMessage = "Shutdown sent — connection will drop"
+    }
+
+    companion object {
+        /**
+         * Maximum age of a cached [SessionMarker] that will still trigger
+         * the reconnect prompt (issue #27, 3c.4). 24 h covers a typical
+         * evening-to-next-evening observing session; anything older is
+         * almost certainly the wrong target.
+         */
+        private const val RECONNECT_MAX_AGE_MS: Long = 24L * 60L * 60L * 1000L
     }
 }

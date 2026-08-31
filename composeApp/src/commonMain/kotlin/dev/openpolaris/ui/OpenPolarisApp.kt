@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.format2
+import dev.openpolaris.core.astro.AstroMath
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -90,6 +91,34 @@ fun OpenPolarisApp(
                 Callout.Files -> CalloutDialog("Files", { dialog = null }) { FilesPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
+            }
+
+            // Reconnect prompt (issue #27). Reads the VM state directly so
+            // any update from [AppViewModel.confirmReconnect] /
+            // [AppViewModel.dismissReconnect] / [AppViewModel.disconnect]
+            // re-composes this branch and hides the dialog. We do *not*
+            // gate on `dialog != null`: the prompt is independent of the
+            // callout rail and must be able to show over any open pane.
+            vm.pendingReconnectMarker?.let { marker ->
+                AlertDialog(
+                    onDismissRequest = { vm.dismissReconnect() },
+                    title = { Text("Return to ${marker.name}?") },
+                    text = {
+                        Text(
+                            "Last observed at RA " +
+                                AstroMath.formatRaHours(marker.raHours * 15.0) +
+                                ", Dec " +
+                                AstroMath.formatDecDMS(marker.decDeg) +
+                                ".",
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { vm.confirmReconnect() }) { Text("Slew back") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { vm.dismissReconnect() }) { Text("Not now") }
+                    },
+                )
             }
         }
     }

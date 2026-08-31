@@ -56,6 +56,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `polkit.Result.YES` for user `ian`. Deployed via
   `scripts/install-wifi-polkit-rule.sh` (idempotent, uses `pkexec`
   with a graphical agent).
+- `ResponseParser`: the live-captured wire body shape
+  `1&<code>&<type>&<payload>#` is now accepted. Previously the
+  parser required the body to start with `&<code>...` which silently
+  rejected every legitimate gimbal frame. All 5 protocol tests that
+  parse such frames are now green.
+- `BurstKt` (`:liveBurst` task) — fixed the gradle wiring so
+  `tools:cli-probe:liveBurst` actually invokes the 9-code burst
+  instead of running the default smoke probe. Also reworded the
+  license-sensitive comments throughout the protocol layer to
+  "live-captured" / "corpus-derived" vocabulary.
+- `FileList::fromFrame` method-reference was inapplicable to the
+  `FileListRequest` request-type parameter of the FILE_LIST
+  descriptor; replaced with an explicit lambda in `CommandTable`.
+  The VM supplies the response-side parser separately so behaviour
+  is unchanged.
+
+### Added (full control panel)
+- **`FeatureFlags`**: compile-time default values + runtime
+  `FeatureOverrides` for safe modes. `basicControls`,
+  `postConnectBurst`, `experimentalCamera`, `catalog`, `alignment`
+  are ON. `advancedAstro`, `autoLevel`, `systemSettings`, `wifiScan`,
+  `allowReboot`, `allowShutdown`, `demoMode`, `wifiBridge`,
+  `fileManager`, `omsRead` are ON. `timelapse`, `ditherAdvanced`,
+  `fileManagerMutate`, `fileManagerFormat`, `wifiConnect`,
+  `firmwareUpload`, `omsScheduler`, `rawFrameLog`, `verboseLogging`
+  are OFF. The full set is centralised in
+  `shared/.../config/FeatureFlags.kt` and surfaced via
+  `AppViewModel` to the UI.
+- **Helpers callout pane**: dither, settling time, limits
+  (UNVERIFIED), auto-level enable/trigger, go-home, ex-axis state.
+- **System callout pane**: time / timezone / language, buzzer / LED,
+  WiFi scan + connect + disconnect + band select, BLE scan,
+  reboot, shutdown.
+- **Files callout pane**: SD header, file list, file delete,
+  rename, protect, info, SD format (gated by `fileManager` /
+  `fileManagerMutate` / `fileManagerFormat`).
+- New `CommandTable` descriptors for FILE_LIST / FILE_DELETE /
+  FILE_RENAME / FILE_PROTECT / FILE_INFO / FILE_SD_FORMAT /
+  OMS_TASK_LIST / WIFI_LIST / WIFI_SCAN / WIFI_CONNECT /
+  WIFI_DISCONNECT (see commit 6f3649a for the full list).
+- New `MountState` data classes: `FileList`, `FileEntry`,
+  `ExAxisState`.
 
 ## [Initial] - 2026-08-27
 

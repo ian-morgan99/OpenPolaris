@@ -1,5 +1,6 @@
 package dev.openpolaris.probe
 
+import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.stub.runServer
 import java.net.ServerSocket
 import java.net.Socket
@@ -44,12 +45,30 @@ class BurstTest {
     fun `parseBurstArgs --full uses the canonical pre-camera burst codes`() {
         val a = parseBurstArgs(arrayOf("h", "1", "--full"))
         assertTrue(a.full, "expected full=true when --full is passed")
-        // 11 codes in the canonical order: 808, 809, 802, 778, 779, 775, 824, 524, 543,
-        // then 780 (device info) and 525 (temperature) added after the 2026-08-30 live
-        // capture confirmed both endpoints reply on the real gimbal.
+        // Source of truth: CommandTable.BURST_PRE_CAMERA_CODES. Keeping the
+        // test's expectation here pinned to the constant guards against drift
+        // between the burst path and the canonical pre-camera set documented
+        // in docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §"Live-captured codes".
         assertEquals(
-            listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525),
+            CommandTable.BURST_PRE_CAMERA_CODES,
             a.codes,
+        )
+    }
+
+    @Test
+    fun `BURST_PRE_CAMERA_CODES matches the audit doc's live-captured pre-camera set`() {
+        // Audit-doc canonical set (verified 2026-08-30 on real gimbal 192.168.0.1):
+        // 11 codes — 808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525.
+        // If you reorder or extend BURST_PRE_CAMERA in CommandTable.kt, this
+        // assertion forces you to also update the audit doc.
+        val expected = listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525)
+        assertEquals(
+            expected,
+            CommandTable.BURST_PRE_CAMERA_CODES,
+            "CommandTable.BURST_PRE_CAMERA_CODES drifted from the audit doc's " +
+                "canonical live-captured pre-camera set — update " +
+                "docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §Live-captured codes " +
+                "to match (or vice versa).",
         )
     }
 
@@ -132,10 +151,11 @@ class BurstTest {
         val lines = runBurst(args, sink = {})
         val parsed = lines.filter { it.startsWith("  code=") }
         assertEquals(
-            11, parsed.size,
-            "expected 11 parsed lines for the full burst, got ${parsed.size}:\n${parsed.joinToString("\n")}"
+            CommandTable.BURST_PRE_CAMERA_CODES.size, parsed.size,
+            "expected ${CommandTable.BURST_PRE_CAMERA_CODES.size} parsed lines for " +
+                "the full burst, got ${parsed.size}:\n${lines.joinToString("\n")}"
         )
-        for (c in listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525)) {
+        for (c in CommandTable.BURST_PRE_CAMERA_CODES) {
             assertTrue(
                 parsed.any { it.contains("code=$c") },
                 "missing code=$c in full burst, got:\n${parsed.joinToString("\n")}"

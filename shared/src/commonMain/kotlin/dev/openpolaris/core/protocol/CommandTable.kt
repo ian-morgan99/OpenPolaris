@@ -289,6 +289,18 @@ object CommandTable {
     )
 
     /**
+     * Flat list of codes used by [BURST_PRE_CAMERA] in order. Exposed so tests
+     * (`BurstTest --full` end-to-end check) can assert against a single source
+     * of truth. Catches drift if the canonical pre-camera set is extended in
+     * [BURST_PRE_CAMERA] without updating the burst test's allowlist.
+     *
+     * The audit doc's "canonical pre-camera set" (see
+     * docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §"Live-captured codes") MUST
+     * match this list. PR 5b gate.
+     */
+    val BURST_PRE_CAMERA_CODES: List<Int> = BURST_PRE_CAMERA.map { it.code }
+
+    /**
      * Camera info GETs (10 codes). Each response merges one field into a
      * running [CameraInfo] snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
      * NOT part of this — they feed the CaptureState pipeline / capture button.

@@ -416,3 +416,47 @@ Key context the next agent needs:
 - All 4 builds pass `verify_firmwareinfo.py`; integrity check is solved offline.
 - The blocker is sshd — the gimbal sleeps and must be woken from the phone.
 - Do not commit the uncommitted Kotlin changes as part of this work.
+
+---
+
+## 14. Knowledge-share brief for the patcher project (2026-08-31)
+
+A separate, patcher-audience document has been written at
+[`KNOWLEDGE-SHARE-FOR-PATCHER.md`](KNOWLEDGE-SHARE-FOR-PATCHER.md). It
+follows the cross-project convention (`docs/CROSS-PROJECT.md`): it
+references this bundle by permalink rather than duplicating content, and
+pins the patcher-side citations to commit SHA `a32991d`.
+
+What it covers that the patcher team may not yet have:
+
+- The **"silent no-trigger" failure mode** — distinct from the
+  silent-reject modes in the patcher's `silent-fwpkt-reject-postmortem.md`.
+  Mlog_000003 contains zero FwPkt/firmwareInfo/crcInfo/getFwInfo lines
+  for the 2026-08-30 padded-appfs build, suggesting the on-board
+  `polestar_app` watcher is not arming at all. Three hypotheses are
+  recorded (wrong watch path, daemon not running, missing 810
+  precondition).
+- The **FwPkt integrity-check symbols** recovered from `polestar_app`
+  (`SP_UpgradeCheckFw` @ 0x14023c, `SP_OmsUpgradeCheckFwPkt` @ 0x76f24,
+  `SP_ExDevFwPktCheck` @ 0x5ccfc), giving the patcher a concrete offset
+  to set a breakpoint when reproducing the trigger condition.
+- **Operational SSH facts** that any agent connecting to the gimbal
+  needs: no SFTP, sshd rate-limits, gimbal sleeps, no on-device
+  `ssh-keygen`, BusyBox grep lacks `--line-buffered`, the control plane
+  is binary on TCP/9090 (port 80 is lighttpd 403, port 8080 is
+  MJPG-Streamer), bash `kill` is a reserved word that blocks substring
+  matches.
+- **Protocol codes** for camera/gimbal control (258–549) and firmware
+  update (810 `SYS_FW_UPGRADE`, 811 `SP_FW_PROGRESS`).
+
+Suggested follow-ups recorded in §5 of the brief:
+
+- A **behaviour gate** in the patcher build that probes a candidate zip
+  with the *stock* `appfs` before declaring success.
+- A **`FwPkt-delivery.json` artifact** in the patcher build that records
+  *where* the FwPkt was dropped, not just *what* it contains — so a
+  silent-no-trigger failure shows up as missing delivery rather than a
+  failed integrity check.
+- An **810-precondition experiment**: drop the FwPkt, issue `810` from
+  the Benro app, then re-drop. If the second drop is picked up, the
+  on-board watcher needs to be armed explicitly.

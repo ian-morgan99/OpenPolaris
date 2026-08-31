@@ -84,7 +84,6 @@ jobs:
     name: Lint (ktlint-detekt placeholder + evidence-bundle check)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,6 +96,9 @@ jobs:
           cache: gradle
 
       - name: Show source tree
+        # Placeholder for future ktlint/detekt; safe to leave non-fatal until
+        # the tooling is wired up. See docs/PLANNING-2026-08.md §Next steps.
+        continue-on-error: true
         run: |
           find . -name "*.kt" -not -path "*/build/*" -not -path "*/.gradle/*" | wc -l
           echo "Note: this is a placeholder. Add ktlint/detekt later — see docs/PLANNING-2026-08.md §Next steps."
@@ -137,26 +139,31 @@ jobs:
 
           # 1. Absolute local paths (Linux or Windows)
           scan "absolute local path /home/..." '(^|/)(home|root)/[A-Za-z0-9._-]+(/|$)' \
-            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
           scan "absolute Windows path C:\\Users\\..." 'C:\\Users\\' \
-            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
 
           # 2. .copilot/session-state references
           scan ".copilot/session-state link" '\.copilot/session-state' \
-            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
 
           # 3. /etc/shadow content (the redaction block is the only allowed mention)
           scan "/etc/shadow content" '/etc/shadow' \
-            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
 
           # 4. crypt(3) hash format ($1$, $6$, $y$ — and the modern $6$rounds=N$
           # variant) — allow only in MANIFEST/README where the format is discussed.
           scan "password-hash format" '\$[16y]\$((rounds=[0-9]+\$)?[A-Za-z0-9./]{4,}\$[A-Za-z0-9./]+)' \
-            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md"
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
 
           # 5. Private-key headers
           scan "private-key header" 'BEGIN .* PRIVATE KEY' \
-            "$EVDIR/MANIFEST.md"
+            "$EVDIR/MANIFEST.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
 
           # 6. Non-allowlisted MAC addresses (allow gimbal's own MAC only).
           # Walk every .txt under evidence; for each line that matches a MAC,
@@ -177,7 +184,7 @@ jobs:
           # MANIFEST.md is allowlisted because it describes what the redaction
           # changed; HANDOVER may legitimately reference the redaction history.
           # Match by basename so the allowlist survives new evidence subdirs.
-          OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md")
+          OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md" "KNOWLEDGE-SHARE-FOR-PATCHER.md")
           while IFS= read -r f; do
             bn="$(basename "$f")"
             skip=0

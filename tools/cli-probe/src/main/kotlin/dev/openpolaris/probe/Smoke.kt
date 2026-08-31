@@ -123,7 +123,9 @@ fun main(args: Array<String>) {
 
         // 6. Wi-Fi
         log("\n== 6. Wi-Fi ==")
-        runOne("wifi.${Codes.WIFI_BAND}", Codes.WIFI_BAND)
+        // 799 was `WIFI_BAND`; PR-3 audit reclassifies it to GET_CELLULAR_STATE
+        // (decompile: SP_GET_CELLULAR_STATE). Smoke still probes it.
+        runOne("cell.${Codes.GET_CELLULAR_STATE}", Codes.GET_CELLULAR_STATE)
         runOne("wifi.${Codes.WIFI_SCAN}", Codes.WIFI_SCAN)
         runOne("wifi.${Codes.WIFI_LIST}", Codes.WIFI_LIST)
         runOne("wifi.${Codes.GET_WIFI_BAND}", Codes.GET_WIFI_BAND)

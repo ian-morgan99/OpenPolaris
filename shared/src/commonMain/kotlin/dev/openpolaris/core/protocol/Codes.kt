@@ -166,25 +166,60 @@ object Codes {
     const val FILE_CAM_RAW = 796
     const val FILE_SCAN_COMPLETE = 797
     const val FILE_RENAME = 798 // placeholder; original 780 collided with DEVICE_INFO
-    // ---- WiFi / system (subtype 2) -----------------------------------------
-    const val WIFI_BAND = 799
+    // ---- WiFi / system / cellular (subtype 2) -------------------------------
+    //
+    // PR-3 audit (2026-08-31): the decompile of polestar_app places a **cellular
+    // block** at 799+ (SP_GET_CELLULAR_STATE, SP_SET_CELLULAR_APN, SP_GET_CELLULAR_IMSI,
+    // SP_GET_CELLULAR_IMEI, SP_SET_CELLULAR_COMUSB, SP_GET_CELLULAR_HV) plus a
+    // warning-tone get/set at 804/805, and two auto-power-off toggles at 815/816.
+    // Our catalog named these as WiFi/system placeholders before the cellular
+    // surface was known. Live capture confirms 808/809 (ver/sn) and 810-813
+    // (upgrade/reboot/shutdown) behave as we model, so the *behavioural* mapping
+    // is correct; only the *names* are wrong. Until a live-capture experiment
+    // reclassifies them, both naming schemes coexist below:
+    //
+    //   799  GET_CELLULAR_STATE     = our old WIFI_BAND  (was unused)
+    //   804  GET_WARNING_TONE_STATE = our old WIFI_CONNECT  (corp. only, not live)
+    //   805  SET_WARNING_TONE_STATE = our old WIFI_DISCONNECT  (corpus only)
+    //   808  SYS_VERSION            = decompile: SP_SOCKET_CLIENT_TYPE  (live-verified)
+    //   809  SYS_SERIAL             = decompile: SP_SET_CELLULAR_APN   (live-verified)
+    //   810  SYS_FW_UPGRADE         = decompile: (gap)                  (H3 hypothesis)
+    //   811  SYS_FW_PROGRESS        = decompile: SP_GET_CELLULAR_IMSI   (audit conflict)
+    //   812  SYS_REBOOT             = decompile: SP_GET_CELLULAR_IMEI   (audit conflict)
+    //   813  SYS_SHUTDOWN           = decompile: SP_SET_CELLULAR_COMUSB (audit conflict)
+    //   814  SYS_TIME               = decompile: SP_GET_CELLULAR_HV     (audit conflict)
+    //   815  SYS_TIMEZONE           = decompile: SP_GET_AUTO_OFF_SW     (audit conflict)
+    //   816  SYS_LANGUAGE           = decompile: SP_SET_AUTO_OFF_SW     (audit conflict)
+    //
+    // See docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §4.6 (lines 149-177) for the
+    // full reclassification table. PR 5 second half (or a future live-capture
+    // experiment) will resolve the 808/809 question.
+    const val GET_CELLULAR_STATE = 799
+    // audit: decompile's name; was `WIFI_BAND` here until 2026-08-31. Constant
+    // 799 is not referenced by CommandTable (which uses 802 GET_WIFI_BAND), so
+    // the rename is safe.
     const val WIFI_SCAN = 800
     const val WIFI_LIST = 801
-    const val GET_WIFI_BAND = 802
-    const val SET_WIFI_BAND = 803
+    const val GET_WIFI_BAND = 802 // SP_GET_WIFI_BAND (decompile); ✓ live
+    const val SET_WIFI_BAND = 803 // SP_SET_WIFI_BAND (decompile); ✓ live
     const val WIFI_CONNECT = 804
+    // audit: decompile says SP_GET_WARNING_TONE_STATE. Corpus-only naming
+    // (no live capture). Reclassify when a live-capture experiment confirms.
     const val WIFI_DISCONNECT = 805
-    const val WIFI_STATUS = 806
-    const val WIFI_RSSI = 807
-    const val SYS_VERSION = 808
-    const val SYS_SERIAL = 809
+    // audit: decompile says SP_SET_WARNING_TONE_STATE (`sw:0/1;`). Corpus-only.
+    const val WIFI_STATUS = 806 // (gap in decompile)
+    const val WIFI_RSSI = 807   // (gap in decompile)
+    const val SYS_VERSION = 808 // ✓ live (`ver:$fwVersion;hw:1;`). decompile: SP_SOCKET_CLIENT_TYPE (resp) — see audit
+    const val SYS_SERIAL = 809  // ✓ live (`sn:$serial;`). decompile: SP_SET_CELLULAR_APN — see audit
     const val SYS_FW_UPGRADE = 810
-    const val SYS_FW_PROGRESS = 811
-    const val SYS_REBOOT = 812
-    const val SYS_SHUTDOWN = 813
-    const val SYS_TIME = 814
-    const val SYS_TIMEZONE = 815
-    const val SYS_LANGUAGE = 816
+    // 810 has no decompile name. The Benro app sends 810 as a precondition
+    // before dropping FwPkt.zip — see H3 in KNOWLEDGE-SHARE-FOR-PATCHER.md.
+    const val SYS_FW_PROGRESS = 811 // decompile: SP_GET_CELLULAR_IMSI ⚠ (live: `p:N;`)
+    const val SYS_REBOOT = 812      // decompile: SP_GET_CELLULAR_IMEI ⚠ (live: `ret:0;`)
+    const val SYS_SHUTDOWN = 813    // decompile: SP_SET_CELLULAR_COMUSB (`usbmode:..;`) ⚠
+    const val SYS_TIME = 814        // decompile: SP_GET_CELLULAR_HV ⚠
+    const val SYS_TIMEZONE = 815    // decompile: SP_GET_AUTO_OFF_SW ⚠
+    const val SYS_LANGUAGE = 816    // decompile: SP_SET_AUTO_OFF_SW (`sw:0/1;`) ⚠
     const val SYS_BUZZER = 817
     const val SYS_LED = 818
     const val SYS_LOG = 819

@@ -327,7 +327,14 @@ class SimulatedProtocol {
             )
 
             // ---- WiFi / system ---------------------------------------------
-            Codes.WIFI_BAND, Codes.GET_WIFI_BAND -> out += response(
+            // 799 was WIFI_BAND; PR-3 audit reclassifies to GET_CELLULAR_STATE
+            // (decompile: SP_GET_CELLULAR_STATE). No live-captured response
+            // shape — stub emits a clear "unknown" marker so probes can detect
+            // the reclassification in CI.
+            Codes.GET_CELLULAR_STATE -> out += response(
+                "1&${Codes.GET_CELLULAR_STATE}&2&ret:-1;note:sim-unknown;#"
+            )
+            Codes.GET_WIFI_BAND -> out += response(
                 "1&${Codes.GET_WIFI_BAND}&2&band:$wifiBand;#"
             )
             Codes.SET_WIFI_BAND -> {

@@ -16,18 +16,9 @@ java {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(kotlin("test"))
     testImplementation(project(":tools:stub-server"))
-}
-
-// Smoke.kt references functions/constants that don't exist yet
-// (encodeRequest, encodeResponse, CAPTURE_STATUS, CAPTURE_GAIN). The other
-// agent is mid-stream on this end-to-end probe. Excluding it from the main
-// source set keeps the rest of cli-probe green until the missing pieces land.
-sourceSets {
-    main {
-        kotlin.exclude("dev/openpolaris/probe/Smoke.kt")
-    }
 }
 
 application {
@@ -54,13 +45,10 @@ tasks.register<JavaExec>("liveBurst") {
 // Comprehensive smoke test of every CommandTable code (read + write where safe).
 // Set DESTRUCTIVE=1 to also exercise setters.
 // Args: <host> <port>
-// DISABLED: Smoke.kt is excluded from the main source set above (references
-// encodeRequest/encodeResponse/CAPTURE_STATUS/CAPTURE_GAIN that don't exist
-// yet). Re-enable when the source is restored.
-// tasks.register<JavaExec>("smoke") {
-//     group = "application"
-//     description = "Smoke-test every code against the stub. DESTRUCTIVE=1 includes setters."
-//     classpath = sourceSets.main.get().runtimeClasspath
-//     mainClass.set("dev.openpolaris.probe.SmokeKt")
-//     standardInput = System.`in`
-// }
+tasks.register<JavaExec>("smoke") {
+    group = "application"
+    description = "Smoke-test every code against the stub. DESTRUCTIVE=1 includes setters."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("dev.openpolaris.probe.SmokeKt")
+    standardInput = System.`in`
+}

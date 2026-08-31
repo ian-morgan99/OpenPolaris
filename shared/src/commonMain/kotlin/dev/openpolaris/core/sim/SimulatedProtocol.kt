@@ -46,8 +46,10 @@ class SimulatedProtocol {
     var liveview = false
 
     // ---- misc knobs -----------------------------------------------------------
+    var tiltState = 0
     var ditherState = 0
     var ditherEnabled = false
+    var limitState = 0
     var autoLevelEnabled = false
     var settlingTime = 5
     var buzzer = true
@@ -186,28 +188,45 @@ class SimulatedProtocol {
             }
             Codes.GET_TILT_STATE, Codes.SET_TILT_STATE,
             Codes.GET_DITHER_STATE, Codes.SET_DITHER_STATE -> {
-                if (code == Codes.GET_DITHER_STATE || code == Codes.SET_DITHER_STATE) {
-                    ditherState = fields["state"]?.toIntOrNull() ?: ditherState
+                when (code) {
+                    Codes.GET_TILT_STATE -> {
+                        out += response("1&$code&2&state:$tiltState;#")
+                    }
+                    Codes.SET_TILT_STATE -> {
+                        fields["state"]?.toIntOrNull()?.let { tiltState = it }
+                        out += response("1&$code&2&state:$tiltState;#")
+                    }
+                    Codes.GET_DITHER_STATE -> {
+                        out += response("1&$code&2&state:$ditherState;#")
+                    }
+                    Codes.SET_DITHER_STATE -> {
+                        fields["state"]?.toIntOrNull()?.let { ditherState = it }
+                        out += response("1&$code&2&state:$ditherState;#")
+                    }
                 }
-                out += response("1&$code&2&state:$ditherState;#")
             }
             // LIMITS_GET is UNVERIFIED — the typed parser (CommandTable.LIMITS_GET)
             // expects `state:X` mirroring the TILT pattern, but the real wire
-            // format isn't captured. Report the current toggle state so the
+            // format isn't captured. Report the current limits state so the
             // round-trip works; revisit when live capture is available.
             Codes.GET_LIMIT_STATE -> out += response(
-                "1&${Codes.GET_LIMIT_STATE}&2&state:${if (autoLevelEnabled) 1 else 0};#"
+                "1&${Codes.GET_LIMIT_STATE}&2&state:$limitState;#"
             )
             Codes.SET_LIMIT_STATE -> {
-                val s = fields["state"]?.toIntOrNull()
-                if (s != null) autoLevelEnabled = s != 0
+                fields["state"]?.toIntOrNull()?.let { limitState = it }
+                out += response("1&${Codes.SET_LIMIT_STATE}&2&state:$limitState;#")
             }
             Codes.GET_SETTLING_TIME -> out += response(
                 "1&${Codes.GET_SETTLING_TIME}&2&time:$settlingTime;#"
             )
-            Codes.GET_AUTO_LEVEL_EN, Codes.SET_AUTO_LEVEL_EN -> {
+            Codes.GET_AUTO_LEVEL_EN -> out += response(
+                "1&${Codes.GET_AUTO_LEVEL_EN}&2&en:${if (autoLevelEnabled) 1 else 0};#"
+            )
+            Codes.SET_AUTO_LEVEL_EN -> {
                 autoLevelEnabled = fields["en"] == "1"
-                out += response("1&$code&2&en:${if (autoLevelEnabled) 1 else 0};#")
+                out += response(
+                    "1&${Codes.SET_AUTO_LEVEL_EN}&2&en:${if (autoLevelEnabled) 1 else 0};#"
+                )
             }
             Codes.SET_AUTO_LEVEL_STATE -> {
                 out += response("1&${Codes.SET_AUTO_LEVEL_STATE}&2&ret:0;#")

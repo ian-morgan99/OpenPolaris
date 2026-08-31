@@ -278,4 +278,131 @@ class SimulatedProtocolTest {
     // behavior for speculative codes, or break intentional pre-existing
     // tests. Reintroduce this assertion case-by-case as codes become
     // verified via live capture.
+
+    // ---- Issue #32: TILT / LIMITS / AUTO_LEVEL state decoupling -------------
+    //
+    // Bug: GET_TILT_STATE and GET_LIMIT_STATE previously reported
+    // ditherState / autoLevelEnabled respectively, and GET_AUTO_LEVEL_EN
+    // shared a branch with SET_AUTO_LEVEL_EN that mutated
+    // autoLevelEnabled. These tests pin the corrected semantics: each
+    // state has its own slot, GETs never mutate, and SETs are round-
+    // trippable.
+    //
+    // We use a fresh simulator per test (lazy) so state doesn't leak.
+
+    private fun newSim() = SimulatedProtocol()
+
+    private fun fieldOf(frame: String, key: String): String? {
+        val marker = "$key:"
+        val start = frame.indexOf(marker)
+        if (start < 0) return null
+        val after = start + marker.length
+        val end = frame.indexOf(';', after)
+        return if (end < 0) null else frame.substring(after, end)
+    }
+
+    @Test
+    fun tiltGetDoesNotMutateTiltOrDitherState() {
+        val s = newSim()
+        // Sanity: GET returns 0
+        val resp0 = s.handle(Codes.GET_TILT_STATE, emptyMap())
+        assertEquals("0", fieldOf(String(resp0!![0]), "state"))
+        // GET must not have any side effect: state vars untouched
+        assertEquals(0, s.tiltState, "GET_TILT_STATE must not mutate tiltState")
+        assertEquals(0, s.ditherState, "GET_TILT_STATE must not mutate ditherState")
+        // Call GET 50 more times — still no mutation
+        repeat(50) { s.handle(Codes.GET_TILT_STATE, emptyMap()) }
+        assertEquals(0, s.tiltState)
+        assertEquals(0, s.ditherState)
+    }
+
+    @Test
+    fun tiltSetThenGetReturnsSetValue() {
+        val s = newSim()
+        s.handle(Codes.SET_TILT_STATE, StringMap("state" to 1))
+        assertEquals(1, s.tiltState)
+        val resp = s.handle(Codes.GET_TILT_STATE, emptyMap())
+        assertEquals("1", fieldOf(String(resp!![0]), "state"))
+    }
+
+    @Test
+    fun ditherAndTiltStatesAreIndependent() {
+        val s = newSim()
+        s.handle(Codes.SET_TILT_STATE, StringMap("state" to 1))
+        s.handle(Codes.SET_DITHER_STATE, StringMap("state" to 1))
+        assertEquals(1, s.tiltState, "TILT setter must not touch ditherState")
+        assertEquals(1, s.ditherState, "DITHER setter must not touch tiltState")
+        val tilt = s.handle(Codes.GET_TILT_STATE, emptyMap())
+        val dither = s.handle(Codes.GET_DITHER_STATE, emptyMap())
+        assertEquals("1", fieldOf(String(tilt!![0]), "state"))
+        assertEquals("1", fieldOf(String(dither!![0]), "state"))
+    }
+
+    @Test
+    fun limitsGetDoesNotMutateAutoLevel() {
+        val s = newSim()
+        // Set autoLevel true via SET
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
+        assertEquals(true, s.autoLevelEnabled)
+        // Now issue GET_LIMIT_STATE — must not touch autoLevelEnabled
+        s.handle(Codes.GET_LIMIT_STATE, emptyMap())
+        assertEquals(true, s.autoLevelEnabled, "GET_LIMIT_STATE must not mutate autoLevelEnabled")
+    }
+
+    @Test
+    fun limitsGetReportsOwnStateNotAutoLevel() {
+        val s = newSim()
+        // Set autoLevel true but limits false
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 0))
+        // GET_LIMIT_STATE must report limitState (0), not autoLevelEnabled (1)
+        val resp = s.handle(Codes.GET_LIMIT_STATE, emptyMap())
+        assertEquals("0", fieldOf(String(resp!![0]), "state"))
+    }
+
+    @Test
+    fun limitsSetThenGetReturnsSetValue() {
+        val s = newSim()
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 1))
+        assertEquals(1, s.limitState)
+        val resp = s.handle(Codes.GET_LIMIT_STATE, emptyMap())
+        assertEquals("1", fieldOf(String(resp!![0]), "state"))
+    }
+
+    @Test
+    fun limitsSetDoesNotMutateAutoLevel() {
+        val s = newSim()
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 1))
+        assertEquals(false, s.autoLevelEnabled, "SET_LIMIT_STATE must not mutate autoLevelEnabled")
+    }
+
+    @Test
+    fun autoLevelGetDoesNotMutateAutoLevel() {
+        val s = newSim()
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
+        assertEquals(true, s.autoLevelEnabled)
+        // GET has no `en` field; the old shared branch reset to false
+        s.handle(Codes.GET_AUTO_LEVEL_EN, emptyMap())
+        assertEquals(true, s.autoLevelEnabled, "GET_AUTO_LEVEL_EN must not mutate autoLevelEnabled")
+    }
+
+    @Test
+    fun autoLevelGetReturnsCurrentValue() {
+        val s = newSim()
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
+        val resp = s.handle(Codes.GET_AUTO_LEVEL_EN, emptyMap())
+        assertEquals("1", fieldOf(String(resp!![0]), "en"))
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 0))
+        val resp2 = s.handle(Codes.GET_AUTO_LEVEL_EN, emptyMap())
+        assertEquals("0", fieldOf(String(resp2!![0]), "en"))
+    }
+
+    @Test
+    fun autoLevelSetFalseToTrueRoundTrip() {
+        val s = newSim()
+        assertEquals(false, s.autoLevelEnabled)
+        s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
+        val resp = s.handle(Codes.GET_AUTO_LEVEL_EN, emptyMap())
+        assertEquals("1", fieldOf(String(resp!![0]), "en"))
+    }
 }

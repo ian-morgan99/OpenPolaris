@@ -101,7 +101,7 @@ class CommandTableTest {
     @Test
     fun burstPreCameraMatchesPlanningOrder() {
         // Source of truth: docs/PLANNING-2026-08.md step 5.
-        val expected = listOf(808, 809, 802, 778, 779, 775, 824, 524, 543)
+        val expected = listOf(808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525)
         assertEquals(expected, CommandTable.BURST_PRE_CAMERA.map { it.code })
     }
 
@@ -124,6 +124,8 @@ class CommandTableTest {
                 824 -> "running:1;"    // OmsState.fromFrame
                 524 -> "state:2;"      // ExAxisState.fromFrame
                 543 -> "time:7;"
+                780 -> "hw:1.1.1.2;sw:6.0.0.54;"  // DeviceInfo.fromFrame
+                525 -> "Tempa509ca361e0000275a;"  // Temperature.fromFrame
                 else -> error("no synthetic frame defined for burst code $code")
             }
         }
@@ -189,6 +191,71 @@ class CommandTableTest {
         for (d in all) {
             assertTrue(d.code in dev.openpolaris.core.protocol.Codes.CAMERA_BASE..dev.openpolaris.core.protocol.Codes.CAMERA_END,
                 "${d.name} code ${d.code} outside camera range")
+        }
+    }
+
+    // ---- live-captured device info / telemetry (VERIFIED 2026-08-30) ----
+
+    @Test
+    fun deviceInfoParserReadsHwAndSw() {
+        val p = ResponseParser()
+        val f = p.parseFrame("1&0&2&hw:1.1.1.2;sw:6.0.0.54;exAxis:v1;sv:6;ov:0;")!!
+        val info = CommandTable.DEVICE_INFO.parse!!(f)
+        assertEquals("1.1.1.2", info?.hardware)
+        assertEquals("6.0.0.54", info?.software)
+        assertEquals("v1", info?.exAxis)
+        assertEquals(6, info?.serverVersion)
+        assertEquals("0", info?.override)
+    }
+
+    @Test
+    fun temperatureParserReadsTempa() {
+        val p = ResponseParser()
+        val f = p.parseFrame("1&0&2&Tempa509ca361e0000275a ;")!!
+        val t = CommandTable.GET_TEMPERATURE.parse!!(f)
+        assertEquals("509ca361e0000275a", t?.rawHex)
+    }
+
+    @Test
+    fun cameraInfoParserReadsAllFields() {
+        val p = ResponseParser()
+        // No-camera sentinel frame.
+        val f = p.parseFrame("1&0&2&manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;")!!
+        val cam = CommandTable.CAM_INFO.parse!!(f)
+        assertEquals("none", cam?.manufacturer)
+        assertEquals("none", cam?.model)
+        assertEquals(-5, cam?.state)
+        assertEquals(0, cam?.storageMb)
+        assertEquals(0, cam?.photoFormat)
+        assertEquals(false, cam?.isAttached)
+    }
+
+    @Test
+    fun cameraFocusStepPayload() {
+        val w = wire(CommandTable.CAM_FOCUS, 3)
+        assertEquals("1&311&2&step:3;#", w)
+    }
+
+    @Test
+    fun videoRecordPayloadEncodesState() {
+        assertTrue(wire(CommandTable.CAM_VIDEO, true).contains("state:1;"))
+        assertTrue(wire(CommandTable.CAM_VIDEO, false).contains("state:0;"))
+    }
+
+    @Test
+    fun newDescriptorsInAllMap() {
+        // Every live-captured descriptor should be discoverable by code in ALL.
+        for (d in listOf(
+            CommandTable.DEVICE_INFO,
+            CommandTable.GET_TEMPERATURE,
+            CommandTable.CAM_INFO,
+            CommandTable.SYS_FORMAT,
+            CommandTable.CAM_FOCUS,
+            CommandTable.CAM_VIDEO,
+            CommandTable.ACK_GENERIC,
+            CommandTable.STATE_DUMP,
+        )) {
+            assertTrue(CommandTable.ALL[d.code]?.contains(d) == true, "descriptor ${d.name} (${d.code}) missing from ALL")
         }
     }
 }

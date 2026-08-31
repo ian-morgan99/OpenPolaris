@@ -20,6 +20,12 @@ package dev.openpolaris.core.config
  *   are themselves short-lived and we don't want stale flags surviving a
  *   refactor.
  *
+ * The defaults below are the *contract*: a release shipped with these
+ * constants will only run the safe subset. Every flag whose default was
+ * `true` was either a code path verified on the live burst or a read-only
+ * browse surface. Every flag whose default is `false` either writes an
+ * unverified code, moves the mount, or destructively modifies state.
+ *
  * Conventions:
  * - `advanced*` flags gate UI affordances that send settings the firmware
  *   accepts but that we have not verified round-trip on hardware.
@@ -48,12 +54,19 @@ object FeatureFlags {
 
     // ---- advanced astro (verified, but convenience) ------------------------
 
-    /** Helpers pane: dither (539/540), settling time (543/544), limits
-     *  (541/542). The wire format for 541/542 is a best-effort guess. */
+    /** Helpers pane: dither (539/540), settling time (543/544). Verified
+     *  round-trip on the live burst. */
     const val advancedAstro: Boolean = true
 
-    /** Auto-level en/trigger (547/548/549) and live tilt push (537/538). */
-    const val autoLevel: Boolean = true
+    /** Limits (541/542) — wire format is a best-effort guess, NOT verified
+     *  on real hardware. Split out from [advancedAstro] so the verified
+     *  dither/settling controls don't implicitly enable unverified writes.
+     *  Default OFF. */
+    const val limitsWrite: Boolean = false
+
+    /** Auto-level en/trigger (547/548/549) and live tilt push (537/538).
+     *  537/538 are writes — default OFF until round-trip verified. */
+    const val autoLevel: Boolean = false
 
     /** Timelapse + dynamic lapse controls (258-262, 535, etc.). */
     const val timelapse: Boolean = false
@@ -63,7 +76,7 @@ object FeatureFlags {
 
     // ---- file manager -----------------------------------------------------
 
-    /** SD file list / delete / protect (702-705). Read-only flag below. */
+    /** SD file list (read-only browse). Verified. */
     const val fileManager: Boolean = true
 
     /** Delete / rename / protect are gated separately so a user can browse
@@ -76,17 +89,23 @@ object FeatureFlags {
 
     // ---- system / WiFi ----------------------------------------------------
 
-    /** System settings (810-829): time, timezone, language, buzzer, LED. */
-    const val systemSettings: Boolean = true
+    /** System settings (810-829): time, timezone, language, buzzer, LED.
+     *  All write paths in this group are UNVERIFIED on real hardware,
+     *  so the whole group is OFF by default. */
+    const val systemSettings: Boolean = false
 
-    /** WiFi scan / list / connect (770-773) — needs hardware validation
-     *  before the connect path is opened up. */
+    /** WiFi scan / list (770-771) — read-only, verified. */
     const val wifiScan: Boolean = true
+
+    /** WiFi connect / disconnect / set-band (772-773, 802) — UNVERIFIED
+     *  write paths. OFF by default. */
     const val wifiConnect: Boolean = false
 
-    /** Reboot (830) / shutdown (831). */
-    const val allowReboot: Boolean = true
-    const val allowShutdown: Boolean = true
+    /** Reboot (830). OFF by default per the [FeatureFlags] KDoc contract. */
+    const val allowReboot: Boolean = false
+
+    /** Shutdown (831). OFF by default per the [FeatureFlags] KDoc contract. */
+    const val allowShutdown: Boolean = false
 
     /** Firmware upload (780-782). Destructive in the sense that an
      *  interrupted upload can brick the firmware. Off by default. */
@@ -125,7 +144,11 @@ object FeatureFlags {
 
     fun enable(flag: String) { overrides[flag] = true }
     fun disable(flag: String) { overrides[flag] = false }
-    fun toggle(flag: String): Boolean = !isEnabled(flag).also { overrides[flag] = it }
+    fun toggle(flag: String): Boolean {
+        val flipped = !isEnabled(flag)
+        overrides[flag] = flipped
+        return flipped
+    }
 
     /** Reset all runtime overrides back to compile defaults. */
     fun reset() = overrides.clear()
@@ -140,6 +163,7 @@ object FeatureFlags {
         "catalog" -> catalog
         "alignment" -> alignment
         "advancedAstro" -> advancedAstro
+        "limitsWrite" -> limitsWrite
         "autoLevel" -> autoLevel
         "timelapse" -> timelapse
         "ditherAdvanced" -> ditherAdvanced

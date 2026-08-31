@@ -1,0 +1,5 @@
+Filesystem                Size      Used Available Use% Mounted on
+ubi0:ubifs               31.4M     17.0M     14.4M  54% /
+devtmpfs                748.8M         0    748.8M   0% /dev
+ubi1:ubifs               68.0M     55.0M     13.0M  81% /app
+/dev/mmcblk0p1          119.0G    512.0K    119.0G   0% /app/sd

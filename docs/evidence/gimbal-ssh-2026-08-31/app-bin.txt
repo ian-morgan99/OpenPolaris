@@ -1,0 +1,17 @@
+total 44288
+drwxr-x---    2 1000     1000          1120 May  9  2025 .
+drwxr-x---   12 1000     1000          1592 Aug 27 16:37 ..
+-rwxr-x---    1 1000     1000         65324 Jan 11  2022 chat
+-rwxr-x---    1 1000     1000       9175040 Mar 16  2022 frpc
+-rwxr-x---    1 1000     1000        420780 Apr 15  2021 gdbserver
+-rwxr-x---    1 1000     1000        321740 Apr 24  2021 gphoto2
+-rwxr-x---    1 1000     1000        565476 Jan 11  2022 lighttpd
+-rwxr-x---    1 1000     1000       7801576 Apr 27  2025 pgphoto
+-rwxr-x---    1 1000     1000        472132 Apr 12  2022 polaris_wifi_bt
+-rwxr-x---    1 1000     1000      24941228 May  9  2025 polestar_app
+-rwxr-x---    1 1000     1000        979224 Jan 11  2022 pppd
+-rwxr-x---    1 1000     1000         62088 Jan 11  2022 pppdump
+-rwxr-x---    1 1000     1000         23668 Jan 11  2022 pppstats
+-rwxr-x---    1 1000     1000           230 Jan 11  2022 quectel-ppp-kill
+lrwxrwxrwx    1 1000     1000             5 May  9  2025 sd -> ../sd
+-rwxr-x---    1 1000     1000        491784 Dec  9  2021 vi_chn_dump

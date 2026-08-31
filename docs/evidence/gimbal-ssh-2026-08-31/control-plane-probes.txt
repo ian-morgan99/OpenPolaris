@@ -1,0 +1,65 @@
+=== Port 9090 (TCP connect) ===
+Connection to 192.168.0.1 9090 port [tcp/*] succeeded!
+
+=== Port 9090 banner (raw send A) ===
+
+=== Port 9090: send BenroPolaris known-good 'A' reply probe ===
+
+=== Port 80 (HTTP) ===
+HTTP/1.0 403 Forbidden
+Content-Type: text/html
+Content-Length: 341
+Connection: close
+Date: Mon, 31 Aug 2026 11:01:12 GMT
+Server: lighttpd/1.4.63
+
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+ <head>
+  <title>403 Forbidden</title>
+ </head>
+ <body>
+  <h1>403 Forbidden</h1>
+ </body>
+</html>
+
+=== Port 80 - look for cgi-bin ===
+  GET /cgi-bin/status:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+  GET /cgi-bin/polaris:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+  GET /cgi-bin/polaris_status:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+  GET //api:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+  GET //polaris:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+  GET //status:
+HTTP/1.0 404 Not Found
+Content-Type: text/html
+Content-Length: 341
+
+=== Port 8080 ===
+Connection to 192.168.0.1 8080 port [tcp/http-alt] succeeded!
+HTTP/1.0 501 Not Implemented
+Content-type: text/plain
+Connection: close
+Server: MJPG-Streamer/0.2
+Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0
+Pragma: no-cache
+Expires: Mon, 3 Jan 2000 12:34:56 GMT
+
+501: Not Implemented!
+no www-folder configured

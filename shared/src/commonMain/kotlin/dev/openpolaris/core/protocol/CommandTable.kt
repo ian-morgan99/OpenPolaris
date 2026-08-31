@@ -1,7 +1,9 @@
 package dev.openpolaris.core.protocol
 
 import dev.openpolaris.core.domain.BatteryDetail
+import dev.openpolaris.core.domain.CameraAttachment
 import dev.openpolaris.core.domain.CameraInfo
+import dev.openpolaris.core.domain.DeviceInfo
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileList
 import dev.openpolaris.core.domain.GimbalPosition
@@ -9,6 +11,7 @@ import dev.openpolaris.core.domain.MountState
 import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TaskList
+import dev.openpolaris.core.domain.Temperature
 
 /**
  * Table-driven command registry (ARCHITECTURE §3.2). One descriptor per code:
@@ -148,6 +151,47 @@ object CommandTable {
 
     /** Push current extended-axis / tripod state. */
     val EX_AXIS_STA = Descriptor<Unit>(Codes.EX_AXIS_STA, "ex axis state")
+
+    // ---- live-captured device info / telemetry (VERIFIED 2026-08-30) --------
+
+    /** 780 — gimbal hardware/firmware version. Live: `hw:1.1.1.2;sw:6.0.0.54;`. */
+    val DEVICE_INFO = Descriptor<DeviceInfo>(
+        Codes.DEVICE_INFO, "device info",
+        parse = DeviceInfo::fromFrame,
+    )
+
+    /** 525 — temperature / IMU read. Live: `Tempa<hex16>`. */
+    val GET_TEMPERATURE = Descriptor<Temperature>(
+        Codes.GET_TEMPERATURE, "temperature",
+        parse = Temperature::fromFrame,
+    )
+
+    /** 286 — camera info. Live: `manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;`. */
+    val CAM_INFO = Descriptor<CameraAttachment>(
+        Codes.CAM_INFO, "camera info",
+        parse = CameraAttachment::fromFrame,
+    )
+
+    /** 282 — format. Live acks with `ret:0`. Used by storage housekeeping. */
+    val SYS_FORMAT = Descriptor<Unit>(Codes.SYS_FORMAT, "format")
+
+    /** 311 — focus adjust step. Stock app sends `step:N;` for an incremental focus nudge. */
+    val CAM_FOCUS = Descriptor<Int>(
+        Codes.CAM_FOCUS, "camera focus step",
+        payload = { "step:$it;" },
+    )
+
+    /** 527 — video record. `state:0/1;` toggles recording. */
+    val CAM_VIDEO = Descriptor<Boolean>(
+        Codes.CAM_VIDEO, "video record",
+        payload = { "state:${if (it) 1 else 0};" },
+    )
+
+    /** 520 — generic action ack (`ret:0` on success). Used by capture/auto-level triggers. */
+    val ACK_GENERIC = Descriptor<Unit>(Codes.ACK_GENERIC, "generic ack")
+
+    /** 287 — verbose state dump (contains password + security answer base64). */
+    val STATE_DUMP = Descriptor<Unit>(Codes.STATE_DUMP, "state dump")
     /** Gimbal RTC millis. (inferred from protocol corpus; uses 544) */
     val SET_SYSTEM_TIME = Descriptor<Long>(Codes.SET_SETTLING_TIME, "set system time (corpus: uses 544)",
         payload = { "time:$it;" })
@@ -234,6 +278,8 @@ object CommandTable {
         BurstStep<OmsState>(824) { OmsState.fromFrame(it) },
         BurstStep<ExAxisState>(524) { ExAxisState.fromFrame(it) },
         BurstStep<Int>(543) { it.int("time") },
+        BurstStep<DeviceInfo>(780) { DeviceInfo.fromFrame(it) },
+        BurstStep<Temperature>(525) { Temperature.fromFrame(it) },
     )
 
     /**
@@ -330,6 +376,8 @@ object CommandTable {
             DITHER_GET, DITHER_SET, LIMITS_GET, LIMITS_SET, AUTO_LEVEL_GET_EN, AUTO_LEVEL_SET_EN, AUTO_LEVEL_TRIGGER,
             SETTLING_TIME_GET, SETTLING_TIME_SET,
             EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
+            DEVICE_INFO, GET_TEMPERATURE, CAM_INFO, SYS_FORMAT,
+            CAM_FOCUS, CAM_VIDEO, ACK_GENERIC, STATE_DUMP,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
             CAM_GET_EV, CAM_SET_EV,
             CAM_GET_FOCUS, CAM_SET_FOCUS,

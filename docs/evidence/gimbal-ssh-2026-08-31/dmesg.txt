@@ -1,0 +1,527 @@
+Booting Linux on physical CPU 0x0
+Linux version 4.9.37 (win@win) (gcc version 6.3.0 (HC&C V1R3C00SPC200B005_20190606) ) #59 SMP Wed Sep 4 12:29:11 CST 2024
+CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+CPU: div instructions available: patching division code
+CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+OF: fdt:Machine model: Hisilicon HI3559V200 DEMO Board
+cma zone is not set!
+cma: dma_contiguous_reserve(limit ffffffff)
+cma: dma_contiguous_reserve: reserving 16 MiB for global area
+cma: cma_declare_contiguous(size 0x01000000, base 0x00000000, limit 0xffffffff alignment 0x00000000)
+cma: Reserved 16 MiB at 0xdf000000
+Memory policy: Data cache writealloc
+On node 0 totalpages: 393216
+free_area_init_node: node 0, pgdat c0a2dcc0, node_mem_map ef3fa000
+  Normal zone: 1536 pages used for memmap
+  Normal zone: 0 pages reserved
+  Normal zone: 196608 pages, LIFO batch:31
+  HighMem zone: 196608 pages, LIFO batch:31
+percpu: Embedded 13 pages/cpu @ef3d2000 s22156 r8192 d22900 u53248
+pcpu-alloc: s22156 r8192 d22900 u53248 alloc=13*4096
+pcpu-alloc: [0] 0 [0] 1 
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 391680
+Kernel command line: mem=1536M quiet console=ttyAMA0,115200 clk_ignore_unused rw ubi.mtd=4 root=ubi0:ubifs rootfstype=ubifs mtdparts=hinand:512K(u-boot.bin),512K(factoryParam),1M(userParam),5M(uImage),40M(rootfs.ubifs),81M(appfs.ubifs)
+setenv bootcmd 
+PID hash table entries: 4096 (order: 2, 16384 bytes)
+Dentry cache hash table entries: 131072 (order: 7, 524288 bytes)
+Inode-cache hash table entries: 65536 (order: 6, 262144 bytes)
+Memory: 1533464K/1572864K available (6144K kernel code, 186K rwdata, 1424K rodata, 1024K init, 317K bss, 23016K reserved, 16384K cma-reserved, 770048K highmem)
+Virtual kernel memory layout:
+    vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+    vmalloc : 0xf0800000 - 0xff800000   ( 240 MB)
+    lowmem  : 0xc0000000 - 0xf0000000   ( 768 MB)
+    pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+    modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+      .text : 0xc0008000 - 0xc0700000   (7136 kB)
+      .init : 0xc0900000 - 0xc0a00000   (1024 kB)
+      .data : 0xc0a00000 - 0xc0a2e8e0   ( 187 kB)
+       .bss : 0xc0a30000 - 0xc0a7f4c8   ( 318 kB)
+SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+Hierarchical RCU implementation.
+	Build-time adjustment of leaf fanout to 32.
+NR_IRQS:16 nr_irqs:16 16
+Gic dist init...
+arm_arch_timer: Architected cp15 timer(s) running at 50.00MHz (phys).
+clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0xb8812736b, max_idle_ns: 440795202655 ns
+sched_clock: 56 bits at 50MHz, resolution 20ns, wraps every 4398046511100ns
+Switching to timer-based delay loop, resolution 20ns
+clocksource: hisp804: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 637086815595 ns
+Console: colour dummy device 80x30
+Calibrating delay loop (skipped), value calculated using timer frequency.. 100.00 BogoMIPS (lpj=500000)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 2048 (order: 1, 8192 bytes)
+Mountpoint-cache hash table entries: 2048 (order: 1, 8192 bytes)
+CPU: Testing write buffer coherency: ok
+CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+Setting up static identity map for 0x80100000 - 0x80100058
+CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+Brought up 2 CPUs
+SMP: Total of 2 processors activated (200.00 BogoMIPS).
+CPU: All CPU(s) started in SVC mode.
+devtmpfs: initialized
+VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+futex hash table entries: 512 (order: 3, 32768 bytes)
+pinctrl core: initialized pinctrl subsystem
+NET: Registered protocol family 16
+cma: cma_alloc(cma c0a5e6a4, count 64, align 6)
+cma: cma_alloc(): returned effda000
+DMA: preallocated 256 KiB pool for atomic coherent allocations
+Serial: AMBA PL011 UART driver
+120a0000.uart: ttyAMA0 at MMIO 0x120a0000 (irq = 21, base_baud = 0) is a PL011 rev2
+console [ttyAMA0] enabled
+120a1000.uart: ttyAMA1 at MMIO 0x120a1000 (irq = 22, base_baud = 0) is a PL011 rev2
+uart-pl011 120a2000.uart: aliased and non-aliased serial devices found in device tree. Serial port enumeration may be unpredictable.
+120a2000.uart: ttyAMA2 at MMIO 0x120a2000 (irq = 23, base_baud = 0) is a PL011 rev2
+uart-pl011 120a3000.uart: aliased and non-aliased serial devices found in device tree. Serial port enumeration may be unpredictable.
+120a3000.uart: ttyAMA3 at MMIO 0x120a3000 (irq = 24, base_baud = 0) is a PL011 rev2
+SCSI subsystem initialized
+ssp-pl022 120c0000.spi: ARM PL022 driver, device ID: 0x00800022
+ssp-pl022 120c0000.spi: mapped registers from 0x120c0000 to f0881000
+ssp-pl022 120c1000.spi: ARM PL022 driver, device ID: 0x00800022
+ssp-pl022 120c1000.spi: mapped registers from 0x120c1000 to f0885000
+ssp-pl022 120c2000.spi: ARM PL022 driver, device ID: 0x00800022
+ssp-pl022 120c2000.spi: mapped registers from 0x120c2000 to f0887000
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+Linux video capture interface: v2.00
+Bluetooth: Core ver 2.22
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: L2CAP socket layer initialized
+Bluetooth: SCO socket layer initialized
+clocksource: Switched to clocksource hisp804
+NET: Registered protocol family 2
+TCP established hash table entries: 8192 (order: 3, 32768 bytes)
+TCP bind hash table entries: 8192 (order: 4, 65536 bytes)
+TCP: Hash tables configured (established 8192 bind 8192)
+UDP hash table entries: 512 (order: 2, 16384 bytes)
+UDP-Lite hash table entries: 512 (order: 2, 16384 bytes)
+NET: Registered protocol family 1
+RPC: Registered named UNIX socket transport module.
+RPC: Registered udp transport module.
+RPC: Registered tcp transport module.
+RPC: Registered tcp NFSv4.1 backchannel transport module.
+workingset: timestamp_bits=30 max_order=19 bucket_order=0
+NFS: Registering the id_resolver key type
+Key type id_resolver registered
+Key type id_legacy registered
+jffs2: version 2.2 (NAND) (ZLIB) (RTIME) (c) 2001-2006 Red Hat, Inc.
+fuse init (API version 7.26)
+yaffs: yaffs Installing.
+bounce: pool size: 64 pages
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 252)
+io scheduler noop registered
+io scheduler deadline registered
+io scheduler cfq registered (default)
+pl061_gpio 120d0000.gpio_chip: PL061 GPIO chip @0x120d0000 registered
+pl061_gpio 120d1000.gpio_chip: PL061 GPIO chip @0x120d1000 registered
+pl061_gpio 120d2000.gpio_chip: PL061 GPIO chip @0x120d2000 registered
+pl061_gpio 120d3000.gpio_chip: PL061 GPIO chip @0x120d3000 registered
+pl061_gpio 120d4000.gpio_chip: PL061 GPIO chip @0x120d4000 registered
+pl061_gpio 120d5000.gpio_chip: PL061 GPIO chip @0x120d5000 registered
+pl061_gpio 120d6000.gpio_chip: PL061 GPIO chip @0x120d6000 registered
+pl061_gpio 120d7000.gpio_chip: PL061 GPIO chip @0x120d7000 registered
+pl061_gpio 120d8000.gpio_chip: PL061 GPIO chip @0x120d8000 registered
+pl061_gpio 120d9000.gpio_chip: PL061 GPIO chip @0x120d9000 registered
+pl061_gpio 120da000.gpio_chip: PL061 GPIO chip @0x120da000 registered
+pl061_gpio 120db000.gpio_chip: PL061 GPIO chip @0x120db000 registered
+brd: module loaded
+nbd: registered device at major 43
+cma: cma_alloc(cma c0a5e6a4, count 2, align 1)
+cma: cma_alloc(): returned effda800
+hisi-sfc hisi_spi_nor.0: SPI Nor ID Table Version 1.2
+hisi-sfc hisi_spi_nor.0: unrecognized Manufacturer ID
+hisi-sfc hisi_spi_nor.0: spi nor register fail!
+hisi-sfc: probe of hisi_spi_nor.0 failed with error -2
+SPI Nand ID Table Version 2.7
+SPI Nand(cs 0) ID: 0xef 0xaa 0x21
+nand: device found, Manufacturer ID: 0xef, Chip ID: 0xaa
+nand: Winbond W25N01GV
+nand: 128MiB, SLC, page size: 2048
+Nand(Auto): 
+OOB:64B 
+ECC:4bit/512 
+nand:  ECC provided by Flash Memory Controller
+6 cmdlinepart partitions found on MTD device hinand
+Creating 6 MTD partitions on "hinand":
+0x000000000000-0x000000080000 : "u-boot.bin"
+0x000000080000-0x000000100000 : "factoryParam"
+0x000000100000-0x000000200000 : "userParam"
+0x000000200000-0x000000700000 : "uImage"
+0x000000700000-0x000002f00000 : "rootfs.ubifs"
+0x000002f00000-0x000008000000 : "appfs.ubifs"
+PPP generic driver version 2.4.2
+PPP BSD Compression module registered
+PPP Deflate Compression module registered
+PPP MPPE Compression module registered
+NET: Registered protocol family 24
+usbcore: registered new interface driver r8152
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+ohci-platform: OHCI generic platform driver
+xhci-hcd 100e0000.xhci_0: xHCI Host Controller
+xhci-hcd 100e0000.xhci_0: new USB bus registered, assigned bus number 1
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda840
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda860
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda880
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda8a0
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda8c0
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda8e0
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda900
+xhci-hcd 100e0000.xhci_0: hcc params 0x0220fe6c hci version 0x110 quirks 0x20010010
+xhci-hcd 100e0000.xhci_0: irq 32, io mem 0x100e0000
+usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb1: Product: xHCI Host Controller
+usb usb1: Manufacturer: Linux 4.9.37 xhci-hcd
+usb usb1: SerialNumber: 100e0000.xhci_0
+hub 1-0:1.0: USB hub found
+hub 1-0:1.0: 1 port detected
+xhci-hcd 100e0000.xhci_0: xHCI Host Controller
+xhci-hcd 100e0000.xhci_0: new USB bus registered, assigned bus number 2
+usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+usb usb2: New USB device found, idVendor=1d6b, idProduct=0003
+usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb2: Product: xHCI Host Controller
+usb usb2: Manufacturer: Linux 4.9.37 xhci-hcd
+usb usb2: SerialNumber: 100e0000.xhci_0
+hub 2-0:1.0: USB hub found
+hub 2-0:1.0: hub can't support USB3.0
+usbcore: registered new interface driver uas
+usbcore: registered new interface driver usb-storage
+usbcore: registered new interface driver usbserial
+usbcore: registered new interface driver option
+usbserial: USB Serial support registered for GSM modem (1-port)
+hibvt_rtc 12080000.rtc: rtc core: registered 12080000.rtc as rtc0
+hibvt_rtc 12080000.rtc: RTC driver for hibvt enabled
+i2c /dev entries driver
+hibvt-i2c 120b0000.i2c: hibvt-i2c0@100000hz registered
+hibvt-i2c 120b1000.i2c: hibvt-i2c1@100000hz registered
+hibvt-i2c 120b2000.i2c: hibvt-i2c2@400000hz registered
+hibvt-i2c 120b3000.i2c: hibvt-i2c3@100000hz registered
+hibvt-i2c 120b4000.i2c: hibvt-i2c4@100000hz registered
+hibvt-i2c 120b5000.i2c: hibvt-i2c5@100000hz registered
+hibvt-i2c 120b6000.i2c: hibvt-i2c6@100000hz registered
+hibvt-i2c 120b7000.i2c: hibvt-i2c7@100000hz registered
+usbcore: registered new interface driver uvcvideo
+USB Video Class driver (1.1.1)
+Bluetooth: HCI UART driver ver 2.3
+Bluetooth: HCI UART protocol H4 registered
+Bluetooth: HCI UART protocol Three-wire (H5) registered
+himci: mmc host probe
+cma: cma_alloc(cma c0a5e6a4, count 8, align 3)
+cma: cma_alloc(): returned effdaa00
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda920
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda940
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda960
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda980
+himci: mmc host probe
+cma: cma_alloc(cma c0a5e6a4, count 8, align 3)
+cma: cma_alloc(): returned effdab00
+usb 1-1: new high-speed USB device number 2 using xhci-hcd
+scan edges:3 p2f:4 f2p:7
+mix set temp-phase 1
+scan elemnts: startp:92 endp:88
+Tuning SampleClock. mix set phase:[02/07] ele:[02/15] 
+select_sdio_host: bcm_sdio_host assigned. (eeeb3000)
+usbcore: registered new interface driver usbhid
+usbhid: USB HID core driver
+NET: Registered protocol family 17
+Bluetooth: RFCOMM TTY layer initialized
+Bluetooth: RFCOMM socket layer initialized
+Bluetooth: RFCOMM ver 1.11
+Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+Bluetooth: BNEP filters: protocol multicast
+Bluetooth: BNEP socket layer initialized
+Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+Bluetooth: HIDP socket layer initialized
+lib80211: common routines for IEEE802.11 drivers
+lib80211_crypt: registered algorithm 'NULL'
+Key type dns_resolver registered
+Registering SWP/SWPB emulation handler
+ubi0: attaching mtd4
+usb 1-1: New USB device found, idVendor=1a40, idProduct=0101
+usb 1-1: New USB device strings: Mfr=0, Product=1, SerialNumber=0
+usb 1-1: Product: USB2.0 HUB
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda9a0
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda9c0
+hub 1-1:1.0: USB hub found
+hub 1-1:1.0: 4 ports detected
+cma: cma_alloc(cma c0a5e6a4, count 1, align 0)
+cma: cma_alloc(): returned effda9e0
+mmc0: new ultra high speed SDR104 SDXC card at address aaaa
+mmcblk0: mmc0:aaaa SD128 119 GiB 
+ mmcblk0: p1
+ubi0: scanning is finished
+ubi0: attached mtd4 (name "rootfs.ubifs", size 40 MiB)
+ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+ubi0: good PEBs: 320, bad PEBs: 0, corrupted PEBs: 0
+ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+ubi0: max/mean erase counter: 6/1, WL threshold: 4096, image sequence number: 439943166
+ubi0: available PEBs: 0, total reserved PEBs: 320, PEBs reserved for bad PEB handling: 20
+ubi0: background thread "ubi_bgt0d" started, PID 102
+hibvt_rtc 12080000.rtc: setting system clock to 2026-08-31 10:57:30 UTC (1788173850)
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 1 at fs/sysfs/dir.c:31 sysfs_warn_dup+0x64/0x74
+sysfs: cannot create duplicate filename '/devices/platform/bcmdhd_wlan.1'
+Modules linked in:
+CPU: 1 PID: 1 Comm: swapper/0 Not tainted 4.9.37 #59
+Hardware name: Generic DT based system
+[<c010fdf8>] (unwind_backtrace) from [<c010bba0>] (show_stack+0x10/0x14)
+[<c010bba0>] (show_stack) from [<c039dcec>] (dump_stack+0x84/0x98)
+[<c039dcec>] (dump_stack) from [<c0118fcc>] (__warn+0xe8/0x100)
+[<c0118fcc>] (__warn) from [<c0119030>] (warn_slowpath_fmt+0x4c/0x78)
+[<c0119030>] (warn_slowpath_fmt) from [<c02495c4>] (sysfs_warn_dup+0x64/0x74)
+[<c02495c4>] (sysfs_warn_dup) from [<c02496a0>] (sysfs_create_dir_ns+0x84/0x94)
+[<c02496a0>] (sysfs_create_dir_ns) from [<c03a0684>] (kobject_add_internal+0xac/0x2fc)
+[<c03a0684>] (kobject_add_internal) from [<c03a0930>] (kobject_add+0x5c/0xc8)
+[<c03a0930>] (kobject_add) from [<c040a07c>] (device_add+0xe8/0x5a8)
+[<c040a07c>] (device_add) from [<c040e6d8>] (platform_device_add+0x10c/0x224)
+[<c040e6d8>] (platform_device_add) from [<c040f204>] (platform_add_devices+0x30/0x7c)
+[<c040f204>] (platform_add_devices) from [<c091a0ec>] (bcm_wlan_init+0x58/0x60)
+[<c091a0ec>] (bcm_wlan_init) from [<c0101820>] (do_one_initcall+0x58/0x19c)
+[<c0101820>] (do_one_initcall) from [<c0900df0>] (kernel_init_freeable+0x154/0x1e0)
+[<c0900df0>] (kernel_init_freeable) from [<c06cff2c>] (kernel_init+0x8/0x114)
+[<c06cff2c>] (kernel_init) from [<c0107a38>] (ret_from_fork+0x14/0x3c)
+---[ end trace 7af032dd3493c83c ]---
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 1 at lib/kobject.c:240 kobject_add_internal+0x284/0x2fc
+kobject_add_internal failed for bcmdhd_wlan.1 with -EEXIST, don't try to register things with the same name in the same directory.
+Modules linked in:
+CPU: 1 PID: 1 Comm: swapper/0 Tainted: G        W       4.9.37 #59
+Hardware name: Generic DT based system
+[<c010fdf8>] (unwind_backtrace) from [<c010bba0>] (show_stack+0x10/0x14)
+[<c010bba0>] (show_stack) from [<c039dcec>] (dump_stack+0x84/0x98)
+[<c039dcec>] (dump_stack) from [<c0118fcc>] (__warn+0xe8/0x100)
+[<c0118fcc>] (__warn) from [<c0119030>] (warn_slowpath_fmt+0x4c/0x78)
+[<c0119030>] (warn_slowpath_fmt) from [<c03a085c>] (kobject_add_internal+0x284/0x2fc)
+[<c03a085c>] (kobject_add_internal) from [<c03a0930>] (kobject_add+0x5c/0xc8)
+[<c03a0930>] (kobject_add) from [<c040a07c>] (device_add+0xe8/0x5a8)
+[<c040a07c>] (device_add) from [<c040e6d8>] (platform_device_add+0x10c/0x224)
+[<c040e6d8>] (platform_device_add) from [<c040f204>] (platform_add_devices+0x30/0x7c)
+[<c040f204>] (platform_add_devices) from [<c091a0ec>] (bcm_wlan_init+0x58/0x60)
+[<c091a0ec>] (bcm_wlan_init) from [<c0101820>] (do_one_initcall+0x58/0x19c)
+[<c0101820>] (do_one_initcall) from [<c0900df0>] (kernel_init_freeable+0x154/0x1e0)
+[<c0900df0>] (kernel_init_freeable) from [<c06cff2c>] (kernel_init+0x8/0x114)
+[<c06cff2c>] (kernel_init) from [<c0107a38>] (ret_from_fork+0x14/0x3c)
+---[ end trace 7af032dd3493c83d ]---
+clk: Not disabling unused clocks
+UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 103
+UBIFS (ubi0:0): recovery needed
+UBIFS (ubi0:0): recovery completed
+UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "ubifs"
+UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+UBIFS (ubi0:0): FS size: 36315136 bytes (34 MiB, 286 LEBs), journal size 5586944 bytes (5 MiB, 44 LEBs)
+UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+UBIFS (ubi0:0): media format: w4/r0 (latest is w4/r0), UUID C79DF642-A659-40F4-BAA1-AF5BBB82601B, small LPT model
+VFS: Mounted root (ubifs filesystem) on device 0:12.
+devtmpfs: mounted
+Freeing unused kernel memory: 1024K (c0900000 - c0a00000)
+ubi1: attaching mtd5
+ubi1: scanning is finished
+ubi1: attached mtd5 (name "appfs.ubifs", size 81 MiB)
+ubi1: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+ubi1: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+ubi1: VID header offset: 2048 (aligned 2048), data offset: 4096
+ubi1: good PEBs: 648, bad PEBs: 0, corrupted PEBs: 0
+ubi1: user volume: 1, internal volumes: 1, max. volumes count: 128
+ubi1: max/mean erase counter: 8/1, WL threshold: 4096, image sequence number: 958962934
+ubi1: available PEBs: 0, total reserved PEBs: 648, PEBs reserved for bad PEB handling: 20
+ubi1: background thread "ubi_bgt1d" started, PID 122
+UBIFS (ubi1:0): background thread "ubifs_bgt1_0" started, PID 126
+UBIFS (ubi1:0): recovery needed
+UBIFS (ubi1:0): recovery completed
+UBIFS (ubi1:0): UBIFS: mounted UBI device 1, volume 0, name "ubifs"
+UBIFS (ubi1:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+UBIFS (ubi1:0): FS size: 77836288 bytes (74 MiB, 613 LEBs), journal size 9023488 bytes (8 MiB, 72 LEBs)
+UBIFS (ubi1:0): reserved for root: 0 bytes (0 KiB)
+UBIFS (ubi1:0): media format: w4/r0 (latest is w4/r0), UUID 1D77DDFC-F23D-47E5-8FCB-1D49F970E723, small LPT model
+hi_osal: loading out-of-tree module taints kernel.
+Module himedia: init ok
+Hisilicon Media Memory Zone Manager
+hi_osal 1.0 init success!
+
+==== vi_bt1120_mode_mux.
+
+==========chip: hi3559v200==========
+
+==========sensor0: imx327==========
+
+==========sensor1: NULL==========
+FUNC:parse_sensor_clock line:226  SNS:[NULL] is not supported !
+FUNC:parse_sensor_bus_type line:182  SNS:[NULL] is not supported !
+hi3559v200_base: module license 'Proprietary' taints kernel.
+Disabling lock debugging due to kernel taint
+load sys.ko for Hi3559V200...OK!
+load tde.ko for Hi3559V200...OK!
+load region.ko for Hi3559V200...OK!
+load gdc.ko for Hi3559V200...OK!
+load vgs.ko for Hi3559V200...OK!
+load dis.ko for Hi3559V200...OK!
+load vi.ko for Hi3559V200...OK !
+load isp.ko for Hi3559V200...OK !
+load vpss.ko for Hi3559V200...OK!
+load hifb.ko OK!
+load chnl.ko for Hi3559V200...OK!
+load vedu.ko for Hi3559V200...OK!
+load rc.ko for Hi3559V200...OK!
+load venc.ko for Hi3559V200...OK!
+load h264e.ko for Hi3559V200...OK!
+load h265e.ko for Hi3559V200...OK!
+load jpege.ko for Hi3559V200...OK!
+load jpegd.ko for Hi3559V200...OK!
+load vfmw.ko ....OK!
+load vdec.ko for Hi3559V200...OK!
+load ive.ko for Hi3559V200...OK!
+load nnie.ko for Hi3559V200...OK!
+load mipi_rx driver successful!
+dhd_module_init in
+found wifi platform device bcmdhd_wlan
+Power-up adapter 'DHD generic adapter'
+wifi_platform_set_power = 1
+random: sshd: uninitialized urandom read (32 bytes read)
+wifi_platform_bus_enumerate device present 1
+bcm_detect_card: (eeeb3000), call 
+mmc1: queuing unknown CIS tuple 0x80 (2 bytes)
+mmc1: queuing unknown CIS tuple 0x80 (3 bytes)
+mmc1: queuing unknown CIS tuple 0x80 (3 bytes)
+mmc1: queuing unknown CIS tuple 0x80 (7 bytes)
+mmc1: queuing unknown CIS tuple 0x81 (1 bytes)
+scan edges:3 p2f:3 f2p:6
+mix set temp-phase 0
+himci: card disconnected!
+scan elemnts: startp:82 endp:73
+Tuning SampleClock. mix set phase:[01/07] ele:[02/15] 
+mmc0: card aaaa removed
+mmc1: new ultra high speed SDR104 SDIO card at address 0001
+F1 signature read @0x18000000=0x15264345
+F1 signature OK, socitype:0x1 chip:0x4345 rev:0x6 pkg:0x2
+DHD: dongle ram size is set to 819200(orig 819200) at 0x198000
+wifi_platform_prealloc: failed to alloc static mem section 7
+CFG80211-ERROR) wl_setup_wiphy : 
+Registering Vendor80211
+wl_create_event_handler(): thread:wl_event_handler:143 started
+dhd_attach(): thread:dhd_watchdog_thread:145 started
+CFG80211-ERROR) wl_event_handler : 
+tsk Enter, tsk = 0xee3a1514
+dhd_attach(): thread:dhd_dpc:146 started
+dhd_attach(): thread:dhd_rxf:147 started
+dhd_deferred_work_init: work queue initialized 
+random: fast init done
+dhdsdio_write_vars: Download, Upload and compare of NVRAM succeeded.
+dhd_bus_init: enable 0x06, ready 0x06 (waited 0us)
+Disable tdls_auto_op failed. -1
+Firmware up: op_mode=0x0005, MAC=48:e7:da:d4:b5:73
+dhd_preinit_ioctls: country code setting failed
+dhd_preinit_ioctls Set txbf failed  -23
+dhd_preinit_ioctls pspretend_threshold for HostAPD failed  -23
+Firmware version = wl0: Mar 22 2019 00:03:25 version 7.45.100.18 (r709126 CY) FWID 01-a562d688
+dhd_wlfc_hostreorder_init(): successful bdcv2 tlv signaling, 64
+MACEVENT: WLC_E_IF 54, MAC 48:e7:da:d4:b5:73, status 0, reason 0, auth 0
+dhd_rtt_init : FTM is supported
+Dongle Host Driver, version 1.363.125.19 (r)
+Compiled in drivers/net/wireless/bcmdhd on May 13 2021 at 12:11:45
+Register interface [wlan0]  MAC: 48:e7:da:d4:b5:73
+
+dhd_module_init out
+MACEVENT: WLC_E_IF 54, MAC 48:e7:da:d4:b5:73, status 0, reason 0, auth 0
+MACEVENT: WLC_E_IF 54, MAC 48:e7:da:d4:b5:73, status 0, reason 0, auth 0
+wl_create_event_handler(): thread:wl_event_handler:14f started
+CFG80211-ERROR) wl_event_handler : 
+tsk Enter, tsk = 0xee3a1514
+CFG80211-ERROR) wl_cfg80211_del_station : 
+Disconnect STA : ff:ff:ff:ff:ff:ff scb_val.val 3
+CFG80211-ERROR) wl_cfg80211_set_channel : 
+netdev_ifidx(2), chan_type(1) target channel(9) 
+CFG80211-ERROR) wl_cfg80211_parse_ies : 
+No WPSIE in beacon 
+CFG80211-ERROR) wl_cfg80211_parse_ies : 
+No WPSIE in beacon 
+MACEVENT: WLC_E_IF 54, MAC 48:e7:da:d4:b5:73, status 0, reason 0, auth 0
+wl_process_host_event: Link event 16, flags 1, status 0
+MACEVENT: WLC_E_LINK UP
+wl_process_host_event: Link event 5, flags 0, status 0
+MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+dhd_rx_frame: Got BRCM event packet in a chained packet.
+wl_process_host_event: Link event 5, flags 0, status 0
+MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+dhd_rx_frame: Got BRCM event packet in a chained packet.
+wl_process_host_event: Link event 5, flags 0, status 0
+MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DEAUTH(5) status 0 reason 7
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DEAUTH(5) status 0 reason 7
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DEAUTH(5) status 0 reason 7
+wl_process_host_event: Link event 5, flags 0, status 0
+MACEVENT: WLC_E_DEAUTH, MAC a6:cf:f9:ea:ea:49
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DEAUTH(5) status 0 reason 7
+MACEVENT: WLC_E_AUTH_IND, MAC a6:cf:f9:ea:ea:49, Open System
+MACEVENT: WLC_E_REASSOC_IND, MAC a6:cf:f9:ea:ea:49
+CFG80211-ERROR) wl_cfg80211_change_station : 
+WLC_SCB_AUTHORIZE sta_flags_mask not set 
+hibvt-i2c 120b2000.i2c: wait idle abort!, RIS: 0x611
+himci: card connected!
+scan edges:3 p2f:4 f2p:7
+mix set temp-phase 1
+scan elemnts: startp:84 endp:83
+Tuning SampleClock. mix set phase:[01/07] ele:[13/14] 
+mmc0: new ultra high speed SDR104 SDXC card at address aaaa
+mmcblk0: mmc0:aaaa SD128 119 GiB 
+ mmcblk0: p1
+FAT-fs (mmcblk0p1): Volume was not properly unmounted. Some data may be corrupt. Please run fsck.
+MACEVENT: WLC_E_AUTH_IND, MAC 4c:23:38:c8:7b:6f, Open System
+MACEVENT: WLC_E_ASSOC_IND, MAC 4c:23:38:c8:7b:6f
+CFG80211-ERROR) wl_cfg80211_change_station : 
+WLC_SCB_AUTHORIZE sta_flags_mask not set 
+DHCP - REQUEST [RX] [REQUEST]
+DHCP - NAK [TX] [REPLY]
+DHCP - DISCOVER [RX] [REQUEST]
+DHCP - OFFER [TX] [REPLY]
+DHCP - REQUEST [RX] [REQUEST]
+DHCP - ACK [TX] [REPLY]
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!

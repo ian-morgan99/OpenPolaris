@@ -560,11 +560,13 @@ class AppViewModel(
             }
         }
         // Limits (541) is UNVERIFIED on real mount — only refresh when the
-        // user has explicitly opened the helpers pane by enabling
-        // advancedAstro. The wire format is a best-effort guess.
-        runCatching {
-            val r = s.request<Int>(Codes.GET_LIMIT_STATE) { it.int("state") }
-            if (r is MountSession.CmdResult.Ok) limitsEnabled = r.value?.let { it != 0 }
+        // user has explicitly enabled the limitsWrite flag. Verified
+        // advancedAstro (dither/settling) does NOT implicitly enable limits.
+        if (FeatureFlags.isEnabled("limitsWrite")) {
+            runCatching {
+                val r = s.request<Int>(Codes.GET_LIMIT_STATE) { it.int("state") }
+                if (r is MountSession.CmdResult.Ok) limitsEnabled = r.value?.let { it != 0 }
+            }
         }
     }
 
@@ -576,9 +578,9 @@ class AppViewModel(
         statusMessage = "Dither ${if (on) "on" else "off"}"
     }
 
-    /** UNVERIFIED on real mount. */
+    /** UNVERIFIED on real mount. Gated by [FeatureFlags.limitsWrite]. */
     fun setLimits(on: Boolean) = scope.launch {
-        if (!FeatureFlags.isEnabled("advancedAstro")) { statusMessage = "Helpers disabled by config"; return@launch }
+        if (!FeatureFlags.isEnabled("limitsWrite")) { statusMessage = "Limits write disabled — enable limitsWrite in config"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.SET_LIMIT_STATE, "state:${if (on) 1 else 0};")
         limitsEnabled = on
@@ -683,12 +685,14 @@ class AppViewModel(
     }
 
     fun disconnectWifi() = scope.launch {
+        if (!FeatureFlags.isEnabled("wifiConnect")) { statusMessage = "WiFi write disabled — enable wifiConnect in config"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.WIFI_DISCONNECT)
         statusMessage = "WiFi disconnect sent"
     }
 
     fun setWifiBand(band: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("wifiConnect")) { statusMessage = "WiFi write disabled — enable wifiConnect in config"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.SET_WIFI_BAND, "band:$band;")
         statusMessage = "WiFi band set to $band"
@@ -697,18 +701,21 @@ class AppViewModel(
     // ---- system (time, timezone, language, buzzer, LED, reboot, shutdown) -
 
     fun setSystemTime(epochSeconds: Long) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.SYS_TIME, "time:$epochSeconds;")
         statusMessage = "System time set"
     }
 
     fun setTimezone(tz: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.SYS_TIMEZONE, "tz:$tz;")
         statusMessage = "Timezone $tz sent"
     }
 
     fun setLanguage(lang: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
         val s = session ?: return@launch
         s.send(Codes.SYS_LANGUAGE, "lang:$lang;")
         statusMessage = "Language $lang sent"

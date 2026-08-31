@@ -36,6 +36,8 @@ object Codes {
     const val PUSH_MODE_STATE = 284
     const val GET_GIMBAL_POS = 517
     const val PUSH_ROTATE_VECTOR = 518
+    /** Live-captured (2026-08-30, gimbal 192.168.0.1): `Tempa<hex16>` — IMU/temp read. */
+    const val GET_TEMPERATURE = 525
 
     // ---- gimbal motion control ----------------------------------------------
     const val GIMBAL_HADJ_SPEED = 513
@@ -50,6 +52,25 @@ object Codes {
 
     const val POS_RESET = 523
     const val EX_AXIS_STA = 524
+    /** Live-captured generic ack: `520@ret:0;#` — used by AHRS on/off and 548 (auto-level en set). */
+    const val ACK_GENERIC = 520
+
+    // ---- device info (live-captured, code 780) ------------------------------
+    /** Live-captured push: `780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#`. The 287
+     *  state-dump also includes the same fields. */
+    const val DEVICE_INFO = 780
+    /** Live-captured state-dump (subtype 2) — base64 fields inside decode to gimbal
+     *  password `MTIzNA==` = "1234" and security answer `Q2hyaXN0b3BoZXI=` = "Christopher"
+     *  with `securityQ:3`. May batch with other state frames on the same socket. */
+    const val STATE_DUMP = 287
+    /** Live-captured system format: `282@format:N;#`. */
+    const val SYS_FORMAT = 282
+    /** Live-captured camera info: `286@manufacturer:...;model:...;state:N;storage:N;photoFormat:N;#`. */
+    const val CAM_INFO = 286
+    /** Live-captured focus adjust: `311@ret:-1;#` (or ret:0 on success). */
+    const val CAM_FOCUS = 311
+    /** Live-captured video record: `527@ret:0;#`. */
+    const val CAM_VIDEO = 527
 
     // ---- calibration / star-alignment ---------------------------------------
     const val CALIBRATE_START = 530

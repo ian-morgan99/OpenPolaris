@@ -1,0 +1,28 @@
+total 64
+drwxr-x---    6 1000     1000          1288 Jan 11  2022 .
+drwxr-x--x   24 1000     1000          1848 Aug 27 16:37 ..
+-rwxr-x---    1 1000     1000            30 Jun 27  2019 fs-version
+-rwxr-x---    1 1000     1000           144 Jun 27  2019 fstab
+-rwxr-x---    1 1000     1000          1150 Jul 23  2020 fw_env.config
+-rwxr-x---    1 1000     1000            20 Jun 27  2019 group
+drwxr-x---    2 1000     1000           424 May  9  2025 init.d
+-rwxr-x---    1 1000     1000          3399 Jun 27  2019 inittab
+drwxr-x---    4 1000     1000           440 Jan 11  2022 lighttpd
+-rwxr-x---    1 1000     1000           120 Jun 27  2019 mtab
+-rwxr-x---    1 1000     1000           117 Aug 24  2020 passwd
+-rwxr-x---    1 1000     1000           157 Jun 27  2019 passwd-
+drwxr-x---    3 1000     1000           288 Jan 11  2022 ppp
+-rwxr-x---    1 1000     1000           931 Jul 10  2020 profile
+-rwxr-x---    1 1000     1000          2478 Jun 27  2019 protocols
+-rwxr-x---    1 1000     1000         15958 Jun 27  2019 services
+-rwxr-x---    1 1000     1000           129 Apr  2  2020 shadow
+-rwxr-x---    1 1000     1000           129 Apr  2  2020 shadow-
+drwxr-x---    3 1000     1000           448 Mar 29  2018 udev
+
+total 16
+drwxr-x---    2 1000     1000           424 May  9  2025 .
+drwxr-x---    6 1000     1000          1288 Jan 11  2022 ..
+-rwxr-x---    1 1000     1000           262 Apr  9  2021 S00devs
+-rwxr-x---    1 1000     1000           111 Apr  9  2021 S10mpp
+-rwxr-x---    1 1000     1000           828 Dec 27  2007 S80network
+-rwxr-x---    1 1000     1000           274 Apr  9  2021 rcS

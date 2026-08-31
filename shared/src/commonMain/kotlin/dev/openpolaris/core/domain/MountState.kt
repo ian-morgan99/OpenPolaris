@@ -323,3 +323,99 @@ data class CameraInfo(
     }
 }
 
+// ---------------------------------------------------------------------
+// Live-captured state (2026-08-30, gimbal at 192.168.0.1).
+// VERIFIED wire formats — see PROTOCOL.md §3.2 and live-capture notes.
+// ---------------------------------------------------------------------
+
+/**
+ * 780 — device info push. Live-captured frame:
+ * `780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#`
+ *
+ * `exAxis` and `ov` (override?) are sometimes empty when no accessory is fitted.
+ * `sv` is the API/server version (integer). `hw` and `sw` are the canonical
+ * hardware/software revision strings — they're what the app displays in
+ * "About" / firmware screens.
+ */
+data class DeviceInfo(
+    val hardware: String? = null,
+    val software: String? = null,
+    val exAxis: String? = null,
+    val serverVersion: Int? = null,
+    val override: String? = null,
+) {
+    companion object {
+        fun fromFrame(f: ResponseParser.Frame): DeviceInfo? {
+            val hw = f["hw"]
+            val sw = f["sw"]
+            val sv = f.int("sv")
+            if (hw == null && sw == null && sv == null) return null
+            return DeviceInfo(
+                hardware = hw,
+                software = sw,
+                exAxis = f["exAxis"],
+                serverVersion = sv,
+                override = f["ov"],
+            )
+        }
+    }
+}
+
+/**
+ * 525 — temperature / IMU read. Live-captured frame:
+ * `525@Tempa509ca361e0000275a ;#`
+ *
+ * The 16-hex-digit field is a hex-encoded payload (likely 8 bytes of fixed-point
+ * temperature data) — decoding the magnitude/format is TODO. The trailing
+ * space before the `#` is verbatim on the wire.
+ */
+data class Temperature(val rawHex: String) {
+    companion object {
+        fun fromFrame(f: ResponseParser.Frame): Temperature? {
+            // Wire format is `Tempa<hex>` as a single token (no `:`), so it
+            // doesn't land in the field map. Recover it from the raw payload
+            // by stripping the `Tempa` prefix and trimming.
+            val raw = f.raw ?: return null
+            val idx = raw.indexOf("Tempa")
+            if (idx < 0) return null
+            val hex = raw.substring(idx + "Tempa".length).trimEnd(';').trim()
+            if (hex.isEmpty()) return null
+            return Temperature(hex)
+        }
+    }
+}
+
+/**
+ * 286 — camera info. Live-captured frame (no camera attached):
+ * `286@manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;#`
+ *
+ * `state:-5` indicates "no camera attached" — a useful sentinel for the UI to
+ * disable capture-only controls. When a camera IS attached, `manufacturer` /
+ * `model` are non-empty strings and `state` is the camera's power/ready state.
+ */
+data class CameraAttachment(
+    val manufacturer: String? = null,
+    val model: String? = null,
+    val state: Int? = null,
+    val storageMb: Int? = null,
+    val photoFormat: Int? = null,
+) {
+    /** Convenience: no camera fitted. */
+    val isAttached: Boolean get() = (state ?: -1) >= 0 && manufacturer != "none"
+
+    companion object {
+        fun fromFrame(f: ResponseParser.Frame): CameraAttachment? {
+            val m = f["manufacturer"]
+            val model = f["model"]
+            if (m == null && model == null) return null
+            return CameraAttachment(
+                manufacturer = m,
+                model = model,
+                state = f.int("state"),
+                storageMb = f.int("storage"),
+                photoFormat = f.int("photoFormat"),
+            )
+        }
+    }
+}
+

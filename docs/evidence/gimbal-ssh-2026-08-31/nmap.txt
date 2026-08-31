@@ -1,0 +1,7 @@
+Host is up (0.10s latency).
+Not shown: 64825 filtered tcp ports (no-response), 707 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+8080/tcp open  http-proxy
+

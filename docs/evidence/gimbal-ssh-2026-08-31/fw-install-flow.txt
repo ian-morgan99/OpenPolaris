@@ -1,0 +1,227 @@
+================================================================================
+Benro Polaris — Firmware install flow (SD card based)
+Captured 2026-08-31 over SSH (root@192.168.0.1, no password)
+================================================================================
+
+THE QUESTION
+------------
+User built custom firmware that should have included a working camera
+driver (PTP/MSC). After install attempts, the on-device FwVer is still
+4.0.0.32 (2025-05-09) — the factory build. Why didn't the new firmware
+install?
+
+THE ANSWER (one line)
+---------------------
+The installer DID run, but the firmware package failed its integrity
+check, and the installer's own cleanup path wiped the SD card. New
+firmware was never written to NAND.
+
+THE EVIDENCE
+============
+
+1. Firmware version (unchanged)
+-------------------------------
+$ cat /app/FwVer
+FwVer:4.0.0.32;date:2025.05.09;
+
+$ stat /app/bin/pgphoto       ; size 7801576 ; 2025-05-08
+$ stat /app/bin/polestar_app  ; size 24941228 ; 2025-05-09
+$ stat /app/bin/gphoto2       ; 2021-04-24
+
+All binary timestamps match the FwVer date — the OLD firmware is still
+running. None of our new build is on the device.
+
+2. The upgrade medium is the SD card
+------------------------------------
+$ cat /proc/mounts | grep sd
+/dev/mmcblk0p1 /app/sd vfat rw,relatime,fmask=0022,dmask=0022,
+  codepage=437,iocharset=iso8859-1,shortname=mixed,errors=continue 0 0
+
+The bootapp (the launcher) doesn't touch network firmware. The upgrade
+state machine in polestar_app only fires when /app/sd/FwPkt.zip (or
+/app/sd/ExDevFwPkt.zip, or /app/sd/OmsPkt/) appears.
+
+3. The upgrade script
+---------------------
+/app/getFwInfo.sh expects:
+
+  /app/sd/FwPkt/camera/config
+  /app/sd/FwPkt/camera/uImage
+  /app/sd/FwPkt/camera/rootfs.ubifs
+  /app/sd/FwPkt/camera/appfs.ubifs
+  /app/sd/FwPkt/gimbal/polaris403_*.bin
+  /app/sd/FwPkt/gimbal/polaris413_*.bin
+
+It md5-sums each and writes /app/sd/FwPkt/crcInfo, which polestar_app
+reads back to verify integrity.
+
+4. The state machine in polestar_app
+------------------------------------
+strings /app/bin/polestar_app | grep -E 'FwPkt|FwVer|UPGRADE|crc|md5|format|remove' | head -50
+
+Key lines:
+  [0;35mEXDEV_UPGRADE_STA_SEND_START
+  [0;35mEXDEV_UPGRADE_STA_WAIT_START_RESPONSE
+  [0;35mEXDEV_UPGRADE_STA_WAIT_SEND_DATA
+  [0;35mEXDEV_UPGRADE_STA_SEND_STOP
+  [0;35mEXDEV_UPGRADE_STA_SEND_FAIL
+  [0;35mEXDEV_UPGRADE_STA_WAIT_FAIL_RESPONSE
+  SP_EVENT_UPGRADE_FAIL
+  SP_EVENT_UPGRADE_SUCCESS
+  OMS_UPGRADE_STA_LOAD_FW
+  OMS_UPGRADE_STA_CHECK_FW PASS
+  [0;32;31mOMS_UPGRADE_STA_CHECK_FW FAIL
+  OMS_UPGRADE_STA_SEND_DATA_FINISH
+  OMS_UPGRADE_STA_SEND_CANCLE
+  OMS_UPGRADE_STA_FAIL
+  OMS_UPGRADE_STA_SUCCESS
+  OMS_UPGRADE_STA_END
+  /app/sd/OmsPkt/crcInfo
+  fopen crcInfo failed!
+  oms MD5:
+  /app/sd/FwPkt/crcInfo
+  fopen crcInfo failed!
+  config MD5:
+  uImage MD5:
+  rootfs MD5:
+  appfs MD5:
+  polaris403 MD5:
+  polaris413 MD5:
+  crc[%d] != %d;
+  rm -r /app/sd/FwPkt
+  rm -r /app/sd/FwPkt.zip
+  rm -r /app/sd/ExDevFwPkt
+  rm -r /app/sd/ExDevFwPkt.zip
+  Check ExDevFwPkt.zip
+  /app/sd/ExDevFwPkt/
+  unzip /app/sd/FwPkt.zip -d /app/sd/
+  unzip /app/sd/ExDevFwPkt.zip -d /app/sd/
+  NO FwPkt.zip
+  [1;33mremove /app/sd/FwPkt
+
+The progression is:
+  detect FwPkt.zip -> rm old dir -> unzip -> compute MD5 -> read
+  crcInfo -> compare -> if PASS write to NAND + reboot, if FAIL delete
+  FwPkt and abort.
+
+5. SD card after the failed install
+-----------------------------------
+$ ls /app/sd/FwPkt 2>/dev/null
+[empty]
+$ ls /app/sd/ExDevFwPkt 2>/dev/null
+[empty]
+$ ls /app/sd/OmsPkt 2>/dev/null
+[empty]
+$ ls /app/sd
+HDR  Lapse  focusStack  normal  panorama  starskyStack  sun  system
+
+$ SP_GetSdInfo from Mlog_000002.log:
+  u64TotalSize:121866;u64FreeSize:121866;u64UsedSize:0
+$ stat /dev/mmcblk0p1  -> 128 MB vfat, empty
+
+Card was wiped, not auto-formatted. matches the clean-up-on-failure
+path in the strings.
+
+6. Boot log shows the SD removal happened at boot
+-------------------------------------------------
+Mlog_000002.log (this boot, 10:57):
+
+  [10:57:32:106 INFO-Init]:main[94]:FwVer v4.0.0.32 20250509
+  [10:57:32:258 INFO-]:SP_GetFwVer[293]:FwVer[4.0.0.32];
+  [10:57:32:340 INFO-]:SP_NetInit[217]:INIT WEB SERVER OK
+  [10:57:32:372 INFO-]:NetlinkUeventTask[65]:info:remove@.../mmcblk0/mmcblk0p1
+  [10:57:32:373 INFO-]:NetlinkUeventTask[65]:info:remove@.../mmcblk0
+  umount: can't unmount /app/sd: Invalid argument
+
+The card was already missing at boot — the user pulled it after the
+failed install. FwVer reads as 4.0.0.32 because the write to NAND never
+happened.
+
+7. The CRC/MD5 path
+-------------------
+Both /app/sd/FwPkt/crcInfo and /app/sd/OmsPkt/crcInfo have a
+"fopen crcInfo failed!" branch — which is also what the firmware ships
+if no package is present. The state machine then doesn't fire.
+
+But the binary was clearly being called with the FwPkt path (strings
+include s_stExdevUpgrade.fwFileName and s_stExdevUpgrade.version), so
+this was a real install attempt, not a probe.
+
+WHY THE INSTALL FAILED
+======================
+Most likely causes, in order of probability:
+
+A. Wrong CRC pre-computed in the package
+   - getFwInfo.sh runs on the host PC to make crcInfo. If the host
+     image and the device image don't match exactly (e.g. different
+     u-boot header, different salt), MD5 mismatches.
+   - The script expects a literal FwPkt/ tree with file names
+     case-exact. A zip with a parent dir like polaris_pkg/ instead of
+     FwPkt/ will fail silently.
+
+B. Wrong hardware revision
+   - SP_GetFactoryParam from Mlog_000002.log:
+       hw:1.1;date:2021.11.29;pcb:1.20;modif:usb
+   - The modif=usb flag means the device was factory-modified for
+     USB use. Some firmware packages are pinned to a specific hw/pcb
+     pair and refuse to flash outside it.
+   - The "uImage" inside FwPkt/camera/ must be built for this exact
+     board; otherwise the kernel will fail its own post-flash check.
+
+C. SD card format issue
+   - The card is vfat with codepage=437 shortname=mixed. If the
+     firmware package is too large or the card is exFAT, the unzip
+     step writes nothing.
+   - The "errors=continue" mount option means the kernel tolerates
+     filesystem errors silently — so a corrupt FAT might be why MD5
+     mismatch occurs (crcInfo reads a partial file).
+
+D. Permission/UID mismatch
+   - /app/sd is mounted with fmask=0022, dmask=0022 — readable by all,
+     writable only by root. But the FwPkt subdirectory may be created
+     with 0755 owned by the user that ran unzip. If polestar_app runs
+     as user 1000 (it does, from stat: Uid 1000 UNKNOWN), it CAN
+     read the files, but might fail to write to /app/sd/ExDevFwPkt
+     during its second unzip.
+
+NEXT STEPS
+==========
+User has 10 candidate FwPkt.zip packages to test.
+
+For each candidate:
+  1. Stop polestar_app:
+       pkill polestar_app
+     This stops the auto-cleanup race.
+  2. scp the zip to the gimbal:
+       scp <local-zip> root@192.168.0.1:/app/sd/FwPkt.zip
+  3. Snapshot what's on the card:
+       ls -la /app/sd/
+       md5sum /app/sd/FwPkt.zip
+  4. Start polestar_app again so the upgrade state machine runs:
+       cd /app/bin && nohup ./polestar_app >> /app/Mlog.txt &
+  5. Tail logs in another window:
+       tail -f /app/Mlog.txt
+     Look for:
+       OMS_UPGRADE_STA_CHECK_FW PASS/FAIL
+       crc[%d] != %d
+       SP_EVENT_UPGRADE_SUCCESS / FAIL
+       EXDEV_UPGRADE_STA_*
+  6. If SUCCESS — wait for the auto-reboot. After reboot, verify:
+       cat /app/FwVer       (should change)
+       stat /app/bin/pgphoto (should change)
+  7. If FAIL — capture the first FAIL log line, save the SD card
+     contents for offline analysis, try next package.
+
+SAFETY
+------
+- The first 5 packages should be treated as the "safe" ones (closer
+  to the factory revision). Save the most-aggressive rebuild for
+  last.
+- The appfs.ubifs is what overwrites /app. A bad one can brick the
+  userland. Keep a serial console / SSH fallback ready — if SSH goes
+  away after the appfs write, only the recovery UART can save it.
+- Each FwPkt.zip should fit in the 121 MB free SD space. If not, copy
+  the contents directly via /app/sd/FwPkt/ instead.
+
+END OF REPORT
+================================================================================

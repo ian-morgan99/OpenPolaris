@@ -1,0 +1,14 @@
+total 0
+drwxr-x---    5 1000     1000           352 Aug 31 10:57 .
+drwxr-x--x   24 1000     1000          1848 Aug 27 16:37 ..
+drwxr-xr-x    2 root     root           160 Aug 31 10:57 empty
+drwxr-x---    2 1000     1000           232 May 28  2022 lock
+drwxr-x---    2 1000     1000           368 Aug 31 10:55 run
+
+/var/run/:
+total 12
+drwxr-x---    2 1000     1000           368 Aug 31 10:55 .
+drwxr-x---    5 1000     1000           352 Aug 31 10:57 ..
+-rw-r--r--    1 root     root             4 Aug 31 10:57 sshd.pid
+-rw-r--r--    1 root     root             4 Aug 31 10:57 udhcpd.pid
+-rwxr-x---    1 1000     1000           384 Aug 31 10:57 utmp

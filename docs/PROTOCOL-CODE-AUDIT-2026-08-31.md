@@ -350,8 +350,12 @@ updating the audit doc.
 
 The audit doc is the rollback plan:
 1. `git revert <commit>` — no behaviour lost because none was added.
-2. Re-run `./tools/wake-and-probe.sh` — the live trace should be identical
-   to the pre-PR trace (modulo the PR's intentional changes).
+2. Re-run `./docs/evidence/gimbal-ssh-2026-08-31/wake-and-probe.sh` — the
+   live trace should be identical to the pre-PR trace (modulo the PR's
+   intentional changes). For a post-firmware-update device, also run
+   `./docs/evidence/gimbal-ssh-2026-08-31/post-fw-update-probe.sh` (or
+   `POST_UPDATE=1 ./docs/evidence/gimbal-ssh-2026-08-31/wake-and-probe.sh`
+   to chain).
 3. If the live trace diverges, the PR is wrong, not the gimbal. Reopen the
    audit doc and either amend the decompile reading or capture more data.
 

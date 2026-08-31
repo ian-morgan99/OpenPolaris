@@ -19,6 +19,16 @@
 # Run AFTER the user has hard-rebooted the gimbal and confirmed the
 # gimbal is showing blue (idle-wake LED state).
 #
+# If the gimbal is alive AFTER a firmware update completed, you probably
+# want post-fw-update-probe.sh instead — it captures the post-update state
+# (FwVer diff vs baseline, /app/sd/FwPkt/ extracted dir, upgrade-marker
+# Mlog tail, port 9090 listener, one-shot 9090 probe) rather than the
+# generic first-look. wake-and-probe.sh is still useful on a post-update
+# device for the BT wake + AP/SSH connect stages, but its evidence
+# capture (stage 5) is tuned for the pre-upgrade state and will not show
+# the FwVer change. Set POST_UPDATE=1 to chain into the companion script
+# after SSH is up.
+#
 # Polaris BT MAC: 48:E7:DA:D4:B5:72  (WiFi MAC is ...73, BT is ...72)
 
 set -u
@@ -151,3 +161,20 @@ fi
 echo
 echo "== done. evidence in ${OUT_DIR} =="
 ls -la "${OUT_DIR}"
+
+# Optional stage 7: chain into the post-firmware-update probe if the
+# caller is on a post-upgrade device. The companion script captures the
+# FwVer change + /app/sd/FwPkt/ extracted dir + upgrade-marker Mlog tail
+# + port 9090 listener + one-shot 525 frame, none of which stage 5 above
+# (which is tuned for the pre-upgrade first-look) does.
+if [ "${POST_UPDATE:-0}" = "1" ]; then
+  echo
+  echo "== stage 7: chaining into post-fw-update-probe.sh =="
+  POST_SCRIPT="$(dirname "$0")/post-fw-update-probe.sh"
+  if [ -x "${POST_SCRIPT}" ]; then
+    "${POST_SCRIPT}" || \
+      echo "WARN: post-fw-update-probe.sh exited nonzero; see its output above"
+  else
+    echo "WARN: POST_UPDATE=1 but ${POST_SCRIPT} is not executable"
+  fi
+fi

@@ -148,7 +148,6 @@ object Codes {
     const val FILE_SET_TYPE = 777
     const val BATTERY_STATUS = 778
     const val BATTERY_DETAIL = 779
-    const val FILE_RENAME = 780
     const val FILE_THUMB = 781
     const val FILE_THUMB_LIST = 782
     const val FILE_INFO = 783
@@ -166,8 +165,7 @@ object Codes {
     const val FILE_UPLOAD_END = 795
     const val FILE_CAM_RAW = 796
     const val FILE_SCAN_COMPLETE = 797
-    const val FILE_RESERVED_798 = 798
-
+    const val FILE_RENAME = 798 // placeholder; original 780 collided with DEVICE_INFO
     // ---- WiFi / system (subtype 2) -----------------------------------------
     const val WIFI_BAND = 799
     const val WIFI_SCAN = 800

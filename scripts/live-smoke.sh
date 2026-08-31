@@ -10,6 +10,7 @@
 # Usage:
 #   scripts/live-smoke.sh                # full pre-camera burst (9 codes)
 #   scripts/live-smoke.sh 524 802 808    # custom code list
+#   scripts/live-smoke.sh --full         # use CommandTable.BURST_PRE_CAMERA exactly
 #   scripts/live-smoke.sh --check        # only verify reachability, don't burst
 #
 # Network gotcha: from the tplink AP, 192.168.0.1 is the TP-Link
@@ -20,14 +21,18 @@
 #   - Polkit rule installed (see scripts/install-wifi-polkit-rule.sh)
 #     so nmcli does not trigger auth prompts
 #   - Gimbal powered on
-#   - cli-probe built (./gradlew :tools:cli-probe:installDist)
+#   - Gradle wrapper available (./gradlew)
+#
+# Why we call `gradle :tools:cli-probe:liveBurst` and not the installed
+# `cli-probe` binary: the application plugin's installed entry point is
+# MainKt (single-shot 284 poll). BurstKt is the multi-code entry point
+# but is only exposed via the liveBurst JavaExec task.
 #
 # Output: appends to /tmp/openpolaris-live-smoke.log (rotates if >1MB)
 
 set -euo pipefail
 
 PROJ_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI_PROBE="$PROJ_ROOT/tools/cli-probe/build/install/cli-probe/bin/cli-probe"
 GIMBAL_HOST="192.168.0.1"
 GIMBAL_PORT="9090"
 LOG="/tmp/openpolaris-live-smoke.log"
@@ -37,6 +42,12 @@ MAX_LOG_BYTES=$((1024 * 1024))
 # 808 firmware, 809 serial, 802 wifi-band, 778/779 battery, 775 sd,
 # 824 oms, 524 ex-axis, 543 settling-get.
 DEFAULT_CODES=(808 809 802 778 779 775 824 524 543)
+
+# We use Gradle's :tools:cli-probe:liveBurst task (mainClass = BurstKt) instead
+# of the installed `cli-probe` binary (mainClass = MainKt, single-shot).
+# The installed binary ignores the codes arg and always sends 284 once.
+GRADLE=(./gradlew)
+BURST_TASK=":tools:cli-probe:liveBurst"
 
 log() { printf '%s\n' "$*" | tee -a "$LOG"; }
 
@@ -48,9 +59,8 @@ rotate_log_if_needed() {
 }
 
 check_cli_probe_built() {
-    if [[ ! -x "$CLI_PROBE" ]]; then
-        log "ERROR: cli-probe not built at $CLI_PROBE"
-        log "Run: ./gradlew :tools:cli-probe:installDist"
+    if [[ ! -f "$PROJ_ROOT/gradlew" ]]; then
+        log "ERROR: gradlew missing at $PROJ_ROOT/gradlew"
         exit 2
     fi
 }
@@ -93,18 +103,29 @@ check_gimbal_reachable() {
 
 do_burst() {
     local -a codes
+    local use_full=0
     if (( $# == 0 )); then
         codes=("${DEFAULT_CODES[@]}")
     else
-        codes=("$@")
+        if [[ "${1:-}" == "--full" ]]; then
+            use_full=1
+            shift
+        fi
+        if (( $# == 0 )); then
+            codes=("${DEFAULT_CODES[@]}")
+        else
+            codes=("$@")
+        fi
     fi
-    log "===== burst start $(date -u +%FT%TZ) codes=${codes[*]} ====="
+    log "===== burst start $(date -u +%FT%TZ) codes=${codes[*]}${use_full:+ (full pre-camera burst)} ====="
     local code_args=""
     for c in "${codes[@]}"; do
         code_args+="$c,"
     done
     code_args="${code_args%,}"
-    if "$CLI_PROBE" "$GIMBAL_HOST" "$GIMBAL_PORT" "$code_args" 2>&1 | tee -a "$LOG"; then
+    # Use Gradle's liveBurst task so BurstKt (the multi-code entry point) is invoked.
+    if ( cd "$PROJ_ROOT" && "${GRADLE[@]}" --console=plain "${BURST_TASK}" \
+            --args "$GIMBAL_HOST $GIMBAL_PORT $code_args" 2>&1 ) | tee -a "$LOG"; then
         log "===== burst end (clean) ====="
     else
         log "===== burst end (probe exit nonzero; see above) ====="
@@ -113,8 +134,9 @@ do_burst() {
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [--check] [code ...]
+Usage: $(basename "$0") [--check] [--full] [code ...]
   --check      Only verify gimbal reachability; do not fire the burst.
+  --full       Use CommandTable.BURST_PRE_CAMERA exactly (alias for omitting codes).
   code ...     Custom code list (space-separated).
 
 Default burst (no args): ${DEFAULT_CODES[*]}

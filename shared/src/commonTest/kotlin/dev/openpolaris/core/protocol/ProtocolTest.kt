@@ -90,4 +90,75 @@ class ResponseParserTest {
         assertEquals("key:with:colons", fields["weird"])
         assertEquals("1", fields["x"])
     }
+
+    // -------- Response envelope (`<code>@<k:v>;...;#`) — captured live 2026-08-30 --------
+
+    @Test
+    fun `parses battery response 778 from live wire`() {
+        val wire = "778@capacity:63;charge:1;#"
+        val (frames, consumed) = parser.parse(wire.toByteArray())
+        assertEquals(1, frames.size)
+        assertEquals(wire.length, consumed)
+        assertEquals(778, frames[0].code)
+        assertEquals(63, frames[0].int("capacity"))
+        assertEquals(1, frames[0].int("charge"))
+    }
+
+    @Test
+    fun `parses SD card response 775 from live wire`() {
+        val wire = "775@status:1;totalspace:121866;freespace:121799;usespace:67;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(775, f.code)
+        assertEquals(1, f.int("status"))
+        assertEquals(121866, f.int("totalspace"))
+        assertEquals(121799, f.int("freespace"))
+        assertEquals(67, f.int("usespace"))
+    }
+
+    @Test
+    fun `parses OMS state response 824 from live wire`() {
+        val wire = "824@state:0;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(824, f.code)
+        assertEquals(0, f.int("state"))
+    }
+
+    @Test
+    fun `parses wifi band response 802 from live wire`() {
+        val wire = "802@band:0;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(802, f.code)
+        assertEquals(0, f.int("band"))
+    }
+
+    @Test
+    fun `parses ret-style error response 809 from live wire`() {
+        val wire = "809@ret:-1;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        val f = frames.single()
+        assertEquals(809, f.code)
+        assertEquals(-1, f.int("ret"))
+    }
+
+    @Test
+    fun `handles mixed request and response envelopes in one buffer`() {
+        val a = "1&284&2&mode:1;#"            // request-shape status
+        val b = "778@capacity:50;charge:0;#"   // response-shape battery
+        val c = "1&517&2&yaw:0;#"              // request-shape position
+        val (frames, _) = parser.parse((a + b + c).toByteArray())
+        assertEquals(listOf(284, 778, 517), frames.map { it.code })
+        assertEquals(50, frames[1].int("capacity"))
+    }
+
+    @Test
+    fun `response envelope with empty payload is accepted`() {
+        val wire = "284@;#"
+        val (frames, _) = parser.parse(wire.toByteArray())
+        assertEquals(1, frames.size)
+        assertEquals(284, frames[0].code)
+        assertTrue(frames[0].fields.isEmpty())
+    }
 }

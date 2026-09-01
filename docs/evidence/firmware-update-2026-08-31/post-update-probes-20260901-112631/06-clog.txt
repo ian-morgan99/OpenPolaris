@@ -1,0 +1,4 @@
+--- Clog locations ---
+ls: /app/sd/Clog.txt: No such file or directory
+-rw-r--r--    1 root     root             0 Sep  1 11:26 /app/Clog.txt
+--- /app/Clog.txt last 20 ---

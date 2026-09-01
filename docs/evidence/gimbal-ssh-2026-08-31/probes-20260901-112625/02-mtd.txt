@@ -1,0 +1,7 @@
+dev:    size   erasesize  name
+mtd0: 00080000 00020000 "u-boot.bin"
+mtd1: 00080000 00020000 "factoryParam"
+mtd2: 00100000 00020000 "userParam"
+mtd3: 00500000 00020000 "uImage"
+mtd4: 02800000 00020000 "rootfs.ubifs"
+mtd5: 05100000 00020000 "appfs.ubifs"

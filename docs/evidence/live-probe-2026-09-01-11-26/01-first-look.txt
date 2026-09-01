@@ -1,0 +1,357 @@
+--- uname/uptime ---
+Linux (none) 4.9.37 #59 SMP Wed Sep 4 12:29:11 CST 2024 armv7l GNU/Linux
+ 11:26:24 up  3:04,  1 users,  load average: 1.00, 1.22, 1.38
+--- ps full ---
+PID   USER     TIME   COMMAND
+    1 root       0:00 init
+    2 root       0:00 [kthreadd]
+    3 root       0:00 [ksoftirqd/0]
+    4 root       0:00 [kworker/0:0]
+    5 root       0:00 [kworker/0:0H]
+    7 root       0:00 [rcu_sched]
+    8 root       0:00 [rcu_bh]
+    9 root       0:00 [migration/0]
+   10 root       0:00 [lru-add-drain]
+   11 root       0:00 [cpuhp/0]
+   12 root       0:00 [cpuhp/1]
+   13 root       0:00 [migration/1]
+   14 root       0:00 [ksoftirqd/1]
+   16 root       0:00 [kworker/1:0H]
+   17 root       0:00 [kdevtmpfs]
+   18 root       0:00 [oom_reaper]
+   19 root       0:00 [writeback]
+   20 root       0:00 [kcompactd0]
+   21 root       0:00 [crypto]
+   22 root       0:00 [bioset]
+   23 root       0:00 [kblockd]
+   24 root       0:00 [spi0]
+   25 root       0:00 [spi1]
+   27 root       0:00 [spi2]
+   28 root       0:00 [cfg80211]
+   29 root       0:00 [rpciod]
+   30 root       0:00 [xprtiod]
+   31 root       0:00 [kswapd0]
+   32 root       0:00 [vmstat]
+   33 root       0:00 [nfsiod]
+   58 root       0:00 [bioset]
+   59 root       0:00 [bioset]
+   60 root       0:00 [bioset]
+   61 root       0:00 [bioset]
+   62 root       0:00 [bioset]
+   63 root       0:00 [bioset]
+   64 root       0:00 [bioset]
+   65 root       0:00 [bioset]
+   66 root       0:00 [bioset]
+   67 root       0:00 [bioset]
+   68 root       0:00 [bioset]
+   69 root       0:00 [bioset]
+   70 root       0:00 [bioset]
+   71 root       0:00 [bioset]
+   72 root       0:00 [bioset]
+   73 root       0:00 [bioset]
+   74 root       0:00 [bioset]
+   75 root       0:00 [bioset]
+   76 root       0:00 [bioset]
+   77 root       0:00 [bioset]
+   78 root       0:00 [bioset]
+   79 root       0:00 [bioset]
+   80 root       0:00 [bioset]
+   81 root       0:00 [bioset]
+   82 root       0:00 [bioset]
+   83 root       0:00 [bioset]
+   84 root       0:00 [bioset]
+   85 root       0:00 [bioset]
+   86 root       0:00 [bioset]
+   87 root       0:00 [bioset]
+   88 root       0:00 [bioset]
+   89 root       0:00 [bioset]
+   90 root       0:00 [bioset]
+   91 root       0:00 [bioset]
+   92 root       0:00 [bioset]
+   93 root       0:00 [bioset]
+   94 root       0:00 [bioset]
+   95 root       0:00 [bioset]
+   96 root       0:00 [kworker/0:2]
+   97 root       0:00 [krfcommd]
+  102 root       0:00 [ubi_bgt0d]
+  103 root       0:00 [ubifs_bgt0_0]
+  109 root       0:00 [kworker/1:1]
+  123 root       0:00 [ubi_bgt1d]
+  126 root       0:00 [ubifs_bgt1_0]
+  231 root       0:05 [hi_vdec_thread]
+  247 root       0:00 ./polaris_wifi_bt
+  249 root       1:56 /app/bin/pgphoto
+  267 root       0:00 /usr/local/bin/sshd
+  268 root       0:00 -sh
+  323 root       0:00 [wl_event_handle]
+  369 root       0:00 [kworker/0:1H]
+  370 root       0:00 [kworker/1:1H]
+  376 root       0:00 [kworker/u5:0]
+  377 root       0:00 [hci0]
+  378 root       0:00 [hci0]
+  394 root       0:00 /app/bluetooth/bin/dbus-daemon --config-file=/app/bluetooth/config/system.conf
+  396 root       0:00 /app/bluetooth/libexec/bluetooth/bluetoothd --configfile=/app/bluetooth/config/main.conf --experimental
+  530 root       0:00 [kworker/1:0]
+  537 root       0:00 [wl_event_handle]
+  538 root       0:00 [dhd_watchdog_th]
+  539 root       0:48 [dhd_dpc]
+  540 root       0:06 [dhd_rxf]
+  548 root       0:00 [wl_event_handle]
+  551 root       0:00 /app/wifi/hostapd -B /app/wifi/hostapd.conf
+  554 root       0:00 /app/wifi//udhcpd /app/wifi/udhcpd.conf
+  562 root       0:00 [kworker/u5:2]
+ 4511 root       0:01 ./polestar_app
+ 4533 root       0:00 [kworker/u4:0]
+ 4545 root       0:00 /app/bin/lighttpd -f /etc/lighttpd/lighttpd.conf -m /app/lib/lighttpd/
+ 4565 root       0:00 [irq/49-VI_CAP0]
+ 4570 root       0:00 [bioset]
+ 4571 root       0:02 [mmcqd/0]
+ 5144 root       0:00 [kworker/u4:1]
+ 5353 root       0:00 sshd: root@notty
+ 5356 root       0:00 sh -c    echo "--- uname/uptime ---"   uname -a; uptime   echo "--- ps full ---"   ps -ef 2>/dev/null || ps   echo "--- install daemon? (polestar|upgrade|fwPkt) ---"   ps | grep -E "polestar|upgrade|fwPkt" | grep -v grep   echo "--- candidate watch paths (H1) ---"   for p in /app/sd /app/sdcard /mnt/sd1 /firmware /tmp /mnt; do     echo "== ls ${p}/ =="     ls -la "${p}/" 2>&1 | head -10   done   echo "--- /app/sd FwPkt.zip MD5 (expect 7a4c...e1f4 if present) ---"   md5sum /app/sd/FwPkt.zip 2>&1   echo "--- find any FwPkt.zip on device (H1 hint) ---"   find / -name FwPkt.zip 2>/dev/null   echo "--- USB-UART driver state (SP_TtyUsbUartInit gate) ---"   lsmod 2>&1 || cat /proc/modules   echo "--- /dev/ttyUSB* present? ---"   ls -la /dev/ttyUSB* 2>&1   echo "--- modules.ko / kernel modules search ---"   find / -name "*.ko" 2>/dev/null | head -30   echo "--- /proc/modules detail ---"   cat /proc/modules 2>&1   echo "--- USB device tree (gimbal-side) ---"   lsusb 2>&1 || cat /proc/bus/usb/devices 2>&1   echo "--- recent dmesg (last 80 lines, USB/UART/firmware) ---"   dmesg 2>&1 | tail -80 | grep -iE "usb|uart|serial|ftdi|cdc|firmware|upgrade|fwpkt|cdc_acm" || dmesg 2>&1 | tail -80   echo "--- Mlog FwPkt touch (H1/H3) ---"   ls /app/mcu_debug/ 2>&1   grep -E "fwpkt|firmware|crc|upgrade|SP_UpgradeCheckFw|TtyUsbUartInit" /app/mcu_debug/Mlog_* 2>&1 | tail -60   echo "--- ps in mcu_debug (firmware check helpers) ---"   ls -la /app/ 2>&1 
+ 5359 root       0:00 ps -ef
+--- install daemon? (polestar|upgrade|fwPkt) ---
+ 4511 root       0:01 ./polestar_app
+--- candidate watch paths (H1) ---
+== ls /app/sd/ ==
+total 133936
+drwxr-xr-x   11 root     root         16384 Sep  1 11:26 .
+drwxr-x---   12 1000     1000          1672 Aug 31 23:04 ..
+drwxr-xr-x    4 root     root         16384 Sep  1 10:52 FwPkt
+-rwxr-xr-x    1 root     root      68484216 Aug 31 21:38 FwPkt.zip
+drwxr-xr-x    2 root     root         16384 Aug 31 17:58 HDR
+drwxr-xr-x    2 root     root         16384 Aug 31 17:58 Lapse
+-rwxr-xr-x    1 root     root      68484216 Sep  1 09:33 OmsPkt.zip
+drwxr-xr-x    2 root     root         16384 Aug 31 17:58 focusStack
+drwxr-xr-x    2 root     root         16384 Aug 31 17:58 normal
+== ls /app/sdcard/ ==
+ls: /app/sdcard/: No such file or directory
+== ls /mnt/sd1/ ==
+ls: /mnt/sd1/: No such file or directory
+== ls /firmware/ ==
+ls: /firmware/: No such file or directory
+== ls /tmp/ ==
+total 1700
+drwxr-x---    2 1000     1000           672 Sep  1 09:49 .
+drwxr-x--x   24 1000     1000          1848 Aug 27 16:37 ..
+-rwxr-x---    1 root     root       1470068 Sep  1 09:49 libc-2.24.so
+-rw-r--r--    1 root     root             0 Aug 31 19:06 m4.txt
+-rw-r--r--    1 root     root         61052 Aug 31 18:56 mlog3.txt
+-rw-r--r--    1 root     root         60588 Aug 31 18:55 mlog_snapshot.txt
+-rw-r--r--    1 root     root         60820 Aug 31 18:56 mlog_snapshot2.txt
+-rw-r--r--    1 root     root         81117 Sep  1 11:26 polestar.out
+-rwxr-xr-x    1 root     root          1307 Aug 31 14:54 usb-topo.sh
+== ls /mnt/ ==
+total 0
+drwxr-x---    2 1000     1000           160 Apr 19  2006 .
+drwxr-x--x   24 1000     1000          1848 Aug 27 16:37 ..
+--- /app/sd FwPkt.zip MD5 (expect 7a4c...e1f4 if present) ---
+92da888387b14dc02976b5fa22b94067  /app/sd/FwPkt.zip
+--- find any FwPkt.zip on device (H1 hint) ---
+/app/sd/FwPkt.zip
+--- USB-UART driver state (SP_TtyUsbUartInit gate) ---
+Module                  Size  Used by    Tainted: P  
+bcmdhd                792702  0 
+hi_mipi_rx             36466  0 
+hi3559v200_nnie        83830  0 
+hi3559v200_ive        147619  0 
+hi3559v200_vdec       105202  0 
+hi3559v200_vfmw       246047  0 
+hi3559v200_jpegd       42473  0 
+hi3559v200_jpege       44945  0 
+hi3559v200_h265e      128869  0 
+hi3559v200_h264e       98433  0 
+hi3559v200_venc       202468  0 
+hi3559v200_rc          86834  0 
+hi3559v200_vedu        37573  0 
+hi3559v200_chnl        27336  0 
+hi_gpio                 3396  2 
+hifb                  145033  0 
+hi3559v200_vpss       394545  0 
+hi3559v200_isp        230721  0 
+hi3559v200_vi         552196  0 
+hi3559v200_dis         91474  0 
+hi3559v200_vgs        111810  0 
+hi3559v200_gdc        175383  0 
+hi3559v200_rgn         73459  0 
+hi3559v200_tde        108534  0 
+hi3559v200_sys        107214 12 hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vpss,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc
+hi3559v200_base        59515 22 hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_vfmw,hi3559v200_jpegd,hi3559v200_jpege,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vedu,hi3559v200_chnl,hifb,hi3559v200_vpss,hi3559v200_isp,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc,hi3559v200_rgn,hi3559v200_tde,hi3559v200_sys
+sys_config             10522  1 hi3559v200_sys
+hi_osal                64183 29 hi_mipi_rx,hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_vfmw,hi3559v200_jpegd,hi3559v200_jpege,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vedu,hi3559v200_chnl,hifb,hi3559v200_vpss,hi3559v200_isp,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc,hi3559v200_rgn,hi3559v200_tde,hi3559v200_sys,hi3559v200_base,sys_config
+--- /dev/ttyUSB* present? ---
+ls: /dev/ttyUSB*: No such file or directory
+--- modules.ko / kernel modules search ---
+/app/komod/hi3559v200_sys.ko
+/app/komod/libcomposite.ko
+/app/komod/hi3559v200_h264e.ko
+/app/komod/hi3559v200_h265e.ko
+/app/komod/hi3559v200_vgs.ko
+/app/komod/hi_user.ko
+/app/komod/hi3559v200_wdt.ko
+/app/komod/hi3559v200_dis.ko
+/app/komod/usb_f_acm.ko
+/app/komod/bcmdhd.ko
+/app/komod/hi3559v200_gdc.ko
+/app/komod/hi3559v200_ai.ko
+/app/komod/hi3559v200_ao.ko
+/app/komod/hi_cipher.ko
+/app/komod/hi3559v200_acodec.ko
+/app/komod/rfkill.ko
+/app/komod/hi3559v200_ir.ko
+/app/komod/hi3559v200_vpss.ko
+/app/komod/hi3559v200_rc.ko
+/app/komod/hi_mipi_rx.ko
+/app/komod/sys_config.ko
+/app/komod/hi_mipi_tx.ko
+/app/komod/hi3559v200_vi.ko
+/app/komod/hi3559v200_vo.ko
+/app/komod/usb_f_uvc.ko
+/app/komod/hi3559v200_adec.ko
+/app/komod/udc-core.ko
+/app/komod/hi3559v200_isp.ko
+/app/komod/hi3559v200_ive.ko
+/app/komod/hi3559v200_aenc.ko
+--- /proc/modules detail ---
+bcmdhd 792702 0 - Live 0xbf53b000
+hi_mipi_rx 36466 0 - Live 0xbf43b000 (O)
+hi3559v200_nnie 83830 0 - Live 0xbf41e000 (PO)
+hi3559v200_ive 147619 0 - Live 0xbf3ee000 (PO)
+hi3559v200_vdec 105202 0 - Live 0xbf3cc000 (PO)
+hi3559v200_vfmw 246047 0 - Live 0xbf381000 (PO)
+hi3559v200_jpegd 42473 0 - Live 0xbf371000 (PO)
+hi3559v200_jpege 44945 0 - Live 0xbf361000 (PO)
+hi3559v200_h265e 128869 0 - Live 0xbf33a000 (PO)
+hi3559v200_h264e 98433 0 - Live 0xbf31a000 (PO)
+hi3559v200_venc 202468 0 - Live 0xbf2dc000 (PO)
+hi3559v200_rc 86834 0 - Live 0xbf2c0000 (PO)
+hi3559v200_vedu 37573 0 - Live 0xbf2b1000 (PO)
+hi3559v200_chnl 27336 0 - Live 0xbf2a6000 (PO)
+hi_gpio 3396 2 - Live 0xbf2a2000 (O)
+hifb 145033 0 - Live 0xbf271000 (O)
+hi3559v200_vpss 394545 0 - Live 0xbf1fc000 (PO)
+hi3559v200_isp 230721 0 - Live 0xbf1b8000 (PO)
+hi3559v200_vi 552196 0 - Live 0xbf113000 (PO)
+hi3559v200_dis 91474 0 - Live 0xbf0f5000 (PO)
+hi3559v200_vgs 111810 0 - Live 0xbf0d0000 (PO)
+hi3559v200_gdc 175383 0 - Live 0xbf099000 (PO)
+hi3559v200_rgn 73459 0 - Live 0xbf081000 (PO)
+hi3559v200_tde 108534 0 - Live 0xbf05d000 (PO)
+hi3559v200_sys 107214 12 hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vpss,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc, Live 0xbf03a000 (PO)
+hi3559v200_base 59515 22 hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_vfmw,hi3559v200_jpegd,hi3559v200_jpege,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vedu,hi3559v200_chnl,hifb,hi3559v200_vpss,hi3559v200_isp,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc,hi3559v200_rgn,hi3559v200_tde,hi3559v200_sys, Live 0xbf025000 (PO)
+sys_config 10522 1 hi3559v200_sys, Live 0xbf01e000 (O)
+hi_osal 64183 29 hi_mipi_rx,hi3559v200_nnie,hi3559v200_ive,hi3559v200_vdec,hi3559v200_vfmw,hi3559v200_jpegd,hi3559v200_jpege,hi3559v200_h265e,hi3559v200_h264e,hi3559v200_venc,hi3559v200_rc,hi3559v200_vedu,hi3559v200_chnl,hifb,hi3559v200_vpss,hi3559v200_isp,hi3559v200_vi,hi3559v200_dis,hi3559v200_vgs,hi3559v200_gdc,hi3559v200_rgn,hi3559v200_tde,hi3559v200_sys,hi3559v200_base,sys_config, Live 0xbf000000 (O)
+--- USB device tree (gimbal-side) ---
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+--- recent dmesg (last 80 lines, USB/UART/firmware) ---
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+wl_process_host_event: Link event 6, flags 0, status 0
+MACEVENT: WLC_E_DEAUTH_IND, MAC 4c:23:38:c8:7b:6f, reason 3
+wl_process_host_event: Link event 12, flags 0, status 0
+MACEVENT: WLC_E_DISASSOC_IND, MAC 4c:23:38:c8:7b:6f, reason 8
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DEAUTH_IND(6) status 0 reason 3
+CFG80211-ERROR) wl_notify_connect_status_ap : 
+event WLC_E_DISASSOC_IND(12) status 0 reason 8
+CFG80211-ERROR) wl_cfg80211_del_station : 
+Disconnect STA : 4c:23:38:c8:7b:6f scb_val.val 3
+MACEVENT: WLC_E_AUTH_IND, MAC 4c:23:38:c8:7b:6f, Open System
+MACEVENT: WLC_E_ASSOC_IND, MAC 4c:23:38:c8:7b:6f
+CFG80211-ERROR) wl_cfg80211_change_station : 
+WLC_SCB_AUTHORIZE sta_flags_mask not set 
+DHCP - REQUEST [RX] [REQUEST]
+DHCP - ACK [TX] [REPLY]
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+--- Mlog FwPkt touch (H1/H3) ---
+ls: /app/mcu_debug/: No such file or directory
+grep: /app/mcu_debug/Mlog_*: No such file or directory
+--- ps in mcu_debug (firmware check helpers) ---
+total 48
+drwxr-x---   12 1000     1000          1672 Aug 31 23:04 .
+drwxr-x--x   24 1000     1000          1848 Aug 27 16:37 ..
+-rw-r--r--    1 root     root             0 Sep  1 11:26 Clog.txt
+-rwxr-x---    1 1000     1000            32 May  9  2025 FwVer
+-rw-r--r--    1 root     root             0 Sep  1 11:26 Mlog.txt
+-rw-r--r--    1 root     root            18 Sep  1 01:20 WiFi_BT_CFG.info
+-rw-r--r--    1 root     root             0 Sep  1 11:26 access.log
+drwxr-x---    2 1000     1000          1120 Jan  1  1970 bin
+drwxr-x---    8 1000     1000           616 Aug 25  2021 bluetooth
+-rwxr-x---    1 1000     1000           666 Mar 12  2022 bootapp
+drwxr-x---    2 1000     1000           232 May 28  2022 cfg
+drwxr-x---    3 1000     1000           368 May  9  2025 dbus
+-rw-r--r--    1 root     root             0 Sep  1 11:26 error.log
+-rwxr-x---    1 1000     1000            49 Nov 24  2021 fdisk_T.sh
+-rwxr-x---    1 1000     1000           643 Mar 20  2024 getFwInfo.sh
+-rwxr-x---    1 1000     1000           152 Aug 13  2024 getOmsFwInfo.sh
+drwxr-x---    2 1000     1000          4848 May  9  2025 komod
+drwxr-x---    5 1000     1000          5304 Jan 11  2022 lib
+drwxr-x---    2 1000     1000           160 May  9  2025 private
+-rwxr-x---    1 1000     1000            90 Jul 14  2022 restart_gphoto
+-rwxr-xr-x    1 root     root           141 Aug 31 23:04 restart_polestar.sh
+drwxr-x---    2 1000     1000           304 Sep  1 10:55 run
+drwxr-xr-x   11 root     root         16384 Sep  1 11:26 sd
+drwxr-x---    2 1000     1000           920 Aug 12  2022 wifi

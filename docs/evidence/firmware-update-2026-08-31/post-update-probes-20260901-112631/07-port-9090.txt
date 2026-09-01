@@ -1,0 +1,5 @@
+--- /proc/net/tcp listeners (look for 9090 = 0x2384) ---
+--- polestar process (if running) ---
+ 4511 root       0:01 ./polestar_app
+--- ss / netstat fallback ---
+tcp        0      0 0.0.0.0:9090            0.0.0.0:*               LISTEN      4511/polestar_app

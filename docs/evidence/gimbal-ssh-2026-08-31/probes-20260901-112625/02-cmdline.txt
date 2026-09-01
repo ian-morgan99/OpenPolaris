@@ -1,0 +1,2 @@
+mem=1536M quiet console=ttyAMA0,115200 clk_ignore_unused rw ubi.mtd=4 root=ubi0:ubifs rootfstype=ubifs mtdparts=hinand:512K(u-boot.bin),512K(factoryParam),1M(userParam),5M(uImage),40M(rootfs.ubifs),81M(appfs.ubifs)
+setenv bootcmd 

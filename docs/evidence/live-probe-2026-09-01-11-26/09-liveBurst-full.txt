@@ -1,0 +1,43 @@
+> Task :tools:cli-probe:liveBurst
+burst → 192.168.0.1:9090 codes=[808, 809, 802, 778, 779, 775, 824, 524, 543, 780, 525] (full pre-camera burst)
+  sent code=808
+  drained 0B raw=
+  code=808 <no response> (setter or push-mode)
+  sent code=809
+  drained 12B raw=809@ret:-1;#
+  code=809 ret=-1
+  sent code=802
+  drained 12B raw=802@band:0;#
+  code=802 band=0
+  sent code=778
+  drained 27B raw=778@capacity:100;charge:2;#
+  code=778 capacity=100 charge=2
+  sent code=779
+  drained 0B raw=
+  code=779 <no response> (setter or push-mode)
+  sent code=775
+  drained 62B raw=775@status:1;totalspace:121866;freespace:121644;usespace:222;#
+  code=775 status=1 totalspace=121866 freespace=121644 usespace=222
+  sent code=824
+  drained 102B raw=824@state:0;#775@status:1;totalspace:121866;freespace:121644;usespace:222;#778@capacity:100;charge:2;#
+  code=824 state=0
+  code=775 status=1 totalspace=121866 freespace=121644 usespace=222
+  code=778 capacity=100 charge=2
+  sent code=524
+  drained 61B raw=524@state:0;#517@yaw:-0.257265;pitch:0.872673;roll:0.000000;#
+  code=524 state=0
+  code=517 yaw=-0.257265 pitch=0.872673 roll=0.000000
+  sent code=543
+  drained 12B raw=543@time:2;#
+  code=543 time=2
+  sent code=780
+  drained 46B raw=780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#
+  code=780 hw=1.1.1.2 sw=6.0.0.54 exAxis= sv=1 ov=
+  sent code=525
+  drained 0B raw=
+  code=525 <no response> (setter or push-mode)
+
+
+
+
+BUILD SUCCESSFUL in 17s

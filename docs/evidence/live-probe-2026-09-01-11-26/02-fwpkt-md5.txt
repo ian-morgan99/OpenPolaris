@@ -1,0 +1,8 @@
+--- FwPkt.zip presence ---
+-rwxr-xr-x    1 root     root      68484216 Aug 31 21:38 /app/sd/FwPkt.zip
+--- FwPkt.zip md5 ---
+92da888387b14dc02976b5fa22b94067  /app/sd/FwPkt.zip
+--- FwPkt.zip size + crc32 ---
+size=68484216 blocks=133760 mtime=1788212290
+--- find any FwPkt.zip on device ---
+/app/sd/FwPkt.zip

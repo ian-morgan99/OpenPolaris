@@ -1,0 +1,29 @@
+--- /app/sd/FwPkt/ presence ---
+total 96
+drwxr-xr-x    4 root     root         16384 Sep  1 10:52 .
+drwxr-xr-x   11 root     root         16384 Sep  1 11:26 ..
+drwxr-xr-x    2 root     root         16384 Sep  1 10:52 camera
+-rwxr-xr-x    1 root     root           278 Sep  1 10:52 crcInfo
+-rwxr-xr-x    1 root     root           399 Sep  1 10:52 firmwareInfo
+drwxr-xr-x    2 root     root         16384 Sep  1 10:52 gimbal
+--- /app/sd/FwPkt/ tree (limited) ---
+/app/sd/FwPkt/
+/app/sd/FwPkt/camera
+/app/sd/FwPkt/camera/rootfs.ubifs
+/app/sd/FwPkt/camera/uImage
+/app/sd/FwPkt/camera/appfs.ubifs
+/app/sd/FwPkt/camera/config
+/app/sd/FwPkt/gimbal
+/app/sd/FwPkt/gimbal/polaris413_2.0.0.22.bin
+/app/sd/FwPkt/gimbal/polaris403_2.0.0.22.bin
+/app/sd/FwPkt/firmwareInfo
+/app/sd/FwPkt/crcInfo
+--- FwPkt content sample md5s ---
+778b27bcade9ddc6ea4a7cb45254c551  /app/sd/FwPkt/camera/rootfs.ubifs
+5f6a0c1861a254371c4a956b57f26685  /app/sd/FwPkt/camera/uImage
+4bd9131bc1bcb283a21c77bf62ff39ea  /app/sd/FwPkt/camera/appfs.ubifs
+1905e2d041be62b679f7dc6c64ab9d3a  /app/sd/FwPkt/camera/config
+c0299d06a15f5c2fbecb9a6db76a29c5  /app/sd/FwPkt/gimbal/polaris413_2.0.0.22.bin
+4facafa7d29c1e6c2a125b8309c9b901  /app/sd/FwPkt/gimbal/polaris403_2.0.0.22.bin
+b636c4acf307dbdd7638d4dceacd3ff2  /app/sd/FwPkt/firmwareInfo
+2e7c4457e48ddbf807a25b315a1cacd5  /app/sd/FwPkt/crcInfo

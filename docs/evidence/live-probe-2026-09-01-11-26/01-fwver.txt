@@ -1,0 +1,4 @@
+--- /app/FwVer ---
+FwVer:4.0.0.32;date:2025.05.09;
+--- /app/FwVer detail (if file) ---
+-rwxr-x---    1 1000     1000            32 May  9  2025 /app/FwVer

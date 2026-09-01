@@ -4,30 +4,65 @@ package dev.openpolaris.core.domain
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * In-memory Connection that records writes and can emit scripted responses.
+ * In-memory Connection that records writes and serves scripted responses
+ * deterministically.
  *
- * The reader background loop in [MountSession] uses [Connection.read] to
- * detect idle vs close. Returning a hard -1 from a non-suspending function
- * turns the loop into a tight CPU spin that never lets the [runTest]
- * virtual-time scheduler advance. A naive `while (empty) yield()` spins
- * the same way. We need a *real* suspension point: a [Channel] that the
- * test code feeds via [push] or the test scheduler's [advanceUntilIdle]
- * unblocks via cancellation.
+ * To make the demultiplexed reader/test handshake deterministic, `read()`
+ * only returns a queued response when the request for that response's
+ * frame code has been **written**. Pre-queued responses are held back
+ * until the matching request lands, eliminating the race where the
+ * reader would otherwise hot-loop and drain pre-queued frames before
+ * the test body has registered the per-frame waiter.
+ *
+ * Two ways to stage responses:
+ *  - Append raw bytes to [responses]. `read()` will skip any whose code
+ *    has not been written yet (request-keyed gating).
+ *  - Call [scriptResponse] for the same effect with explicit code and
+ *    frame text.
+ *  - Call [push] to enqueue a frame onto the internal channel; the
+ *    reader will receive it on its next `read()` call.
+ *
+ * Either way, the 284 lifecycle handshake is auto-acked the first time
+ * a 284 request is written, matching the real mount's behaviour.
  */
 class FakeConnection : Connection {
     val written = mutableListOf<ByteArray>()
-    private val channel = Channel<ByteArray>(capacity = Channel.UNLIMITED)
+
+    /**
+     * Responses ready to be served in FIFO order. The reader will only
+     * see a response once the request for its code has been written.
+     * Tests can either append raw bytes here, or use [scriptResponse].
+     *
+     * **Write-keyed gating**: a response is served only when at least one
+     * *unmatched* write for its code has been issued. This prevents the
+     * reader from hot-looping and consuming the 2nd, 3rd, ... pre-queued
+     * response for the same code before the test coroutine has issued
+     * the matching subsequent request.
+     */
+    val responses = mutableListOf<ByteArray>()
+
+    private val channel = kotlinx.coroutines.channels.Channel<ByteArray>(
+        capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
+    )
+
     var failConnect = false
     var closed = false
         private set
+
+    /** True after we've served the canned 284 lifecycle handshake ack. */
+    private var handshakeAcked = false
+
+    /** How many writes have been issued per frame code (request count). */
+    private val writeCountByCode = mutableMapOf<Int, Int>()
+
+    /** How many responses have been served per frame code. */
+    private val servedCountByCode = mutableMapOf<Int, Int>()
 
     /** Queue a frame for the next [read] call. */
     fun push(frame: ByteArray) {
@@ -40,25 +75,102 @@ class FakeConnection : Connection {
 
     override suspend fun write(data: ByteArray) {
         written += data
+        // Count writes per code so we can match responses one-to-one.
+        extractFrameCode(data)?.let { c ->
+            writeCountByCode[c] = (writeCountByCode[c] ?: 0) + 1
+        }
     }
 
     override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
-        // If the test is shutting the connection down we want read() to
-        // wake up so the reader can observe the close.
-        if (closed) return 0
-        // Real suspension point. The test scheduler can advance virtual
-        // time while we are parked here; the reader is not burning CPU.
-        // On cancellation (e.g. disconnect, runTest end) the receive
-        // throws and we let it propagate — that is what tells the
-        // reader to stop.
-        val frame = channel.receive()
-        frame.copyInto(buffer)
-        return frame.size
+        // Prefer a channel-pushed frame if any. This lets tests drive the
+        // reader directly with `push(...)` for ad-hoc sequences.
+        val pending = channel.tryReceive()
+        if (pending.isSuccess) {
+            val frame = pending.getOrThrow()
+            frame.copyInto(buffer)
+            return frame.size
+        }
+        // Walk the queue, return the first response whose code has at
+        // least one *unmatched* write. If none are ready, return -1 so
+        // the reader retries (instead of hot-looping and dropping
+        // frames into the void).
+        for (i in responses.indices) {
+            val r = responses[i]
+            val code = extractFrameCode(r)
+            if (code != null && hasUnmatchedWrite(code)) {
+                responses.removeAt(i)
+                servedCountByCode[code] = (servedCountByCode[code] ?: 0) + 1
+                r.copyInto(buffer)
+                return r.size
+            }
+        }
+        // No scripted response is ready. Auto-respond to the 284 handshake
+        // (PROTOCOL.md §4) the first time it is requested, matching the
+        // "mode:0" ack the real mount returns immediately after power-on.
+        if (!handshakeAcked && hasUnmatchedWrite(284)) {
+            handshakeAcked = true
+            servedCountByCode[284] = (servedCountByCode[284] ?: 0) + 1
+            val ack = "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+            ack.copyInto(buffer)
+            return ack.size
+        }
+        return -1
+    }
+
+    /** True if a write for [code] exists that has not yet been matched by a served response. */
+    private fun hasUnmatchedWrite(code: Int): Boolean {
+        val writes = writeCountByCode[code] ?: return false
+        val served = servedCountByCode[code] ?: 0
+        return writes > served
+    }
+
+    /**
+     * Extract the frame code from a payload (e.g.
+     * "1&537&2&pitch:...;#" -> 537). Returns null if the payload
+     * doesn't look like a frame.
+     */
+    private fun extractFrameCode(bytes: ByteArray): Int? {
+        if (bytes.size < 4) return null
+        if (bytes[0] != '1'.code.toByte() || bytes[1] != '&'.code.toByte()) return null
+        var i = 2
+        var num = 0
+        var sawDigit = false
+        while (i < bytes.size && bytes[i] != '&'.code.toByte()) {
+            val c = bytes[i]
+            if (c < '0'.code.toByte() || c > '9'.code.toByte()) return null
+            num = num * 10 + (c - '0'.code.toByte())
+            sawDigit = true
+            i++
+        }
+        return if (sawDigit && i < bytes.size && bytes[i] == '&'.code.toByte()) num else null
     }
 
     override fun close() {
-        closed = true
+        handshakeAcked = false
+        responses.clear()
+        writeCountByCode.clear()
+        servedCountByCode.clear()
         channel.close()
+    }
+
+    /**
+     * Script a response that will be served only after a request for
+     * [code] has been written. Use this in tests that drive multiple
+     * requests on the same connect — the response is held back until
+     * the matching request lands, eliminating reader/test race.
+     */
+    fun scriptResponse(code: Int, frame: String) {
+        responses += frame.toByteArray(Charsets.US_ASCII)
+    }
+
+    /** Test helper: reset between test cases that share an instance. */
+    fun reset() {
+        written.clear()
+        responses.clear()
+        failConnect = false
+        handshakeAcked = false
+        writeCountByCode.clear()
+        servedCountByCode.clear()
     }
 }
 
@@ -79,6 +191,7 @@ class TrackingControllerTest {
         s.connect()
         t.start()
         assertEquals("1&531&2&state:1;#", String(conn.written[1], Charsets.US_ASCII))
+        s.disconnect()
     }
 
     @Test
@@ -88,6 +201,7 @@ class TrackingControllerTest {
         s.connect()
         t.start(speed = 2)
         assertEquals("1&531&2&state:1;speed:2;#", String(conn.written[1], Charsets.US_ASCII))
+        s.disconnect()
     }
 
     @Test
@@ -97,6 +211,7 @@ class TrackingControllerTest {
         s.connect()
         t.stop()
         assertEquals("1&531&2&state:0;#", String(conn.written[1], Charsets.US_ASCII))
+        s.disconnect()
     }
 
     @Test
@@ -108,6 +223,7 @@ class TrackingControllerTest {
         t.setHalfSpeed(false)
         assertEquals("1&536&2&halfSpeed:0;#", String(conn.written[1], Charsets.US_ASCII))
         assertEquals("1&536&2&halfSpeed:1;#", String(conn.written[2], Charsets.US_ASCII))
+        s.disconnect()
     }
 
     @Test
@@ -117,6 +233,7 @@ class TrackingControllerTest {
         s.connect()
         t.gotoAzAlt(180.0, 45.0)
         assertEquals("1&519&2&az:180.0000;alt:45.0000;#", String(conn.written[1], Charsets.US_ASCII))
+        s.disconnect()
     }
 
     @Test
@@ -125,8 +242,7 @@ class TrackingControllerTest {
         val (s, _) = newSession(conn, backgroundScope)
         s.connect()
         val deferred = async {
-            val r = s.request(284) { MountState.fromFrame284(it) }
-            r
+            s.request(284) { MountState.fromFrame284(it) }
         }
         // runCurrent (not advanceUntilIdle) drains tasks already
         // scheduled without advancing virtual time past the
@@ -141,5 +257,6 @@ class TrackingControllerTest {
         val st = result as MountSession.CmdResult.Ok
         assertEquals(MountMode.ASTRO, st.value.mode)
         assertEquals(50, st.value.batteryPercent)
+        s.disconnect()
     }
 }

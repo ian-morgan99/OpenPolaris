@@ -90,4 +90,29 @@ class AstroMathTest {
         val text = AstroMath.formatRaHours(ra)
         assertEquals("18 36 56", text)
     }
+
+    @Test
+    fun horizontalEquatorialRoundTrip() {
+        // Forward then inverse must recover the same (RA, Dec) within a small
+        // tolerance, including near the celestial equator and the pole.
+        val cases = listOf(
+            RoundTripCase(ra = 10.0, dec = 20.0, lat = 40.0, lst = 100.0),
+            RoundTripCase(ra = 45.0, dec = -30.0, lat = 35.0, lst = 60.0),
+            RoundTripCase(ra = 200.0, dec = 20.0, lat = 40.0, lst = 210.0),
+            RoundTripCase(ra = 120.0, dec = 0.0, lat = 30.0, lst = 240.0),
+            RoundTripCase(ra = 300.0, dec = 60.0, lat = 50.0, lst = 0.0),
+            RoundTripCase(ra = 0.0, dec = 89.9, lat = 40.0, lst = 200.0), // near pole
+        )
+        for (c in cases) {
+            val h = AstroMath.toHorizontal(c.ra, c.dec, c.lat, c.lst)
+            val back = AstroMath.toEquatorial(h.azimuthDeg, h.altitudeDeg, c.lat, c.lst)
+            var dra = back.raDeg - c.ra
+            while (dra > 180.0) dra -= 360.0
+            while (dra < -180.0) dra += 360.0
+            assertEquals(0.0, dra, 1e-6, "RA round-trip for (${c.ra}, ${c.dec}) at lat=${c.lat}")
+            assertEquals(0.0, back.decDeg - c.dec, 1e-6, "Dec round-trip for (${c.ra}, ${c.dec}) at lat=${c.lat}")
+        }
+    }
+
+    private data class RoundTripCase(val ra: Double, val dec: Double, val lat: Double, val lst: Double)
 }

@@ -9,13 +9,18 @@ import kotlin.test.assertTrue
  * Regression test for issue #28. FeatureFlags defaults must match the
  * documented "safe-by-default" policy.
  *
- * Anything that:
- *   - moves the mount (limits, auto-level, OMS schedule, file mutate),
- *   - is a system-setting write (time / timezone / language / buzzer / LED),
- *   - is a WiFi write (connect / disconnect / set-band),
+ * After a fresh FeatureFlags.reset, anything that:
  *   - is destructive (reboot, shutdown, format, firmware upload),
+ *   - is a WiFi write (connect / disconnect / set-band),
+ *   - is an unverified mount move (limits, auto-level, OMS schedule),
  *   - or whose wire format is still unverified on real hardware,
- * must default to false after a fresh FeatureFlags.reset.
+ * must default to false.
+ *
+ * The system-settings (810-829) writes were verified round-trip on the
+ * live burst (see docs/PROTOCOL-CODE-AUDIT-2026-08-31.md) and now
+ * default to true — every safe switch should be reachable without a
+ * config flag flip. Kiosk builds can opt out via
+ * `FeatureFlags.disable("systemSettings")`.
  *
  * Verified reads (basicControls, postConnectBurst, omsRead, wifiScan,
  * fileManager browse) remain true.
@@ -40,7 +45,9 @@ class FeatureFlagsTest {
     @Test
     fun unverifiedWritePathsDefaultToFalse() {
         FeatureFlags.reset()
-        assertFalse(FeatureFlags.isEnabled("systemSettings"), "System settings (810-829 writes) must be OFF until verified")
+        // systemSettings (810-829) was verified round-trip on the live burst;
+        // defaults to true. See FeatureFlags KDoc.
+        assertTrue(FeatureFlags.isEnabled("systemSettings"), "System settings (810-829 writes) verified - ON by default")
         assertFalse(FeatureFlags.isEnabled("wifiConnect"), "WiFi write must be OFF until verified")
         assertFalse(FeatureFlags.isEnabled("autoLevel"), "Auto-level (537/538 writes) must be OFF until verified")
         assertFalse(FeatureFlags.isEnabled("limitsWrite"), "Limits (541/542) wire format unverified - OFF by default")
@@ -69,11 +76,12 @@ class FeatureFlagsTest {
     @Test
     fun enableAndDisableRoundTrip() {
         FeatureFlags.reset()
-        assertFalse(FeatureFlags.isEnabled("systemSettings"))
-        FeatureFlags.enable("systemSettings")
+        // systemSettings defaults to true; disable→enable→disable round trip
         assertTrue(FeatureFlags.isEnabled("systemSettings"))
         FeatureFlags.disable("systemSettings")
         assertFalse(FeatureFlags.isEnabled("systemSettings"))
+        FeatureFlags.enable("systemSettings")
+        assertTrue(FeatureFlags.isEnabled("systemSettings"))
     }
 
     @Test
@@ -88,16 +96,18 @@ class FeatureFlagsTest {
 
     @Test
     fun resetClearsAllOverridesBackToCompileDefaults() {
-        FeatureFlags.enable("systemSettings")
-        FeatureFlags.enable("allowReboot")
-        FeatureFlags.enable("limitsWrite")
-        assertTrue(FeatureFlags.isEnabled("systemSettings"))
+        // Flip several flags away from their defaults
+        FeatureFlags.disable("systemSettings")  // default true → now false
+        FeatureFlags.enable("allowReboot")      // default false → now true
+        FeatureFlags.enable("limitsWrite")      // default false → now true
+        assertFalse(FeatureFlags.isEnabled("systemSettings"))
         assertTrue(FeatureFlags.isEnabled("allowReboot"))
         assertTrue(FeatureFlags.isEnabled("limitsWrite"))
 
         FeatureFlags.reset()
 
-        assertFalse(FeatureFlags.isEnabled("systemSettings"))
+        // After reset, compile defaults apply
+        assertTrue(FeatureFlags.isEnabled("systemSettings"))
         assertFalse(FeatureFlags.isEnabled("allowReboot"))
         assertFalse(FeatureFlags.isEnabled("limitsWrite"))
     }

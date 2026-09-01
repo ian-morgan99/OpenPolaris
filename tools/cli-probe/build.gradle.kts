@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(kotlin("test"))
-    testImplementation(project(":tools:stub-server"))
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 application {
@@ -51,4 +51,32 @@ tasks.register<JavaExec>("smoke") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("dev.openpolaris.probe.SmokeKt")
     standardInput = System.`in`
+}
+
+tasks.register<JavaExec>("runFakeMount") {
+    group = "application"
+    description = "Run FakeMount on 127.0.0.1:<port> (default 9090)."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("dev.openpolaris.probe.FakeMountKt")
+    // Default port; override with -PfakeMountPort=NNNN.
+    val port = (project.findProperty("fakeMountPort") as String?)?.toIntOrNull() ?: 9090
+    args(port.toString())
+}
+
+tasks.test {
+    useJUnit()
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
+    // Forward the real-mount toggle and target host/port (if provided as
+    // Gradle project properties) into the test JVM as system properties.
+    // The ProbeSmokeTest suite reads them via System.getProperty(...).
+    val realMount = (project.findProperty("openpolaris.realMount") as String?)?.toBoolean() == true
+    if (realMount) {
+        val realHost = (project.findProperty("openpolaris.realMount.host") as String?) ?: "192.168.0.1"
+        val realPort = (project.findProperty("openpolaris.realMount.port") as String?) ?: "9090"
+        systemProperty("openpolaris.realMount", "true")
+        systemProperty("openpolaris.realMount.host", realHost)
+        systemProperty("openpolaris.realMount.port", realPort)
+    }
 }

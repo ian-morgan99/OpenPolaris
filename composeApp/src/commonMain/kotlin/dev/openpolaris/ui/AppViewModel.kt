@@ -13,15 +13,23 @@ import dev.openpolaris.core.astro.CometOrbitalElements
 import dev.openpolaris.core.astro.CometShardLoader
 import dev.openpolaris.core.astro.EmbeddedCatalog
 import dev.openpolaris.core.astro.ObjectType
-import dev.openpolaris.core.astro.SessionMarker
 import dev.openpolaris.core.domain.BatteryDetail
 import dev.openpolaris.core.domain.CameraInfo
+import dev.openpolaris.core.domain.CameraProfile
+import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.DeviceInfo
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
+import dev.openpolaris.core.domain.FirmwareUpdateController
 import dev.openpolaris.core.domain.GimbalPosition
+import dev.openpolaris.core.io.FilePicker
+import dev.openpolaris.core.session.PlatformFile
+import dev.openpolaris.core.domain.GoToController
+import dev.openpolaris.core.domain.HelpersController
+import dev.openpolaris.core.domain.CameraController
+import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.MountState
@@ -29,26 +37,50 @@ import dev.openpolaris.core.domain.OmsState
 import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.Temperature
+import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
-import dev.openpolaris.core.session.InMemorySessionStore
+import dev.openpolaris.core.session.SessionMarker
 import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.path.defaultSessionPath
+import dev.openpolaris.core.solver.NullStarDetector
+import dev.openpolaris.core.solver.OnDevicePlateSolver
+import dev.openpolaris.core.solver.PlateSolver
+import dev.openpolaris.core.solver.SolveHint
+import dev.openpolaris.core.solver.SolveResult
+import dev.openpolaris.core.solver.StarDetector
+import dev.openpolaris.core.solver.SyntheticTestCatalog
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
  * state for Compose. `connectionFactory` is injected so tests and the desktop
  * simulator can substitute a fake connection.
+ *
+ * [sessionStore] persists the "last connected mount" [SessionMarker] so the
+ * next launch can offer an auto-reconnect prompt via [reconnectPrompt].
+ * Callers (e.g. `OpenPolarisApp` and tests) supply the store explicitly;
+ * production wires `SessionStore(defaultSessionPath())` (JVM:
+ * `~/.openpolaris/session.json`, Android: `${filesDir}/openpolaris/session.json`
+ * once issue #6's `Context` wiring lands in 3c.4). Tests pass a temp-dir-backed
+ * `SessionStore` so the real home directory is never touched.
  */
 class AppViewModel(
     private val scope: CoroutineScope,
@@ -61,18 +93,35 @@ class AppViewModel(
      * the Android build) can construct the VM without it.
      */
     private val connectWifi: (suspend (String) -> Unit) -> Unit = {},
-    /**
-     * Persistent record of targets the user has chosen. The reconnect prompt
-     * (issue #27, 3c.4) reads `store.latest()` after a successful connect and,
-     * if it is younger than 24 h and not already where the user is pointing,
-     * surfaces a "Return to M31?" dialog. Defaults to an in-memory store so
-     * the Android build does not have to wire a platform one; production
-     * wiring (Android `DataStore`, JVM flat file) is a follow-up sub-issue.
-     */
-    private val sessionStore: SessionStore = InMemorySessionStore(),
+    private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
+    private val starDetector: StarDetector = NullStarDetector,
+    private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
+    // The dispatcher used for session-marker I/O. Tests inject the
+    // unconfined test dispatcher so marker reads complete synchronously
+    // inside [tryReconnectIfMarkerExists]; production callers use the
+    // default Dispatchers.IO to keep the main thread off the filesystem.
+    internal val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    // 3d: default host is the Polaris AP (192.168.0.1) when the user's
+    // phone is joined to the mount's WiFi network. The pre-3d default
+    // (192.168.43.1) is the Android USB-tethered gateway — useful in
+    // dev rigs that tether the PC to a phone's hotspot, but wrong as a
+    // first-class default for a real Polaris. The host is only a
+    // starting value anyway — once a successful connect writes a
+    // [SessionMarker], the next launch offers a reconnect prompt
+    // pre-filled with the actual host, so the default rarely matters
+    // beyond the very first connect.
+
     var host by mutableStateOf("192.168.0.1")
         private set
+
+    // 3b.5-BUG: live (committed) port, read by MountSession() and the
+    // persisted marker. Defaults to 9090 to match prior hard-coded
+    // behaviour; settable through [updatePort] from the UI.
+    var port by mutableStateOf(9090)
+        private set
+
+    fun updatePort(p: Int) { port = p }
 
     var mount by mutableStateOf(MountState())
         private set
@@ -134,49 +183,425 @@ class AppViewModel(
         private set
 
     /**
-     * Reconnect prompt state (issue #27, 3c.4). When non-null, the UI shows
-     * an AlertDialog asking whether to slew back to the cached target.
-     * Set by [connect] after a successful handshake if [sessionStore] has a
-     * marker younger than 24 h that is not already [lastSlewMarkerId].
-     * Cleared by [confirmReconnect] and [dismissReconnect], and by a
-     * successful [goto] that writes a new marker to the store.
+     * Live status of the firmware-update flow (FirmwareUpdateController). Null
+     * when no upload has been attempted yet in this session. Surfaced by
+     * FirmwarePane as a progress bar / status line.
      */
-    var pendingReconnectMarker by mutableStateOf<SessionMarker?>(null)
+    var firmwareStatus by mutableStateOf<FirmwareUpdateController.Status?>(null)
         private set
 
     /**
-     * Marker id the user has most recently chosen (either via reconnect
-     * confirm or via a fresh "Save target"). When [pendingReconnectMarker]
-     * is set on connect, we suppress the prompt if its id matches this —
-     * the user is already there, and re-asking is noise.
+     * The firmware file the user just picked, surfaced in the FirmwarePane
+     * before they hit "Upload". Null when nothing has been picked yet, or
+     * after a successful upload (so the pane resets to its clean state).
+     * We hold the absolute path rather than the bytes: the bytes can be
+     * many MB and we don't want them sitting in Compose state.
      */
-    private var lastSlewMarkerId: String? = null
+    var pickedFirmwarePath by mutableStateOf<String?>(null)
+        private set
+
+    /** Display name of the picked firmware file, taken from the path's basename. */
+    var pickedFirmwareName by mutableStateOf<String?>(null)
+        private set
+
+    /** Bytes of the picked firmware file, lazily read by the upload button. */
+    var pickedFirmwareSize by mutableStateOf<Long?>(null)
+        private set
+
+    /** Whether the firmware upload is currently in flight. Drives UI gating. */
+    var firmwareBusy by mutableStateOf(false)
+        private set
+
+    /** Whether the user wants the mount to reboot after a successful install. */
+    var firmwareRebootAfter by mutableStateOf(false)
+
+    // ---- session persistence + reconnect prompt (issue #27) ----------------
+
+    // [pendingReconnectMarker] / [lastSlewMarkerId] / [confirmReconnect] /
+    // [maybeOfferReconnect] / [saveCurrentTarget] were part of the OURS'
+    // "Return to last celestial target" feature merged alongside THEIRS'
+    // "Reconnect to last host" feature. The OURS' feature referenced a
+    // TargetSessionMarker store that was never wired in (only the
+    // SessionStore<connection> exists), so the merged code referenced
+    // methods that don't exist. Removed in favour of THEIRS' feature for
+    // now; the target-marker feature can be re-added against a real
+    // TargetStore later.
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
+    private var autoLevelController: AutoLevelController? = null
+    private val autoLevelJobs: MutableList<Job> = mutableListOf()
+    // The 3 helper-state collectors (dither/settling/limits) launched by
+    // [wireHelpers] subscribe to never-completing StateFlows. Track them
+    // in a list (mirroring [autoLevelJobs]) so [disconnect] can cancel
+    // every one. Without this the test `connectDoesNotWriteMarkerOnFailure`
+    // (issue #7 3c.3) sees 3 active child coroutines after the test scope
+    // tears down.
+    private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
     private var capturePollJob: Job? = null
+    // The simulated mount (only set in demo mode). Held so disconnect()
+    // can cancel its private reader scope.
+    private var demoSim: SimulatedMount? = null
+
+    // Live preview of the camera MJPEG stream. Independent of the control
+    // socket so a slow preview frame can never block the mount poll loop.
+    // Decoded JPEGs land in [previewFrame] on Dispatchers.Default.
+    val preview = PreviewController(parent = scope.coroutineContext[Job])
+    val previewState: StateFlow<PreviewController.State> get() = preview.state
+    var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+        private set
+
+    // 3c.3: session-pause UX surface. Non-null while the UI is expected to
+    // render the "Reconnect to <host>?" AlertDialog. Populated by
+    // [tryReconnectIfMarkerExists] when a valid marker is found; cleared by
+    // [acceptReconnect], [dismissReconnect], or [forgetMarker].
+    private val _reconnectPrompt = MutableStateFlow<ReconnectPrompt?>(null)
+    val reconnectPrompt: StateFlow<ReconnectPrompt?> = _reconnectPrompt.asStateFlow()
+
+    // 3c.5: in-flight indicator. True between [acceptReconnect] and the
+    // connect coroutine's final outcome. UI swaps the dialog's action row
+    // to a single "Cancel" button while this is true so a hung
+    // `s.connect()` (mount powered off) cannot strand the user staring at
+    // a non-interactive modal.
+    private val _reconnecting = MutableStateFlow(false)
+    val reconnecting: StateFlow<Boolean> = _reconnecting.asStateFlow()
+
+    /**
+     * Stream 15.1 (issue #15): the active [CameraProfile] used by
+     * [MainActivity.onLaunchVr] when handing FoV to VRActivity. Defaults
+     * to [CameraProfile.PolarisEyepiece] — the per-mount default the
+     * VRActivity used as a constant before #15. When a real sensor
+     * stream lands the source will flip to [CameraProfileSource.SENSOR];
+     * the render side uses the label to show the user which is in play.
+     */
+    private val _cameraProfile = MutableStateFlow(CameraProfile.PolarisEyepiece)
+    val cameraProfile: StateFlow<CameraProfile> = _cameraProfile.asStateFlow()
+
+    /**
+     * Publish a new [CameraProfile] (e.g. when a sensor reading arrives,
+     * or when the user toggles an override). The StateFlow conflates
+     * identical samples, so it is safe to call from a hot sensor stream.
+     */
+    fun setCameraProfile(profile: CameraProfile) {
+        _cameraProfile.value = profile
+    }
+
+    // 3c.5: host-edit buffer for the ReconnectDialog. Populated by
+    // [tryReconnectIfMarkerExists] from the saved marker, and read by
+    // [acceptReconnect] so the user can override the saved host without
+    // first dismissing the dialog. A non-blank [draftHost] also
+    // short-circuits [tryReconnectIfMarkerExists] so a re-prompt
+    // (MainActivity.onResume) cannot clobber the user's edit.
+    private val _draftHost = MutableStateFlow("")
+    val draftHost: StateFlow<String> = _draftHost.asStateFlow()
+
+    fun updateDraftHost(h: String) { _draftHost.value = h }
+
+    // 3b.5-BUG: parallel of [draftHost] for the persisted [ReconnectPrompt.port].
+    // Pre-fix, port had no draft/edit field at all and was a private mutableStateOf
+    // hard-coded to 9090 in both connect() and saveMarker(). The user could
+    // never change the port; even if they could, it was silently dropped on
+    // round-trip. ReconnectDialog now exposes this as a numeric field and
+    // acceptReconnect() reads it instead of the persisted prompt value.
+    private val _draftPort = MutableStateFlow("")
+    val draftPort: StateFlow<String> = _draftPort.asStateFlow()
+
+    fun updateDraftPort(p: String) { _draftPort.value = p }
+
+    // 3c.5: handle to the in-flight connect coroutine so [cancelReconnect]
+    // can interrupt a hung `s.connect()`. Null between connects. Set by
+    // [connect] immediately before launching.
+    private var connectJob: Job? = null
+
+    /**
+     * Wall-clock provider for the marker-age calculation. Overridable from
+     * tests so `ReconnectPrompt.ageMs` is deterministic regardless of the
+     * real system clock. Production callers should not touch this.
+     */
+    internal var nowMs: () -> Long = { dev.openpolaris.core.domain.currentEpochMillis() }
+
 
     fun updateHost(h: String) { host = h }
 
+    /**
+     * Read the persisted [SessionMarker] (if any) and, if valid, set
+     * [reconnectPrompt] so the UI can show the "Reconnect?" dialog. Called
+     * once at startup from `MainActivity.onResume` (3c.4). No-op when the
+     * store has no usable marker, or when [reconnectPrompt] is already set
+     * (e.g. the user dismissed it and we do not want to re-prompt this
+     * launch). All I/O is on [Dispatchers.IO] so the calling coroutine
+     * (typically the main dispatcher) is not blocked.
+     */
+    fun tryReconnectIfMarkerExists() {
+        scope.launch {
+            val marker = withContext(ioDispatcher) { sessionStore.read() }
+            if (marker == null) return@launch
+            // Re-check inside the launched coroutine: the user may have
+            // dismissed the prompt between the call site and here.
+            if (_reconnectPrompt.value != null) return@launch
+            // 3c.5: a non-blank draftHost means the user has started
+            // editing the saved host on this surface. Do not clobber
+            // their edit with a re-prompt driven by onResume. The next
+            // time the app is *freshly* launched (cold start) the
+            // draftHost is empty and the prompt returns as normal.
+            if (_draftHost.value.isNotBlank()) return@launch
+            _reconnectPrompt.value = ReconnectPrompt(
+                host = marker.host,
+                port = marker.port,
+                mountMode = marker.lastMountMode,
+                trackingStarted = marker.lastTrackingStarted,
+                ageMs = (nowMs() - marker.lastConnectedAtEpochMs).coerceAtLeast(0L),
+                lastRollDeg = marker.lastRollDeg,
+                lastPitchDeg = marker.lastPitchDeg,
+            )
+            // Seed the host-edit field with the saved host so the
+            // OutlinedTextField in the dialog has something to show.
+            _draftHost.value = marker.host
+            // 3b.5-BUG: same seeding for port. Without this the port
+            // text field starts blank on first prompt and any
+            // acceptReconnect() derivation has nothing to fall back on
+            // except the prompt's port. We prefer the persisted value so
+            // the dialog round-trips whatever the user last accepted.
+            _draftPort.value = marker.port.toString()
+        }
+    }
+
+    /**
+     * User accepted the prompt. Sets [host] to the persisted host (or the
+     * user's edited [draftHost] if non-blank) and calls [connect] using the
+     * persisted port (or the user's edited [draftPort] if a valid integer).
+     * Clears the prompt synchronously so the dialog closes before the
+     * connection attempt begins. Sets [reconnecting] true so the
+     * (now-closed) dialog swap-in spinner and the dedicated "Cancel" path
+     * become active. A successful connect will overwrite the marker with
+     * fresh state; a cancelled connect leaves the marker untouched so the
+     * next resume still offers the same prompt.
+     */
+    fun acceptReconnect() {
+        val prompt = _reconnectPrompt.value ?: return
+        val targetHost = _draftHost.value.trim().ifBlank { prompt.host }
+        // 3b.5-BUG: derive the target port the same way. We *do not* trust
+        // the persisted prompt's port if the user has typed something on
+        // this surface, even when the typed value is unchanged (it gets
+        // reseeded to the persisted value by tryReconnectIfMarkerExists),
+        // because the user may have *just* edited it. An unparseable edit
+        // (e.g. "" or "abc") falls back to the persisted port, mirroring
+        // the host behavior.
+        val targetPort = _draftPort.value.trim().toIntOrNull() ?: prompt.port
+        _reconnectPrompt.value = null
+        host = targetHost
+        // 3b.5-BUG: commit the chosen port to the live field BEFORE
+        // connect() reads it. MountSession is constructed with `port`,
+        // not the prompt value, and saveMarker() also reads `port`. If
+        // the user typed a different port, the existing marker is now
+        // stale — persist a fresh one BEFORE launching connect so a
+        // successful connect-time saveMarker() does not race with a
+        // user-visible "still pointing at the old port" prompt on the
+        // next launch. Same precedence as host: prompt.stale ↔ live != prompt.
+        port = targetPort
+        if (targetHost != prompt.host || targetPort != prompt.port) {
+            val pos = position
+            val writeResult = sessionStore.write(
+                SessionMarker(
+                    host = targetHost,
+                    port = targetPort,
+                    lastConnectedAtEpochMs = nowMs(),
+                    lastMountMode = prompt.mountMode,
+                    lastTrackingStarted = prompt.trackingStarted,
+                    lastRollDeg = pos?.roll?.toDouble(),
+                    lastPitchDeg = pos?.pitch?.toDouble(),
+                ),
+            )
+            // 3d: if the write fails, the on-disk marker still points at
+            // the OLD host, so the next launch would re-prompt the user
+            // with the wrong host. Surface the failure so the user
+            // understands the discrepancy, and still proceed with the
+            // live connect (the session itself is not affected).
+            if (writeResult.isFailure) {
+                statusMessage = "Could not save updated host: ${writeResult.exceptionOrNull()?.message ?: "unknown"}"
+            }
+        }
+        _reconnecting.value = true
+        connect()
+    }
+
+    /**
+     * User cancelled an in-flight reconnect (the dialog's single "Cancel"
+     * action while [reconnecting] is true). Cancels the connect coroutine
+     * and clears the in-flight flag. Does NOT clear the prompt or the
+     * marker — the prompt is already gone (we cleared it on accept); the
+     * marker stays so the next launch can offer the same prompt.
+     *
+     * Idempotent: safe to call when no connect is in flight (no-op).
+     */
+    fun cancelReconnect() {
+        if (!_reconnecting.value) return
+        connectJob?.cancel()
+        // 3e: explicit reset is still needed for the "connect already
+        // completed" race — the connectJob's finally block will also
+        // reset the flag, but it may run on a different dispatcher and
+        // we want the flag to drop synchronously with the cancel call
+        // so the dialog action row swaps back immediately.
+        _reconnecting.value = false
+        statusMessage = "Reconnect cancelled"
+    }
+
+    /**
+     * User dismissed the prompt ("Different mount"). Clears the prompt for
+     * this launch but does NOT delete the marker file — the prompt will
+     * return on the next launch until the user accepts, or explicitly
+     * chooses "Forget this mount" via [forgetMarker]. If the user edited
+     * the host field before dismissing, the edit is preserved in
+     * [draftHost] so the next resume's [tryReconnectIfMarkerExists] does
+     * not clobber it.
+     */
+    fun dismissReconnect() {
+        _reconnectPrompt.value = null
+    }
+
+    /**
+     * Permanently forget the persisted mount. Called from a settings
+     * "Forget this mount" action. After this, [tryReconnectIfMarkerExists]
+     * will be a no-op until a new [connect] succeeds and writes a new
+     * marker. Surfaces the result in [statusMessage].
+     */
+    fun forgetMarker() {
+        scope.launch {
+            val removed = withContext(ioDispatcher) { sessionStore.forget() }
+            _reconnectPrompt.value = null
+            // 3c.5: clear the host-edit buffer so the next launch (or
+            // the next successful connect that writes a new marker) can
+            // re-seed it from the fresh marker's host.
+            _draftHost.value = ""
+            // 3b.5-BUG: same clearing for the port-edit buffer.
+            _draftPort.value = ""
+            statusMessage = if (removed) "Forgot saved mount" else "No saved mount to forget"
+        }
+    }
+
+    /**
+     * Persist a fresh [SessionMarker] for the just-connected mount. Called
+     * from inside [connect] / [connectDemo] on a successful `s.connect()`,
+     * capturing the mode + tracking + tilt at that moment. A future slice
+     * could re-write the marker on every state change (so a long-running
+     * session's marker reflects the final mode), but v1 captures the
+     * connect-time state which is the minimum the reconnect prompt needs.
+     *
+     * If [position] is still null at connect time (a real race for the first
+     * connect, since 517 is the second poll) we record `null` for
+     * roll/pitch — meaning "no 517 frame had landed yet". The next
+     * `connect` will overwrite this once the first 517 lands. Pre-3d we
+     * wrote 0.0 here, which the UI then displayed as "you were at roll
+     * 0.0°" — a real first-class bug (data was invented out of thin air).
+     */
+    private fun saveMarker() {
+        val pos = position
+        val marker = SessionMarker(
+            host = host,
+            // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field
+            // which acceptReconnect() / connect() committed before this
+            // call. For a non-reconnect connect(), port is whatever the
+            // user last set it to (defaults to 9090).
+            port = port,
+            lastConnectedAtEpochMs = nowMs(),
+            lastMountMode = mount.mode,
+            lastTrackingStarted = mount.tracking == true,
+            lastRollDeg = pos?.roll?.toDouble(),
+            lastPitchDeg = pos?.pitch?.toDouble(),
+        )
+        scope.launch {
+            val result = withContext(ioDispatcher) { sessionStore.write(marker) }
+            if (result.isFailure) {
+                // Best-effort: a failed write does not break the live
+                // session, but the user should know the reconnect prompt
+                // will not appear next launch.
+                statusMessage = "Connected (could not save session: ${result.exceptionOrNull()?.message ?: "unknown"})"
+            }
+        }
+    }
+
     fun connect() {
+        // 3d D2 + 3e E1: disconnect() now preserves any pending
+        // "Could not save updated host: …" message (see the comment
+        // in disconnect()), so the save-failure context survives the
+        // disconnect-and-reconnect cycle intact. The terminal-status
+        // branch in [connectJob] combines the save-failure message
+        // with the connect-outcome message into a single status line
+        // so the user sees both: the marker write failed AND the
+        // live connect failed.
         disconnect()
         demoMode = false
-        val s = MountSession(connectionFactory, host, 9090)
+        // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field which
+        // acceptReconnect() committed before calling connect() (in the
+        // reconnect path) or which the user set via the UI before pressing
+        // Connect on a fresh connect. The control socket endpoint and the
+        // persisted marker must agree, so both read from the same field.
+        val s = MountSession(connectionFactory, host, port)
         session = s
         controller = TrackingController(s)
-        cameraController = dev.openpolaris.core.domain.CameraController(s)
+        cameraController = CameraController(s)
+        wireHelpers(s)
         startAutoLevel(s)
-        scope.launch {
-            statusMessage = "Connecting to $host…"
-            if (s.connect()) {
-                statusMessage = "Connected"
-                postConnectBurst(s)
-                startPolling(s)
-                startCapturePolling(s)
-                maybeOfferReconnect()
-            } else {
-                statusMessage = "Could not reach $host — try Demo mode"
+        // 3c.5: capture the launched coroutine so [cancelReconnect] can
+        // interrupt a hung `s.connect()` (mount powered off, link down).
+        // 3e: wrap the whole body in try/finally so the in-flight flag
+        // is reset on every exit path (success, failure, cancellation,
+        // unhandled throw). Previously the flag was only reset in the
+        // success/failure branches, so cancelling via [scope.cancel()]
+        // (e.g. test teardown, Activity destroyed) would leave
+        // `_reconnecting` stuck at true forever, wedging the spinner UX.
+        // 3e: also drop the intermediate "Connecting to $host…" status
+        // line. It was a real first-class race against the 3d D2
+        // "Could not save updated host: …" message — the latter was set
+        // synchronously inside [acceptReconnect] immediately before
+        // [connect] was invoked, so the "Connecting to" line clobbered
+        // the error before the user could see it. The in-flight spinner
+        // already communicates "in progress" via the dialog; the
+        // status line is more useful showing only the terminal state
+        // ("Connected" or "Could not reach…"), or the preserved
+        // write-failure message until the next terminal status lands.
+        connectJob = scope.launch {
+            try {
+                // 3d D2: a preceding "Could not save updated host: …" message
+                // (set synchronously in acceptReconnect when the marker
+                // write failed) is the *cause* of the failure the user is
+                // about to see, not a separate fact — the connect itself
+                // is about to fail because the marker on disk is stale.
+                // Preserve that message across the terminal-status update
+                // so the user sees both: the save failure AND the
+                // connection failure. Without this, the "Could not
+                // reach …" line would silently clobber the save-failure
+                // context and the user would have no idea why their
+                // edit was lost.
+                //
+                // [disconnect()] preserves the save-failure message
+                // (see its comment), so reading statusMessage here
+                // inside the launched coroutine still returns the
+                // "Could not save updated host: …" line that
+                // acceptReconnect set synchronously. Match the EXACT
+                // prefix from acceptReconnect, NOT any past combined
+                // " — and could not reach …" message — a retry that
+                // again fails to save would re-trigger the snapshot,
+                // but a retry after a prior combined failure would
+                // NOT (no "Could not save" prefix). This keeps each
+                // connect attempt's status chain self-contained.
+                val pendingSaveFailure = statusMessage
+                    .takeIf { it.startsWith("Could not save updated host:") }
+                if (s.connect()) {
+                    statusMessage = "Connected"
+                    saveMarker()
+                    startPolling(s)
+                    startCapturePolling(s)
+                    startPreview()
+                } else {
+                    statusMessage = pendingSaveFailure?.let { saveMsg ->
+                        "$saveMsg — and could not reach $host. Try Demo mode."
+                    } ?: "Could not reach $host — try Demo mode"
+                }
+            } finally {
+                _reconnecting.value = false
+
             }
         }
     }
@@ -194,29 +619,82 @@ class AppViewModel(
     }
 
     /** Simulator mode: no hardware needed; drives a fake session locally. */
-    fun connectDemo() {
+    /**
+     * Spin up a fully simulated mount session.
+     *
+     * @param startPolling when true (default for the UI button) the launch
+     *   will start the mount-state poll loop; when false, the call returns
+     *   after writing the marker. Tests that only want to assert the
+     *   marker-save path pass `false` so that `advanceUntilIdle()` does
+     *   not run the poll loop forever.
+     */
+    fun connectDemo(startPolling: Boolean = true) {
         disconnect()
         demoMode = true
-        val sim = SimulatedMount(scope)
+        val sim = SimulatedMount()
+        // Hold a reference so disconnect() can cancel the private reader
+        // scope (otherwise the long-lived reader coroutine keeps the
+        // SupervisorJob alive past the lifetime of the AppViewModel).
+        demoSim = sim
         session = sim.session
         controller = TrackingController(sim.session)
-        cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
+        cameraController = CameraController(sim.session)
+        wireHelpers(sim.session)
+
         startAutoLevel(sim.session)
         scope.launch {
             sim.session.connect()
+            // SimulatedMount's connect() always returns true; treat as
+            // success for the marker-save path. (A future slice that
+            // simulates intermittent failure should gate this on the
+            // return value the same way `connect()` does.)
+            saveMarker()
             statusMessage = "Demo mode (simulated mount)"
-            startPolling(sim.session)
-            startCapturePolling(sim.session)
+            if (startPolling) {
+                startPolling(sim.session)
+            }
+            // No preview in demo mode: there is no MJPEG endpoint in the
+            // simulator. PreviewController stays Idle, which the pane
+            // renders as "Stream unavailable".
+
         }
     }
 
     fun disconnect() {
         pollJob?.cancel()
         capturePollJob?.cancel()
+        // 3c.5: if a reconnect was in flight, tear it down too so the
+        // spinner does not stay up after the user navigates away.
+        connectJob?.cancel()
+        // Tear down the simulated mount's private reader scope so the
+        // long-lived reader coroutine does not keep the dispatcher alive
+        // past the lifetime of this view model.
+        demoSim?.shutdown()
+        demoSim = null
+        // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"
+        // flag, not a "disconnect lifecycle" flag. The launched coroutine
+        // in connect() resets it in its `finally` block (line 411) and
+        // cancelReconnect() resets it synchronously (line 290). Resetting
+        // it here was the root cause of `connectClearsReconnectingOnSuccess`
+        // failing: acceptReconnect() set it true and then synchronously
+        // called connect(), which called disconnect() (here), which
+        // cleared it before the test could observe the in-flight state.
+        // The cancel path is unaffected because cancelReconnect() does
+        // not call disconnect() and has its own explicit reset.
+        stopAutoLevelAsync()
+        cancelHelpersJobs()
+        preview.stop()
+        previewFrame = null
+
         session?.disconnect()
         session = null
         controller = null
         cameraController = null
+        helpersController = null
+        ditherEnabled = null
+        settlingSeconds = null
+        limitsEnabled = null
+        settlingInput = ""
         mount = MountState()
         position = null
         firmwareVersion = null
@@ -231,16 +709,65 @@ class AppViewModel(
         deviceInfo = null
         temperature = null
         captureState = null
-        // Drop any pending prompt so a stale "Return to M31?" does not
-        // pop on the next connect before [maybeOfferReconnect] has a
-        // chance to re-evaluate.
-        pendingReconnectMarker = null
-        if (!demoMode) statusMessage = "Disconnected"
         // Tear down the auto-level controller in its own coroutine so we can
         // call the suspending stopAutoLevel() from a non-suspending context.
         // Safe to fire-and-forget: stopAutoLevel only cancels jobs that
         // belong to this VM, and the controller's stop() is idempotent.
-        scope.launch { stopAutoLevel() }
+        stopAutoLevelAsync()
+        _lastSolveResult.value = null
+        // Clear the VR marker bus too so a stale solve doesn't linger
+        // on the headset after the user disconnects.
+        MarkerStateBus.reset()
+        solveInProgress = false
+        if (!demoMode) {
+            // 3e E1: acceptReconnect() may have just set
+            // statusMessage to "Could not save updated host: …"
+            // (the marker write failed, so the next launch will
+            // re-prompt with the OLD host). The user needs to see
+            // that error, not the generic "Disconnected" line. This
+            // branch is the only writer to statusMessage in
+            // disconnect(), and it is reached on every connect()
+            // (which calls disconnect() first) and on every
+            // explicit user disconnect — in both cases, a
+            // preceding save-failure error is the more useful
+            // thing to keep on screen until the next connect
+            // attempt overwrites it. Match the EXACT prefix used
+            // in acceptReconnect.
+            if (!statusMessage.startsWith("Could not save updated host:")) {
+                statusMessage = "Disconnected"
+            }
+        }
+    }
+
+    /**
+     * Open the MJPEG preview stream on the current host. Each frame
+     * is decoded off the main thread and published to [previewFrame].
+     */
+    private fun startPreview() {
+        // 3h-BUG: read the live port field, not a hard-coded 8080. The port
+        // is seeded from the persisted SessionMarker (in
+        // tryReconnectIfMarkerExists) and may be overridden by the user via
+        // the reconnect dialog's port field (acceptReconnect() writes
+        // `port = targetPort`). Previously this call always hit 8080 even
+        // when the user picked a non-default port, so the preview never
+        // opened. Called before the collector launches so the first frame
+        // isn't missed by a start/collect race.
+        preview.start(host, port)
+        scope.launch {
+            preview.bytes.collect { jpeg ->
+                if (jpeg == null) {
+                    previewFrame = null
+                    return@collect
+                }
+                // Drop-on-late: if the user closes the pane, the next
+                // decode will simply replace a stale bitmap.
+                val decoded = withContext(Dispatchers.Default) {
+                    runCatching { decodeJpegToImageBitmap(jpeg) }
+                }
+                decoded.getOrNull()?.let { previewFrame = it }
+            }
+        }
+
     }
 
     private fun startPolling(s: MountSession) {
@@ -484,84 +1011,178 @@ class AppViewModel(
 
     // ---- session persistence + reconnect prompt (issue #27) ----------------
 
-    /**
-     * Save a marker for the current goto target and remember its id so the
-     * next reconnect prompt is suppressed. Called by the "Save target" UI
-     * action; the in-memory store accepts it directly. On platforms with a
-     * persistent [SessionStore] wired in, the marker survives process
-     * restarts.
-     */
-    fun saveCurrentTarget(name: String, raHours: Double, decDeg: Double) = scope.launch {
-        val marker = SessionMarker(
-            id = java.util.UUID.randomUUID().toString(),
-            name = name.ifBlank {
-                // Designation is a coordinate pair so the user can tell at a
-                // glance which save this is. autoName takes a single string
-                // designation + an epoch ms timestamp.
-                val ra = AstroMath.formatRaHours(raHours * 15.0)
-                val dec = AstroMath.formatDecDMS(decDeg)
-                SessionMarker.autoName("target $ra $dec", System.currentTimeMillis())
-            },
-            raHours = raHours,
-            decDeg = decDeg,
-            capturedAtMs = System.currentTimeMillis(),
-        )
-        sessionStore.save(marker)
-        lastSlewMarkerId = marker.id
-        statusMessage = "Saved ${marker.name}"
-    }
-
-    /**
-     * After a successful connect, check the store for a recent target and
-     * surface it as a reconnect prompt — **only** if:
-     *  - the most recent marker is younger than 24 h, and
-     *  - it is not the same one the user is already on ([lastSlewMarkerId]).
-     *
-     * "Already on" is tracked by id, not by sky position: the mount has
-     * no way to tell us its current RA/Dec until the 284/517 poll loop
-     * has run for a beat, and a "Return to M31?" dialog at the moment of
-     * connect is a clearer signal anyway. If the user has since slewed
-     * to a fresh target via [goto] + [saveCurrentTarget], [lastSlewMarkerId]
-     * will be different and the prompt is suppressed.
-     */
-    private suspend fun maybeOfferReconnect() {
-        val now = System.currentTimeMillis()
-        val marker = sessionStore.latest() ?: return
-        if (now - marker.capturedAtMs > RECONNECT_MAX_AGE_MS) return
-        if (marker.id == lastSlewMarkerId) return
-        pendingReconnectMarker = marker
-    }
-
-    /** User tapped "Yes" on the reconnect prompt. Issue the slew. */
-    fun confirmReconnect() {
-        val marker = pendingReconnectMarker ?: return
-        pendingReconnectMarker = null
-        val loc = parsedLocation() ?: run {
-            statusMessage = "Set a valid observer location to slew to ${marker.name}"
-            return
-        }
-        val altAz = AstroMath.toHorizontalAt(
-            marker.raHours, marker.decDeg, loc.first, loc.second, AstroMath.julianDateNow(),
-        )
-        lastSlewMarkerId = marker.id
-        scope.launch {
-            when (controller?.gotoAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)) {
-                null -> statusMessage = "Not connected"
-                else -> statusMessage = "Slewing back to ${marker.name} (az %.1f°, alt %.1f°)"
-                    .format(altAz.azimuthDeg, altAz.altitudeDeg)
-            }
-        }
-    }
-
-    /** User tapped "No" on the reconnect prompt. */
-    fun dismissReconnect() {
-        pendingReconnectMarker = null
-    }
+    // [saveCurrentTarget] / [maybeOfferReconnect] / [confirmReconnect] were
+    // part of the OURS' "Return to last celestial target" feature. They
+    // referenced a TargetStore that was never wired in. Removed; the
+    // THEIRS' host-reconnect prompt ([reconnectPrompt], [acceptReconnect])
+    // is the only reconnect UX in this build.
 
     // ---- alignment ---------------------------------------------------------
 
     var alignmentStars by mutableStateOf(0)
         private set
+
+    // ---- plate-solve -------------------------------------------------------
+
+    /**
+     * Most recent successful plate-solve. Null until the user has
+     * pressed "Solve now" and the solver returned a confident
+     * match. The pane surfaces RA/Dec / confidence / matched-star
+     * count for the operator to decide whether to "Sync to target".
+     *
+     * Stream 7.4 (issue #14): a [StateFlow] rather than Compose
+     * state, so the VR activity (which runs on the Android side
+     * and cannot observe Compose state) can `collect` it in its
+     * `lifecycleScope` and push each emission to the renderer's
+     * `setSolveTarget` — re-solves while VR is open update the
+     * marker within one frame instead of waiting for the next
+     * launch.
+     */
+    private val _lastSolveResult = MutableStateFlow<SolveResult?>(null)
+    val lastSolveResult: StateFlow<SolveResult?> = _lastSolveResult.asStateFlow()
+
+    /** True while [solveNow] is running. Gates the "Solve now" button. */
+    var solveInProgress by mutableStateOf(false)
+        private set
+
+    /**
+     * Plate-solve the current camera frame and, when localized,
+     * nudge the mount to centre the currently-entered RA/Dec
+     * target. Mirrors the [submitAlignmentStar] / [goto] flow:
+     * the work runs on [scope] so the UI stays responsive.
+     *
+     * The flow is:
+     *  1. detect stars in the latest preview JPEG (Android-only;
+     *     JVM/Desktop get an empty list from [NullStarDetector]),
+     *  2. build a localized [SolveHint] from the current mount
+     *     position + observer site,
+     *  3. call [solver]; on a confident result, refine the slew
+     *     and remember the solved RA/Dec in [lastSolveResult].
+     *
+     * No-op with a status message when the prerequisites (session,
+     * preview frame, location) are missing.
+     */
+    fun solveNow(
+        frameWidth: Int = 1280,
+        frameHeight: Int = 960,
+        /**
+         * Optional Julian Date (UTC) override. When `null`, the call uses
+         * [AstroMath.julianDateNow] — i.e. "now". Tests inject a fixed
+         * JD so the horizon→equatorial conversion in the solver is
+         * reproducible; the production UI does not pass a value.
+         */
+        jdUtc: Double? = null,
+    ) {
+        if (solveInProgress) return
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
+        if (!raDecMode) {
+            statusMessage = "Switch to RA/Dec mode to plate-solve"
+            return
+        }
+        val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA"; return }
+        val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec"; return }
+        val jpeg = preview.bytes.value
+        if (jpeg == null) {
+            statusMessage = "No preview frame — wait for the live view"
+            return
+        }
+        solveInProgress = true
+        statusMessage = "Solving…"
+        val launchJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            try {
+                val detections = starDetector.detect(jpeg, frameWidth, frameHeight)
+                if (detections.isEmpty()) {
+                    statusMessage = "No stars detected in preview frame"
+                    return@launch
+                }
+                val result = GoToController(s, controller ?: TrackingController(s)).solveAndRefine(
+                    solver = solver,
+                    detections = detections,
+                    frameWidth = frameWidth,
+                    frameHeight = frameHeight,
+                    targetRaDeg = ra,
+                    targetDecDeg = dec,
+                    latDeg = loc.first,
+                    lngEastDeg = loc.second,
+                    jdUtc = jdUtc ?: AstroMath.julianDateNow(),
+                )
+                if (result == null) {
+                    // If the mount dropped mid-solve, surface that rather
+                    // than the generic "no confident match" — users were
+                    // being told the *solver* failed when the real cause
+                    // was a broken link. See PLAN-CRITICAL-REVIEW §H.
+                    val mountErr = s.lastError
+                    statusMessage = if (mountErr is MountSession.CmdResult.ProtocolError) {
+                        "Plate-solve failed (mount error: ${mountErr.message})"
+                    } else {
+                        "Plate-solve failed (no confident match)"
+                    }
+                } else {
+                    // solveAndRefine now returns the full SolveResult
+                    // (RA/Dec, confidence, matched-star count, and the
+                    // timestamp the match converged at — stamped inside
+                    // the solver). Threading the real values through here
+                    // means the VR marker can show honest confidence and
+                    // honest age, and the status message can mention the
+                    // match quality. See issue #13.
+                    _lastSolveResult.value = result
+                    // Push the same value to the process-wide bus so the
+                    // VR marker (a separate Android Activity with no
+                    // reference to this AppViewModel) updates on a
+                    // re-solve while it's open. See issue #14.
+                    MarkerStateBus.publish(result)
+                    statusMessage = "Solved RA %.4f° Dec %.4f° — %.0f%% conf, %d stars — mount refined to target"
+                        .format(result.raDeg, result.decDeg, result.confidence * 100.0, result.matchedStars)
+                }
+            } finally {
+                solveInProgress = false
+            }
+        }
+    }
+
+    /**
+     * Test seam: install a [MountSession] on this viewmodel without
+     * going through [connect] (which would also launch a poll loop and
+     * a preview fetch that we don't want interfering with
+     * determinism in unit tests).
+     */
+    internal fun testInstallSession(s: MountSession) {
+        this.session = s
+    }
+
+    /**
+     * Test seam: install an [AutoLevelController] on this viewmodel
+     * without going through [connect] / [startAutoLevel]. Lets tests
+     * drive [runAutoLevel] with a controller wired to a known
+     * (hanging, scripted, or real) sample source. Caller is responsible
+     * for the controller's [AutoLevelController.start] lifecycle —
+     * mirroring what [startAutoLevel] does in production.
+     */
+    internal fun testInstallAutoLevel(c: AutoLevelController) {
+        this.autoLevelController = c
+    }
+
+    /**
+     * Test seam: simulate a prior successful [solveNow] by writing
+     * a [SolveResult] into [lastSolveResult]. Used by tests that
+     * need to assert [disconnect] clears the cached solve.
+     */
+    internal fun testSetLastSolve(raDeg: Double, decDeg: Double) {
+        val r = SolveResult(raDeg, decDeg, 0.6, 3)
+        _lastSolveResult.value = r
+        MarkerStateBus.publish(r)
+    }
+
+    /**
+     * Test seam: publish a synthetic JPEG preview frame to the
+     * [PreviewController] without having to go through a real
+     * camera/feed. Mirrors `PreviewController.publishForTest` from
+     * the test module boundary.
+     */
+    internal fun testSetPreview(jpeg: ByteArray) {
+        preview.publishForTest(jpeg)
+    }
 
     /** Record current pointing as alignment star [alignmentStars] (code 530). */
     fun submitAlignmentStar() {
@@ -597,9 +1218,6 @@ class AppViewModel(
      */
     var autoLevelRunning by mutableStateOf(false)
         private set
-
-    private var autoLevelController: AutoLevelController? = null
-    private val autoLevelJobs: MutableList<Job> = mutableListOf()
 
     /**
      * Bring up the auto-level controller and wire its three state flows
@@ -656,22 +1274,55 @@ class AppViewModel(
         autoLevelRunning = false
     }
 
+    /**
+     * Non-suspending wrapper for use in [disconnect]. Cancel and join all
+     * collectors, then null the controller and state. The actual suspension
+     * happens in [scope] so callers can stay on the main thread.
+     */
+    private fun stopAutoLevelAsync() {
+        scope.launch { stopAutoLevel() }
+    }
+
     fun refreshAutoLevel() {
         val s = session ?: run { statusMessage = "Not connected"; return }
-        scope.launch {
-            autoLevelEnabled = when (val r = s.request(CommandTable.AUTO_LEVEL_GET_EN.code) { f ->
-                f.int("en")
-            }) {
-                is MountSession.CmdResult.Ok -> r.value == 1
-                else -> null
+        if (autoLevelController == null) {
+            // First-time setup: bring up the controller and wire its three
+            // state flows. Mirrors what startAutoLevel() does on connect;
+            // exposed here so a manual Refresh from the UI works mid-session.
+            val c = AutoLevelController(s)
+            autoLevelController = c
+            c.start(scope)
+            cancelAutoLevelJobs()
+            autoLevelJobs += scope.launch {
+                c.isEnabled.collect { autoLevelEnabled = it }
+            }
+            autoLevelJobs += scope.launch {
+                c.tilt.collect { autoLevelTilt = it }
+            }
+            autoLevelJobs += scope.launch {
+                c.isRunning.collect { autoLevelRunning = it }
             }
         }
+        // refreshEnabled is a suspend function; fire it on the VM scope so
+        // the connect path stays non-suspending and the initial 547 GET
+        // races with the controller's collector.
+        scope.launch { autoLevelController?.refreshEnabled() }
     }
 
     fun setAutoLevelEnabled(on: Boolean) = scope.launch {
-        session?.send(CommandTable.AUTO_LEVEL_SET_EN.code, CommandTable.AUTO_LEVEL_SET_EN.payload(on))
-        autoLevelEnabled = on
+        val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
+        c.setEnabled(on)
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
+    }
+
+    private fun cancelAutoLevelJobs() {
+        for (j in autoLevelJobs) j.cancel()
+        autoLevelJobs.clear()
+    }
+
+    private fun cancelHelpersJobs() {
+        for (j in helpersJobs) j.cancel()
+        helpersJobs.clear()
     }
 
     /**
@@ -694,23 +1345,23 @@ class AppViewModel(
             return@launch
         }
         statusMessage = "Auto-level started"
-        try {
+        val result = try {
             // Hard cap at 75s in case the controller's 60s internal timeout
             // is bypassed (e.g. by a wedged sampleSource). 75s gives the
             // controller a comfortable buffer.
-            val result = withTimeoutOrNull(75_000) { c.runAndAwait() }
+            withTimeoutOrNull(75_000) { c.runAndAwait() }
                 ?: AutoLevelController.AutoLevelResult.TimedOut
-            statusMessage = when (result) {
-                is AutoLevelController.AutoLevelResult.Completed ->
-                    "Auto-level settled (roll=%.3f° pitch=%.3f°)".format(result.rollDeg, result.pitchDeg)
-                is AutoLevelController.AutoLevelResult.Failed ->
-                    "Auto-level failed: ${result.reason}"
-                AutoLevelController.AutoLevelResult.TimedOut ->
-                    "Auto-level timed out (gimbal did not settle within 60s)"
-            }
         } catch (e: CancellationException) {
             statusMessage = "Auto-level cancelled"
             throw e
+        }
+        statusMessage = when (result) {
+            is AutoLevelController.AutoLevelResult.Completed ->
+                "Auto-level settled at roll=${"%.3f".format(result.rollDeg)}°, pitch=${"%.3f".format(result.pitchDeg)}°"
+            is AutoLevelController.AutoLevelResult.Failed ->
+                "Auto-level failed: ${result.reason}"
+            AutoLevelController.AutoLevelResult.TimedOut ->
+                "Auto-level timed out before settling"
         }
     }
 
@@ -819,54 +1470,78 @@ class AppViewModel(
     // search there when looking for all wire side-effects.
     // ====================================================================
 
-    // ---- helpers pane (dither, settling-time, limits, auto-level) ---------
+    // ---- astro helpers ----------------------------------------------------
+    // Codes 539/540 (dither), 543/544 (settling), 541/542 (limits) are
+    // best-effort ports from the Alpaca driver and have not been
+    // hardware-validated on every Benro firmware. Only shown when
+    // [advancedMode] is on; the panel refreshes after connect.
 
-    /** Last known dither enabled flag. Null while unknown. */
+    private var helpersController: HelpersController? = null
+
     var ditherEnabled by mutableStateOf<Boolean?>(null)
         private set
-
-    /** Last known limits enabled flag. UNVERIFIED on real mount. */
+    var settlingSeconds by mutableStateOf<Int?>(null)
+        private set
     var limitsEnabled by mutableStateOf<Boolean?>(null)
         private set
 
-    /** Refresh dither (539) and limits (541). Failures are isolated. */
-    fun refreshHelpers() = scope.launch {
-        val s = session ?: return@launch
-        if (FeatureFlags.isEnabled("advancedAstro")) {
-            runCatching {
-                when (val r = s.request(CommandTable.DITHER_GET.code) { f -> f.int("state") }) {
-                    is MountSession.CmdResult.Ok -> ditherEnabled = r.value?.let { it != 0 }
-                    else -> {}
+    /** Local draft for the settling-time text field; committed via [applySettling]. */
+    var settlingInput by mutableStateOf("")
+        private set
+
+    private fun wireHelpers(s: MountSession) {
+        val h = HelpersController(s)
+        helpersController = h
+        h.start(scope)
+        helpersJobs += scope.launch {
+            h.ditherEnabled.collect { ditherEnabled = it }
+        }
+        helpersJobs += scope.launch {
+            h.settlingSeconds.collect {
+                settlingSeconds = it
+                // Refresh the input draft only when empty or out-of-sync so the
+                // user can type freely without us stomping their value.
+                if (it != null && (settlingInput.isBlank() || settlingInput.toIntOrNull() != it)) {
+                    settlingInput = it.toString()
                 }
             }
         }
-        // Limits (541) is UNVERIFIED on real mount — only refresh when the
-        // user has explicitly enabled the limitsWrite flag. Verified
-        // advancedAstro (dither/settling) does NOT implicitly enable limits.
-        if (FeatureFlags.isEnabled("limitsWrite")) {
-            runCatching {
-                val r = s.request<Int>(Codes.GET_LIMIT_STATE) { it.int("state") }
-                if (r is MountSession.CmdResult.Ok) limitsEnabled = r.value?.let { it != 0 }
-            }
+        helpersJobs += scope.launch {
+            h.limitsEnabled.collect { limitsEnabled = it }
+        }
+        // refreshAll() completes on its own (one-shot request) so it does
+        // not need to be tracked.
+        scope.launch { h.refreshAll() }
+    }
+
+    fun refreshHelpers() {
+        val h = helpersController ?: run { statusMessage = "Not connected"; return }
+        scope.launch {
+            h.refreshAll()
+            statusMessage = "Helpers refreshed"
         }
     }
 
-    fun setDither(on: Boolean) = scope.launch {
-        if (!FeatureFlags.isEnabled("advancedAstro")) { statusMessage = "Helpers disabled by config"; return@launch }
-        val s = session ?: return@launch
-        s.send(CommandTable.DITHER_SET.code, CommandTable.DITHER_SET.payload(on))
+    fun setDither(on: Boolean) {
+        // Optimistic local update so the switch feels snappy on real hardware.
         ditherEnabled = on
-        statusMessage = "Dither ${if (on) "on" else "off"}"
+        scope.launch { helpersController?.setDither(on) }
     }
 
-    /** UNVERIFIED on real mount. Gated by [FeatureFlags.limitsWrite]. */
-    fun setLimits(on: Boolean) = scope.launch {
-        if (!FeatureFlags.isEnabled("limitsWrite")) { statusMessage = "Limits write disabled — enable limitsWrite in config"; return@launch }
-        val s = session ?: return@launch
-        s.send(Codes.SET_LIMIT_STATE, "state:${if (on) 1 else 0};")
+    fun setLimits(on: Boolean) {
         limitsEnabled = on
-        statusMessage = "Limits ${if (on) "on" else "off"} (unverified)"
+        scope.launch { helpersController?.setLimits(on) }
     }
+
+    fun updateSettlingInput(v: String) { settlingInput = v.filter { it.isDigit() }.take(3) }
+
+    fun applySettling() {
+        val secs = settlingInput.toIntOrNull() ?: run { statusMessage = "Invalid settling seconds"; return }
+        val clamped = secs.coerceIn(0, 99)
+        settlingSeconds = clamped
+        scope.launch { helpersController?.setSettling(clamped) }
+    }
+
 
     // ---- OMS task list (825) ---------------------------------------------
 
@@ -1030,6 +1705,150 @@ class AppViewModel(
         statusMessage = "Shutdown sent — connection will drop"
     }
 
+    /**
+     * Drive the full FwPkt.zip firmware upload via [FirmwareUpdateController].
+     * Surfaces every [FirmwareUpdateController.Status] update to both
+     * [firmwareStatus] (so the UI can show a progress bar) and
+     * [statusMessage] (so the bottom strip reports what is happening).
+     *
+     * Gated behind `firmwareUpload` — must be enabled in the user's
+     * config file before the call has any effect. The flag defaults to
+     * false because firmware install is destructive: a bad image bricks
+     * the mount until you re-flash over USB.
+     */
+    fun uploadFirmware(bytes: ByteArray, filename: String, rebootAfter: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("firmwareUpload")) {
+            statusMessage = "Firmware upload disabled — enable firmwareUpload in config"
+            return@launch
+        }
+        val s = session ?: run {
+            statusMessage = "Connect to the mount first"
+            return@launch
+        }
+        if (bytes.isEmpty()) {
+            statusMessage = "Pick a FwPkt.zip file first"
+            return@launch
+        }
+        statusMessage = "Uploading firmware (${bytes.size} bytes)…"
+        val controller = FirmwareUpdateController(
+            session = s,
+            chunkSize = 1024,
+            progressPollMs = 500,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 5 * 60_000L, // 5 minutes
+        )
+        val final = controller.start(
+            bytes = bytes,
+            filename = filename,
+            rebootAfter = rebootAfter,
+        ) { status ->
+            firmwareStatus = status
+            statusMessage = when (status) {
+                is FirmwareUpdateController.Status.Idle -> "Idle"
+                is FirmwareUpdateController.Status.Uploading -> "Uploading: ${status.bytesSent}/${status.bytesTotal} bytes"
+                is FirmwareUpdateController.Status.Installing -> "Installing on mount: ${status.percent}%"
+                is FirmwareUpdateController.Status.Done -> if (rebootAfter) "Done — rebooting" else "Done"
+                is FirmwareUpdateController.Status.Failed -> "Firmware upload failed: ${status.reason}"
+            }
+        }
+        firmwareStatus = final
+        if (final is FirmwareUpdateController.Status.Done) {
+            statusMessage = if (rebootAfter) "Firmware updated — rebooting" else "Firmware update complete"
+        }
+        firmwareBusy = false
+        // Reset the picker on success so the user can immediately pick the
+        // next firmware (or close the pane without a "you have something
+        // queued" surprise). On failure we keep the path so they can retry
+        // without re-picking.
+        if (final is FirmwareUpdateController.Status.Done) {
+            pickedFirmwarePath = null
+            pickedFirmwareName = null
+            pickedFirmwareSize = null
+        }
+    }
+
+    /**
+     * Open the native file picker so the user can choose a FwPkt.zip. On
+     * JVM this is a blocking `FileDialog`; on Android it's an
+     * `ACTION_OPEN_DOCUMENT` Intent. The result lands in [pickedFirmwarePath]
+     * (and the companion name/size fields) so the pane can show what was
+     * chosen before the user hits Upload.
+     *
+     * The actual file read happens in [uploadPickedFirmware] — we don't
+     * load the bytes into memory at pick time, which would be wasteful for
+     * the multi-MB images Benro's update tool ships.
+     */
+    fun pickFirmwareFile() {
+        // Reset the previous attempt's status so the pane goes back to a
+        // clean "ready to pick" state when the user reaches for a new file.
+        if (firmwareBusy) return // ignore picks while uploading
+        FilePicker.pickFile(
+            title = "Pick FwPkt.zip",
+            mimeType = "application/zip",
+        ) { path ->
+            if (path == null) return@pickFile
+            val f = PlatformFile(path)
+            if (!f.exists() || !f.isReadable()) {
+                statusMessage = "Picked file is not readable: $path"
+                return@pickFile
+            }
+            pickedFirmwarePath = path
+            pickedFirmwareName = basename(path)
+            // Stat the file to surface its size before the user hits
+            // Upload. On JVM the read is cheap; on Android the SAF copy
+            // happened at pick time so the file is already in cacheDir.
+            pickedFirmwareSize = try {
+                java.io.File(path).length()
+            } catch (t: Throwable) {
+                null
+            }
+            statusMessage = "Firmware ready: ${pickedFirmwareName} (${pickedFirmwareSize ?: "?"} bytes)"
+        }
+    }
+
+    /**
+     * Convenience: read the bytes of the picked firmware file and start the
+     * upload. This is the entry point the "Upload" button calls. We do the
+     * read inside the VM (rather than the composable) so the pane can stay
+     * thin and the read can be cancelled on disconnect.
+     */
+    fun uploadPickedFirmware() = scope.launch {
+        val path = pickedFirmwarePath
+        val name = pickedFirmwareName
+        if (path == null || name == null) {
+            statusMessage = "Pick a FwPkt.zip first"
+            return@launch
+        }
+        firmwareBusy = true
+        val bytes = withContext(ioDispatcher) {
+            try {
+                PlatformFile(path).readBytes()
+            } catch (t: Throwable) {
+                null
+            }
+        }
+        if (bytes == null) {
+            firmwareBusy = false
+            statusMessage = "Could not read $name"
+            return@launch
+        }
+        uploadFirmware(bytes, name, firmwareRebootAfter)
+    }
+
+    /** Drop the picked file without uploading — the "Clear" button. */
+    fun clearPickedFirmware() {
+        if (firmwareBusy) return
+        pickedFirmwarePath = null
+        pickedFirmwareName = null
+        pickedFirmwareSize = null
+        firmwareStatus = null
+    }
+
+    private fun basename(path: String): String {
+        val ix = path.lastIndexOfAny(charArrayOf('/', '\\'))
+        return if (ix >= 0) path.substring(ix + 1) else path
+    }
+
     companion object {
         /**
          * Maximum age of a cached [SessionMarker] that will still trigger
@@ -1038,5 +1857,6 @@ class AppViewModel(
          * almost certainly the wrong target.
          */
         private const val RECONNECT_MAX_AGE_MS: Long = 24L * 60L * 60L * 1000L
+
     }
 }

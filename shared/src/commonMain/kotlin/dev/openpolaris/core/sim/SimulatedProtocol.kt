@@ -51,6 +51,12 @@ class SimulatedProtocol {
     var ditherEnabled = false
     var limitState = 0
     var autoLevelEnabled = false
+    /** Cached tilt pose used to answer GET_TILT_STATE (537). The real
+     *  firmware mirrors the latest 538 push; the simulator does the same
+     *  so the typed parser (`TiltCodec.parse`) gets the documented
+     *  `pitch:X;roll:Y;` envelope rather than the legacy `state:N`. */
+    var tiltPitchDeg = 0.0
+    var tiltRollDeg = 0.0
     var settlingTime = 5
     var buzzer = true
     var led = true
@@ -190,7 +196,11 @@ class SimulatedProtocol {
             Codes.GET_DITHER_STATE, Codes.SET_DITHER_STATE -> {
                 when (code) {
                     Codes.GET_TILT_STATE -> {
-                        out += response("1&$code&2&state:$tiltState;#")
+                        // Mirror the 538 push envelope so TiltCodec.parse can
+                        // round-trip the value (see PROTOCOL.md §3.4). The
+                        // `state` field is included for backward-compat with
+                        // tests/parsers that still read it as a fallback.
+                        out += response("1&$code&2&pitch:$tiltPitchDeg;roll:$tiltRollDeg;state:$tiltState;#")
                     }
                     Codes.SET_TILT_STATE -> {
                         fields["state"]?.toIntOrNull()?.let { tiltState = it }
@@ -206,11 +216,12 @@ class SimulatedProtocol {
                 }
             }
             // LIMITS_GET is UNVERIFIED — the typed parser (CommandTable.LIMITS_GET)
-            // expects `state:X` mirroring the TILT pattern, but the real wire
-            // format isn't captured. Report the current limits state so the
-            // round-trip works; revisit when live capture is available.
+            // expects `limit:N` (mirroring the SET payload format), but the
+            // legacy simulator used `state:N`. Emit BOTH so the typed parser
+            // succeeds and any consumer still reading `state` keeps working.
+            // Revist when live capture is available.
             Codes.GET_LIMIT_STATE -> out += response(
-                "1&${Codes.GET_LIMIT_STATE}&2&state:$limitState;#"
+                "1&${Codes.GET_LIMIT_STATE}&2&limit:$limitState;state:$limitState;#"
             )
             Codes.SET_LIMIT_STATE -> {
                 fields["state"]?.toIntOrNull()?.let { limitState = it }

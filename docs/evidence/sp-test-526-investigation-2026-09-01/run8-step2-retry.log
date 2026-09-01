@@ -1,4 +1,4 @@
 # push-log  host=192.168.0.1  port=9090  duration=10s  sendFrame=1&526&2&step:2;#
-t=626ms  raw=525@Tempa509ca361d0000265a ;#
-t=5016ms  >>> SEND  1&526&2&step:2;#
+t=5009ms  >>> SEND  1&526&2&step:2;#
+t=5877ms  raw=525@Tempa509ca361d0000265a ;#
 # done.  frames=1  byCode={525=1}

@@ -45,6 +45,7 @@ boundary change, parser-breaking structural difference.
 | Code catalogue | [`docs/PROTOCOL.md`](PROTOCOL.md), supplemented by `/tmp/polaris-functions-report.md` during active RE |
 | Static firmware analysis | [`docs/FIRMWARE-ANALYSIS-ALPACA.md`](FIRMWARE-ANALYSIS-ALPACA.md) |
 | Live evidence (gimbal SSH / 9090 captures) | [`docs/evidence/`](evidence/) |
+| Network fingerprint (port 9090 only, port 80 = NOT polaris) | [`docs/NETWORK-FINGERPRINT.md`](NETWORK-FINGERPRINT.md) |
 | Parser (Kotlin) | `shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/` |
 
 Pin the patcher to **commit SHAs**, not branches, when citing these files in

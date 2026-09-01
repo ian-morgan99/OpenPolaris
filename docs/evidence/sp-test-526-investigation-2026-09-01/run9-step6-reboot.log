@@ -1,0 +1,6 @@
+# push-log  host=192.168.0.1  port=9090  duration=20s  sendFrame=1&526&2&step:6;#
+t=9545ms  raw=286@manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;#
+t=9551ms  raw=282@format:0;#
+t=10013ms  >>> SEND  1&526&2&step:6;#
+t=10034ms  raw=526@step:6;ret:0;#
+# done.  frames=3  byCode={282=1, 286=1, 526=1}

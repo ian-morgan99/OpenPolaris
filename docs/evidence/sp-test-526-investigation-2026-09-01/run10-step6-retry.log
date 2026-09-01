@@ -1,0 +1,1 @@
+# push-log  host=192.168.0.1  port=9090  duration=20s  sendFrame=1&526&2&step:6;#

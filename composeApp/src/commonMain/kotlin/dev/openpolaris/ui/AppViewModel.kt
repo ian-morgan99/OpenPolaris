@@ -1335,8 +1335,13 @@ class AppViewModel(
      * 538 readback so a stale tilt doesn't linger on the next connect.
      */
     private suspend fun stopAutoLevel() {
-        for (j in autoLevelJobs) j.cancelAndJoin()
+        // Snapshot before iterating: cancelAndJoin suspends, and another
+        // coroutine on the UI dispatcher can mutate autoLevelJobs via +=
+        // (e.g. refreshAutoLevel() re-wiring collectors), which would throw
+        // ConcurrentModificationException on a live iterator.
+        val pending = autoLevelJobs.toList()
         autoLevelJobs.clear()
+        for (j in pending) j.cancelAndJoin()
         autoLevelController?.stop()
         autoLevelController = null
         autoLevelTilt = null
@@ -1385,13 +1390,17 @@ class AppViewModel(
     }
 
     private fun cancelAutoLevelJobs() {
-        for (j in autoLevelJobs) j.cancel()
+        // Snapshot to avoid ConcurrentModificationException if a UI callback
+        // mutates autoLevelJobs (e.g. refreshAutoLevel) while we iterate.
+        val pending = autoLevelJobs.toList()
         autoLevelJobs.clear()
+        for (j in pending) j.cancel()
     }
 
     private fun cancelHelpersJobs() {
-        for (j in helpersJobs) j.cancel()
+        val pending = helpersJobs.toList()
         helpersJobs.clear()
+        for (j in pending) j.cancel()
     }
 
     /**

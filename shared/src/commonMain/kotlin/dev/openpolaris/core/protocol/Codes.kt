@@ -33,6 +33,9 @@ package dev.openpolaris.core.protocol
  */
 object Codes {
     // ---- gimbal status / push ------------------------------------------------
+    // 0 — session/handshake ret (live 2026-09-01: `0@ret:-1;` first probe, then
+    // `0@ret:0;` on retry). Not a real command, but a single byte the gimbal
+    // emits on socket open. Kept for completeness; not a Codes.kt constant.
     const val PUSH_MODE_STATE = 284
     const val GET_GIMBAL_POS = 517
     const val PUSH_ROTATE_VECTOR = 518
@@ -71,6 +74,16 @@ object Codes {
      *  Format on send: `mode:<str>;adj:<str2>;` per
      *  PolarisOrderCommunication.java:583 / PolarisCMD.SP_SET_FOCUS_ADJ. */
     const val CAM_FOCUS = 311
+    /** Live-captured (2026-08-30 16:58Z re-probe, gimbal 192.168.0.1) — push
+     *  variant of 284 PUSH_MODE_STATE. Emits `285@state:N;` unsolicited when
+     *  mode changes. Request returns nothing. */
+    const val PUSH_MODE_STATE_2 = 285
+    /** Live-captured (2026-09-01 11:26Z, gimbal 192.168.0.1) — `300@state:N;`
+     *  HDMI output toggle. Adjacent to camera cluster (291 liveview). */
+    const val HDMI_OUTPUT = 300
+    /** Live-captured (2026-09-01 11:26Z, gimbal 192.168.0.1) — `301@state:N;`
+     *  HDMI resolution / mode. Adjacent to camera cluster. */
+    const val HDMI_MODE = 301
     /** Camera liveview SET (PolarisCMD.SP_SET_CAMERA_PREVIEW). Sends
      *  `state:1;` to start, `state:0;` to stop. */
     const val CAM_LIVEVIEW_SET = 291
@@ -279,6 +292,12 @@ object Codes {
     // decompile's *exit* reading is the one we have not been able to
     // reconcile. ✓ live (SimulatedProtocolTest.omsTaskList).
     const val SP_TEST = 526
+    /** Live-captured (2026-09-01 11:26Z, gimbal 192.168.0.1) — `826@state:0;`
+     *  on request. Benro-app-only (not in firmware string corpus). Adjacent
+     *  to OMS cluster (822-825). Unknown semantics — added so the wire
+     *  envelope is captured; pending audit against BenroPolarisPatcher
+     *  fork branches (e.g. attachment-plan-follow-up). */
+    const val SP_826 = 826
 
     // ----------------------------------------------------------------------
     // Subtype lookup. Defaults to [REQUEST_TYPE] (= 2) for any unknown code,

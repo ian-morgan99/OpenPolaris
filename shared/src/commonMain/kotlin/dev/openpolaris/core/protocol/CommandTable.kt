@@ -180,6 +180,19 @@ object CommandTable {
         parse = Temperature::fromFrame,
     )
 
+    /** 285 — push variant of 284 PUSH_MODE_STATE. Live-captured (2026-08-30
+     *  16:58Z re-probe, gimbal 192.168.0.1): emits `285@state:N;` unsolicited
+     *  on mode change. Request returns nothing (push-only). */
+    val PUSH_MODE_STATE_2 = Descriptor<Unit>(Codes.PUSH_MODE_STATE_2, "push mode state 2")
+
+    /** 300 — HDMI output toggle (live 2026-09-01 11:26Z, gimbal 192.168.0.1).
+     *  `300@state:N;`. */
+    val HDMI_OUTPUT = Descriptor<Unit>(Codes.HDMI_OUTPUT, "HDMI output")
+
+    /** 301 — HDMI mode/resolution (live 2026-09-01 11:26Z, gimbal 192.168.0.1).
+     *  `301@state:N;`. */
+    val HDMI_MODE = Descriptor<Unit>(Codes.HDMI_MODE, "HDMI mode")
+
     /** 286 — camera info. Live: `manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;`. */
     val CAM_INFO = Descriptor<CameraAttachment>(
         Codes.CAM_INFO, "camera info",
@@ -392,6 +405,11 @@ object CommandTable {
         parse = TaskList::fromFrame,
     )
 
+    /** 826 — Benro-app-only (live 2026-09-01 11:26Z, gimbal 192.168.0.1).
+     *  `826@state:0;`. Not in firmware string corpus. Adjacent to OMS cluster
+     *  (822-825). Pending audit against BenroPolarisPatcher fork branches. */
+    val SP_826 = Descriptor<Unit>(Codes.SP_826, "sp 826 (benro-only)")
+
     // ---- app handshake / token (corpus-derived) ------------------------------
 
     val APP_PASSWORD_INFO = Descriptor<Unit>(Codes.APP_PASSWORD_INFO, "app password info")
@@ -411,6 +429,7 @@ object CommandTable {
             EX_AXIS_STA, SET_SYSTEM_TIME, TEST_STEP,
             DEVICE_INFO, GET_TEMPERATURE, CAM_INFO, SYS_FORMAT,
             CAM_FOCUS, SET_YAW, ACK_GENERIC, STATE_DUMP,
+            PUSH_MODE_STATE_2, HDMI_OUTPUT, HDMI_MODE,
             CAM_GET_ISO, CAM_SET_ISO, CAM_GET_WB, CAM_SET_WB, CAM_GET_FNUM, CAM_SET_FNUM,
             CAM_GET_EV, CAM_SET_EV,
             CAM_GET_FOCUS, CAM_SET_FOCUS,
@@ -427,7 +446,7 @@ object CommandTable {
             WIFI_STATUS, WIFI_RSSI, SYS_VERSION, SYS_SERIAL, SYS_FW_UPGRADE,
             SYS_FW_PROGRESS, SYS_REBOOT, SYS_SHUTDOWN, SYS_TIME, SYS_TIMEZONE,
             SYS_LANGUAGE, SYS_BUZZER, SYS_LED, SYS_LOG,
-            OMS_RUN_STATE, OMS_TASK_LIST,
+            OMS_RUN_STATE, OMS_TASK_LIST, SP_826,
             APP_PASSWORD_INFO, APP_TOKEN, APP_PING, APP_HELLO,
         ).groupBy { it.code }
 

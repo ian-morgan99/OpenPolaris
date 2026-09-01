@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -19,14 +20,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.domain.format2
 
@@ -81,6 +91,32 @@ fun ConnectionPane(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Connection-password field. Most production gimbal firmware
+            // does not require a password (820→821 skipped, `needed:0`),
+            // in which case leaving this blank is the correct state and
+            // the field is just a no-op. Some firmwares report
+            // `needed:1` from the 820 probe — those need a password to
+            // complete the handshake, and connect() will surface an
+            // IOException and flip [AppViewModel.needsPassword]. The
+            // OpenPolarisApp root renders [PasswordDialog] in that case
+            // so the user can set + retry. Having the field here too
+            // means a user who already knows the gimbal needs a password
+            // can pre-set it before the first connect.
+            OutlinedTextField(
+                value = vm.password.orEmpty(),
+                onValueChange = { v -> vm.setConnectionPassword(v.ifEmpty { null }) },
+                label = { Text("Connection password (optional)") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                supportingText = {
+                    Text("Required only if the gimbal reports needed:1 on probe.")
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::connect) { Text("Connect") }
                 if (onWake != null) {
@@ -107,6 +143,92 @@ fun ConnectionPane(
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
         }
     }
+}
+
+/**
+ * Modal password-entry dialog. Renders whenever [AppViewModel.needsPassword]
+ * is true — the connect() flow flips that flag when the gimbal reports
+ * `needed:1` from its 820 probe and we have no password configured. The user
+ * types one in, presses "Connect" (or hits Enter / Done on the keyboard),
+ * and the VM is asked to set the password and retry the connection.
+ *
+ * "Cancel" clears the password (so a subsequent plain Connect from the
+ * Connection pane goes back to a clean, password-less state) and dismisses.
+ *
+ * The dialog is intentionally local in its own composable so the root
+ * [OpenPolarisApp] only has to gate visibility on [vm].needsPassword.
+ */
+@Composable
+fun PasswordDialog(
+    vm: AppViewModel,
+    onDismiss: () -> Unit,
+) {
+    // Local UI state for the text the user is typing. The "real" password
+    // is only written to the VM on Connect, so dismissing the dialog
+    // without committing doesn't mutate anything observable elsewhere.
+    var input by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Connection password required") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "The gimbal reported needed:1 on the handshake probe. " +
+                        "Enter the connection password Benro Polaris uses for " +
+                        "this firmware, then tap Connect to retry."
+                )
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (input.isNotEmpty()) {
+                                vm.setConnectionPassword(input)
+                                vm.connect()
+                                onDismiss()
+                            }
+                        },
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focus),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (input.isNotEmpty()) {
+                        vm.setConnectionPassword(input)
+                        vm.connect()
+                        onDismiss()
+                    }
+                },
+                enabled = input.isNotEmpty(),
+            ) { Text("Connect") }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    // Clear the in-memory password so a later Connect
+                    // doesn't accidentally retry with whatever the user
+                    // typed in the Connection pane.
+                    vm.setConnectionPassword(null)
+                    onDismiss()
+                },
+            ) { Text("Cancel") }
+        },
+    )
 }
 
 /** Status pane: mode, battery, tracking, half-speed, AHRS. */

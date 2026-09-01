@@ -143,6 +143,16 @@ fun OpenPolarisApp(
             // so the dialog floats above the call-out stack and survives
             // navigation between Connection/Slew/Helpers dialogs.
             ReconnectDialog(vm)
+            // Password dialog: surfaces whenever the 820 probe reports
+            // `needed:1` with no password configured. Float above the
+            // callout stack (same approach as ReconnectDialog) so the
+            // user can fix it from any pane they happen to be on.
+            if (vm.needsPassword) {
+                PasswordDialog(
+                    vm,
+                    onDismiss = { vm.setConnectionPassword(null) },
+                )
+            }
         }
     }
 }

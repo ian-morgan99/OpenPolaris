@@ -76,6 +76,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    // KMP's `commonMain` resources (catalog.json, comets.json, …) are
+    // wired into jvmTest automatically but not into AGP's unit-test
+    // variants. CatalogTest, InMemoryCatalogTest, and friends load
+    // these via `classLoader.getResource(...)`, so we have to make the
+    // same files visible to `testDebugUnitTest` / `testReleaseUnitTest`
+    // — otherwise those variants throw "catalog.json not on test classpath"
+    // even though jvmTest is green.
+    listOf("test", "testDebug", "testRelease").forEach { name ->
+        sourceSets[name].resources.srcDirs("src/commonMain/resources")
+    }
 }
 
 // Always emit per-class XML results (CI evidence + screenshot-friendly HTML reports).

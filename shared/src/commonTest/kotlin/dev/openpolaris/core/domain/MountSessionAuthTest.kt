@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -222,4 +223,117 @@ class MountSessionAuthTest {
         )
         session.disconnect()
     }
+
+    // -----------------------------------------------------------------
+    // Post-auth 526 (SP_TEST) — see
+    // docs/evidence/sp-test-526-investigation-2026-09-01/RESULTS.md
+    //
+    // Live observation: once the 820/821/823 handshake is complete, the
+    // gimbal will (eventually) process 526 sends. The `step:` value
+    // determines the reply:
+    //   - step:6  -> `526@step:6;ret:0;`  (success, ~23ms turnaround)
+    //   - step:1  -> `526@step:1;ret:-1;` (unsupported, ~22s delayed)
+    //
+    // Before the auth handshake was implemented, *every* 526 step
+    // returned nothing (or ret:-1 after a 20s+ delay) because the
+    // gimbal was still in the unauthenticated state. The tests below
+    // pin the post-auth contract so the regression never returns.
+    // -----------------------------------------------------------------
+
+    /** Run a connect that succeeds (passwordless) and returns the
+     *  ready-to-issue-requests session. [scope] must be the `TestScope`
+     *  of the calling `runTest` (or any scope that's alive for the
+     *  duration of the test) - the MountSession reader-loop needs a
+     *  live scope. */
+    private suspend fun connectedSession(
+        conn: FakeConnection,
+        scope: kotlinx.coroutines.CoroutineScope,
+    ): MountSession {
+        val session = MountSession({ conn }, readerScope = scope)
+        assertTrue(session.connect(), "test fixture: passwordless connect should succeed")
+        return session
+    }
+
+    @Test
+    fun testStep6ReturnsRet0AfterAuth() = runTest {
+        val conn = FakeConnection()
+        conn.queueLifecycleHandshake()
+        // 820 + 823 handshake replies (needed:0, app:openpolaris;ver:..)
+        conn.responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+        // The 526 step:6 reply (post-auth, ret:0 - the "first successful
+        // 526 reply" from run 9/run 11 of the live investigation).
+        conn.responses += "1&526&2&step:6;ret:0;#".toByteArray(Charsets.US_ASCII)
+
+        val session = connectedSession(conn, backgroundScope)
+        val result = session.request(Codes.SP_TEST, "step:6;") { f ->
+            StepReply(step = f["step"], ret = f["ret"]?.toIntOrNull())
+        }
+
+        val parsed = assertIs<MountSession.CmdResult.Ok<StepReply>>(result).value
+        assertEquals(6, parsed.step?.toIntOrNull(), "reply should echo step:6")
+        assertEquals(0, parsed.ret, "post-auth step:6 should return ret:0")
+
+        // And the write that hit the wire should carry `step:6;` in
+        // its payload - silent omission of the step parameter would
+        // be a different bug.
+        val testWrite = conn.written
+            .map { String(it, Charsets.US_ASCII) }
+            .first { it.startsWith("1&${Codes.SP_TEST}&2&") }
+        assertEquals(
+            "1&${Codes.SP_TEST}&2&step:6;#",
+            testWrite,
+            "526 write should be `1&526&2&step:6;#` (subtype 2, payload step:6;)",
+        )
+
+        session.disconnect()
+    }
+
+    @Test
+    fun testStep1ReturnsRetMinus1AfterAuth() = runTest {
+        // Mirror of the run 13 finding: post-auth, step:1 returns
+        // ret:-1. The reply is delayed (~22s on the live gimbal),
+        // but that's a gimbal-side property, not a MountSession one
+        // - the JVM test only pins that the protocol code path
+        // accepts the reply and surfaces ret:-1 correctly.
+        val conn = FakeConnection()
+        conn.queueLifecycleHandshake()
+        conn.responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&526&2&step:1;ret:-1;#".toByteArray(Charsets.US_ASCII)
+
+        val session = connectedSession(conn, backgroundScope)
+        val result = session.request(Codes.SP_TEST, "step:1;") { f ->
+            StepReply(step = f["step"], ret = f["ret"]?.toIntOrNull())
+        }
+
+        val parsed = assertIs<MountSession.CmdResult.Ok<StepReply>>(result).value
+        assertEquals(1, parsed.step?.toIntOrNull())
+        assertEquals(-1, parsed.ret, "post-auth step:1 should return ret:-1 (unsupported)")
+
+        session.disconnect()
+    }
+
+    @Test
+    fun testStepTimesOutWhenGimbalSilent() = runTest {
+        // Post-auth, no 526 reply. request<T> must surface CmdResult.Timeout
+        // (rather than hang) when the gimbal never acks. The 2000ms
+        // request<T> default is fine; the test uses 500ms so it runs
+        // quickly under virtual time.
+        val conn = FakeConnection()
+        conn.queueLifecycleHandshake()
+        conn.responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+
+        val session = connectedSession(conn, backgroundScope)
+        val result = session.request(Codes.SP_TEST, "step:6;", timeoutMs = 500) { f ->
+            StepReply(step = f["step"], ret = f["ret"]?.toIntOrNull())
+        }
+
+        assertEquals(MountSession.CmdResult.Timeout, result,
+            "526 must time out (not hang) when the gimbal never replies")
+        session.disconnect()
+    }
+
+    private data class StepReply(val step: String?, val ret: Int?)
 }

@@ -51,6 +51,12 @@ class SimulatedProtocol {
     var ditherEnabled = false
     var limitState = 0
     var autoLevelEnabled = false
+    /** Cached tilt pose used to answer GET_TILT_STATE (537). The real
+     *  firmware mirrors the latest 538 push; the simulator does the same
+     *  so the typed parser (`TiltCodec.parse`) gets the documented
+     *  `pitch:X;roll:Y;` envelope rather than the legacy `state:N`. */
+    var tiltPitchDeg = 0.0
+    var tiltRollDeg = 0.0
     var settlingTime = 5
     var buzzer = true
     var led = true
@@ -190,24 +196,15 @@ class SimulatedProtocol {
             Codes.GET_DITHER_STATE, Codes.SET_DITHER_STATE -> {
                 when (code) {
                     Codes.GET_TILT_STATE -> {
-                        // 537 GET returns both the int state slot (per issue #32
-                        // decoupling) AND the tilt envelope (pitch/roll degrees).
-                        // The typed parser (CommandTable.TILT_GET) only reads
-                        // pitch/roll; the int state travels on a different slot
-                        // for callers that need it.
-                        out += response(
-                            "1&$code&2&state:$tiltState;pitch:$pitch;roll:$roll;#"
-                        )
+                        // Mirror the 538 push envelope so TiltCodec.parse can
+                        // round-trip the value (see PROTOCOL.md §3.4). The
+                        // `state` field is included for backward-compat with
+                        // tests/parsers that still read it as a fallback.
+                        out += response("1&$code&2&pitch:$tiltPitchDeg;roll:$tiltRollDeg;state:$tiltState;#")
                     }
                     Codes.SET_TILT_STATE -> {
-                        // 538 is firmware-pushed on the wire; the app does not
-                        // request it. For tests and parity with other GET/SET
-                        // pairs, accept the int state slot if present and
-                        // round-trip the current pitch/roll envelope.
                         fields["state"]?.toIntOrNull()?.let { tiltState = it }
-                        out += response(
-                            "1&$code&2&state:$tiltState;pitch:$pitch;roll:$roll;#"
-                        )
+                        out += response("1&$code&2&state:$tiltState;#")
                     }
                     Codes.GET_DITHER_STATE -> {
                         out += response("1&$code&2&state:$ditherState;#")
@@ -218,15 +215,17 @@ class SimulatedProtocol {
                     }
                 }
             }
-            // LIMITS wire format: `limit:0|1;` per CommandTable.LIMITS_GET/SET
-            // (key "limit", not "state" — verified during issue #32 review against
-            // CommandTable.LIMITS_GET parse lambda and LIMITS_SET payload builder).
+            // LIMITS_GET is UNVERIFIED — the typed parser (CommandTable.LIMITS_GET)
+            // expects `limit:N` (mirroring the SET payload format), but the
+            // legacy simulator used `state:N`. Emit BOTH so the typed parser
+            // succeeds and any consumer still reading `state` keeps working.
+            // Revist when live capture is available.
             Codes.GET_LIMIT_STATE -> out += response(
-                "1&${Codes.GET_LIMIT_STATE}&2&limit:$limitState;#"
+                "1&${Codes.GET_LIMIT_STATE}&2&limit:$limitState;state:$limitState;#"
             )
             Codes.SET_LIMIT_STATE -> {
-                fields["limit"]?.toIntOrNull()?.let { limitState = it }
-                out += response("1&${Codes.SET_LIMIT_STATE}&2&limit:$limitState;#")
+                fields["state"]?.toIntOrNull()?.let { limitState = it }
+                out += response("1&${Codes.SET_LIMIT_STATE}&2&state:$limitState;#")
             }
             Codes.GET_SETTLING_TIME -> out += response(
                 "1&${Codes.GET_SETTLING_TIME}&2&time:$settlingTime;#"

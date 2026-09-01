@@ -16,26 +16,39 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.format2
 
 /**
  * Connection pane: host entry, connect/demo buttons, status line.
  * [onFindWifi], when provided, opens a platform Wi-Fi picker so the user can
  * join the mount's access point without leaving the app.
+ * [onBridgeWifi], when provided, surfaces the desktop bridge button — it
+ * drives the BT-wake / NetworkManager-up / policy-route sequence via
+ * [AppViewModel.connectWifi] so the user has a single tap from the app to
+ * the segregated gimbal network. When only [onBridgeWifi] is supplied the
+ * "Connect mount Wi-Fi…" picker button is suppressed (the bridge is the
+ * canonical path on desktop); when both are supplied both buttons render so
+ * the user can fall back to the picker if the bridge fails.
  */
 @Composable
-fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: (() -> Unit)? = null) {
+fun ConnectionPane(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    onFindWifi: (() -> Unit)? = null,
+    onBridgeWifi: (() -> Unit)? = null,
+) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Open Polaris", style = MaterialTheme.typography.headlineSmall)
@@ -66,6 +79,11 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: 
                 Button(onClick = vm::connect) { Text("Connect") }
                 OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+            }
+            if (onBridgeWifi != null) {
+                OutlinedButton(onClick = onBridgeWifi) {
+                    Text("Bridge to mount Wi-Fi…")
+                }
             }
             if (onFindWifi != null) {
                 OutlinedButton(onClick = onFindWifi) {
@@ -246,35 +264,13 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             HorizontalDivider()
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
-            // Feature-flag gate: 547/548/549 are live-confirmed on real
-            // hardware (docs/POLARIS-FUNCTIONS-REPORT.md §2.3 +
-            // docs/evidence/2026-08-31/smoke-polaris-findings-2026-08-31.md
-            // line 24). The flag now defaults to ON — the button, the
-            // enable toggle, and the refresh button are reachable without
-            // a config flip. Kiosk builds can opt out by setting
-            // FeatureFlags.autoLevel = false. Matches the gating pattern
-            // in FullControlPanes.kt:142.
-            val autoLevelAvailable = FeatureFlags.isEnabled("autoLevel")
-            if (!autoLevelAvailable) {
-                Text(
-                    "Auto-level is hidden (FeatureFlags.autoLevel = false). Live-confirmed 547/548/549 — see Functions Report §2.3.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = vm::runAutoLevel,
-                    enabled = autoLevelAvailable && !vm.autoLevelRunning,
-                ) {
+                Button(onClick = vm::runAutoLevel, enabled = !vm.autoLevelRunning) {
                     Text(if (vm.autoLevelRunning) "Leveling…" else "Level now")
                 }
-                Switch(
-                    checked = vm.autoLevelEnabled == true,
-                    onCheckedChange = vm::setAutoLevelEnabled,
-                    enabled = autoLevelAvailable,
-                )
+                Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
                 Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
-                OutlinedButton(onClick = vm::refreshAutoLevel, enabled = autoLevelAvailable) { Text("Refresh") }
+                OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
             }
             AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
         }
@@ -408,7 +404,138 @@ fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Ti
 }
 
 /**
- * Astro helpers pane is provided by [FullControlPanes.HelpersPane] (dither, settling, limits, auto-level).
- * The advanced-only stub here was removed during the worktree-evidence merge because the
- * feature-flagged version in FullControlPanes.kt supersedes it.
+ * Firmware pane: pick a FwPkt.zip from disk, optionally reboot after install,
+ * and stream the upload/install progress to the user.
+ *
+ *  - "Pick firmware" opens the native file chooser (JVM: java.awt.FileDialog,
+ *    Android: ACTION_OPEN_DOCUMENT via FilePicker). The picked path is held
+ *    by the VM so the file survives a recomposition.
+ *  - "Upload" reads the bytes on [Dispatchers.IO] and runs the full
+ *    [FirmwareUpdateController] flow (arm → start → chunks → end → install
+ *    → poll → optional reboot). Disabled until a file is picked and the
+ *    feature flag is enabled.
+ *  - The progress bar binds to [AppViewModel.firmwareStatus] and renders
+ *    a percentage plus a short status label so the user can tell whether
+ *    the upload is in progress, the install is in progress, or the call
+ *    finished (with or without an error).
+ *
+ * Note: the firmware-upload feature is gated behind
+ * [dev.openpolaris.core.config.FeatureFlags] "firmwareUpload" — this pane
+ * does not enforce that itself; the VM rejects the call and surfaces a
+ * status message. We do, however, show a banner in this pane so the user
+ * knows the feature is disabled if they have not yet enabled it.
  */
+@Composable
+fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val status = vm.firmwareStatus
+    val featureEnabled = remember { dev.openpolaris.core.config.FeatureFlags.isEnabled("firmwareUpload") }
+    val bytesTotal = (status as? dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading)?.bytesTotal
+    val bytesSent = (status as? dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading)?.bytesSent
+    val installPercent = (status as? dev.openpolaris.core.domain.FirmwareUpdateController.Status.Installing)?.percent
+    val progress: Float? = when {
+        bytesTotal != null && bytesTotal > 0 && bytesSent != null -> {
+            (bytesSent.toFloat() / bytesTotal.toFloat()).coerceIn(0f, 1f)
+        }
+        installPercent != null -> installPercent / 100f
+        status is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Done -> 1f
+        else -> null
+    }
+
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Firmware update", style = MaterialTheme.typography.headlineSmall)
+
+            if (!featureEnabled) {
+                Text(
+                    "Firmware upload is disabled. Enable the 'firmwareUpload' flag in " +
+                        "your config to use this pane. Firmware install is destructive — a " +
+                        "bad image bricks the mount until you re-flash over USB.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            // ---- Picked file summary ---------------------------------------
+            val name = vm.pickedFirmwareName
+            val size = vm.pickedFirmwareSize
+            if (name != null) {
+                Text(
+                    text = if (size != null) "Selected: $name (${humanBytes(size)})" else "Selected: $name",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                Text(
+                    "No firmware selected. Tap 'Pick firmware…' to choose a FwPkt.zip.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = vm::pickFirmwareFile,
+                    enabled = !vm.firmwareBusy,
+                ) { Text("Pick firmware…") }
+                if (vm.pickedFirmwarePath != null) {
+                    OutlinedButton(
+                        onClick = vm::clearPickedFirmware,
+                        enabled = !vm.firmwareBusy,
+                    ) { Text("Clear") }
+                }
+            }
+
+            // ---- Options ---------------------------------------------------
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = vm.firmwareRebootAfter,
+                    onCheckedChange = { vm.firmwareRebootAfter = it },
+                    enabled = !vm.firmwareBusy,
+                )
+                Text(
+                    "  Reboot mount after install",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            // ---- Action ----------------------------------------------------
+            Button(
+                onClick = vm::uploadPickedFirmware,
+                enabled = featureEnabled && !vm.firmwareBusy && vm.pickedFirmwarePath != null,
+            ) { Text(if (vm.firmwareBusy) "Uploading…" else "Upload") }
+
+            // ---- Progress + status ----------------------------------------
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Text(
+                text = when (val s = status) {
+                    null -> "Idle."
+                    dev.openpolaris.core.domain.FirmwareUpdateController.Status.Idle ->
+                        "Idle."
+                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading ->
+                        "Uploading: ${s.bytesSent} / ${s.bytesTotal} bytes"
+                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Installing ->
+                        "Installing on mount: ${s.percent}%"
+                    dev.openpolaris.core.domain.FirmwareUpdateController.Status.Done ->
+                        "Done."
+                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Failed ->
+                        "Failed: ${s.reason}"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/** Human-readable byte count (1.2 MB, 542 KB, …). Used by the firmware pane. */
+private fun humanBytes(bytes: Long): String {
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    return when {
+        bytes >= mb.toLong() -> "%.1f MB".format(bytes / mb)
+        bytes >= kb.toLong() -> "%.0f KB".format(bytes / kb)
+        else -> "$bytes B"
+    }
+}

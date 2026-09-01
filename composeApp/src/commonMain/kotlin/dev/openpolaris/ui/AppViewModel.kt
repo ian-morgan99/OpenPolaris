@@ -3,31 +3,48 @@ package dev.openpolaris.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
 import dev.openpolaris.core.domain.AutoLevelController
-import dev.openpolaris.core.domain.CameraProfile
-import dev.openpolaris.core.domain.CameraProfileSource
-import dev.openpolaris.core.domain.Connection
-import dev.openpolaris.core.domain.FileList
-import dev.openpolaris.core.domain.GimbalPosition
-import dev.openpolaris.core.domain.GoToController
-import dev.openpolaris.core.domain.HelpersController
-import dev.openpolaris.core.domain.MarkerStateBus
-import dev.openpolaris.core.domain.MountMode
-import dev.openpolaris.core.domain.MountSession
-import dev.openpolaris.core.domain.MountState
-import dev.openpolaris.core.domain.PreviewController
-import dev.openpolaris.core.domain.SdStatus
-import dev.openpolaris.core.domain.TrackingController
-import dev.openpolaris.core.domain.readResourceText
+import dev.openpolaris.core.domain.MountSessionTiltSampleSource
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.astro.Catalog
 import dev.openpolaris.core.astro.CometOrbitalElements
 import dev.openpolaris.core.astro.CometShardLoader
 import dev.openpolaris.core.astro.EmbeddedCatalog
+import dev.openpolaris.core.astro.ObjectType
+import dev.openpolaris.core.domain.BatteryDetail
+import dev.openpolaris.core.domain.CameraInfo
+import dev.openpolaris.core.domain.CameraProfile
+import dev.openpolaris.core.domain.CameraProfileSource
+import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.DeviceInfo
+import dev.openpolaris.core.domain.ExAxisState
+import dev.openpolaris.core.domain.FileEntry
+import dev.openpolaris.core.domain.FileList
+import dev.openpolaris.core.domain.FirmwareUpdateController
+import dev.openpolaris.core.domain.GimbalPosition
+import dev.openpolaris.core.io.FilePicker
+import dev.openpolaris.core.session.PlatformFile
+import dev.openpolaris.core.domain.GoToController
+import dev.openpolaris.core.domain.HelpersController
+import dev.openpolaris.core.domain.CameraController
+import dev.openpolaris.core.domain.MarkerStateBus
+import dev.openpolaris.core.domain.MountMode
+import dev.openpolaris.core.domain.MountSession
+import dev.openpolaris.core.domain.MountState
+import dev.openpolaris.core.domain.OmsState
+import dev.openpolaris.core.domain.SdStatus
+import dev.openpolaris.core.domain.TaskList
+import dev.openpolaris.core.domain.Temperature
+import dev.openpolaris.core.domain.PreviewController
+import dev.openpolaris.core.domain.TrackingController
+import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.session.SessionMarker
-import dev.openpolaris.core.session.FileSessionStore
+import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.defaultSessionPath
 import dev.openpolaris.core.solver.NullStarDetector
 import dev.openpolaris.core.solver.OnDevicePlateSolver
@@ -41,6 +58,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,33 +67,35 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
  * state for Compose. `connectionFactory` is injected so tests and the desktop
  * simulator can substitute a fake connection.
  *
- * [sessionStore] is the **connection-marker** store: the persisted record of
- * which Wi-Fi host/port the user last successfully connected to, plus the
- * mount mode + tracking flag + tilt at the time of that connection. It is
- * what powers the "Reconnect to your last mount?" prompt surfaced by
- * [tryReconnectIfMarkerExists] / [reconnectPrompt]. Callers (e.g. the
- * Android `MainActivity`) supply a file-backed
- * [dev.openpolaris.core.session.FileSessionStore] so the marker survives
- * process restarts. Tests pass a real (temp-file) `FileSessionStore`. A
- * `null` default keeps the VM constructable in the desktop simulator and
- * unit tests that don't care about reconnect — the prompt functions
- * short-circuit to a no-op when the store is null. Target-marker
- * persistence (RA/Dec of the last observed target, a separate concern
- * for issue #25) is on a different abstraction entirely and is not
- * wired through this field.
+ * [sessionStore] persists the "last connected mount" [SessionMarker] so the
+ * next launch can offer an auto-reconnect prompt via [reconnectPrompt].
+ * Callers (e.g. `OpenPolarisApp` and tests) supply the store explicitly;
+ * production wires `SessionStore(defaultSessionPath())` (JVM:
+ * `~/.openpolaris/session.json`, Android: `${filesDir}/openpolaris/session.json`
+ * once issue #6's `Context` wiring lands in 3c.4). Tests pass a temp-dir-backed
+ * `SessionStore` so the real home directory is never touched.
  */
 class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
+    /**
+     * Bridge the segregated Wi-Fi interface to the gimbal. The lambda receives
+     * a `progress: (String) -> Unit` callback; it is called from a background
+     * dispatcher and must be safe to invoke off the main thread. The default
+     * is a no-op so callers that don't have a bridge implementation (e.g.
+     * the Android build) can construct the VM without it.
+     */
+    private val connectWifi: (suspend (String) -> Unit) -> Unit = {},
     private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
     private val starDetector: StarDetector = NullStarDetector,
-    private val sessionStore: FileSessionStore? = null,
+    private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
     // The dispatcher used for session-marker I/O. Tests inject the
     // unconfined test dispatcher so marker reads complete synchronously
     // inside [tryReconnectIfMarkerExists]; production callers use the
@@ -91,6 +111,7 @@ class AppViewModel(
     // [SessionMarker], the next launch offers a reconnect prompt
     // pre-filled with the actual host, so the default rarely matters
     // beyond the very first connect.
+
     var host by mutableStateOf("192.168.0.1")
         private set
 
@@ -114,6 +135,98 @@ class AppViewModel(
     var demoMode by mutableStateOf(false)
         private set
 
+    /**
+     * One-shot post-connect burst (524, 544, 802, 824, 775, 778, 779 + get 543
+     * + 808/809).  See `docs/PLANNING-2026-08.md` Step 5.  Each field stays
+     * null until the matching code's response (or timeout) is observed.
+     */
+    var firmwareVersion by mutableStateOf<String?>(null)
+        private set
+    var serialNumber by mutableStateOf<String?>(null)
+        private set
+    var wifiBand by mutableStateOf<Int?>(null)
+        private set
+    var batteryDetail by mutableStateOf<BatteryDetail?>(null)
+        private set
+    var sdStatus by mutableStateOf<SdStatus?>(null)
+        private set
+    var omsState by mutableStateOf<OmsState?>(null)
+        private set
+    var settlingTime by mutableStateOf<Int?>(null)
+        private set
+    var exAxisState by mutableStateOf<Int?>(null)
+        private set
+    var cameraInfo by mutableStateOf<CameraInfo?>(null)
+        private set
+
+    /** 780 — device info (hardware/software/serverVersion). Read-only,
+     *  populated by the post-connect burst. */
+    var deviceInfo by mutableStateOf<DeviceInfo?>(null)
+        private set
+
+    /** 525 — raw temperature/IMU read. Wire format is
+     *  `525@Tempa509ca361e0000275a ;#` (a hex blob, decoding is TODO). We
+     *  surface the raw hex so the user can see the value the mount reports. */
+    var temperature by mutableStateOf<Temperature?>(null)
+        private set
+
+    /**
+     * Live capture pipeline state (code 266). Polled on a separate 2s cadence
+     * from the main 1Hz pose poll so that a slow/no-response 266 doesn't stall
+     * the 284/517 update loop. `state==1` means a shot is in progress (bulb
+     * exposure, processing, etc.) and the UI should grey out the Capture
+     * button to prevent stacking exposures. `state==0` is idle. `c` is a
+     * firmware-defined counter (typically the remaining shots in a burst).
+     * See docs/PLANNING-2026-08.md Step 7.
+     */
+    var captureState by mutableStateOf<CommandTable.CaptureState?>(null)
+        private set
+
+    /**
+     * Live status of the firmware-update flow (FirmwareUpdateController). Null
+     * when no upload has been attempted yet in this session. Surfaced by
+     * FirmwarePane as a progress bar / status line.
+     */
+    var firmwareStatus by mutableStateOf<FirmwareUpdateController.Status?>(null)
+        private set
+
+    /**
+     * The firmware file the user just picked, surfaced in the FirmwarePane
+     * before they hit "Upload". Null when nothing has been picked yet, or
+     * after a successful upload (so the pane resets to its clean state).
+     * We hold the absolute path rather than the bytes: the bytes can be
+     * many MB and we don't want them sitting in Compose state.
+     */
+    var pickedFirmwarePath by mutableStateOf<String?>(null)
+        private set
+
+    /** Display name of the picked firmware file, taken from the path's basename. */
+    var pickedFirmwareName by mutableStateOf<String?>(null)
+        private set
+
+    /** Bytes of the picked firmware file, lazily read by the upload button. */
+    var pickedFirmwareSize by mutableStateOf<Long?>(null)
+        private set
+
+    /** Whether the firmware upload is currently in flight. Drives UI gating. */
+    var firmwareBusy by mutableStateOf(false)
+        private set
+
+    /** Whether the user wants the mount to reboot after a successful install. */
+    var firmwareRebootAfter by mutableStateOf(false)
+
+    // ---- session persistence + reconnect prompt (issue #27) ----------------
+
+    // [pendingReconnectMarker] / [lastSlewMarkerId] / [confirmReconnect] /
+    // [maybeOfferReconnect] / [saveCurrentTarget] were part of the OURS'
+    // "Return to last celestial target" feature merged alongside THEIRS'
+    // "Reconnect to last host" feature. The OURS' feature referenced a
+    // TargetSessionMarker store that was never wired in (only the
+    // SessionStore<connection> exists), so the merged code referenced
+    // methods that don't exist. Removed in favour of THEIRS' feature for
+    // now; the target-marker feature can be re-added against a real
+    // TargetStore later.
+
     private var session: MountSession? = null
     private var controller: TrackingController? = null
     private var autoLevelController: AutoLevelController? = null
@@ -126,6 +239,7 @@ class AppViewModel(
     // tears down.
     private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
+    private var capturePollJob: Job? = null
     // The simulated mount (only set in demo mode). Held so disconnect()
     // can cancel its private reader scope.
     private var demoSim: SimulatedMount? = null
@@ -207,6 +321,7 @@ class AppViewModel(
      */
     internal var nowMs: () -> Long = { dev.openpolaris.core.domain.currentEpochMillis() }
 
+
     fun updateHost(h: String) { host = h }
 
     /**
@@ -219,11 +334,8 @@ class AppViewModel(
      * (typically the main dispatcher) is not blocked.
      */
     fun tryReconnectIfMarkerExists() {
-        // No store wired (desktop simulator, unit tests that don't care
-        // about reconnect) — silently no-op rather than NPE.
-        val store = sessionStore ?: return
         scope.launch {
-            val marker = withContext(ioDispatcher) { store.read() }
+            val marker = withContext(ioDispatcher) { sessionStore.read() }
             if (marker == null) return@launch
             // Re-check inside the launched coroutine: the user may have
             // dismissed the prompt between the call site and here.
@@ -290,7 +402,7 @@ class AppViewModel(
         port = targetPort
         if (targetHost != prompt.host || targetPort != prompt.port) {
             val pos = position
-            val writeResult = sessionStore?.write(
+            val writeResult = sessionStore.write(
                 SessionMarker(
                     host = targetHost,
                     port = targetPort,
@@ -300,7 +412,7 @@ class AppViewModel(
                     lastRollDeg = pos?.roll?.toDouble(),
                     lastPitchDeg = pos?.pitch?.toDouble(),
                 ),
-            ) ?: Result.success(Unit)
+            )
             // 3d: if the write fails, the on-disk marker still points at
             // the OLD host, so the next launch would re-prompt the user
             // with the wrong host. Surface the failure so the user
@@ -355,10 +467,8 @@ class AppViewModel(
      * marker. Surfaces the result in [statusMessage].
      */
     fun forgetMarker() {
-        // No store wired — no-op (no marker to forget).
-        val store = sessionStore ?: run { statusMessage = "No saved mount to forget"; return }
         scope.launch {
-            val removed = withContext(ioDispatcher) { store.forget() }
+            val removed = withContext(ioDispatcher) { sessionStore.forget() }
             _reconnectPrompt.value = null
             // 3c.5: clear the host-edit buffer so the next launch (or
             // the next successful connect that writes a new marker) can
@@ -401,10 +511,7 @@ class AppViewModel(
             lastPitchDeg = pos?.pitch?.toDouble(),
         )
         scope.launch {
-            // No store wired (desktop simulator, tests) — silently skip the
-            // persist. A live session is unaffected.
-            val result = sessionStore?.let { withContext(ioDispatcher) { it.write(marker) } }
-                ?: Result.success(Unit)
+            val result = withContext(ioDispatcher) { sessionStore.write(marker) }
             if (result.isFailure) {
                 // Best-effort: a failed write does not break the live
                 // session, but the user should know the reconnect prompt
@@ -433,12 +540,8 @@ class AppViewModel(
         val s = MountSession(connectionFactory, host, port)
         session = s
         controller = TrackingController(s)
-        cameraController = dev.openpolaris.core.domain.CameraController(s)
+        cameraController = CameraController(s)
         wireHelpers(s)
-        // Pull the WiFi band on connect so the HelpersPane shows the
-        // current value without the user having to tap Refresh. The
-        // setter/refresh path is always available via [refreshWifiBand].
-        scope.launch { refreshWifiBand() }
         startAutoLevel(s)
         // 3c.5: capture the launched coroutine so [cancelReconnect] can
         // interrupt a hung `s.connect()` (mount powered off, link down).
@@ -487,15 +590,76 @@ class AppViewModel(
                     .takeIf { it.startsWith("Could not save updated host:") }
                 if (s.connect()) {
                     statusMessage = "Connected"
-                    saveMarker()
-                    startPolling(s)
-                    startCapturePolling(s)
-                    startPreview()
+                    // 3e E2: catch any throw from the post-connect bootstrap
+                    // (saveMarker / startPolling / startCapturePolling /
+                    // startPreview) so a single failing bootstrap step surfaces
+                    // as a status message instead of killing the launched
+                    // coroutine and leaving the UI in a half-connected state.
+                    // Pre-fix the success branch was bare; an NPE in the
+                    // preview controller (e.g. host resolution failure when the
+                    // user typed an unresolvable hostname) would leave
+                    // statusMessage stuck at "Connected" while the polling
+                    // loops silently never started.
+                    try {
+                        saveMarker()
+                        startPolling(s)
+                        startCapturePolling(s)
+                        startPreview()
+                    } catch (e: Throwable) {
+                        // Make sure the half-built session is torn down so a
+                        // retry starts from a clean slate. The next connect()
+                        // call already calls disconnect() at the top, but a
+                        // successful-then-failed bootstrap means we'd otherwise
+                        // keep polling and streaming from a session whose
+                        // bootstrap never finished.
+                        disconnect()
+                        statusMessage = "Connected, but post-connect setup failed: " +
+                            "${e.message ?: e::class.simpleName}"
+                    }
                 } else {
                     statusMessage = pendingSaveFailure?.let { saveMsg ->
                         "$saveMsg — and could not reach $host. Try Demo mode."
                     } ?: "Could not reach $host — try Demo mode"
                 }
+            } catch (e: Throwable) {
+                // 3e E2: outer catch for anything the inner try did not cover
+                // (e.g. an uncaught throw inside the launching dispatcher, or
+                // a CancellationException we want to swallow so the UI stays
+                // responsive). Surface as a status message; the finally block
+                // still resets the in-flight flag.
+                statusMessage = "Connect failed: ${e.message ?: e::class.simpleName}"
+            } finally {
+                _reconnecting.value = false
+
+            }
+        }
+    }
+
+    /**
+     * Bring up the segregated Wi-Fi bridge (BT wake → NM up → link up →
+     * policy route). Each phase posts to [statusMessage] as it runs.
+     */
+    fun connectWifi() {
+        // 3d D3: try/catch the whole launch so a synchronously-throwing
+        // lambda (e.g. an NPE inside the orchestrator that escaped its
+        // own runCatching) does not kill the coroutine and leave
+        // statusMessage stuck on the initial "Connecting…" line. Also
+        // guard against double-tap so two overlapping launches do not
+        // race to write the same status line.
+        if (_reconnecting.value) return
+        _reconnecting.value = true
+        scope.launch {
+            try {
+                statusMessage = "Connecting to mount Wi-Fi…"
+                connectWifi { msg -> statusMessage = msg }
+                // The bridge orchestrator ends in a "complete" message
+                // that names the gimbal network it just brought up;
+                // do not overwrite it.
+                if (!statusMessage.startsWith("Bridge to mount Wi-Fi complete")) {
+                    statusMessage = "Mount Wi-Fi phase complete — try Connect"
+                }
+            } catch (e: Throwable) {
+                statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false
             }
@@ -522,36 +686,47 @@ class AppViewModel(
         demoSim = sim
         session = sim.session
         controller = TrackingController(sim.session)
-        cameraController = dev.openpolaris.core.domain.CameraController(sim.session)
+        cameraController = CameraController(sim.session)
         wireHelpers(sim.session)
+
         startAutoLevel(sim.session)
         scope.launch {
-            sim.session.connect()
-            // SimulatedMount's connect() always returns true; treat as
-            // success for the marker-save path. (A future slice that
-            // simulates intermittent failure should gate this on the
-            // return value the same way `connect()` does.)
-            saveMarker()
-            statusMessage = "Demo mode (simulated mount)"
-            if (startPolling) {
-                startPolling(sim.session)
-                startCapturePolling(sim.session)
+            try {
+                sim.session.connect()
+                // SimulatedMount's connect() always returns true; treat as
+                // success for the marker-save path. (A future slice that
+                // simulates intermittent failure should gate this on the
+                // return value the same way `connect()` does.)
+                saveMarker()
+                statusMessage = "Demo mode (simulated mount)"
+                if (startPolling) {
+                    startPolling(sim.session)
+                }
+                // No preview in demo mode: there is no MJPEG endpoint in the
+                // simulator. PreviewController stays Idle, which the pane
+                // renders as "Stream unavailable".
+            } catch (e: Throwable) {
+                // 3e E2: demo mode should never really throw (the
+                // simulator is in-process) but if a future slice adds a
+                // simulated intermittent failure or a saveMarker() I/O
+                // regression sneaks in, surface the cause instead of
+                // silently leaving the user with no status feedback.
+                statusMessage = "Demo mode failed: ${e.message ?: e::class.simpleName}"
             }
-            // No preview in demo mode: there is no MJPEG endpoint in the
-            // simulator. PreviewController stays Idle, which the pane
-            // renders as "Stream unavailable".
+
         }
     }
 
     fun disconnect() {
         pollJob?.cancel()
+        capturePollJob?.cancel()
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
         // Tear down the simulated mount's private reader scope so the
         // long-lived reader coroutine does not keep the dispatcher alive
         // past the lifetime of this view model.
-        demoSim?.shutdown()
+        runCatching { demoSim?.shutdown() }
         demoSim = null
         // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"
         // flag, not a "disconnect lifecycle" flag. The launched coroutine
@@ -563,10 +738,11 @@ class AppViewModel(
         // cleared it before the test could observe the in-flight state.
         // The cancel path is unaffected because cancelReconnect() does
         // not call disconnect() and has its own explicit reset.
-        stopAutoLevel()
+        stopAutoLevelAsync()
         cancelHelpersJobs()
-        preview.stop()
+        runCatching { preview.stop() }
         previewFrame = null
+
         session?.disconnect()
         session = null
         controller = null
@@ -576,13 +752,25 @@ class AppViewModel(
         settlingSeconds = null
         limitsEnabled = null
         settlingInput = ""
-        captureState = null
-        capturePollJob?.cancel()
-        capturePollJob = null
-        sdStatus = null
-        fileList = null
         mount = MountState()
         position = null
+        firmwareVersion = null
+        serialNumber = null
+        wifiBand = null
+        batteryDetail = null
+        sdStatus = null
+        omsState = null
+        settlingTime = null
+        exAxisState = null
+        cameraInfo = null
+        deviceInfo = null
+        temperature = null
+        captureState = null
+        // Tear down the auto-level controller in its own coroutine so we can
+        // call the suspending stopAutoLevel() from a non-suspending context.
+        // Safe to fire-and-forget: stopAutoLevel only cancels jobs that
+        // belong to this VM, and the controller's stop() is idempotent.
+        stopAutoLevelAsync()
         _lastSolveResult.value = null
         // Clear the VR marker bus too so a stale solve doesn't linger
         // on the headset after the user disconnects.
@@ -621,7 +809,19 @@ class AppViewModel(
         // when the user picked a non-default port, so the preview never
         // opened. Called before the collector launches so the first frame
         // isn't missed by a start/collect race.
-        preview.start(host, port)
+        try {
+            preview.start(host, port)
+        } catch (e: Throwable) {
+            // 3e E2: PreviewController.start may throw if the host is
+            // unresolvable or the port is closed. Surface as a status
+            // message and skip the collector — the rest of the post-
+            // connect setup (polling, capture polling) will still
+            // continue. Without this, the connect() success branch
+            // catches it at the outer layer, but a cleaner message
+            // here helps the user debug a misconfigured port.
+            statusMessage = "Preview unavailable: ${e.message ?: e::class.simpleName}"
+            return
+        }
         scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
@@ -636,6 +836,7 @@ class AppViewModel(
                 decoded.getOrNull()?.let { previewFrame = it }
             }
         }
+
     }
 
     private fun startPolling(s: MountSession) {
@@ -654,6 +855,149 @@ class AppViewModel(
                 delay(1000)
             }
         }
+    }
+
+    /**
+     * Periodic 2s poll for code 266 (CAM_GET_STATE). Kept off the main 1Hz
+     * pose poll so a slow/missing 266 reply (older firmware or hardware
+     * timeout) cannot stall 284/517. MountSession.request serialises through
+     * a single Mutex, so captureState updates will interleave with the pose
+     * poll but never overlap. The parser returns null if `state` is absent;
+     * we preserve the last good value in that case so a single missed
+     * response doesn't visually reset the Capture button.
+     */
+    private fun startCapturePolling(s: MountSession) {
+        capturePollJob?.cancel()
+        capturePollJob = scope.launch {
+            while (isActive) {
+                when (val r = s.request(dev.openpolaris.core.protocol.Codes.CAM_GET_STATE) { CommandTable.CAM_GET_STATE.parse!!(it) }) {
+                    is MountSession.CmdResult.Ok -> r.value?.let { captureState = it }
+                    else -> {} // Timeout / ProtocolError: keep last good captureState
+                }
+                delay(2000)
+            }
+        }
+    }
+
+    // ---- post-connect burst --------------------------------------------
+    //
+    // After a successful TCP connect the gimbal is silent until we ask for
+    // things.  We fire off the codes that surface on the Info / Battery / About
+    // screens: firmware, serial, wifi band, battery (status+detail), SD card,
+    // OMS run state, ex-axis state, settling time.  Each is independent — a
+    // timeout on one (older firmware may not implement it) must not block the
+    // others.
+    //
+    // Order matches `tools/cli-probe/.../Burst.kt` so the simulator and the
+    // live device see the same traffic.  543 is a GET for settling time and is
+    // appended after 544 (the SETTER used by the demo).  In a real connection
+    // only 543 fires.
+    //
+    // See docs/PLANNING-2026-08.md Step 5.
+
+    private suspend fun postConnectBurst(s: MountSession) {
+        for (step in CommandTable.BURST_PRE_CAMERA) {
+            runCatching {
+                @Suppress("UNCHECKED_CAST")
+                val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+                if (r is MountSession.CmdResult.Ok) applyBurstValue(step.code, r.value)
+            }
+        }
+
+        // Camera parameter burst (10 GETs). Each merges one field into the
+        // running CameraInfo snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
+        // NOT part of this — they feed the CaptureState pipeline / capture button.
+        runCatching {
+            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
+            for (c in CommandTable.BURST_CAMERA_CODES) {
+                val r = s.request<ResponseParser.Frame>(c) { it }
+                if (r is MountSession.CmdResult.Ok) {
+                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
+                }
+            }
+            cameraInfo = snapshot
+        }
+    }
+
+    /**
+     * Dispatch a single parsed pre-camera burst value to the right observable.
+     * Centralised here so the `refresh*()` methods and the burst share one
+     * code-to-field mapping.
+     */
+    private fun applyBurstValue(code: Int, value: Any) {
+        when (code) {
+            808 -> firmwareVersion = value as String
+            809 -> serialNumber = value as String
+            802 -> wifiBand = value as Int
+            778, 779 -> batteryDetail = value as BatteryDetail
+            775 -> sdStatus = value as SdStatus
+            824 -> omsState = value as OmsState
+            524 -> exAxisState = (value as ExAxisState).state
+            543 -> settlingTime = value as Int
+            780 -> deviceInfo = value as DeviceInfo
+            525 -> temperature = value as Temperature
+        }
+    }
+
+    /** Re-fire a single code from the post-connect burst on demand. */
+    fun refreshFirmware()   = refreshBurstStep(808)
+    fun refreshSerial()     = refreshBurstStep(809)
+    fun refreshWifiBand()   = refreshBurstStep(802)
+    fun refreshBattery()    { refreshBurstStep(778); refreshBurstStep(779) }
+    fun refreshSdStatus()   = refreshBurstStep(775)
+    fun refreshOmsState()   = refreshBurstStep(824)
+    fun refreshExAxis()     = refreshBurstStep(524)
+    fun refreshSettling()   = refreshBurstStep(543)
+    fun refreshDeviceInfo() = refreshBurstStep(780)
+    fun refreshTemperature() = refreshBurstStep(525)
+
+    /**
+     * Fire every read-back in the pre-camera burst in a single coroutine.
+     * Used by the Device info pane's "Refresh all" button so a single tap
+     * re-reads every observable without each control having its own button.
+     */
+    fun refreshAllDeviceInfo() = scope.launch {
+        for (step in CommandTable.BURST_PRE_CAMERA) {
+            val s = session ?: return@launch
+            runCatching {
+                @Suppress("UNCHECKED_CAST")
+                val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+                if (r is MountSession.CmdResult.Ok) applyBurstValue(step.code, r.value)
+            }
+        }
+        // Re-fire the camera burst too — cameraInfo is part of "what the
+        // mount knows about itself" and the user expects the device-info
+        // refresh to update it.
+        val s = session ?: return@launch
+        runCatching {
+            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
+            for (c in CommandTable.BURST_CAMERA_CODES) {
+                val r = s.request<ResponseParser.Frame>(c) { it }
+                if (r is MountSession.CmdResult.Ok) {
+                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
+                }
+            }
+            cameraInfo = snapshot
+        }
+    }
+
+    private fun refreshBurstStep(code: Int) = scope.launch {
+        val s = session ?: return@launch
+        val step = CommandTable.BURST_PRE_CAMERA.firstOrNull { it.code == code } ?: return@launch
+        runCatching {
+            @Suppress("UNCHECKED_CAST")
+            val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
+            if (r is MountSession.CmdResult.Ok) applyBurstValue(code, r.value)
+        }
+    }
+
+    fun setSettlingTimeMs(ms: Int) = scope.launch {
+        val s = session ?: return@launch
+        // 544 is a SETTER with no echo on the real device.  Use Int parser so
+        // `matched!!` succeeds; result is discarded.
+        s.request<Int>(544, "time:$ms;") { 0 }
+        // Re-read to confirm.
+        (s.request<Int>(543) { it.int("time") } as? MountSession.CmdResult.Ok)?.let { settlingTime = it.value }
     }
 
     // ---- user actions -------------------------------------------------
@@ -734,42 +1078,13 @@ class AppViewModel(
         statusMessage = "Slew cancelled"
     }
 
-    // ---- catalog & comets (Tonight pane) ----------------------------------
-    //
-    // The bundled shards (catalog.json, stars.json, ngc.json, comets.json)
-    // ship in `commonMain/resources/` and are visible via the
-    // `readResourceText` expect/actual. They are loaded once at
-    // construction time and never mutate; UI code reads them via
-    // [tonightCatalog] / [tonightComets] to drive the Tonight call-out.
+    // ---- session persistence + reconnect prompt (issue #27) ----------------
 
-    /** Merged fixed-position catalog (Messier + named stars + NGC). */
-    val tonightCatalog: Catalog by lazy {
-        EmbeddedCatalog.loadFrom(EmbeddedCatalog.DEFAULT_SHARDS) { path ->
-            readResourceText(path)
-        }
-    }
-
-    /** Periodic comets + any appended discoveries (orbital elements). */
-    val tonightComets: List<CometOrbitalElements> by lazy {
-        val text = readResourceText("comets.json") ?: return@lazy emptyList()
-        runCatching { CometShardLoader.parse(text).objects }
-            .getOrDefault(emptyList())
-    }
-
-    /**
-     * Tap-to-slew helper used by the Tonight pane. Prefills the goto
-     * fields with the object's J2000 RA/Dec (formatted HH MM SS / ±DD MM SS)
-     * and kicks off the existing [goto] path.
-     */
-    fun slewToObject(obj: dev.openpolaris.core.astro.AstroObject) {
-        val raText = AstroMath.formatRaHours(obj.raDeg)
-        val decText = AstroMath.formatDecDMS(obj.decDeg)
-        updateRa(raText)
-        updateDec(decText)
-        setRaDecMode(true)
-        statusMessage = "Slewing to ${obj.name ?: obj.designation} (${obj.type.name})…"
-        goto()
-    }
+    // [saveCurrentTarget] / [maybeOfferReconnect] / [confirmReconnect] were
+    // part of the OURS' "Return to last celestial target" feature. They
+    // referenced a TargetStore that was never wired in. Removed; the
+    // THEIRS' host-reconnect prompt ([reconnectPrompt], [acceptReconnect])
+    // is the only reconnect UX in this build.
 
     // ---- alignment ---------------------------------------------------------
 
@@ -957,36 +1272,48 @@ class AppViewModel(
     var autoLevelEnabled by mutableStateOf<Boolean?>(null)
         private set
 
+    /**
+     * Live tilt readback from [AutoLevelController]. Pushed from the 538 frame
+     * stream while auto-level is running. Displayed as a read-only row in the
+     * Full control pane so the user can see the current pitch/roll even when
+     * they don't have a safe write path for it.
+     */
     var autoLevelTilt by mutableStateOf<AutoLevelController.Tilt?>(null)
         private set
 
+    /**
+     * True while a `runAndAwait()` settling loop is in flight. Drives a
+     * "Running…" badge next to the AutoLevel row.
+     */
     var autoLevelRunning by mutableStateOf(false)
         private set
 
+    /**
+     * Bring up the auto-level controller and wire its three state flows
+     * (enabled / tilt / running) into Compose-observable fields. Called from
+     * [connect] (and [connectDemo]) so the readback is always live.
+     *
+     * Each collector is launched on the VM scope so a disconnect cleanly
+     * cancels them. We hold the [Job]s in [autoLevelJobs] so [stopAutoLevel]
+     * can join them before tearing down the controller.
+     */
     private fun startAutoLevel(s: MountSession) {
-        autoLevelController?.stop()
-        // Wire the AutoLevel controller's settling loop to the session's
-        // non-conflating tilt push stream (issue #6). The default sample
-        // source reads from a StateFlow that conflates identical samples
-        // and drops intermediate ones — fatal for AHRS settling, which
-        // needs every 538 push in arrival order.
-        val pushSource = dev.openpolaris.core.domain.MountSessionTiltSampleSource(s)
-        val sampleSource: suspend () -> dev.openpolaris.core.domain.AutoLevelController.Tilt? = {
+        // Wire the AutoLevelController's settling loop to the session's
+        // non-conflating tilt push stream (issue #6). The default
+        // sampleSource reads from `session.frames` filtered to 538 — that
+        // is a conflated StateFlow that drops intermediate samples, fatal
+        // for AHRS settling. Use the buffered [MountSession.tilt] flow
+        // via [MountSessionTiltSampleSource] so every 538 push arrives in
+        // order.
+        val pushSource = MountSessionTiltSampleSource(s)
+        val sampleSource: suspend () -> AutoLevelController.Tilt? = {
             pushSource.next()?.let {
-                dev.openpolaris.core.domain.AutoLevelController.Tilt(
-                    pitchDeg = it.pitchDeg,
-                    rollDeg = it.rollDeg,
-                )
+                AutoLevelController.Tilt(pitchDeg = it.pitchDeg, rollDeg = it.rollDeg)
             }
         }
         val c = AutoLevelController(s, sampleSource)
         autoLevelController = c
         c.start(scope)
-        // Track all collector jobs in a list (NOT a single field) — three
-        // collectors are launched and every one must be cancellable from
-        // [stopAutoLevel]. A single `Job?` reference would be overwritten
-        // three times and orphan the first two (see PR for issue #7 3c.3).
-        cancelAutoLevelJobs()
         autoLevelJobs += scope.launch {
             c.isEnabled.collect { autoLevelEnabled = it }
         }
@@ -996,30 +1323,64 @@ class AppViewModel(
         autoLevelJobs += scope.launch {
             c.isRunning.collect { autoLevelRunning = it }
         }
+        // refreshEnabled is a suspend function; fire it on the VM scope so
+        // the connect path stays non-suspending and the initial 547 GET
+        // races with the controller's collector.
+        scope.launch { c.refreshEnabled() }
     }
 
-    private fun cancelAutoLevelJobs() {
-        for (j in autoLevelJobs) j.cancel()
+    /**
+     * Tear down the auto-level controller: cancel the three collectors,
+     * stop the controller's job, null the state fields, and clear the
+     * 538 readback so a stale tilt doesn't linger on the next connect.
+     */
+    private suspend fun stopAutoLevel() {
+        // Snapshot before iterating: cancelAndJoin suspends, and another
+        // coroutine on the UI dispatcher can mutate autoLevelJobs via +=
+        // (e.g. refreshAutoLevel() re-wiring collectors), which would throw
+        // ConcurrentModificationException on a live iterator.
+        val pending = autoLevelJobs.toList()
         autoLevelJobs.clear()
-    }
-
-    private fun cancelHelpersJobs() {
-        for (j in helpersJobs) j.cancel()
-        helpersJobs.clear()
-    }
-
-    private fun stopAutoLevel() {
-        cancelAutoLevelJobs()
+        for (j in pending) j.cancelAndJoin()
         autoLevelController?.stop()
         autoLevelController = null
-        autoLevelEnabled = null
         autoLevelTilt = null
         autoLevelRunning = false
     }
 
+    /**
+     * Non-suspending wrapper for use in [disconnect]. Cancel and join all
+     * collectors, then null the controller and state. The actual suspension
+     * happens in [scope] so callers can stay on the main thread.
+     */
+    private fun stopAutoLevelAsync() {
+        scope.launch { stopAutoLevel() }
+    }
+
     fun refreshAutoLevel() {
-        val c = autoLevelController ?: run { statusMessage = "Not connected"; return }
-        scope.launch { c.refreshEnabled() }
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        if (autoLevelController == null) {
+            // First-time setup: bring up the controller and wire its three
+            // state flows. Mirrors what startAutoLevel() does on connect;
+            // exposed here so a manual Refresh from the UI works mid-session.
+            val c = AutoLevelController(s)
+            autoLevelController = c
+            c.start(scope)
+            cancelAutoLevelJobs()
+            autoLevelJobs += scope.launch {
+                c.isEnabled.collect { autoLevelEnabled = it }
+            }
+            autoLevelJobs += scope.launch {
+                c.tilt.collect { autoLevelTilt = it }
+            }
+            autoLevelJobs += scope.launch {
+                c.isRunning.collect { autoLevelRunning = it }
+            }
+        }
+        // refreshEnabled is a suspend function; fire it on the VM scope so
+        // the connect path stays non-suspending and the initial 547 GET
+        // races with the controller's collector.
+        scope.launch { autoLevelController?.refreshEnabled() }
     }
 
     fun setAutoLevelEnabled(on: Boolean) = scope.launch {
@@ -1028,35 +1389,56 @@ class AppViewModel(
         statusMessage = "Auto-level ${if (on) "enabled" else "disabled"}"
     }
 
+    private fun cancelAutoLevelJobs() {
+        // Snapshot to avoid ConcurrentModificationException if a UI callback
+        // mutates autoLevelJobs (e.g. refreshAutoLevel) while we iterate.
+        val pending = autoLevelJobs.toList()
+        autoLevelJobs.clear()
+        for (j in pending) j.cancel()
+    }
+
+    private fun cancelHelpersJobs() {
+        val pending = helpersJobs.toList()
+        helpersJobs.clear()
+        for (j in pending) j.cancel()
+    }
+
     /**
-     * Trigger one auto-level cycle (code 549) and surface the settling result.
+     * Trigger one auto-level cycle (code 549) and wait for the gimbal to settle.
      *
-     * Cancellation contract (issue #22 / 3b.5 follow-up): [AutoLevelController.runAndAwait]
-     * deliberately propagates [CancellationException] from the calling coroutine — coroutine
-     * cancellation is control flow, not an application error (see
-     * [AutoLevelController.runAndAwait] KDoc and PLAN.md §3b.5). The user-visible
-     * "cancelled" message is therefore THIS caller's responsibility: we catch the
-     * exception solely to set [statusMessage], then re-throw so the surrounding
-     * structured-concurrency tree still observes the cancellation. The catch must
-     * be on the specific [CancellationException] type so genuine failures (e.g.
-     * IOException from the session reader) continue to surface as the original
-     * exception in the structured-concurrency tree.
+     * The settling loop lives in [AutoLevelController]: it fires 549, then
+     * consumes 538 push samples from the [MountSession.tilt] push stream
+     * until 10 consecutive samples land within [AutoLevelController.SETTLE_EPSILON_DEG]
+     * of their mean on both pitch and roll, or 60s elapses.
+     *
+     * Cancellation: if the calling scope is cancelled (e.g. the user hits
+     * disconnect), `CancellationException` is re-thrown after we set a
+     * friendly status. We deliberately do not catch `TimeoutCancellationException`
+     * because the controller already maps that to [AutoLevelResult.TimedOut].
      */
     fun runAutoLevel() = scope.launch {
-        val c = autoLevelController ?: run { statusMessage = "Not connected"; return@launch }
-        statusMessage = "Auto-level started…"
+        val c = autoLevelController
+        if (c == null) {
+            statusMessage = "Not connected"
+            return@launch
+        }
+        statusMessage = "Auto-level started"
         val result = try {
-            c.runAndAwait()
+            // Hard cap at 75s in case the controller's 60s internal timeout
+            // is bypassed (e.g. by a wedged sampleSource). 75s gives the
+            // controller a comfortable buffer.
+            withTimeoutOrNull(75_000) { c.runAndAwait() }
+                ?: AutoLevelController.AutoLevelResult.TimedOut
         } catch (e: CancellationException) {
             statusMessage = "Auto-level cancelled"
             throw e
         }
         statusMessage = when (result) {
-            is dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.Completed ->
+            is AutoLevelController.AutoLevelResult.Completed ->
                 "Auto-level settled at roll=${"%.3f".format(result.rollDeg)}°, pitch=${"%.3f".format(result.pitchDeg)}°"
-            is dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.Failed ->
+            is AutoLevelController.AutoLevelResult.Failed ->
                 "Auto-level failed: ${result.reason}"
-            dev.openpolaris.core.domain.AutoLevelController.AutoLevelResult.TimedOut ->
+            AutoLevelController.AutoLevelResult.TimedOut ->
                 "Auto-level timed out before settling"
         }
     }
@@ -1075,12 +1457,6 @@ class AppViewModel(
         private set
 
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
-
-    /** Live capture pipeline state (code 266). Polled on a 2s cadence below. */
-    var captureState by mutableStateOf<CommandTable.CaptureState?>(null)
-        private set
-
-    private var capturePollJob: Job? = null
 
     fun refreshCamera() {
         val cc = cameraController ?: run { statusMessage = "Not connected"; return }
@@ -1123,79 +1499,54 @@ class AppViewModel(
         statusMessage = "Capture sent"
     }
 
+    // ---- catalog & comets (Tonight pane) ----------------------------------
+    //
+    // The bundled shards (catalog.json, stars.json, ngc.json, comets.json)
+    // ship in `commonMain/resources/` and are visible via the
+    // `readResourceText` expect/actual. They are loaded once at
+    // construction time and never mutate; UI code reads them via
+    // [tonightCatalog] / [tonightComets] to drive the Tonight call-out.
+
+    /** Merged fixed-position catalog (Messier + named stars + NGC). */
+    val tonightCatalog: Catalog by lazy {
+        EmbeddedCatalog.loadFrom(EmbeddedCatalog.DEFAULT_SHARDS) { path ->
+            readResourceText(path)
+        }
+    }
+
+    /** Periodic comets + any appended discoveries (orbital elements). */
+    val tonightComets: List<CometOrbitalElements> by lazy {
+        val text = readResourceText("comets.json") ?: return@lazy emptyList()
+        runCatching { CometShardLoader.parse(text).objects }
+            .getOrDefault(emptyList())
+    }
+
     /**
-     * Periodic 2s poll for code 266 (CAM_GET_STATE). Kept off the main 1Hz
-     * pose poll so a slow/missing 266 reply (older firmware or hardware
-     * timeout) cannot stall 284/517. MountSession.request serialises through
-     * a single Mutex, so captureState updates will interleave with the pose
-     * poll but never overlap. The parser returns null if `state` is absent;
-     * we preserve the last good value in that case so a single missed
-     * response doesn't visually reset the Capture button.
+     * Tap-to-slew helper used by the Tonight pane. Prefills the goto
+     * fields with the object's J2000 RA/Dec (formatted HH MM SS / ±DD MM SS)
+     * and kicks off the existing [goto] path.
      */
-    private fun startCapturePolling(s: MountSession) {
-        capturePollJob?.cancel()
-        capturePollJob = scope.launch {
-            while (isActive) {
-                runCatching {
-                    val r = s.request(dev.openpolaris.core.protocol.Codes.CAM_GET_STATE) { CommandTable.CAM_GET_STATE.parse!!(it) }
-                    if (r is MountSession.CmdResult.Ok) r.value?.let { captureState = it }
-                }
-                delay(2000)
-            }
-        }
+    fun slewToObject(obj: dev.openpolaris.core.astro.AstroObject) {
+        val raText = AstroMath.formatRaHours(obj.raDeg)
+        val decText = AstroMath.formatDecDMS(obj.decDeg)
+        updateRa(raText)
+        updateDec(decText)
+        setRaDecMode(true)
+        statusMessage = "Slewing to ${obj.name ?: obj.designation} (${obj.type.name})…"
+        goto()
     }
 
-    // ---- file manager (770 list, 771 delete, 775 SD status, 776 format) ----
-
-    /** Last loaded file list. Null while not loaded. */
-    var fileList by mutableStateOf<FileList?>(null)
-        private set
-
-    /** SD card presence + free/total MB. Null while not polled. */
-    var sdStatus by mutableStateOf<SdStatus?>(null)
-        private set
-
-    /** Re-query code 775 (FILE_SD_STATUS) and store in [sdStatus]. */
-    fun refreshSdStatus() = scope.launch {
-        val s = session ?: return@launch
-        runCatching {
-            val r = s.request<SdStatus>(dev.openpolaris.core.protocol.Codes.FILE_SD_STATUS) { SdStatus.fromFrame(it) }
-            if (r is MountSession.CmdResult.Ok) sdStatus = r.value
-        }
-    }
-
-    /** Re-query code 770 (FILE_LIST) and store in [fileList]. */
-    fun refreshFileList() = scope.launch {
-        val s = session ?: return@launch
-        runCatching {
-            val r = s.request<FileList>(dev.openpolaris.core.protocol.Codes.FILE_LIST) { FileList.fromFrame(it) }
-            if (r is MountSession.CmdResult.Ok) {
-                fileList = r.value
-                statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
-            }
-        }
-    }
-
-    fun deleteFile(id: Int) = scope.launch {
-        val s = session ?: return@launch
-        s.send(dev.openpolaris.core.protocol.Codes.FILE_DELETE, "id:$id;")
-        statusMessage = "Delete $id sent"
-        refreshFileList()
-    }
-
-    fun protectFile(id: Int, prot: Int) = scope.launch {
-        val s = session ?: return@launch
-        s.send(dev.openpolaris.core.protocol.Codes.FILE_PROTECT, "id:$id;prot:$prot;")
-        statusMessage = "Protect $id = $prot sent"
-        refreshFileList()
-    }
-
-    fun formatSd() = scope.launch {
-        val s = session ?: return@launch
-        s.send(dev.openpolaris.core.protocol.Codes.FILE_SD_FORMAT)
-        statusMessage = "SD format sent — will reload SD status"
-        refreshSdStatus()
-    }
+    // ====================================================================
+    // Full control-panel surface.
+    //
+    // Each block below is gated on a FeatureFlags key so a freshly-flashed
+    // build only exposes what we have verified on real hardware. Adding a
+    // new code is a three-step recipe: (1) add the Descriptor to
+    // CommandTable, (2) gate it on a flag here, (3) wire a UI affordance
+    // that calls the VM method. The VM methods are the *only* place that
+    // reaches into `session.send` for non-CommandTable-burst traffic, so
+    // search there when looking for all wire side-effects.
+    // ====================================================================
 
     // ---- astro helpers ----------------------------------------------------
     // Codes 539/540 (dither), 543/544 (settling), 541/542 (limits) are
@@ -1269,147 +1620,342 @@ class AppViewModel(
         scope.launch { helpersController?.setSettling(clamped) }
     }
 
-    // ---- system / WiFi / power --------------------------------------------
-    // Thin VM-side wrappers over CommandTable for the "every (safe) switch"
-    // exposure the user asked for. Destructive ones (reboot/shutdown) are
-    // gated by FeatureFlags in [FullControlPanes]; here we just send the
-    // code. Read-only state flows (wifi band, time, tz, language, buzzer,
-    // LED) are queried on demand rather than polled, so they only appear
-    // as suspend-on-Request results — see [requestWifiBand] /
-    // [refreshWifiBand] for the canonical example.
-    //
-    // The wifi scan/connect path is acknowledged in FullControlPanes as
-    // read-only behind a flag because most desktop/test runs do not have
-    // a working wireless stack; we send the codes and surface the
-    // statusMessage either way.
 
-    /** Settling time in milliseconds, derived from [settlingSeconds]. */
-    val settlingTime: Int? get() = settlingSeconds?.let { it * 1000 }
+    // ---- OMS task list (825) ---------------------------------------------
 
-    /** Set the settling time in milliseconds (rounded to whole seconds). */
-    fun setSettlingTimeMs(ms: Int) {
-        val secs = (ms / 1000).coerceIn(0, 99)
-        settlingSeconds = secs
-        settlingInput = secs.toString()
-        scope.launch { helpersController?.setSettling(secs) }
-    }
-
-    /** Re-read the settling time from the mount. */
-    fun refreshSettling() {
-        scope.launch { helpersController?.refreshSettling() }
-    }
-
-    // ---- system time / timezone / language --------------------------------
-
-    /** Set the mount's wall-clock time (seconds since 1970). */
-    fun setSystemTime(epochSeconds: Long) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.SYS_TIME.code, CommandTable.SYS_TIME.payload(epochSeconds))
-        statusMessage = "Set system time → $epochSeconds"
-    }
-
-    /** Set the mount's timezone offset (hours from UTC, e.g. -5, 0, +9). */
-    fun setTimezone(offsetHours: Int) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.SYS_TIMEZONE.code, CommandTable.SYS_TIMEZONE.payload(offsetHours))
-        statusMessage = "Set timezone → ${offsetHours}h"
-    }
-
-    /** Set the mount's UI language by index. */
-    fun setLanguage(index: Int) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.SYS_LANGUAGE.code, CommandTable.SYS_LANGUAGE.payload(index))
-        statusMessage = "Set language → #$index"
-    }
-
-    // ---- buzzer / LED ------------------------------------------------------
-
-    /** Toggle the mount's buzzer. */
-    fun setBuzzer(on: Boolean) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.SYS_BUZZER.code, CommandTable.SYS_BUZZER.payload(on))
-        statusMessage = "Buzzer → ${if (on) "ON" else "OFF"}"
-    }
-
-    /** Toggle the mount's status LED. */
-    fun setLed(on: Boolean) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.SYS_LED.code, CommandTable.SYS_LED.payload(on))
-        statusMessage = "Status LED → ${if (on) "ON" else "OFF"}"
-    }
-
-    // ---- WiFi --------------------------------------------------------------
-
-    /** Cached WiFi band (0 = 2.4 GHz, 1 = 5 GHz); null while unknown. */
-    var wifiBand by mutableStateOf<Int?>(null)
+    /** Last known OMS scheduled task list. */
+    var omsTaskList by mutableStateOf<TaskList?>(null)
         private set
 
-    /** Cached WiFi scan/connect result string; null while unknown. */
-    var wifiScanResult by mutableStateOf<String?>(null)
-        private set
-
-    /** Re-read the WiFi band from the mount. */
-    fun refreshWifiBand() = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        when (val r = s.request(CommandTable.WIFI_BAND.code) { f -> f.int("band") }) {
-            is MountSession.CmdResult.Ok -> {
-                wifiBand = r.value
-                // 3e E1: a preceding "Could not save updated host: …" message
-                // (set synchronously by acceptReconnect) is the dominant
-                // user-facing fact until the in-flight connect reaches its
-                // terminal state. The wifi-band query races with the
-                // connect's terminal status update, so an early "WiFi band
-                // →" line would clobber the save-failure context before
-                // the user could see it. Defer the status update until
-                // the save-failure context is no longer present.
-                if (!statusMessage.startsWith("Could not save updated host:")) {
-                    statusMessage = "WiFi band → ${r.value?.let { if (it == 0) "2.4 GHz" else "5 GHz" } ?: "?"}"
-                }
-            }
-            else -> {
-                // Same guard as the success branch.
-                if (!statusMessage.startsWith("Could not save updated host:")) {
-                    statusMessage = "WiFi band query failed"
-                }
+    fun refreshOmsTaskList() = scope.launch {
+        if (!FeatureFlags.isEnabled("omsRead")) { statusMessage = "OMS read disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<TaskList>(Codes.OMS_TASK_LIST) { CommandTable.OMS_TASK_LIST.parse!!(it) }
+            if (r is MountSession.CmdResult.Ok) {
+                omsTaskList = r.value
+                statusMessage = "OMS task list: ${r.value?.tasks?.size ?: 0} task(s)"
             }
         }
     }
 
-    /** Trigger a WiFi scan and surface a one-line summary. */
+    // ---- file manager (770 list, 703 delete, 705 protect) ----------------
+
+    /** Last loaded file list. Null while not loaded. */
+    var fileList by mutableStateOf<FileList?>(null)
+        private set
+    var fileListType by mutableStateOf(0)
+        private set
+    var fileListPage by mutableStateOf(0)
+        private set
+
+    fun setFileType(t: Int) { fileListType = t }
+    fun setFilePage(p: Int) { fileListPage = p.coerceAtLeast(0) }
+
+    fun refreshFileList() = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManager")) { statusMessage = "File manager disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<FileList>(Codes.FILE_LIST) { f -> FileList.fromFrame(f) }
+            if (r is MountSession.CmdResult.Ok) {
+                fileList = r.value
+                statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
+            }
+        }
+    }
+
+    fun deleteFile(id: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerMutate")) {
+            statusMessage = "File mutate disabled — enable fileManagerMutate in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_DELETE, "id:$id;")
+        statusMessage = "Delete $id sent"
+        refreshFileList()
+    }
+
+    fun protectFile(id: Int, prot: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerMutate")) {
+            statusMessage = "File mutate disabled"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_PROTECT, "id:$id;prot:$prot;")
+        statusMessage = "Protect $id = $prot sent"
+        refreshFileList()
+    }
+
+    fun formatSd() = scope.launch {
+        if (!FeatureFlags.isEnabled("fileManagerFormat")) {
+            statusMessage = "Format disabled — enable fileManagerFormat in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.FILE_SD_FORMAT)
+        statusMessage = "SD format sent — will reload SD status"
+        refreshSdStatus()
+    }
+
+    // ---- WiFi (770 scan, 771 list, 772 connect, 773 disconnect) ----------
+
+    /** Raw payload of the last WiFi scan — parsers can be tightened later. */
+    var wifiScanResult by mutableStateOf<String?>(null)
+        private set
+
     fun refreshWifiScan() = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.WIFI_SCAN.code)
-        statusMessage = "WiFi scan triggered"
-        wifiScanResult = "scan triggered — re-open this panel for results"
+        if (!FeatureFlags.isEnabled("wifiScan")) { statusMessage = "WiFi scan disabled by config"; return@launch }
+        val s = session ?: return@launch
+        runCatching {
+            val r = s.request<ResponseParser.Frame>(Codes.WIFI_SCAN) { it }
+            if (r is MountSession.CmdResult.Ok) wifiScanResult = r.value.raw
+        }
     }
 
-    /** Connect the mount to a given SSID (empty string opens a picker). */
     fun connectWifiSsid(ssid: String) = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.WIFI_CONNECT.code, CommandTable.WIFI_CONNECT.payload(ssid))
-        statusMessage = if (ssid.isBlank()) "WiFi connect — pick an SSID" else "WiFi connecting → $ssid"
+        if (!FeatureFlags.isEnabled("wifiConnect")) {
+            statusMessage = "WiFi connect disabled — enable wifiConnect in config"; return@launch
+        }
+        val s = session ?: return@launch
+        s.send(Codes.WIFI_CONNECT, "ssid:$ssid;")
+        statusMessage = "WiFi connect: $ssid"
     }
 
-    /** Disconnect the mount from its current WiFi network. */
     fun disconnectWifi() = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        s.send(CommandTable.WIFI_DISCONNECT.code)
+        if (!FeatureFlags.isEnabled("wifiConnect")) { statusMessage = "WiFi write disabled — enable wifiConnect in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.WIFI_DISCONNECT)
         statusMessage = "WiFi disconnect sent"
     }
 
-    // ---- power -------------------------------------------------------------
-
-    /** Reboot the mount. Destructive — UI gate in [FullControlPanes]. */
-    fun reboot() = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        statusMessage = "Rebooting…"
-        s.send(CommandTable.SYS_REBOOT.code)
+    fun setWifiBand(band: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("wifiConnect")) { statusMessage = "WiFi write disabled — enable wifiConnect in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SET_WIFI_BAND, "band:$band;")
+        statusMessage = "WiFi band set to $band"
     }
 
-    /** Shut the mount down. Very destructive — UI gate in [FullControlPanes]. */
+    // ---- system (time, timezone, language, buzzer, LED, reboot, shutdown) -
+
+    fun setSystemTime(epochSeconds: Long) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_TIME, "time:$epochSeconds;")
+        statusMessage = "System time set"
+    }
+
+    fun setTimezone(tz: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_TIMEZONE, "tz:$tz;")
+        statusMessage = "Timezone $tz sent"
+    }
+
+    fun setLanguage(lang: Int) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_LANGUAGE, "lang:$lang;")
+        statusMessage = "Language $lang sent"
+    }
+
+    fun setBuzzer(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_BUZZER, "en:${if (on) 1 else 0};")
+        statusMessage = "Buzzer ${if (on) "on" else "off"}"
+    }
+
+    fun setLed(on: Boolean) = scope.launch {
+        if (!FeatureFlags.isEnabled("systemSettings")) { statusMessage = "System settings disabled"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_LED, "en:${if (on) 1 else 0};")
+        statusMessage = "LED ${if (on) "on" else "off"}"
+    }
+
+    fun reboot() = scope.launch {
+        if (!FeatureFlags.isEnabled("allowReboot")) { statusMessage = "Reboot disabled — enable allowReboot in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_REBOOT)
+        statusMessage = "Reboot sent — connection will drop"
+    }
+
     fun shutdown() = scope.launch {
-        val s = session ?: run { statusMessage = "Not connected"; return@launch }
-        statusMessage = "Shutting down…"
-        s.send(CommandTable.SYS_SHUTDOWN.code)
+        if (!FeatureFlags.isEnabled("allowShutdown")) { statusMessage = "Shutdown disabled — enable allowShutdown in config"; return@launch }
+        val s = session ?: return@launch
+        s.send(Codes.SYS_SHUTDOWN)
+        statusMessage = "Shutdown sent — connection will drop"
+    }
+
+    /**
+     * Drive the full FwPkt.zip firmware upload via [FirmwareUpdateController].
+     * Surfaces every [FirmwareUpdateController.Status] update to both
+     * [firmwareStatus] (so the UI can show a progress bar) and
+     * [statusMessage] (so the bottom strip reports what is happening).
+     *
+     * Gated behind `firmwareUpload` — must be enabled in the user's
+     * config file before the call has any effect. The flag defaults to
+     * false because firmware install is destructive: a bad image bricks
+     * the mount until you re-flash over USB.
+     */
+    fun uploadFirmware(bytes: ByteArray, filename: String, rebootAfter: Boolean) = scope.launch {
+        try {
+            if (!FeatureFlags.isEnabled("firmwareUpload")) {
+                statusMessage = "Firmware upload disabled — enable firmwareUpload in config"
+                return@launch
+            }
+            val s = session ?: run {
+                statusMessage = "Connect to the mount first"
+                return@launch
+            }
+            if (bytes.isEmpty()) {
+                statusMessage = "Pick a FwPkt.zip file first"
+                return@launch
+            }
+            statusMessage = "Uploading firmware (${bytes.size} bytes)…"
+            val controller = FirmwareUpdateController(
+                session = s,
+                chunkSize = 1024,
+                progressPollMs = 500,
+                progressDoneRepeats = 2,
+                installTimeoutMs = 5 * 60_000L, // 5 minutes
+            )
+            val final = controller.start(
+                bytes = bytes,
+                filename = filename,
+                rebootAfter = rebootAfter,
+            ) { status ->
+                firmwareStatus = status
+                statusMessage = when (status) {
+                    is FirmwareUpdateController.Status.Idle -> "Idle"
+                    is FirmwareUpdateController.Status.Uploading -> "Uploading: ${status.bytesSent}/${status.bytesTotal} bytes"
+                    is FirmwareUpdateController.Status.Installing -> "Installing on mount: ${status.percent}%"
+                    is FirmwareUpdateController.Status.Done -> if (rebootAfter) "Done — rebooting" else "Done"
+                    is FirmwareUpdateController.Status.Failed -> "Firmware upload failed: ${status.reason}"
+                }
+            }
+            firmwareStatus = final
+            if (final is FirmwareUpdateController.Status.Done) {
+                statusMessage = if (rebootAfter) "Firmware updated — rebooting" else "Firmware update complete"
+            }
+            // Reset the picker on success so the user can immediately pick the
+            // next firmware (or close the pane without a "you have something
+            // queued" surprise). On failure we keep the path so they can retry
+            // without re-picking.
+            if (final is FirmwareUpdateController.Status.Done) {
+                pickedFirmwarePath = null
+                pickedFirmwareName = null
+                pickedFirmwareSize = null
+            }
+        } catch (e: Throwable) {
+            // 3e E2: a synchronous throw from controller.start (e.g. socket
+            // IOException during chunk upload, NPE in a future
+            // FirmwareUpdateController slice) must not leave firmwareBusy
+            // stuck at true forever — that would prevent the user from
+            // even re-picking the file. Surface the cause and clear the
+            // busy flag so they can try again.
+            statusMessage = "Firmware upload crashed: ${e.message ?: e::class.simpleName}"
+            firmwareStatus = FirmwareUpdateController.Status.Failed("crash: ${e.message ?: e::class.simpleName}")
+        } finally {
+            firmwareBusy = false
+        }
+    }
+
+    /**
+     * Open the native file picker so the user can choose a FwPkt.zip. On
+     * JVM this is a blocking `FileDialog`; on Android it's an
+     * `ACTION_OPEN_DOCUMENT` Intent. The result lands in [pickedFirmwarePath]
+     * (and the companion name/size fields) so the pane can show what was
+     * chosen before the user hits Upload.
+     *
+     * The actual file read happens in [uploadPickedFirmware] — we don't
+     * load the bytes into memory at pick time, which would be wasteful for
+     * the multi-MB images Benro's update tool ships.
+     */
+    fun pickFirmwareFile() {
+        // Reset the previous attempt's status so the pane goes back to a
+        // clean "ready to pick" state when the user reaches for a new file.
+        if (firmwareBusy) return // ignore picks while uploading
+        FilePicker.pickFile(
+            title = "Pick FwPkt.zip",
+            mimeType = "application/zip",
+        ) { path ->
+            if (path == null) return@pickFile
+            val f = PlatformFile(path)
+            if (!f.exists() || !f.isReadable()) {
+                statusMessage = "Picked file is not readable: $path"
+                return@pickFile
+            }
+            pickedFirmwarePath = path
+            pickedFirmwareName = basename(path)
+            // Stat the file to surface its size before the user hits
+            // Upload. On JVM the read is cheap; on Android the SAF copy
+            // happened at pick time so the file is already in cacheDir.
+            pickedFirmwareSize = try {
+                java.io.File(path).length()
+            } catch (t: Throwable) {
+                null
+            }
+            statusMessage = "Firmware ready: ${pickedFirmwareName} (${pickedFirmwareSize ?: "?"} bytes)"
+        }
+    }
+
+    /**
+     * Convenience: read the bytes of the picked firmware file and start the
+     * upload. This is the entry point the "Upload" button calls. We do the
+     * read inside the VM (rather than the composable) so the pane can stay
+     * thin and the read can be cancelled on disconnect.
+     */
+    fun uploadPickedFirmware() = scope.launch {
+        try {
+            val path = pickedFirmwarePath
+            val name = pickedFirmwareName
+            if (path == null || name == null) {
+                statusMessage = "Pick a FwPkt.zip first"
+                return@launch
+            }
+            firmwareBusy = true
+            val bytes = withContext(ioDispatcher) {
+                try {
+                    PlatformFile(path).readBytes()
+                } catch (t: Throwable) {
+                    null
+                }
+            }
+            if (bytes == null) {
+                firmwareBusy = false
+                statusMessage = "Could not read $name"
+                return@launch
+            }
+            uploadFirmware(bytes, name, firmwareRebootAfter)
+        } catch (e: Throwable) {
+            // 3e E2: outer guard — uploadFirmware has its own try/catch
+            // but the read-bytes path or the busy-flag flip could
+            // throw in a future slice. Always reset the flag and
+            // surface the cause.
+            statusMessage = "Firmware upload prep failed: ${e.message ?: e::class.simpleName}"
+            firmwareBusy = false
+        }
+    }
+
+    /** Drop the picked file without uploading — the "Clear" button. */
+    fun clearPickedFirmware() {
+        if (firmwareBusy) return
+        pickedFirmwarePath = null
+        pickedFirmwareName = null
+        pickedFirmwareSize = null
+        firmwareStatus = null
+    }
+
+    private fun basename(path: String): String {
+        val ix = path.lastIndexOfAny(charArrayOf('/', '\\'))
+        return if (ix >= 0) path.substring(ix + 1) else path
+    }
+
+    companion object {
+        /**
+         * Maximum age of a cached [SessionMarker] that will still trigger
+         * the reconnect prompt (issue #27, 3c.4). 24 h covers a typical
+         * evening-to-next-evening observing session; anything older is
+         * almost certainly the wrong target.
+         */
+        private const val RECONNECT_MAX_AGE_MS: Long = 24L * 60L * 60L * 1000L
+
     }
 }

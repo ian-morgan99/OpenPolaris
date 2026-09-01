@@ -3,6 +3,7 @@ package dev.openpolaris.ui
 import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.session.SessionStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -10,6 +11,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import java.io.File
+import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,15 +37,12 @@ class AppViewModelCameraProfileTest {
     private lateinit var tempFile: File
 
     private fun newViewModel(scope: CoroutineScope): AppViewModel {
-        // Camera profile tests don't exercise the reconnect/save-marker
-        // path, so we pass sessionStore = null to keep the VM construction
-        // dependency-free. The file-backed store is exercised separately
-        // in SessionStoreTest (jvmTest) and AppViewModelSessionMarkerTest.
-        tempFile = File("unused")
+        val dir = Files.createTempDirectory("openpolaris-cameraprofile-").toFile()
+        tempFile = File(dir, "session.json")
         return AppViewModel(
             scope = scope,
             connectionFactory = { NoopConnection },
-            sessionStore = null,
+            sessionStore = SessionStore(tempFile.absolutePath),
             ioDispatcher = UnconfinedTestDispatcher(
                 scope.coroutineContext[TestCoroutineScheduler]
             ),

@@ -137,7 +137,6 @@ object CommandTable {
     val LIMITS_SET = Descriptor<Boolean>(Codes.SET_LIMIT_STATE, "limits set",
         payload = { "limit:${if (it) 1 else 0};" })
 
-
     val AUTO_LEVEL_GET_EN = Descriptor<Int?>(Codes.GET_AUTO_LEVEL_EN, "auto level en get", parse = { it.int("en") })
     val AUTO_LEVEL_SET_EN = Descriptor<Boolean>(Codes.SET_AUTO_LEVEL_EN, "auto level en set", payload = { "en:${if (it) 1 else 0};" })
     val AUTO_LEVEL_TRIGGER = Descriptor<Unit>(Codes.SET_AUTO_LEVEL_STATE, "auto level trigger")

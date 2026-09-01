@@ -10,6 +10,7 @@ import kotlin.test.assertTrue
 
 class GoToControllerTest {
 
+
     private fun newRig(
         scope: CoroutineScope,
     ): Triple<FakeConnection, MountSession, GoToController> {

@@ -32,7 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.format2
-import dev.openpolaris.core.session.FileSessionStore
+import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.path.defaultSessionPath
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -48,9 +49,8 @@ import dev.openpolaris.core.session.FileSessionStore
  *   reference for `onResume` (to fire [AppViewModel.tryReconnectIfMarkerExists])
  *   and pass the same instance into the composable. Desktop / tests omit
  *   this argument; a fresh VM is constructed from [sessionStore] +
- *   [connectionFactory] (defaulting to `InMemorySessionStore()` if
- *   [sessionStore] is null — a file-backed target-marker store is the next
- *   sub-issue; connection persistence lives in `FileSessionStore`).
+ *   [connectionFactory] (or the default
+ *   `SessionStore(defaultSessionPath())` if [sessionStore] is also null).
  */
 @Composable
 fun OpenPolarisApp(
@@ -59,14 +59,25 @@ fun OpenPolarisApp(
     onFindWifi: (() -> Unit)? = null,
     onLaunchVr: (() -> Unit)? = null,
     viewModel: AppViewModel? = null,
-    sessionStore: FileSessionStore? = null,
+    sessionStore: SessionStore? = null,
+    /**
+     * Desktop-only: bridge the segregated Wi-Fi interface to the gimbal.
+     * Receives a `progress: (String) -> Unit` callback the bridge calls
+     * from its IO dispatcher; the lambda itself is invoked synchronously
+     * from the click handler so it can launch the long-running bridge
+     * coroutine. Defaults to a no-op so the Android build (which has no
+     * bridge implementation) constructs the VM without it. Mirrors the
+     * constructor parameter on [AppViewModel].
+     */
+    connectWifi: ((suspend (String) -> Unit) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm: AppViewModel = viewModel
         ?: AppViewModel(
             scope = scope,
             connectionFactory = connectionFactory,
-            sessionStore = sessionStore,
+            connectWifi = connectWifi ?: {},
+            sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
@@ -99,14 +110,21 @@ fun OpenPolarisApp(
             }
 
             when (dialog) {
-                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
+                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) {
+                    ConnectionPane(
+                        vm,
+                        Modifier.fillMaxWidth(),
+                        onFindWifi = onFindWifi,
+                        onBridgeWifi = if (connectWifi != null) ({ vm.connectWifi() }) else null,
+                    )
+                }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Firmware -> CalloutDialog("Firmware update", { dialog = null }) { FirmwarePane(vm, Modifier.fillMaxWidth()) }
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
-                Callout.Flags -> CalloutDialog("Settings", { dialog = null }) { FeatureFlagsPane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
 
@@ -125,8 +143,8 @@ private enum class Callout(val glyph: String) {
     Camera("Cam"),
     Preview("Preview"),
     Helpers("Helpers"),
+    Firmware("FW"),
     VR("VR"),
-    Flags("Flags"),
     Readme("?"),
 }
 
@@ -138,7 +156,7 @@ private fun CalloutRail(
     onLaunchVr: (() -> Unit)?,
     onSelect: (Callout) -> Unit,
 ) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.VR, Callout.Flags, Callout.Readme)
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.Firmware, Callout.VR, Callout.Readme)
     val handle: (Callout) -> Unit = { c ->
         if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
     }

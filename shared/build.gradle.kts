@@ -38,6 +38,15 @@ kotlin {
             // pass a custom Json must be able to reference the type.
             api(libs.kotlinx.serialization.json)
         }
+        androidMain.dependencies {
+            // FilePicker uses ActivityResultContracts.OpenDocument for
+            // Storage Access Framework picking. We hold the launcher on a
+            // static registry that the host Activity populates.
+            // `activity-compose` brings in `androidx.activity:activity`
+            // transitively, which is what we need for ComponentActivity
+            // and the result-launcher types.
+            implementation(libs.androidx.activity.compose)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)

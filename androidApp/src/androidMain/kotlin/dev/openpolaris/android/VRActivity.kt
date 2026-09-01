@@ -34,6 +34,7 @@ import dev.openpolaris.core.solver.SolveResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.microedition.khronos.egl.EGLConfig
+import javax.microedition.khronos.opengles.GL10
 
 /**
  * Immersive VR-style viewer for the camera preview. Hands the screen over
@@ -416,7 +417,7 @@ class VRActivity : ComponentActivity() {
     companion object {
         const val EXTRA_HOST = "dev.openpolaris.android.VR_HOST"
         const val EXTRA_PORT = "dev.openpolaris.android.VR_PORT"
-        private const val TAG = "VRActivity"
+        const val TAG = "VRActivity"
 
         // Stream 7.4 — solve-target marker overlay (issue #11).
         // All seven are present only when the caller has a fresh solve
@@ -580,11 +581,11 @@ class StereoRenderer : GLSurfaceView.Renderer {
         // still drawn (badly positioned) rather than crashing. The
         // log is the audit trail.
         val fx = if (fovXDeg > 0f) fovXDeg else {
-            Log.w(TAG, "setSolveTarget: fovXDeg=$fovXDeg <= 0, clamping to 1°")
+            Log.w(VRActivity.TAG, "setSolveTarget: fovXDeg=$fovXDeg <= 0, clamping to 1°")
             1f
         }
         val fy = if (fovYDeg > 0f) fovYDeg else {
-            Log.w(TAG, "setSolveTarget: fovYDeg=$fovYDeg <= 0, clamping to 1°")
+            Log.w(VRActivity.TAG, "setSolveTarget: fovYDeg=$fovYDeg <= 0, clamping to 1°")
             1f
         }
         solveFieldRaDeg = fieldRaDeg
@@ -629,7 +630,7 @@ class StereoRenderer : GLSurfaceView.Renderer {
             else System.currentTimeMillis()
     }
 
-    override fun onSurfaceCreated(gl: GLES20?, config: EGLConfig?) {
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0f, 0f, 0f, 1f)
         // Shader source lives in `commonMain` (`VrStereoShaders`) so its
         // constants can be cross-checked from a JVM unit test. The
@@ -654,14 +655,14 @@ class StereoRenderer : GLSurfaceView.Renderer {
         )
     }
 
-    override fun onSurfaceChanged(gl: GLES20?, w: Int, h: Int) {
+    override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
         width = w
         height = h
         Matrix.setIdentityM(mvpLeft, 0)
         Matrix.setIdentityM(mvpRight, 0)
     }
 
-    override fun onDrawFrame(gl: GLES20?) {
+    override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         uploadTexture()
 
@@ -745,7 +746,7 @@ class StereoRenderer : GLSurfaceView.Renderer {
         if (!hasSolveTarget) return
         val now = System.currentTimeMillis()
         val age = now - solveRecordedAtMs
-        if (age < 0L || age > MARKER_MAX_AGE_MS) return
+        if (age < 0L || age > VRActivity.MARKER_MAX_AGE_MS) return
 
         // The math is a pure data class: it expects (field, target)
         // SolveResult snapshots that the UI thread captures at launch
@@ -822,7 +823,7 @@ class StereoRenderer : GLSurfaceView.Renderer {
         // Alpha additionally fades with age so the marker visibly dies
         // instead of popping off at exactly 5 min.
         val conf = solveConfidence
-        val ageFrac = (1f - age.toFloat() / MARKER_MAX_AGE_MS).coerceIn(0f, 1f)
+        val ageFrac = (1f - age.toFloat() / VRActivity.MARKER_MAX_AGE_MS).coerceIn(0f, 1f)
         val baseAlpha = if (conf >= 0.8f) {
             floatArrayOf(0.2f, 1f, 0.2f, 0.9f)
         } else if (conf >= 0.6f) {

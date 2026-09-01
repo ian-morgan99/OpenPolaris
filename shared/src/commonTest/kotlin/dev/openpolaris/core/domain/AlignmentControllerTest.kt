@@ -11,6 +11,7 @@ class AlignmentControllerTest {
     @Test
     fun submitStarSendsFirmwareFormatWithIncrementingIndex() = runTest {
         val conn = FakeConnection()
+
         // backgroundScope so the reader is auto-cancelled when the
         // test body returns — otherwise runTest fails with
         // UncompletedCoroutinesError because the reader is parked in

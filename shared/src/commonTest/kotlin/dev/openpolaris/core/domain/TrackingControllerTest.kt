@@ -1,5 +1,10 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +25,8 @@ import kotlin.test.assertEquals
  *    has not been written yet (request-keyed gating).
  *  - Call [scriptResponse] for the same effect with explicit code and
  *    frame text.
+ *  - Call [push] to enqueue a frame onto the internal channel; the
+ *    reader will receive it on its next `read()` call.
  *
  * Either way, the 284 lifecycle handshake is auto-acked the first time
  * a 284 request is written, matching the real mount's behaviour.
@@ -40,14 +47,13 @@ class FakeConnection : Connection {
      */
     val responses = mutableListOf<ByteArray>()
 
-    /**
-     * Unsolicited push frames (e.g. 538 SET_TILT_STATE) that have no
-     * matching request. The reader sees these ahead of the write-gated
-     * [responses] queue, in FIFO order. Use [push] to enqueue.
-     */
-    private val pushQueue = ArrayDeque<ByteArray>()
+    private val channel = kotlinx.coroutines.channels.Channel<ByteArray>(
+        capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
+    )
 
     var failConnect = false
+    var closed = false
+        private set
 
     /** True after we've served the canned 284 lifecycle handshake ack. */
     private var handshakeAcked = false
@@ -57,6 +63,11 @@ class FakeConnection : Connection {
 
     /** How many responses have been served per frame code. */
     private val servedCountByCode = mutableMapOf<Int, Int>()
+
+    /** Queue a frame for the next [read] call. */
+    fun push(frame: ByteArray) {
+        channel.trySend(frame)
+    }
 
     override suspend fun connect(host: String, port: Int, timeoutMs: Int) {
         if (failConnect) throw java.io.IOException("refused")
@@ -71,14 +82,13 @@ class FakeConnection : Connection {
     }
 
     override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
-        // Unsolicited push frames are served first, bypassing the
-        // write-keyed gate. The mount pushes 538 (SET_TILT_STATE) and
-        // similar codes without any prior request from the app, so the
-        // gate would otherwise hold them forever.
-        if (pushQueue.isNotEmpty()) {
-            val r = pushQueue.removeFirst()
-            r.copyInto(buffer)
-            return r.size
+        // Prefer a channel-pushed frame if any. This lets tests drive the
+        // reader directly with `push(...)` for ad-hoc sequences.
+        val pending = channel.tryReceive()
+        if (pending.isSuccess) {
+            val frame = pending.getOrThrow()
+            frame.copyInto(buffer)
+            return frame.size
         }
         // Walk the queue, return the first response whose code has at
         // least one *unmatched* write. If none are ready, return -1 so
@@ -114,17 +124,6 @@ class FakeConnection : Connection {
         return writes > served
     }
 
-    private fun indexOf(haystack: ByteArray, needle: ByteArray): Int {
-        if (needle.isEmpty()) return 0
-        outer@ for (i in 0..(haystack.size - needle.size)) {
-            for (j in needle.indices) {
-                if (haystack[i + j] != needle[j]) continue@outer
-            }
-            return i
-        }
-        return -1
-    }
-
     /**
      * Extract the frame code from a payload (e.g.
      * "1&537&2&pitch:...;#" -> 537). Returns null if the payload
@@ -151,6 +150,7 @@ class FakeConnection : Connection {
         responses.clear()
         writeCountByCode.clear()
         servedCountByCode.clear()
+        channel.close()
     }
 
     /**
@@ -161,26 +161,6 @@ class FakeConnection : Connection {
      */
     fun scriptResponse(code: Int, frame: String) {
         responses += frame.toByteArray(Charsets.US_ASCII)
-    }
-
-    /**
-     * Inject an unsolicited push frame into the reader's byte stream,
-     * **bypassing** the write-keyed gate. Use for frames the mount
-     * sends without a prior request (e.g. 538 SET_TILT_STATE).
-     *
-     * Pushes are served FIFO ahead of the write-gated [responses] queue.
-     * For solicited responses (anything that should arrive as the
-     * reply to a previously-written request code), prefer
-     * [scriptResponse] or appending to [responses] directly so the
-     * write-keyed gate still applies.
-     */
-    fun push(frame: ByteArray) {
-        pushQueue.addLast(frame)
-    }
-
-    /** Convenience overload for [push] that takes a US-ASCII string. */
-    fun push(frame: String) {
-        pushQueue.addLast(frame.toByteArray(Charsets.US_ASCII))
     }
 
     /** Test helper: reset between test cases that share an instance. */
@@ -196,7 +176,10 @@ class FakeConnection : Connection {
 
 class TrackingControllerTest {
 
-    private fun newSession(conn: FakeConnection, scope: kotlinx.coroutines.CoroutineScope): Pair<MountSession, TrackingController> {
+    private fun newSession(
+        conn: FakeConnection,
+        scope: CoroutineScope,
+    ): Pair<MountSession, TrackingController> {
         val s = MountSession({ conn }, readerScope = scope)
         return s to TrackingController(s)
     }
@@ -204,7 +187,7 @@ class TrackingControllerTest {
     @Test
     fun startSendsTrackOn() = runTest {
         val conn = FakeConnection()
-        val (s, t) = newSession(conn, this)
+        val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.start()
         assertEquals("1&531&2&state:1;#", String(conn.written[1], Charsets.US_ASCII))
@@ -214,7 +197,7 @@ class TrackingControllerTest {
     @Test
     fun startWithSpeedIncludesSpeedField() = runTest {
         val conn = FakeConnection()
-        val (s, t) = newSession(conn, this)
+        val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.start(speed = 2)
         assertEquals("1&531&2&state:1;speed:2;#", String(conn.written[1], Charsets.US_ASCII))
@@ -224,7 +207,7 @@ class TrackingControllerTest {
     @Test
     fun stopSendsTrackOff() = runTest {
         val conn = FakeConnection()
-        val (s, t) = newSession(conn, this)
+        val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.stop()
         assertEquals("1&531&2&state:0;#", String(conn.written[1], Charsets.US_ASCII))
@@ -234,7 +217,7 @@ class TrackingControllerTest {
     @Test
     fun halfSpeedIsInvertedOnWire() = runTest {
         val conn = FakeConnection()
-        val (s, t) = newSession(conn, this)
+        val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.setHalfSpeed(true)
         t.setHalfSpeed(false)
@@ -246,7 +229,7 @@ class TrackingControllerTest {
     @Test
     fun gotoFormatsAzAlt() = runTest {
         val conn = FakeConnection()
-        val (s, t) = newSession(conn, this)
+        val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.gotoAzAlt(180.0, 45.0)
         assertEquals("1&519&2&az:180.0000;alt:45.0000;#", String(conn.written[1], Charsets.US_ASCII))
@@ -256,14 +239,21 @@ class TrackingControllerTest {
     @Test
     fun requestReturnsParsedValue() = runTest {
         val conn = FakeConnection()
-        // Stage a 284 for the handshake and a separate 284 for the explicit
-        // request below. The handshake in connect() consumes the first.
-        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
-        val (s, _) = newSession(conn, this)
+        val (s, _) = newSession(conn, backgroundScope)
         s.connect()
-        // After handshake, queue the ASTRO 284 reply for the explicit request.
-        conn.responses += "1&284&2&mode:2;battery:50;#".toByteArray(Charsets.US_ASCII)
-        val result = s.request(284) { MountState.fromFrame284(it) }
+        val deferred = async {
+            s.request(284) { MountState.fromFrame284(it) }
+        }
+        // runCurrent (not advanceUntilIdle) drains tasks already
+        // scheduled without advancing virtual time past the
+        // request's withTimeout timer. The reader starts, parks on
+        // receive; the async body runs, registers its waiter.
+        runCurrent()
+        conn.push("1&284&2&mode:2;battery:50;#".toByteArray(Charsets.US_ASCII))
+        // Let the reader consume the frame and dispatch it to the
+        // waiter without advancing past the 2000ms timeout.
+        runCurrent()
+        val result = deferred.await()
         val st = result as MountSession.CmdResult.Ok
         assertEquals(MountMode.ASTRO, st.value.mode)
         assertEquals(50, st.value.batteryPercent)

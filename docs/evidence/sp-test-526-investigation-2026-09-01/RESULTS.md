@@ -21,6 +21,10 @@ documentation. Step values surveyed: 1, 2, 3, 6.
 | run8 | 2 (retry) | 10s | none | 525 (Tempa) only |
 | **run9** | **6** | **20s** | **`526@step:6;ret:0;` (21 ms)** | **286 camera-attach (Pentax K-1 II, state:1) + 282 storage-format(0)** |
 | run10 | 6 (retry) | 20s | none (gimbal offline) | — |
+| **morning recheck #1** | none sent | 5s | **`526@step:6;ret:0;` UNSOLICITED at t=2115ms** | — |
+| morning recheck #2 | none sent | 10s | NoRouteToHostException (gimbal offline again) | — |
+| **run11** | **6 (fresh)** | **15s** | **`526@step:6;ret:0;` at t=7542ms (23ms after send)** | — |
+| run12 | none sent | 20s | 0 frames (gimbal quietly online but no 526 push) | — |
 
 ## Conclusions
 
@@ -65,6 +69,42 @@ documentation. Step values surveyed: 1, 2, 3, 6.
    526-step-N test must be run with the camera attached, in the same way the
    Benro app does it.
 
+6. **Morning recheck #1: 526 ret:0 appeared UNSOLICITED.** A 5-second passive
+   listen (no `--send` flag) at 192.168.0.1:9090 captured `526@step:6;ret:0;`
+   at t=2115ms, with no `>>> SEND` line in the log. This is **delayed-echo**
+   evidence: the gimbal was replying to one of the prior sends (run9/run10)
+   that arrived late because the gimbal had gone offline and just came back.
+
+7. **run11: 526 ret:0 REPRODUCED.** With the gimbal online, a fresh send of
+   `1&526&2&step:6;#` got `526@step:6;ret:0;` back 23ms later. So step:6 with
+   the gimbal online reliably returns ret:0. This contradicts the
+   "step:6 only works after a camera reattach" hypothesis — run11 had no
+   286/282 push preamble, just a clean ret:0.
+
+8. **run12: 20s passive listen got 0 frames.** This rules out a steady
+   broadcast of 526 ret:0. Combined with run11, the picture is:
+   - 526 is request-reply (not push)
+   - Step:6 returns ret:0 reliably when the gimbal is online
+   - Steps 1, 2, 3 return nothing or ret:-1
+   - The gimbal's network is intermittent (gimbal goes offline for minutes
+     at a time, even mid-test)
+   - On reconnect, the gimbal may flush queued replies (delayed-echo)
+
+9. **Why did steps 1–3 return nothing in 7+ runs?** Two hypotheses:
+   - (a) They return ret:-1 (unsupported) but our 526 path is silently
+     dropping ret:-1 replies. We should add a `--all-frames` flag and
+     re-test step:1 to confirm.
+   - (b) Steps 1–5 are timelapse setup steps that need a camera attached
+     AND a timelapse session started. With no camera, they truly do
+     nothing. Step 6 (capture) is the first step that the gimbal can
+     process standalone.
+
+10. **Punchlist for the next probe session.**
+    - Add `--all-frames` to PushListener so ret:-1 captures are not lost.
+    - With camera attached, re-test step:1, step:2 to see if ret:-1 appears.
+    - Survey steps 4, 5, 7, 8, 9, 10 (camera attached, gimbal online).
+    - Document 526 ret:0 in PROTOCOL.md as a live-verified entry.
+
 ## Open questions for the next session
 
 - [ ] Re-test step:6 with camera attached; confirm ret:0 is reproducible
@@ -81,3 +121,7 @@ documentation. Step values surveyed: 1, 2, 3, 6.
 - `run8-step2-retry.log` — step:2 retry
 - `run9-step6-reboot.log` — **the ret:0 finding**
 - `run10-step6-retry.log` — control after gimbal went offline (0 frames)
+- `morning-recheck-2026-09-01.log` — passive 5s, **526 ret:0 UNSOLICITED**
+- `morning-recheck-2-2026-09-01.log` — passive 10s, NoRouteToHost (offline)
+- `run11-step6-fresh.log` — **526 step:6 ret:0 reproduced (23ms)**
+- `run12-20s-pure-passive.log` — 20s passive, 0 frames (rules out broadcast)

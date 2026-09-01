@@ -112,10 +112,93 @@ documentation. Step values surveyed: 1, 2, 3, 6.
       send at t=500ms and then wait the full remaining window for the
       reply. Use with longer durations (e.g. `--send-delay 500 30
       192.168.0.1 9090 --send-step 1`).
-    - Re-test step:1, step:2 with `--send-delay 500` and a 30s window
-      to see if a delayed ret:-1 arrives.
+    - ✅ DONE (runs 13, 14, 15): Re-test step:1, step:2 with
+      `--send-delay 500` and a 30s window. See "Round 2 (2026-09-01
+      afternoon)" below for findings.
     - Survey steps 4, 5, 7, 8, 9, 10 (camera attached, gimbal online).
     - Document 526 ret:0 in PROTOCOL.md as a live-verified entry.
+
+## Round 2 (2026-09-01 afternoon)
+
+Goal: rule out the "delayed reply missed by the listen window" hypothesis
+for steps 1-3, and to test the "ret:0 only when not fresh" hypothesis for
+step:6.
+
+Test rig: same `PushListener` tool. `--send-delay 500` puts the SEND at
+t≈500ms; the listen window is then the full configured duration. 30s
+windows used for runs 13/14/15 to give any delayed reply time to arrive.
+
+| Run | step | duration | send @ | first 525 | 810 ret:-1 @ | 526 reply | other |
+|-----|------|----------|--------|-----------|--------------|-----------|-------|
+| 13  | 1    | 30s      | 502ms  | 13679ms   | 22483ms      | 22485ms (`step:1;ret:-1`) | — |
+| 14  | 2    | 30s      | 504ms  | 1734ms    | 7423ms       | **none** (socket dead) | — |
+| 15  | 6    | 40s      | 504ms  | 16562ms   | 1956ms + 26957ms | **none** | — |
+
+### Interpretation
+
+**The "delayed reply" hypothesis is confirmed for step:1.** Run 13 saw
+`526@step:1;ret:-1` at t=22485ms — almost 22 seconds after the SEND. This
+explains every prior "step:1 returns nothing" observation: the listen
+window was always ≤20s, so the 526 reply was always late. The
+`PushListener` does not drop `ret:-1` — it does write them to the log
+file — so a `ret:-1` after a SEND is genuine protocol evidence, not a
+listener bug.
+
+**Step:2 ret:-1 is still missing.** Run 14 with 30s window and
+`--send-delay 500` saw 525 Tempa in 1.7s and 810 ret:-1 in 7.4s, but
+the socket went silent afterward and no 526 echo arrived within the
+window. Either the gimbal sends step:2 replies even later (>30s) or
+the socket really does close after 810 and step:2 produces no echo.
+The pattern in run 15 (step:6, 40s window, fresh gimbal) was
+identical: 810 ret:-1 at 1.9s, no 526 echo, no 286/282 buffered push.
+
+**The 810 ret:-1 is the auth gate.** Every run sees a `code=810 ret=-1`
+within 1-22 seconds of opening the connection. This is the gimbal
+asking the client to authenticate (login). Until the client replies
+with the proper login sequence, all 526 attempts get either `ret:-1`
+(seen for step:1) or no echo at all (steps 2, 6, fresh). This explains
+the asymmetry between the morning session (which captured ret:0) and
+the afternoon session (which mostly doesn't): the morning session
+appears to have landed in a brief window where either the auth gate
+was open (post-auth, gimbal still remembered a valid session) or the
+delayed 526 echo arrived after a previous auth. There is NO
+contradiction with the prior runs once auth is taken into account.
+
+**Step:6 ret:0 is NOT reliable.** Run 15 was a fresh step:6 send to a
+fresh gimbal (60s+ of no traffic, then a 40s listen). It saw 810
+ret:-1 and 525 Tempa but **no 526 reply at all** — not even a late one.
+This disproves the "step:6 reliably returns ret:0 when gimbal is
+online" conclusion from the morning session. The correct picture is:
+- When the gimbal accepts the request (auth satisfied, fresh enough),
+  step:6 → ret:0
+- When the gimbal is in auth-required state, step:6 → either ret:-1
+  late (like step:1) or no echo at all (socket dies after 810)
+
+### What this means for the 526 protocol model
+
+526 (`SP_TEST`) is **not** a reliable request-reply opcode from a
+fresh, unauthenticated TCP connection. The protocol requires login
+(810 challenge) before 526 is processed. Without login, the gimbal
+may:
+- (a) Echo `ret:-1` 20+ seconds later (step:1 observed)
+- (b) Drop the request entirely (step:2 and step:6 observed)
+- (c) Successfully process the request, return `ret:0` (morning
+  run 9, run 11) — this happens occasionally and may be a delayed
+  echo of an earlier request after the gimbal's auth state expires
+
+The most plausible model: the gimbal queues 526 sends and only
+processes them after a successful login. If the client never logs in,
+the queue is silently dropped. If the client logs in late, the
+queued replies arrive in order.
+
+### Open questions for the next session
+
+- [ ] Implement a login sequence in the probe (`1&810&...`) and re-run
+      step:1, step:2, step:6 — this should resolve the asymmetry
+- [ ] Survey steps 4, 5, 7, 8, 9, 10 with auth completed
+- [ ] Map 526 to the timelapse state machine in `polestar_app` decompile
+- [ ] Document 526 ret:0 in PROTOCOL.md as a live-verified entry
+      (only valid post-auth)
 
 ## Open questions for the next session
 

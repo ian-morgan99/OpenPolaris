@@ -49,7 +49,8 @@ fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             if (!FeatureFlags.isEnabled("advancedAstro") && !FeatureFlags.isEnabled("autoLevel")) {
                 Text(
                     "Helpers and auto-level are off in the current config. Enable " +
-                        "advancedAstro and autoLevel in FeatureFlags to use this pane.",
+                        "advancedAstro and autoLevel in FeatureFlags to use this pane " +
+                        "(both default ON; only flagged OFF on kiosk/test rigs).",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -149,9 +150,10 @@ private fun AutoLevelRow(vm: AppViewModel) {
             Spacer(Modifier.width(8.dp))
             OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
         } else {
-            // Read-only: the toggle and Run-now are both unsafe (we have
-            // not verified the wire round-trip on real hardware), so we
-            // show the cached value and let the user refresh.
+            // Read-only: kiosk/test rigs may set autoLevel=false to hide
+            // the toggle and Run-now button. 547/548/549 are live-confirmed
+            // (Functions Report §2.3) so this is a UI-level hide, not a
+            // safety gate.
             Text(
                 "read-only (set autoLevel=true in config to enable)",
                 style = MaterialTheme.typography.labelSmall,

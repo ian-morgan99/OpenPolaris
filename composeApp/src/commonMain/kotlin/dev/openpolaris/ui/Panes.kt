@@ -246,17 +246,18 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             HorizontalDivider()
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
-            // Feature-flag gate (issue "autolevel did nothing" 2026-08-31):
-            // 537/538/549 are writes/reads that have not been round-trip
-            // verified on real hardware, so the button and the toggle are
-            // disabled until the operator opts in via FeatureFlags.autoLevel.
-            // Matches the gating pattern in FullControlPanes.kt:142. The
-            // flag defaults to false; the simulator still answers the
-            // codes so demo mode feels responsive once the flag is on.
+            // Feature-flag gate: 547/548/549 are live-confirmed on real
+            // hardware (docs/POLARIS-FUNCTIONS-REPORT.md §2.3 +
+            // docs/evidence/2026-08-31/smoke-polaris-findings-2026-08-31.md
+            // line 24). The flag now defaults to ON — the button, the
+            // enable toggle, and the refresh button are reachable without
+            // a config flip. Kiosk builds can opt out by setting
+            // FeatureFlags.autoLevel = false. Matches the gating pattern
+            // in FullControlPanes.kt:142.
             val autoLevelAvailable = FeatureFlags.isEnabled("autoLevel")
             if (!autoLevelAvailable) {
                 Text(
-                    "Auto-level is gated by FeatureFlags.autoLevel (537/538/549 are writes — default off until round-trip verified).",
+                    "Auto-level is hidden (FeatureFlags.autoLevel = false). Live-confirmed 547/548/549 — see Functions Report §2.3.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

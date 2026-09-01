@@ -33,12 +33,14 @@ fun main() = application {
         OpenPolarisApp(
             windowSizeClass = effective,
             connectionFactory = { JvmConnection() },
-            connectWifi = { progress ->
+            onFindWifi = {
+                // Desktop has no system Wi-Fi picker, so trigger the bring-up
+                // flow directly. Progress is logged to stdout; the UI pane
+                // shows a "Connecting…" state via its own connection layer.
                 scope.launch {
                     orchestrator.bridgeToMount(
                         profile = "polaris_d13e86",
                         ifname = "wlp8s0",
-                        progress = progress,
                     )
                 }
             },

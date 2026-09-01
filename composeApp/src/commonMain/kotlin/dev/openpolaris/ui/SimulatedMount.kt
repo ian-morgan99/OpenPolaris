@@ -103,11 +103,11 @@ class SimulatedMount {
                 265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
                 266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")
                 267 -> queue("1&267&2&state:1;bulb:0;c:1;#")
-                // 3b.5: auto-level primitives. Until hardware round-trip
-                // is verified the codes are gated by FeatureFlags.autoLevel
-                // (see AutoLevelController / FeatureFlags.kt), but the
-                // simulator still answers them so the in-app demo mode
-                // "did nothing" perception goes away.
+                // 3b.5: auto-level primitives. 547/548/549 are live-confirmed
+                // (docs/POLARIS-FUNCTIONS-REPORT.md §2.3); FeatureFlags.autoLevel
+                // is now ON by default. The simulator still emits converging
+                // 538 push frames on 549 so AutoLevelController.awaitSettling
+                // can observe the AHRS settle without any hardware attached.
                 537 -> queue("1&537&2&state:$tiltState;pitch:$pitch;roll:$roll;#")
                 538 -> {
                     // SET_TILT_STATE is a push-style envelope on real

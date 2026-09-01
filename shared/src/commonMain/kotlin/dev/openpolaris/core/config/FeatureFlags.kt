@@ -85,8 +85,12 @@ object FeatureFlags {
     const val limitsWrite: Boolean = false
 
     /** Auto-level en/trigger (547/548/549) and live tilt push (537/538).
-     *  537/538 are writes — default OFF until round-trip verified. */
-    const val autoLevel: Boolean = false
+     *  537/538 are read-only (TILT_GET; no TILT_SET in Polaris protocol —
+     *  see CommandTable.kt). 547/548/549 are live-confirmed (Functions
+     *  Report §2.3). Default ON so the "Run auto-level now" action is
+     *  reachable. Toggle off if you want to hide the button without
+     *  touching code. */
+    const val autoLevel: Boolean = true
 
     /** Timelapse + dynamic lapse controls (258-262, 535, etc.). */
     const val timelapse: Boolean = false

@@ -46,9 +46,11 @@ class FeatureFlagsTest {
         FeatureFlags.reset()
         // Verified: systemSettings (810-829) is round-trip verified → ON
         assertTrue(FeatureFlags.isEnabled("systemSettings"), "System settings (810-829) verified round-trip → ON")
+        // Verified: autoLevel (547/548/549) live-confirmed 2026-08-31 → ON
+        // (see docs/POLARIS-FUNCTIONS-REPORT.md §2.3)
+        assertTrue(FeatureFlags.isEnabled("autoLevel"), "Auto-level (547/548/549) live-confirmed → ON")
         // Unverified: still OFF
         assertFalse(FeatureFlags.isEnabled("wifiConnect"), "WiFi write must be OFF until verified")
-        assertFalse(FeatureFlags.isEnabled("autoLevel"), "Auto-level (547-549 writes) must be OFF until verified")
         assertFalse(FeatureFlags.isEnabled("limitsWrite"), "Limits (541/542) wire format unverified - OFF by default")
     }
 
@@ -86,11 +88,13 @@ class FeatureFlagsTest {
     @Test
     fun toggleFlipsEffectiveValue() {
         FeatureFlags.reset()
-        assertFalse(FeatureFlags.isEnabled("autoLevel"))
-        FeatureFlags.toggle("autoLevel")
+        // autoLevel now defaults to ON (live-confirmed). Toggle still works
+        // bidirectionally — kiosk builds can flip it off without code edits.
         assertTrue(FeatureFlags.isEnabled("autoLevel"))
         FeatureFlags.toggle("autoLevel")
         assertFalse(FeatureFlags.isEnabled("autoLevel"))
+        FeatureFlags.toggle("autoLevel")
+        assertTrue(FeatureFlags.isEnabled("autoLevel"))
     }
 
     @Test

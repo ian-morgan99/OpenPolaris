@@ -2,3 +2,8 @@ local.properties
 .gradle/
 build/
 .kotlin/
+
+# Regression-test fixtures injected by .github/workflows/ci-evidence-lint-regression.yml.
+# The workflow creates and deletes this directory in CI; this entry keeps a developer's
+# local run from accidentally staging it.
+docs/evidence/_regression-fixture/

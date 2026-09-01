@@ -39,6 +39,7 @@ fun main(args: Array<String>) {
         "preview-smoke" -> exitProcess(previewSmoke())
         "help", "-h", "--help" -> {
             println("usage: see KDoc in Main.kt — modes: status|send|burst|listen|preview-smoke")
+            println("       (PushListener is a separate gradle task: :tools:cli-probe:liveListen)")
         }
         else -> {
             System.err.println("unknown mode: $mode (try: status|send|burst|listen|preview-smoke)")

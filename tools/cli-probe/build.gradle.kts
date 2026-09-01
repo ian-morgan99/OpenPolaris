@@ -84,3 +84,15 @@ tasks.register<JavaExec>("smoke") {
     mainClass.set("dev.openpolaris.probe.SmokeKt")
     standardInput = System.`in`
 }
+
+// Long-lived passive listener that logs EVERY incoming frame to a file
+// (default: push.log). Use --send or --send-step to fire a one-shot frame
+// halfway through. Designed for investigating push-mode codes (525 Tempa,
+// 524/517 AHRS, 779, 808) and any handshake triggered by SP_TEST=526.
+// Args: <seconds> [host] [port] [--send <code>[:k=v;k=v]] [--send-step <n>] [--out <file>]
+tasks.register<JavaExec>("liveListen") {
+    group = "application"
+    description = "Passive listener that logs every push-mode frame to push.log. Use --send/--send-step to probe."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("dev.openpolaris.probe.PushListenerKt")
+}

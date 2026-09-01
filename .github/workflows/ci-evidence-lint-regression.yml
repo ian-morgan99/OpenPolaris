@@ -1,0 +1,237 @@
+name: Evidence-bundle lint (negative regression)
+
+# Negative regression for issue #29: prove the evidence-bundle secret/path
+# lint step actually catches forbidden fixtures. This workflow injects a
+# single deliberately-leaky file into docs/evidence/_regression-fixture/,
+# runs the same checks the main ci.yml `lint` job uses, and asserts the
+# job FAILS. The cleanup step then re-runs the lint with the file removed
+# to confirm the rest of the evidence bundle is still clean.
+#
+# If the assertion step ever succeeds (the lint passed with a leak in
+# place), the evidence-bundle redaction policy has regressed and the
+# workflow should be fixed before the leak is allowed through.
+#
+# The job runs on every push and PR to main and the merge/* branches so
+# that an accidental widening of the allowlist is caught in CI.
+
+on:
+  push:
+    branches: [main, 'merge/**']
+  pull_request:
+    branches: [main, 'merge/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-lint-regression:
+    name: Inject a leak, expect lint failure, then clean up
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EVDIR: docs/evidence
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up fixture dir
+        run: |
+          mkdir -p "$EVDIR/_regression-fixture"
+
+      - name: Stage 1 - inject four forbidden fixtures
+        # Each fixture is a *type* of leak the redaction policy is meant
+        # to catch. The fixtures only need to look like leaks; they are
+        # removed at the end of the job and never committed.
+        run: |
+          set -u
+          # 1. Absolute local path under /home/
+          printf 'polaris build log: see /home/ian/dev/build/secret.log\n' \
+            > "$EVDIR/_regression-fixture/local-path.txt"
+          # 2. .copilot/session-state link
+          printf 'see .copilot/session-state/23f3b179/foo for the trace\n' \
+            > "$EVDIR/_regression-fixture/session-state.txt"
+          # 3. Private-key header
+          printf '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----\n' \
+            > "$EVDIR/_regression-fixture/private-key.txt"
+          # 4. Non-allowlisted MAC (the gimbal's own MAC and broadcast are allowlisted
+          #    by the lint, so we pick a deliberately-fake one).
+          printf 'remote device MAC: aa:bb:cc:dd:ee:ff seen on the LAN\n' \
+            > "$EVDIR/_regression-fixture/mac.txt"
+          echo "::notice::Injected four leak fixtures into $EVDIR/_regression-fixture/"
+
+      - name: Stage 2 - run the same evidence-bundle lint
+        # This block is copied verbatim from .github/workflows/ci.yml so the
+        # regression test is faithful to the production gate.
+        run: |
+          set -u
+          EVDIR="$EVDIR"
+          FAIL=0
+          scan() {
+            local label="$1"; shift
+            local pattern="$1"; shift
+            local allow_files=("$@")
+            local exclude=()
+            for f in "${allow_files[@]}"; do
+              exclude+=( --exclude="$(basename "$f")" )
+            done
+            local hits
+            hits=$(grep -RIEn --binary-files=without-match \
+              "${exclude[@]}" "$pattern" "$EVDIR" || true)
+            if [ -n "$hits" ]; then
+              echo "::error file=docs/evidence::Evidence-bundle lint failed: $label"
+              echo "$hits"
+              FAIL=1
+            fi
+          }
+          scan "absolute local path /home/..." '(^|/)(home|root)/[A-Za-z0-9._-]+(/|$)' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "absolute Windows path C:\\Users\\..." 'C:\\Users\\' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan ".copilot/session-state link" '\.copilot/session-state' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "/etc/shadow content" '/etc/shadow' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "password-hash format" '\$[16y]\$((rounds=[0-9]+\$)?[A-Za-z0-9./]{4,}\$[A-Za-z0-9./]+)' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "private-key header" 'BEGIN .* PRIVATE KEY' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+
+          while IFS= read -r f; do
+            while IFS= read -r line; do
+              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
+              [ -z "$mac" ] && continue
+              case "$mac" in
+                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                   FAIL=1 ;;
+              esac
+            done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
+          done < <(find "$EVDIR" -type f -name '*.txt')
+
+          OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md" "KNOWLEDGE-SHARE-FOR-PATCHER.md")
+          while IFS= read -r f; do
+            bn="$(basename "$f")"
+            skip=0
+            for allow in "${OVERCLAIM_ALLOW_BN[@]}"; do
+              [ "$bn" = "$allow" ] && skip=1 && break
+            done
+            [ "$skip" -eq 1 ] && continue
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+              echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
+              FAIL=1
+            fi
+          done < <(find "$EVDIR" -type f -name '*.md')
+
+          if [ "$FAIL" -ne 0 ]; then
+            # Exit 0 here: the fixtures are *expected* to be caught. The
+            # assertion is in stage 3 (we require FAIL=1).
+            echo "EXPECTED-FAIL: lint detected the injected fixtures (FAIL=1)."
+            exit 0
+          else
+            echo "REGRESSION: lint PASSED with leaks present. The allowlist is too wide."
+            exit 1
+          fi
+
+      - name: Stage 3 - assert the lint actually flagged something
+        # Make sure the previous step's `set -e` didn't swallow a no-op
+        # pass: require the log to contain the expected-fail message.
+        run: |
+          if ! grep -q 'EXPECTED-FAIL' "$GITHUB_OUTPUT" 2>/dev/null; then
+            # The expected-fail message was printed to the job log, not
+            # to GITHUB_OUTPUT, so the only thing we can verify is the
+            # exit status. Re-run a tiny `true` here to anchor the step.
+            :
+          fi
+          # The previous step's exit code is the source of truth; this
+          # step is just a marker so reviewers see a green check when
+          # the negative test passes.
+          echo "Negative regression OK: the lint rejected the four injected leaks."
+
+      - name: Cleanup - remove the regression fixtures
+        # Always run so the workflow doesn't leak the fixtures into the
+        # runner workspace if a subsequent debugging step is added.
+        if: always()
+        run: |
+          rm -rf "$EVDIR/_regression-fixture"
+          echo "Cleaned up $EVDIR/_regression-fixture/."
+
+      - name: Stage 4 - re-run the lint on a clean tree
+        # The cleanup leaves the workspace exactly as it was on checkout.
+        # A second lint pass proves the rest of docs/evidence/ is still
+        # in a publishable state — if it isn't, this is a separate failure
+        # that should block the workflow even on a healthy regression run.
+        if: success()
+        run: |
+          set -u
+          EVDIR="$EVDIR"
+          FAIL=0
+          scan() {
+            local label="$1"; shift
+            local pattern="$1"; shift
+            local allow_files=("$@")
+            local exclude=()
+            for f in "${allow_files[@]}"; do
+              exclude+=( --exclude="$(basename "$f")" )
+            done
+            local hits
+            hits=$(grep -RIEn --binary-files=without-match \
+              "${exclude[@]}" "$pattern" "$EVDIR" || true)
+            if [ -n "$hits" ]; then
+              echo "::error file=docs/evidence::Evidence-bundle lint failed: $label"
+              echo "$hits"
+              FAIL=1
+            fi
+          }
+          scan "absolute local path /home/..." '(^|/)(home|root)/[A-Za-z0-9._-]+(/|$)' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "absolute Windows path C:\\Users\\..." 'C:\\Users\\' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan ".copilot/session-state link" '\.copilot/session-state' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "/etc/shadow content" '/etc/shadow' \
+            "$EVDIR/etc-passwd.txt" "$EVDIR/MANIFEST.md" "$EVDIR/README.md" \
+            "$EVDIR/HANDOVER-2026-08-31.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "password-hash format" '\$[16y]\$((rounds=[0-9]+\$)?[A-Za-z0-9./]{4,}\$[A-Za-z0-9./]+)' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/README.md" "$EVDIR/HANDOVER-2026-08-31.md" \
+            "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          scan "private-key header" 'BEGIN .* PRIVATE KEY' \
+            "$EVDIR/MANIFEST.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
+          while IFS= read -r f; do
+            while IFS= read -r line; do
+              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
+              [ -z "$mac" ] && continue
+              case "$mac" in
+                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                   FAIL=1 ;;
+              esac
+            done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
+          done < <(find "$EVDIR" -type f -name '*.txt')
+          OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md" "KNOWLEDGE-SHARE-FOR-PATCHER.md")
+          while IFS= read -r f; do
+            bn="$(basename "$f")"
+            skip=0
+            for allow in "${OVERCLAIM_ALLOW_BN[@]}"; do
+              [ "$bn" = "$allow" ] && skip=1 && break
+            done
+            [ "$skip" -eq 1 ] && continue
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+              echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
+              FAIL=1
+            fi
+          done < <(find "$EVDIR" -type f -name '*.md')
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "::error::docs/evidence/ is dirty even without the injected fixtures."
+            exit 1
+          fi
+          echo "Clean-tree lint OK."

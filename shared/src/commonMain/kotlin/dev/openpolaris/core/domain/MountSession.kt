@@ -306,11 +306,51 @@ class MountSession(
                 stopReader()
                 conn.close()
                 connection = null
-                _state.value = _state.value.copy(connected = false)
+                // 2026-09-01: surface the actual failure into lastErrorMessage
+                // so AppViewModel.connect() can include it in the user-visible
+                // status string. Without this, every failure mode — TCP down,
+                // 284 timeout, 820 needed:1, 821 reject, 823 timeout, parser
+                // error — collapses into a single opaque "Could not reach
+                // $host" line. The user then has to dig through
+                // /tmp/openpolaris-desktop.log to find which step failed.
+                // Tagging with the step name (handshake / 820 / 821 / 823 /
+                // other) makes the message self-disclosing.
+                val reason = when {
+                    e is java.io.IOException &&
+                        e.message?.startsWith("handshake failed:") == true ->
+                        "no response to 284 handshake (gimbal may be in deep sleep — try Wake)"
+                    e is java.io.IOException &&
+                        e.message?.startsWith("auth probe (820) failed:") == true ->
+                        "no response to 820 auth probe within 10s"
+                    e is java.io.IOException &&
+                        e.message?.startsWith("auth token (821) failed:") == true ->
+                        "no response to 821 token within 10s"
+                    e is java.io.IOException &&
+                        e.message?.startsWith("app hello (823) failed:") == true ->
+                        "no response to 823 hello within 10s"
+                    e is java.io.IOException &&
+                        e.message?.startsWith("gimbal rejected connection password") == true ->
+                        "821 reported ret≠0 — wrong password"
+                    e is java.io.IOException &&
+                        e.message?.startsWith("gimbal requires connection password") == true ->
+                        "gimbal requires a connection password (none configured)"
+                    else -> e.message ?: e::class.simpleName ?: "unknown"
+                }
+                _state.value = _state.value.copy(
+                    connected = false,
+                    lastErrorMessage = reason,
+                )
                 false
             }
         } catch (e: Exception) {
-            _state.value = _state.value.copy(connected = false)
+            // Outer catch: connectionFactory() itself threw before any
+            // socket was opened. Tag with "factory:" so the user can tell
+            // this is a wiring problem, not a gimbal problem.
+            val factoryReason = e.message ?: e::class.simpleName ?: "unknown"
+            _state.value = _state.value.copy(
+                connected = false,
+                lastErrorMessage = "factory: $factoryReason",
+            )
             false
         }
     }

@@ -706,9 +706,17 @@ class AppViewModel(
                             "${e.message ?: e::class.simpleName}"
                     }
                 } else {
-                    statusMessage = pendingSaveFailure?.let { saveMsg ->
-                        "$saveMsg — and could not reach $host. Try Demo mode."
-                    } ?: "Could not reach $host — try Demo mode"
+                    // 2026-09-01: surface the tagged failure reason from
+                    // MountSession._state.lastErrorMessage so the user sees
+                    // *which* connect step failed (284 handshake, 820 probe,
+                    // 821 token, 823 hello, or "factory:" wiring) instead of
+                    // the bare "Could not reach $host". Falls back to the
+                    // original message if MountSession never set one.
+                    val reason = s.state.value.lastErrorMessage
+                    val prefix = pendingSaveFailure?.let { saveMsg ->
+                        "$saveMsg — and could not reach $host."
+                    } ?: "Could not reach $host"
+                    statusMessage = if (reason != null) "$prefix — $reason" else "$prefix. Try Demo mode."
                 }
             } catch (e: Throwable) {
                 // 3e E2: outer catch for anything the inner try did not cover

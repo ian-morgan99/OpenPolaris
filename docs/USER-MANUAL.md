@@ -310,22 +310,59 @@ in-app companion to this manual.
 ## 6. Feature flags
 
 The app reads `dev.openpolaris.core.config.FeatureFlags` at startup.
+There is **no on-disk config file** — every flag is a `const val` in
+[`FeatureFlags.kt`](../shared/src/commonMain/kotlin/dev/openpolaris/core/config/FeatureFlags.kt),
+with a reflective `defaultFor()` map that picks the right constant
+by name.
+
+To enable a flag for a custom build, edit the source and rebuild:
+
+```kotlin
+// shared/src/commonMain/kotlin/dev/openpolaris/core/config/FeatureFlags.kt
+const val firmwareUpload: Boolean = true   // was false
+```
+
+For a runtime flip that lasts until the app is killed, the in-app
+"Experimental" panel calls `FeatureFlags.enable(name)` /
+`disable(name)` / `toggle(name)` / `reset()` directly.
+
+The defaults are the **contract** for any release shipped from this
+repo: only the safe + verified subset is on by default. The
+destructive actions (reboot, shutdown, format, firmware upload,
+file mutate) require an explicit flag flip.
+
 The full set:
 
 | Flag | Default | Effect when off |
 |---|---|---|
-| `firmwareUpload` | off | Firmware card shows a red banner; the `Upload` button is disabled. |
-| `advancedAstro` | on | Helper card shows a banner; the dither/settling/limits steppers are still rendered but their actions are no-ops with a status message. |
-| `autoLevel` | on | Same as above for the auto-level controls. |
-| `plateSolve` | on | The `Solve now` button is rendered but its action is a no-op. |
-| `limitsWrite` | off | The Limits row in the Helpers card is read-only. |
-| `systemReboot` | off | The System card's Reboot / Shutdown buttons are no-ops. |
-| `fileManager` | off | The Files card is rendered but its action handlers return early. |
+| `basicControls` | on | 513/514/515/516 motion no-ops |
+| `postConnectBurst` | on | The 11-command post-connect burst is skipped |
+| `experimentalCamera` | on | 258–311 write UI hidden; read still works |
+| `catalog` | on | NGC/IC/stars/comets panes hidden |
+| `alignment` | on | 530 record-position hidden |
+| `advancedAstro` | on | Dither/settling actions are no-ops |
+| `limitsWrite` | off | 541/542 write hidden |
+| `autoLevel` | off | 547–549 "Run auto-level now" hidden |
+| `fileManager` | on | 702 SD read hidden |
+| `fileManagerReadOnly` | on | Safe to leave on |
+| `fileManagerMutate` | off | 796 delete hidden |
+| `fileManagerFormat` | off | 797 format hidden |
+| `systemSettings` | on | 817/818 write hidden |
+| `systemSettingsUnverified` | off | 814/815/816 write hidden |
+| `wifiScan` | on | 770 read hidden |
+| `wifiConnect` | off | 771 write hidden |
+| `allowReboot` | off | 812 reboot button is a no-op |
+| `allowShutdown` | off | 813 shutdown button is a no-op |
+| `firmwareUpload` | off | Firmware card shows a red banner; the `Upload` button is disabled |
+| `omsRead` | on | 824/825 read hidden |
+| `omsScheduler` | off | OMS add/edit/delete hidden |
+| `rawFrameLog` | off | Diagnostic — verbose logcat disabled |
+| `verboseLogging` | off | Diagnostic — every code sent/reply logged |
+| `demoMode` | on | In-process simulator button shown |
+| `wifiBridge` | on | Desktop Wi-Fi bring-up button shown |
 
-Flip a flag by editing your config (the project ships
-`app/src/commonMain/resources/openpolaris.conf` with the default
-on/off values) and restarting the app. The flag values are read once
-at startup.
+For the full deep-dive on each flag and why each default is what it
+is, see [CAPABILITY-GUIDE.md §6](CAPABILITY-GUIDE.md#6-feature-flags).
 
 ## 7. Reconnect prompt
 

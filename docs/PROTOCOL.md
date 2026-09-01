@@ -138,8 +138,30 @@ experimental warning and must be validated on hardware before trusting the code 
 ### 3.5 Out of scope (documented for completeness)
 
 File ops (770–788) beyond thumbnail listing if needed, cellular remote (808–814, depends on
-Benro's cloud), OMS external device (817–825), Theta secondary device commands, and firmware
-update flashing (keep the official app for that).
+Benro's cloud), and Theta secondary device commands.
+
+### 3.6 Firmware update (in scope, see [CAPABILITY-GUIDE.md §4](CAPABILITY-GUIDE.md#4-firmware-upgrade--the-deep-dive))
+
+Open Polaris can upload a local `FwPkt.zip` to the head using the same wire-protocol sequence
+the Benro Connect app uses (`SYS_FW_UPGRADE` 810 → `FILE_UPLOAD_FW` 784 → `FILE_UPLOAD_CHUNK`
+794 × N → `FILE_UPLOAD_END` 795 → `SYS_FW_PROGRESS` 811 → optional `SYS_REBOOT` 812). The
+"stream from Benro server" in the official app is just the source of its bytes — the wire is
+identical regardless of source, so the head doesn't care whether the bytes came from the
+Benro CDN or a local file you pick.
+
+The full state machine, the file-picker UI, the `firmwareUpload` feature flag, the safety
+caveats, and the comparison to the official app are in
+[CAPABILITY-GUIDE.md §4](CAPABILITY-GUIDE.md#4-firmware-upgrade--the-deep-dive).
+
+> **Caveat:** the chunk binary framing (794's payload slot) was smoke-tested against the
+> in-process simulator only. A final live Benro Connect capture is pending. See
+> [CAPABILITY-GUIDE.md §4.7](CAPABILITY-GUIDE.md#47-caveats).
+
+### 3.7 Out of scope (still out of scope, for the record)
+
+OMS external device (817–825) — the read of 824/825 is in scope (`omsRead`), but
+add/edit/delete scheduler tasks is gated behind `omsScheduler` and not yet implemented
+(awaiting a live trace; see audit ticket `pr4b-oms`).
 
 ## 4. Session lifecycle (learned from the stock app)
 

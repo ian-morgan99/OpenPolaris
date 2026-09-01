@@ -92,21 +92,36 @@ documentation. Step values surveyed: 1, 2, 3, 6.
 
 9. **Why did steps 1–3 return nothing in 7+ runs?** Two hypotheses:
    - (a) They return ret:-1 (unsupported) but our 526 path is silently
-     dropping ret:-1 replies. We should add a `--all-frames` flag and
-     re-test step:1 to confirm.
+     dropping ret:-1 replies. **Disproved by reading PushListener** —
+     every frame, including ret:-1, is written to the log file (line 154)
+     and counted in `seen` (line 138). If the gimbal had replied ret:-1,
+     it would have appeared in the file. So the steps returned truly
+     nothing, or the listen window ended before the reply arrived.
    - (b) Steps 1–5 are timelapse setup steps that need a camera attached
      AND a timelapse session started. With no camera, they truly do
      nothing. Step 6 (capture) is the first step that the gimbal can
      process standalone.
+   - (c) The reply is delayed past the listen window. The gimbal went
+     offline during run10, the reply to run9 may have been queued and
+     delivered minutes later (the morning recheck #1 "unsolicited"
+     capture supports this). For step:1, if the reply takes 10+ seconds,
+     a 10s listen window would miss it.
 
 10. **Punchlist for the next probe session.**
-    - Add `--all-frames` to PushListener so ret:-1 captures are not lost.
-    - With camera attached, re-test step:1, step:2 to see if ret:-1 appears.
+    - ✅ DONE: PushListener now supports `--send-delay <ms>` so we can
+      send at t=500ms and then wait the full remaining window for the
+      reply. Use with longer durations (e.g. `--send-delay 500 30
+      192.168.0.1 9090 --send-step 1`).
+    - Re-test step:1, step:2 with `--send-delay 500` and a 30s window
+      to see if a delayed ret:-1 arrives.
     - Survey steps 4, 5, 7, 8, 9, 10 (camera attached, gimbal online).
     - Document 526 ret:0 in PROTOCOL.md as a live-verified entry.
 
 ## Open questions for the next session
 
+- [ ] Re-test step:1, step:2 with `--send-delay 500` and a 30s window
+      (PushListener change in commit after this one) to rule out a
+      delayed-reply hypothesis for steps 1-3.
 - [ ] Re-test step:6 with camera attached; confirm ret:0 is reproducible
 - [ ] Re-test step:6 with camera detached; confirm ret:-1 or silence
 - [ ] Survey steps 4, 5, 7, 8, 9, 10 with camera attached

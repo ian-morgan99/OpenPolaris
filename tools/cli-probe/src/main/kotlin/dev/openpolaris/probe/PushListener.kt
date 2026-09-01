@@ -17,6 +17,7 @@ import kotlin.system.exitProcess
  * Usage:
  *   listen-push <seconds> [host] [port] [--send <code>[:k:v;k:v]]
  *                              [--send-step <n>] [--out <file>]
+ *                              [--send-delay <ms>]
  *
  * Why a separate tool?
  *   Several codes are push-mode (525 Tempa, 524/517 AHRS, 779, 808) and never
@@ -29,7 +30,7 @@ fun main(args: Array<String>) {
     if (args.isEmpty() || args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
         System.err.println(
             "usage: listen-push <seconds> [host] [port] [--send <code>[:k:v;k:v]]" +
-                " [--send-step <n>] [--out <file>]",
+                " [--send-step <n>] [--out <file>] [--send-delay <ms>]",
         )
         exitProcess(2)
     }
@@ -41,6 +42,7 @@ fun main(args: Array<String>) {
     var port: Int? = null
     var sendFrame: ByteArray? = null
     var outFile = "push.log"
+    var sendDelayMs: Long = -1L // -1 = default (halfway)
 
     var i = 1
     while (i < args.size) {
@@ -68,6 +70,17 @@ fun main(args: Array<String>) {
                 }
                 i += 2
             }
+            "--send-delay" -> {
+                sendDelayMs = args.getOrNull(i + 1)?.toLongOrNull() ?: run {
+                    System.err.println("--send-delay needs an integer (milliseconds)")
+                    exitProcess(2)
+                }
+                if (sendDelayMs < 0) {
+                    System.err.println("--send-delay must be non-negative")
+                    exitProcess(2)
+                }
+                i += 2
+            }
             else -> {
                 when {
                     host == null -> host = a
@@ -90,9 +103,16 @@ fun main(args: Array<String>) {
     val out = File(outFile)
     out.parentFile?.mkdirs()
     val outStream = PrintStream(out.outputStream(), true, Charsets.UTF_8)
-    outStream.println("# push-log  host=$h  port=$p  duration=${secs}s  sendFrame=${sendFrame?.let { String(it) }}")
+    val effectiveDelay = if (sendDelayMs >= 0) "${sendDelayMs}ms" else "${secs * 1000L / 2}ms (default half)"
+    outStream.println(
+        "# push-log  host=$h  port=$p  duration=${secs}s  sendFrame=${sendFrame?.let { String(it) }}" +
+            "  sendDelayMs=$effectiveDelay",
+    )
 
-    println("PushListener: $h:$p for ${secs}s, sendFrame=${sendFrame?.let { String(it) }}, log=$out")
+    println(
+        "PushListener: $h:$p for ${secs}s, sendFrame=${sendFrame?.let { String(it) }}" +
+            ", sendDelay=$effectiveDelay, log=$out",
+    )
     val socket = Socket()
     socket.connect(InetSocketAddress(h, p), 5000)
     socket.soTimeout = 200
@@ -146,13 +166,17 @@ fun main(args: Array<String>) {
                 hashIdx = pending.indexOf('#')
             }
 
-            if (sendFrame != null && System.currentTimeMillis() - startMs > secs * 1000L / 2) {
-                val ts = System.currentTimeMillis() - startMs
-                outStream.println("t=${ts}ms  >>> SEND  ${String(sendFrame!!)}")
-                println("  t=${ts}ms  >>> SEND  ${String(sendFrame!!)}")
-                socket.getOutputStream().write(sendFrame)
-                socket.getOutputStream().flush()
-                sendFrame = null
+            if (sendFrame != null) {
+                val elapsed = System.currentTimeMillis() - startMs
+                val trigger = if (sendDelayMs >= 0) sendDelayMs else secs * 1000L / 2
+                if (elapsed >= trigger) {
+                    val ts = elapsed
+                    outStream.println("t=${ts}ms  >>> SEND  ${String(sendFrame!!)}")
+                    println("  t=${ts}ms  >>> SEND  ${String(sendFrame!!)}")
+                    socket.getOutputStream().write(sendFrame)
+                    socket.getOutputStream().flush()
+                    sendFrame = null
+                }
             }
         }
 

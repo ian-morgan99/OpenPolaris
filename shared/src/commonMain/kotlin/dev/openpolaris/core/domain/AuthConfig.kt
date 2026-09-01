@@ -19,11 +19,11 @@ package dev.openpolaris.core.domain
  *      `app:openpolaris;ver:<this version>;`.
  *
  * The `password` is **never** persisted to disk: it lives only in
- * the in-memory `AuthConfig` of the running [AppViewModel]. The
- * `SessionMarker` records that a password was set
- * ([SessionMarker.passwordSet]) so the UI can prompt for it on
- * next launch, but does not contain the value itself. Storing a
- * cleartext password in a file under `~/.openpolaris/` would be a
+ * the in-memory `AuthConfig` of the running [AppViewModel] (held by the
+ * `password` field on that class). `SessionMarker` does not record
+ * whether a password was set — re-asking the user on every cold start
+ * is the safer default, and storing a cleartext password in a file
+ * under `~/.openpolaris/` would be a
  * security regression relative to the Benro app, which keeps it in
  * private storage on-device.
  *

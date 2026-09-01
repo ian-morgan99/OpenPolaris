@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
+import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.MountSessionTiltSampleSource
 import dev.openpolaris.core.astro.AstroMath
@@ -122,6 +123,30 @@ class AppViewModel(
         private set
 
     fun updatePort(p: Int) { port = p }
+
+    // App-handshake password. Defaults to null (most production gimbal firmware
+    // doesn't require a password, so the 820→821 sequence is skipped). When
+    // the gimbal responds to 820 with `needed:1` but the user hasn't supplied
+    // a password, connect() fails and the IOException message is surfaced via
+    // [statusMessage]; the UI should observe [needsPassword] and prompt the
+    // user, then call [setPassword] and retry.
+    //
+    // The password is held in-memory only — it is never persisted to
+    // SessionMarker or any other on-disk file. The Android app is expected to
+    // keep it in EncryptedSharedPreferences (or the JVM/Desktop build keeps
+    // it for the lifetime of the process).
+    var password by mutableStateOf<String?>(null)
+        private set
+
+    // True after a connect attempt where the gimbal reported `needed:1` but
+    // no password was configured. Reset on the next connect() / setPassword().
+    var needsPassword by mutableStateOf(false)
+        private set
+
+    fun setConnectionPassword(value: String?) {
+        password = value
+        needsPassword = false
+    }
 
     var mount by mutableStateOf(MountState())
         private set
@@ -537,7 +562,15 @@ class AppViewModel(
         // reconnect path) or which the user set via the UI before pressing
         // Connect on a fresh connect. The control socket endpoint and the
         // persisted marker must agree, so both read from the same field.
-        val s = MountSession(connectionFactory, host, port)
+        val s = MountSession(
+            connectionFactory = connectionFactory,
+            host = host,
+            port = port,
+            // App-handshake: see [AuthConfig]. `password` is the live in-memory
+            // value the user provided via [setPassword]; the 820→821 sequence
+            // is skipped when it is null and the gimbal doesn't require one.
+            auth = AuthConfig(password = password),
+        )
         session = s
         controller = TrackingController(s)
         cameraController = CameraController(s)
@@ -627,6 +660,17 @@ class AppViewModel(
                 // a CancellationException we want to swallow so the UI stays
                 // responsive). Surface as a status message; the finally block
                 // still resets the in-flight flag.
+                //
+                // If the gimbal reported `needed:1` from the 820 probe and
+                // we don't have a password configured, MountSession throws
+                // a recognisable IOException — flip the needsPassword flag
+                // so the UI can surface a password-entry dialog instead of
+                // presenting the raw message as a generic failure.
+                if (e is java.io.IOException &&
+                    (e.message?.contains("requires connection password") == true)
+                ) {
+                    needsPassword = true
+                }
                 statusMessage = "Connect failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false

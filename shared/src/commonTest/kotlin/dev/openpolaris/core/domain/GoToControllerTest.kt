@@ -48,8 +48,8 @@ class GoToControllerTest {
         conn.push("1&517&2&yaw:0.0;pitch:60.0;roll:0.0;#".toByteArray(Charsets.US_ASCII))
         c.goToRaDec(raDeg, 30.0, latDeg = 0.0, lngEastDeg = 0.0, jdUtc = jd)
 
-        // written[0] is the connect handshake; written[1] is the goto frame.
-        val frame = conn.written[1].decodeToString()
+        // written[0]=284 handshake, [1]=820, [2]=823; written[3] is the goto frame.
+        val frame = conn.written[3].decodeToString()
         assertTrue(frame.contains("&519&"), "expected goto 519 frame, got $frame")
         assertTrue(frame.contains("alt:60."), "altitude should be ~60, got $frame")
         assertTrue(frame.contains("az:0."), "azimuth should be ~0, got $frame")

@@ -114,6 +114,24 @@ class FakeConnection : Connection {
             ack.copyInto(buffer)
             return ack.size
         }
+        // Likewise, auto-ack the connect-time 820 (auth probe) and 823
+        // (hello) frames the first time they are requested, with the
+        // `needed:0` response — matching the common production firmware
+        // behaviour where no connection password is required. Tests that
+        // need a different auth outcome (e.g. `needed:1` or a 823 that
+        // returns an error) should call [scriptResponse] explicitly.
+        if (hasUnmatchedWrite(820)) {
+            servedCountByCode[820] = (servedCountByCode[820] ?: 0) + 1
+            val ack = "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+            ack.copyInto(buffer)
+            return ack.size
+        }
+        if (hasUnmatchedWrite(823)) {
+            servedCountByCode[823] = (servedCountByCode[823] ?: 0) + 1
+            val ack = "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+            ack.copyInto(buffer)
+            return ack.size
+        }
         return -1
     }
 
@@ -190,7 +208,7 @@ class TrackingControllerTest {
         val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.start()
-        assertEquals("1&531&2&state:1;#", String(conn.written[1], Charsets.US_ASCII))
+        assertEquals("1&531&2&state:1;#", String(conn.written[3], Charsets.US_ASCII))
         s.disconnect()
     }
 
@@ -200,7 +218,7 @@ class TrackingControllerTest {
         val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.start(speed = 2)
-        assertEquals("1&531&2&state:1;speed:2;#", String(conn.written[1], Charsets.US_ASCII))
+        assertEquals("1&531&2&state:1;speed:2;#", String(conn.written[3], Charsets.US_ASCII))
         s.disconnect()
     }
 
@@ -210,7 +228,7 @@ class TrackingControllerTest {
         val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.stop()
-        assertEquals("1&531&2&state:0;#", String(conn.written[1], Charsets.US_ASCII))
+        assertEquals("1&531&2&state:0;#", String(conn.written[3], Charsets.US_ASCII))
         s.disconnect()
     }
 
@@ -221,8 +239,8 @@ class TrackingControllerTest {
         s.connect()
         t.setHalfSpeed(true)
         t.setHalfSpeed(false)
-        assertEquals("1&536&2&halfSpeed:0;#", String(conn.written[1], Charsets.US_ASCII))
-        assertEquals("1&536&2&halfSpeed:1;#", String(conn.written[2], Charsets.US_ASCII))
+        assertEquals("1&536&2&halfSpeed:0;#", String(conn.written[3], Charsets.US_ASCII))
+        assertEquals("1&536&2&halfSpeed:1;#", String(conn.written[4], Charsets.US_ASCII))
         s.disconnect()
     }
 
@@ -232,7 +250,7 @@ class TrackingControllerTest {
         val (s, t) = newSession(conn, backgroundScope)
         s.connect()
         t.gotoAzAlt(180.0, 45.0)
-        assertEquals("1&519&2&az:180.0000;alt:45.0000;#", String(conn.written[1], Charsets.US_ASCII))
+        assertEquals("1&519&2&az:180.0000;alt:45.0000;#", String(conn.written[3], Charsets.US_ASCII))
         s.disconnect()
     }
 

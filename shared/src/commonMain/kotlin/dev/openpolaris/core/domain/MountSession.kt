@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 
 /**
  * Single owner of the mount connection (ARCHITECTURE §3.1).
@@ -60,6 +61,19 @@ class MountSession(
     private val port: Int = 9090,
     private val readerScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    /**
+     * App handshake parameters. The connection is now considered
+     * "fully established" only after [authenticate] has run a 820
+     * probe and either a 821 token (if requested) plus a 823 hello.
+     * Without this, the gimbal responds to almost every command with
+     * `ret:-1` (issue: 526 SP_TEST evidence, see PROTOCOL.md §3).
+     *
+     * Default is [AuthConfig] (app `openpolaris`, no password). Most
+     * production gimbal firmware doesn't require a password, so the
+     * default works out-of-the-box; only networks that have set a
+     * connection password need to supply one.
+     */
+    private val auth: AuthConfig = AuthConfig(),
 ) {
     sealed interface CmdResult<out T> {
         data class Ok<T>(val value: T) : CmdResult<T>
@@ -280,6 +294,13 @@ class MountSession(
                 if (handshake !is CmdResult.Ok) {
                     throw java.io.IOException("handshake failed: $handshake")
                 }
+                // App handshake: 820 → 821 (if needed) → 823. Without this
+                // the gimbal silently drops almost every command (526
+                // evidence: 810@ret:-1, 519@ret:-1, etc.). The reader is
+                // already running so the 820/821/823 reply frames are
+                // dispatched to the in-flight waiters. See
+                // [authenticate] and PROTOCOL.md §3.
+                authenticate()
                 true
             } catch (e: Exception) {
                 stopReader()
@@ -302,6 +323,113 @@ class MountSession(
         if (readerJob?.isActive == true) return
         readerJob = readerScope.launch {
             runReaderLoop()
+        }
+    }
+
+    /**
+     * Send the 820 → 821 → 823 app-handshake that the gimbal firmware
+     * (sw:6.0.0.54 and later) requires before it will process any other
+     * command. Without it, every other opcode returns `ret:-1` (see
+     * PROTOCOL.md §3, 526 SP_TEST evidence, issue: 810/519/525
+     * `ret:-1` flood).
+     *
+     * Wire summary (live-captured 2026-09-01):
+     *
+     *   1. `1&820&2&-100#` → `820@needed:0;#` (or `needed:1;`)
+     *      The `-100` payload is what the Benro app sends; the
+     *      gimbal treats it as a "query" request and replies with
+     *      whether a connection password is required. The literal
+     *      `-100` also doubles as the empty-payload sentinel for
+     *      these specific codes (so we can't just send
+     *      [EMPTY_CONTENT]).
+     *
+     *   2. If `needed:1` AND [AuthConfig.password] is non-null:
+     *      `1&821&2&token:<password>#`
+     *      → `821@token:<echo>;ret:0;#` on accept
+     *      → `821@token:<echo>;ret:1;` on reject
+     *      Skipping the 821 step when the gimbal says it needs a
+     *      password is the original bug: the gimbal just kept
+     *      returning `ret:-1` for every other opcode, with no
+     *      obvious reason. We surface that as a connect failure
+     *      here so the UI can prompt the user.
+     *
+     *   3. `1&823&2&app:<appName>;ver:<appVersion>#`
+     *      → `823@app:openpolaris;ver:<firmwareVersion>;#`
+     *      The response carries the firmware's own `ver:` value,
+     *      not the one we sent — useful for telemetry. We don't
+     *      branch on it (the decompiled Android app doesn't either).
+     *
+     * Throws [java.io.IOException] (via the [tryConnect] catch) on
+     * any non-`Ok` step, so a connect-time handshake failure
+     * surfaces as `connect() == false` to the caller.
+     *
+     * Timeouts: 2000ms per step (matches the rest of [request]).
+     */
+    private suspend fun authenticate() {
+        // 1. Probe: does this gimbal require a connection password?
+        // The Benro app sends `-100` as the 820 payload (live
+        // captures, 2026-09-01). The gimbal responds with
+        // `needed:0;` (no password) or `needed:1;` (password
+        // required). We do NOT send a bare EMPTY_CONTENT because
+        // the gimbal treats the empty payload as a no-op and
+        // returns no `needed:` field — that was the early-2026
+        // bug we kept running into.
+        val probe = request<ResponseParser.Frame>(
+            code = Codes.APP_PASSWORD_INFO,
+            payload = "-100",
+            timeoutMs = 10000L,
+        ) { it }
+        if (probe !is CmdResult.Ok) {
+            throw java.io.IOException("auth probe (820) failed: $probe")
+        }
+        val needed = probe.value[NEEDED]?.trim() == "1"
+        // 2. Token step: only when the gimbal demands one AND we
+        // have a password configured. If the gimbal requires a
+        // password but the caller didn't supply one, we abort
+        // connect — the gimbal will not accept anything else
+        // from us, and there's no point pretending the
+        // connection is up. The UI surfaces a "password
+        // required" status via the resulting [connect] == false.
+        if (needed) {
+            val password = auth.password
+                ?: throw java.io.IOException(
+                    "gimbal requires connection password but AuthConfig.password is null",
+                )
+            val token = request<ResponseParser.Frame>(
+                code = Codes.APP_TOKEN,
+                payload = "token:$password;",
+                timeoutMs = 10000L,
+            ) { it }
+            if (token !is CmdResult.Ok) {
+                throw java.io.IOException("auth token (821) failed: $token")
+            }
+            // The token reply also carries ret:0/1. ret:1 means the
+            // gimbal rejected our password. Convert to a clean
+            // connect failure rather than leaving a half-open
+            // session.
+            val ret = token.value[RET]?.trim()
+            if (ret != null && ret != "0") {
+                throw java.io.IOException(
+                    "gimbal rejected connection password (821 ret=$ret)",
+                )
+            }
+        }
+
+        // 3. Hello: identify ourselves. Always sent (even on
+        // passwordless networks), per the live captures. The
+        // gimbal replies with its OWN `ver:` value (the firmware
+        // version), which we log for the next maintainer's
+        // benefit. We don't currently surface it on the wire
+        // anywhere, but [request] already records the parsed
+        // frame in [frames] for any subscriber.
+        val helloPayload = "app:${auth.appName};ver:${auth.appVersion};"
+        val hello = request<ResponseParser.Frame>(
+            code = Codes.APP_HELLO,
+            payload = helloPayload,
+            timeoutMs = 10000L,
+        ) { it }
+        if (hello !is CmdResult.Ok) {
+            throw java.io.IOException("app hello (823) failed: $hello")
         }
     }
 
@@ -405,6 +533,16 @@ class MountSession(
                         val waiter = synchronized(pending) { pending.remove(f.code) }
                         if (waiter != null) {
                             waiter.complete(f)
+                            // Yield after completing a waiter so the
+                            // writer coroutine whose `await()` we just
+                            // satisfied gets a chance to resume before
+                            // we race ahead and read its next request's
+                            // response before it's been written. The
+                            // tight loop test ([TiltStreamTest]'s
+                            // `liveSlowCollector...`) emits pure 538
+                            // pushes, no waiters, so this yield is a
+                            // no-op there.
+                            yield()
                         }
                     }
                 }
@@ -586,5 +724,9 @@ class MountSession(
     private companion object {
         const val READ_RETRY_MS = 10L
         const val READ_TIMEOUT_MS = 200L
+        // Field names used in 820/821 response frames. Kept as
+        // constants so the live-wire tests can reference them.
+        const val NEEDED = "needed"
+        const val RET = "ret"
     }
 }

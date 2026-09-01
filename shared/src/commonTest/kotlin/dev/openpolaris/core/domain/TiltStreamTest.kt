@@ -60,6 +60,15 @@ class TiltStreamTest {
         override fun close() {}
     }
 
+    /** Queue the canned replies [MountSession.connect] expects after the
+     *  284 lifecycle handshake: the 820 auth probe (`needed:0` — most
+     *  production firmware doesn't require a connection password) plus
+     *  the 823 hello ack. Mirrors the helper in [MountSessionReaderTest]. */
+    private fun FakeConnection.queueDefaultAuthOk() {
+        responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+    }
+
     @Test
     fun readerRoutes538ToTiltFlowInOrder() = runTest {
         val conn = FakeConnection()
@@ -67,6 +76,8 @@ class TiltStreamTest {
 
         // Handshake so the reader transitions out of pre-handshake.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Five 538 pushes in order. Reader publishes each on `tilt` and
@@ -110,6 +121,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Subscribe FIRST.
@@ -149,6 +162,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Malformed (no pitch) and then well-formed.
@@ -179,6 +194,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         val source = TiltSampleSource { s.tilt.first() }
@@ -233,6 +250,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
         // Reset baseline: connect() clears the counter to 0, so the
         // current value is the start-of-test reference.
@@ -275,6 +294,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         val collectorJob = launch {
@@ -330,6 +351,8 @@ class TiltStreamTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Subscribe first so the SharedFlow's subscriptionCount is > 0

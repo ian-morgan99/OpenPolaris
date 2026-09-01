@@ -80,8 +80,8 @@ class AutoLevelControllerTest {
         s.connect()
         a.setEnabled(true)
         a.setEnabled(false)
-        assertEquals("1&548&2&en:1;#", String(conn.written[1], Charsets.US_ASCII))
-        assertEquals("1&548&2&en:0;#", String(conn.written[2], Charsets.US_ASCII))
+        assertEquals("1&548&2&en:1;#", String(conn.written[3], Charsets.US_ASCII))
+        assertEquals("1&548&2&en:0;#", String(conn.written[4], Charsets.US_ASCII))
         assertEquals(false, a.isEnabled.value)
         s.disconnect()
     }
@@ -92,7 +92,7 @@ class AutoLevelControllerTest {
         val (s, a) = newSession(conn, this)
         s.connect()
         a.run()
-        assertEquals("1&549&2&-100#", String(conn.written[1], Charsets.US_ASCII))
+        assertEquals("1&549&2&-100#", String(conn.written[3], Charsets.US_ASCII))
         assertTrue(a.isRunning.value)
         s.disconnect()
     }

@@ -47,6 +47,16 @@ class MountSessionTest {
         override fun close() {}
     }
 
+    /** Queue the canned replies [MountSession.connect] expects after the
+     *  284 lifecycle handshake: the 820 auth probe (`needed:0` — most
+     *  production firmware doesn't require a connection password) plus
+     *  the 823 hello ack. Mirrors the helper in [MountSessionReaderTest]
+     *  and friends; the FakeConnection class is per-file. */
+    private fun FakeConnection.queueDefaultAuthOk() {
+        responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+    }
+
     @Test
     fun requestBeforeConnectRecordsLastError() = runTest {
         val conn = FakeConnection()
@@ -67,6 +77,8 @@ class MountSessionTest {
         // Now connect successfully - the lifecycle 284 push needs a response,
         // but we don't care about the value, just that connect() returns true.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val ok = s.connect()
         assertEquals(true, ok)
         assertNull(s.lastError)
@@ -79,6 +91,8 @@ class MountSessionTest {
         val s = MountSession({ conn }, readerScope = this)
         // Connect successfully
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
         assertNull(s.lastError)
         // Now force-drop the connection
@@ -96,6 +110,8 @@ class MountSessionTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
         conn.dropped = true
         s.request(517) { _ -> null }
@@ -104,6 +120,8 @@ class MountSessionTest {
         // Re-connect on a fresh socket
         conn.dropped = false
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake for the second connect.
+        conn.queueDefaultAuthOk()
         s.disconnect()
         s.connect()
         assertNull(s.lastError)

@@ -58,6 +58,20 @@ class MountSessionReaderTest {
         override fun close() {}
     }
 
+    /**
+     * Queue the canned replies [MountSession.connect] expects after the
+     * 284 lifecycle handshake: the 820 auth probe (`needed:0` — most
+     * production firmware doesn't require a connection password) plus
+     * the 823 hello ack. Tests that pre-load only the 284 reply and
+     * call [MountSession.connect] will time out on the 820 wait and
+     * return false; the helper keeps the upgrade mechanical (one line
+     * per test) so the focus stays on what's being tested.
+     */
+    private fun FakeConnection.queueDefaultAuthOk() {
+        responses += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+        responses += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+    }
+
     private data class GimbalPose(val yaw: Double, val pitch: Double, val roll: Double)
 
     @Test
@@ -66,6 +80,8 @@ class MountSessionReaderTest {
         // connect() does a synchronous PUSH_MODE_STATE handshake; queue the
         // 284 reply so the handshake completes.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
         // First write is the PUSH_MODE_STATE handshake poll.
@@ -80,6 +96,8 @@ class MountSessionReaderTest {
         // connect() does a synchronous PUSH_MODE_STATE handshake; queue the
         // 284 reply so the handshake completes.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -112,8 +130,11 @@ class MountSessionReaderTest {
         // connect() does a synchronous PUSH_MODE_STATE handshake; queue the
         // 284 reply so the handshake completes.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
-        assertTrue(session.connect())
+        val ok = session.connect()
+        assertTrue(ok)
 
         // Queue a 538 push *before* the 517 reply. The reader must
         // route the 538 to tilt (see [tiltFlowEmits538PushFrames])
@@ -145,6 +166,8 @@ class MountSessionReaderTest {
         // 284 reply so the handshake completes. The next request below
         // (GET_GIMBAL_POS) intentionally has no reply, so it times out.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -161,6 +184,8 @@ class MountSessionReaderTest {
         // connect() does a synchronous PUSH_MODE_STATE handshake; queue the
         // 284 reply so the handshake completes.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -211,10 +236,15 @@ class MountSessionReaderTest {
         // Handshake response — the reader will publish 284 to `frames`
         // before we observe the StateFlow.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
-        // After connect, the 284 frame is the most recent.
-        assertEquals(Codes.PUSH_MODE_STATE, s.frames.value?.code)
+        // After connect, the 823 hello ack is the most recent frame on
+        // `_frames` (it's published after 284 and 820). The 284 frame was
+        // also published — it just got overwritten by the later frames.
+        // See [MountSession.connect] for the full handshake order.
+        assertEquals(Codes.APP_HELLO, s.frames.value?.code)
 
         // Queue a non-538 push (285) to exercise the generic path on
         // `frames`. 538 is intentionally demuxed to the tilt flow (issue
@@ -233,6 +263,8 @@ class MountSessionReaderTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Pre-queue a 517 response, then issue a 517 request. The reader
@@ -253,6 +285,8 @@ class MountSessionReaderTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
         // Reader is now spinning on its retry delay. Disconnect should
         // cancel the reader without throwing and clear `connected`.
@@ -268,6 +302,8 @@ class MountSessionReaderTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         s.connect()
 
         // Queue 538 (mismatched) then 517 (matching). The reader should

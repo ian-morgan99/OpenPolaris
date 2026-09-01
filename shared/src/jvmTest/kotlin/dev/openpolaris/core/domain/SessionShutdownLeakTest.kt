@@ -47,7 +47,21 @@ class SessionShutdownLeakTest {
     /** In-memory [Connection] that records writes and serves queued responses. */
     private class FakeConnection : Connection {
         val written = mutableListOf<ByteArray>()
-        val responses = mutableListOf<ByteArray>()
+        // Responses gated by the request code they answer. The
+        // writer's request goes through `write()` before the
+        // reader can plausibly see the response, so a code-keyed
+        // map keeps the reader honest: a 284 push (no code in the
+        // request) is still served from `pushResponses`; a 820/823
+        // request gets its reply only after we've seen a write with
+        // that code.
+        //
+        // `pendingByCode` is the "queue" of pre-loaded responses,
+        // only revealed by `read()` after `write()` for that code
+        // has been seen. `seenRequestCodes` is the set of codes
+        // we've already received a write for.
+        val pendingByCode = mutableMapOf<Int, ByteArray>()
+        val pushResponses = mutableListOf<ByteArray>()
+        val seenRequestCodes = mutableSetOf<Int>()
         @Volatile var dropped = false
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) {}
@@ -55,14 +69,36 @@ class SessionShutdownLeakTest {
         override suspend fun write(data: ByteArray) {
             if (dropped) throw java.io.IOException("socket closed")
             written += data
+            // Parse out the request code from the wire format and
+            // remember we've seen a request for that code, so the
+            // next read can return the queued response. The wire
+            // format is `1&<code>&2&...;#`, so the code is the
+            // segment after the first `&`.
+            val s = String(data, Charsets.US_ASCII)
+            val parts = s.split("&")
+            if (parts.size >= 2) {
+                val code = parts[1].toIntOrNull()
+                if (code != null) seenRequestCodes.add(code)
+            }
         }
 
         override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
             if (dropped) throw java.io.IOException("socket closed")
-            if (responses.isEmpty()) return -1
-            val r = responses.removeAt(0)
-            r.copyInto(buffer)
-            return r.size
+            // First, drain any pre-queued push responses.
+            if (pushResponses.isNotEmpty()) {
+                val r = pushResponses.removeAt(0)
+                r.copyInto(buffer)
+                return r.size
+            }
+            // Then, for any request code we've seen, return the
+            // matching pending response once and remove it.
+            for (code in seenRequestCodes) {
+                val r = pendingByCode.remove(code) ?: continue
+                seenRequestCodes.remove(code)
+                r.copyInto(buffer)
+                return r.size
+            }
+            return -1
         }
 
         override fun close() {}
@@ -91,7 +127,13 @@ class SessionShutdownLeakTest {
 
         repeat(10) { cycle ->
             val conn = FakeConnection()
-            conn.responses += handshake
+            // 284 push-mode-state arrives on its own (no request code
+            // matching it — the 284 push is a gimbal-pushed message).
+            conn.pushResponses += handshake
+            // 820/823 responses are gated behind the writer actually
+            // writing a request with that code (see FakeConnection).
+            conn.pendingByCode[820] = "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+            conn.pendingByCode[823] = "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
             // Production scope — Dispatchers.Default + SupervisorJob,
             // the exact path that leaks in production if shutdown() is
             // a no-op. Each cycle creates a fresh scope so the only

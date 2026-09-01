@@ -269,6 +269,14 @@ class AppViewModelSolveNowTest {
                 s.startsWith("1&284&") -> {
                     conn.enqueueResponse("1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII))
                 }
+                s.startsWith("1&820&") -> {
+                    // Password-probe: 0 = no password required.
+                    conn.enqueueResponse("1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII))
+                }
+                s.startsWith("1&823&") -> {
+                    // App-hello: just echo the caller's app id / version.
+                    conn.enqueueResponse("1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII))
+                }
                 s.startsWith("1&517&") -> {
                     conn.enqueueResponse(gimbalFrame(h.azimuthDeg, h.altitudeDeg))
                 }

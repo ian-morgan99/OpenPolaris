@@ -67,6 +67,16 @@ class FirmwareUpdateControllerTest {
         suspend fun awaitWriteCountOf(code: Int, target: Int) {
             while (countWrittenCode(code) < target) delay(1)
         }
+
+        /** Queue the canned replies [MountSession.connect] expects after the
+         *  284 lifecycle handshake: the 820 auth probe (`needed:0` — most
+         *  production firmware doesn't require a connection password) plus
+         *  the 823 hello ack. Mirrors the helper in [MountSessionReaderTest]
+         *  but uses this file's [pendingReplies] field. */
+        fun queueDefaultAuthOk() {
+            pendingReplies += "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
+            pendingReplies += "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
+        }
     }
 
     private fun parseCode(frame: ByteArray): Int? {
@@ -78,6 +88,8 @@ class FirmwareUpdateControllerTest {
     fun happyPathFiresAllCodesAndReturnsDone() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -106,8 +118,8 @@ class FirmwareUpdateControllerTest {
         pump.cancel()
 
         val codes = conn.written.mapNotNull { parseCode(it) }
-        assertEquals(listOf(284, 810, 784, 794, 794, 795, 811, 811), codes,
-            "expected 284 handshake then firmware sequence, got $codes")
+        assertEquals(listOf(284, 820, 823, 810, 784, 794, 794, 795, 811, 811), codes,
+            "expected 284 handshake, 820+823 auth, then firmware sequence, got $codes")
 
         assertIs<FirmwareUpdateController.Status.Done>(final)
         assertTrue(statuses.any { it is FirmwareUpdateController.Status.Uploading },
@@ -123,6 +135,8 @@ class FirmwareUpdateControllerTest {
     fun happyPathFiresRebootWhenRequested() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -147,8 +161,8 @@ class FirmwareUpdateControllerTest {
         pump.cancel()
 
         val codes = conn.written.mapNotNull { parseCode(it) }
-        assertEquals(listOf(284, 810, 784, 794, 795, 811, 811, 812), codes,
-            "expected reboot sequence, got $codes")
+        assertEquals(listOf(284, 820, 823, 810, 784, 794, 795, 811, 811, 812), codes,
+            "expected 284 handshake, 820+823 auth, then reboot sequence, got $codes")
         assertIs<FirmwareUpdateController.Status.Done>(final)
 
         session.disconnect()
@@ -159,6 +173,8 @@ class FirmwareUpdateControllerTest {
     fun emptyFirmwareFailsImmediately() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -167,7 +183,11 @@ class FirmwareUpdateControllerTest {
 
         assertIs<FirmwareUpdateController.Status.Failed>(final)
         assertEquals("no firmware bytes", (final as FirmwareUpdateController.Status.Failed).reason)
-        assertEquals(1, conn.written.size, "only the 284 handshake should have been written")
+        // 284 push-mode handshake + 820 password probe + 823 app hello.
+        // The firmware controller returns Failed before any 810 frame
+        // is written, so we expect exactly the connect-time auth
+        // handshake frames.
+        assertEquals(3, conn.written.size, "only the connect-time auth handshake should have been written")
         session.disconnect()
         runCurrent()
     }
@@ -176,6 +196,8 @@ class FirmwareUpdateControllerTest {
     fun armTimeoutReportsFailure() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
         // No 810 reply queued → armFirmwareUpgrade() should time out.
@@ -201,6 +223,8 @@ class FirmwareUpdateControllerTest {
     fun installTimeoutReportsProgress() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 
@@ -246,6 +270,8 @@ class FirmwareUpdateControllerTest {
     fun uploadProgressReportsBytesSent() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        conn.queueDefaultAuthOk()
         val session = MountSession({ conn }, readerScope = backgroundScope)
         assertTrue(session.connect())
 

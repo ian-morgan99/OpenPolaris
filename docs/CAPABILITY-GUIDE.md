@@ -444,6 +444,53 @@ flag for revision in the audit).
 
 ## 5. Connection and bootstrap
 
+### 5.0 Building & running
+
+Open Polaris ships two runnable targets from one codebase:
+
+| Target | Gradle task | Output | How to run |
+|--------|-------------|--------|------------|
+| **Desktop (JVM / Compose Multiplatform)** | `./gradlew :composeApp:run` | AWT window on the dev box | Needs a display (`$DISPLAY` on Linux, Aqua on macOS, the desktop session on Windows) |
+| **Android APK (debug)** | `./gradlew :androidApp:assembleDebug` | `androidApp/build/outputs/apk/debug/androidApp-debug.apk` | `adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk` |
+
+The `run` task is hand-rolled in [`composeApp/build.gradle.kts`](../../composeApp/build.gradle.kts)
+because the `org.jetbrains.compose.desktop.application` plugin marker
+artifact was dropped at Compose 1.7.2 and the
+`compose.desktop { application { ... } }` DSL accessor is therefore
+not generated in this project. The custom task forks the JVM against
+the built `composeApp-jvm.jar` with the full `jvmRuntimeClasspath`
+(Skiko + AWT runtime + Compose runtime) on the classpath. This is
+the minimum viable wiring — it does **not** build native installers
+(`.deb`/`.dmg`/`.msi`); for those, run the gradle script with a one-off
+init script that applies `org.jetbrains.compose:compose-gradle-plugin:1.7.3`
+in standalone mode.
+
+Build prerequisites:
+
+- JDK 17 or 21 (the wrapper uses the project-default `org.gradle.java.installations.auto-detect=true`)
+- A network connection the first time (Gradle resolves everything from Maven Central + Google Maven)
+- For desktop: an X11 / Wayland / macOS / Windows desktop session
+- For Android: the Android SDK with platform 35 + build-tools 35.0.0
+
+Useful tasks:
+
+```bash
+# Build both targets without running anything
+./gradlew assemble
+
+# Desktop (opens a window — Ctrl-C to quit)
+./gradlew :composeApp:run
+
+# Android (writes the APK to androidApp/build/outputs/apk/debug/)
+./gradlew :androidApp:assembleDebug
+
+# JVM unit tests (no Android device required)
+./gradlew jvmTest
+
+# Full test suite
+./gradlew check
+```
+
 ### 5.1 Desktop Wi-Fi bridge (NetworkManager + polkit)
 
 [USER-MANUAL §4](USER-MANUAL.md#4-desktop-wi-fi-bridge) walks through
@@ -653,6 +700,17 @@ A consolidated list. For the per-flag/per-action detail, see
   output.
 - **Polkit prompt every time.** The rule isn't installed. See
   [USER-MANUAL §4](USER-MANUAL.md#4-desktop-wi-fi-bridge).
+- **`./gradlew :composeApp:run` fails with "Can't connect to X11 window
+  server using '' as the value of the DISPLAY variable".** You're
+  running headless. Either log into a desktop session, or wrap with
+  `xvfb-run -a ./gradlew :composeApp:run` (install
+  `xvfb` first). On macOS / Windows the equivalent is just to run the
+  task from a logged-in graphical session.
+- **Desktop window opens then immediately closes.** Usually an
+  unhandled exception in `Main.kt` during `application { ... }` setup.
+  Run with `--stacktrace` (`./gradlew :composeApp:run --stacktrace`)
+  to see the cause. Common culprit: the headless-mode Compose runtime
+  can't open an AWT window — see the X11 item above.
 
 ---
 

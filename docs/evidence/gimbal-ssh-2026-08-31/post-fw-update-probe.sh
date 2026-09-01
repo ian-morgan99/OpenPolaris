@@ -43,7 +43,9 @@ set -u
 POLARIS_SSH="root@192.168.0.1"
 GIMBAL_PORT="9090"
 
-EVID_ROOT="/home/ian/Documents/VSCodeProjects/OpenPolaris/docs/evidence"
+# Resolve evidence dir relative to this script so the same capture works
+# whether the repo lives at the developer's local checkout or anywhere else.
+EVID_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FW_UPDATE_DIR="${EVID_ROOT}/firmware-update-2026-08-31"
 DEFAULT_BASELINE="${FW_UPDATE_DIR}/01-pre-probe-state.txt"
 BASELINE="${FW_UPDATE_BASELINE:-${DEFAULT_BASELINE}}"
@@ -199,10 +201,13 @@ if [[ "${DO_PROTOCOL}" -eq 1 ]]; then
   # by the project but not installed system-wide; the easiest way is to
   # let the user run the gradle task and tee the output here. If gradle
   # is not available, fall back to a raw TCP write.
-  if [[ -x "/home/ian/Documents/VSCodeProjects/OpenPolaris/gradlew" ]]; then
+  # Resolve the project root: two levels up from this script
+  # (docs/evidence/gimbal-ssh-2026-08-31/post-fw-update-probe.sh -> repo).
+  PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+  if [[ -x "${PROJECT_ROOT}/gradlew" ]]; then
     log "  firing cli-probe 284 single-shot (PUSH_MODE_STATE) via gradle"
     (
-      cd /home/ian/Documents/VSCodeProjects/OpenPolaris
+      cd "${PROJECT_ROOT}"
       timeout 15 ./gradlew --console=plain :tools:cli-probe:run \
         --args "192.168.0.1 ${GIMBAL_PORT} 525" 2>&1
     ) | tee "${OUT_DIR}/08-cli-probe-525.txt" || \

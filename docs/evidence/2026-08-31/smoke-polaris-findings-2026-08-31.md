@@ -3,7 +3,7 @@
 Read-only run of `tools/cli-probe/Smoke.kt` against `192.168.0.1:9090`
 (no `-Pdestructive=true`, so setters and the always-blocked codes
 never ran). Source: `feat(cli-probe): add Smoke.kt — 73/0/6 against
-stub` ([`36ad5e4`](/home/ian/Documents/VSCodeProjects/OpenPolaris/commit/36ad5e4)).
+stub` (commit `36ad5e4` on the `connectivity-tests-for-polaris` branch — see `git log`).
 Raw log: [`smoke-polaris-readonly-2026-08-31-1733.log`](./smoke-polaris-readonly-2026-08-31-1733.log).
 
 ## Result

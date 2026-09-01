@@ -1,6 +1,6 @@
 package dev.openpolaris.core.solver
 
-import dev.openpolaris.core.domain.AstroMath
+import dev.openpolaris.core.astro.AstroMath
 
 /**
  * Plate-solver contract for the phone app.

@@ -2,8 +2,8 @@ package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountMode
+import dev.openpolaris.core.session.FileSessionStore
 import dev.openpolaris.core.session.SessionMarker
-import dev.openpolaris.core.session.SessionStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -15,7 +15,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import java.io.File
-import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -91,23 +90,68 @@ private class MarkerFakeConnection(
     override fun close() {}
 }
 
+/**
+ * Per-suite temp-dir for the FileSessionStore tests. Resolves to a
+ * project-local `build/jvmTest-tmp` so the read-only-precondition tests
+ * can actually make the parent directory read-only.
+ *
+ * On a typical Linux host the system tmpdir is 1777 (sticky +
+ * world-writable), which makes `File.setWritable(false)` a no-op and
+ * breaks the write-failure tests. We avoid the system tmpdir by
+ * using a project-local directory we control.
+ */
+private object FileSessionStoreTestTempDir {
+    val root: File by lazy {
+        // Walk up from the working directory of the test JVM to the
+        // nearest `build` directory. The Gradle `jvmTest` task always
+        // sets the working directory to the module's project dir.
+        val cwd = File(System.getProperty("user.dir") ?: ".")
+        val candidate = File(cwd, "build/jvmTest-tmp")
+        candidate.mkdirs()
+        candidate
+    }
+
+    fun resolve(name: String): File = File(root, name)
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelSessionMarkerTest {
 
     private lateinit var tempFile: File
-    private lateinit var store: SessionStore
+    private lateinit var store: FileSessionStore
+    private var tempDirRoot: File? = null
 
-    private fun newStore(): SessionStore {
-        val dir = Files.createTempDirectory("openpolaris-session-").toFile()
-        tempFile = File(dir, "session.json")
-        return SessionStore(tempFile.absolutePath)
+    private fun newStore(): FileSessionStore {
+        // SessionMarkerTest exercises the connection-marker persistence path
+        // (saveMarker / acceptReconnect / forgetMarker), so it needs a real
+        // file-backed store backed by a per-test temp file.
+        // We use a non-creating File constructor so the precondition
+        // `assertFalse(tempFile.exists())` in `forgetMarkerWithoutFileIsANoOp`
+        // holds — `File.createTempFile` would create an empty file as a
+        // side-effect, which FileSessionStore would then ignore (size 0)
+        // but the test's own precondition is on the raw `tempFile` ref.
+        //
+        // We use a per-test private directory under a project-local
+        // `build/jvmTest-tmp` so the read-only-precondition tests
+        // (`acceptReconnectWithHostEditWriteFailureKeepsOldMarker` and
+        // friends) can actually make the parent directory read-only.
+        // On a typical Linux host the system tmpdir is 1777 (sticky +
+        // world-writable), which makes `File.setWritable(false)` a
+        // no-op and breaks the write-failure tests.
+        val root = FileSessionStoreTestTempDir.resolve("session-marker-test")
+        root.mkdirs()
+        tempDirRoot = root
+        tempFile = File.createTempFile("marker-", ".json", root)
+        tempFile.delete()
+        return FileSessionStore(filePath = tempFile.absolutePath)
     }
 
     @AfterTest
     fun cleanup() {
         // The tempFile lives inside a freshly-created temp directory; nuke
-        // the whole tree so we leave nothing behind.
-        tempFile.parentFile?.deleteRecursively()
+        // the whole tree so we leave nothing behind. Walk up to the
+        // per-test root we created, not the shared project temp dir.
+        tempDirRoot?.deleteRecursively()
     }
 
     private fun newViewModel(

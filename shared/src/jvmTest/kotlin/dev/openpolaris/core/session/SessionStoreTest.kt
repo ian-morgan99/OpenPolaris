@@ -5,7 +5,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -17,7 +16,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Filesystem-backed tests for [SessionStore] on JVM.
+ * Filesystem-backed tests for [FileSessionStore] on JVM.
  *
  * These exercise the real file I/O path (JVM [PlatformFile] actual wraps
  * `java.nio.file.Path`). The Android actual is exercised by
@@ -25,17 +24,17 @@ import kotlin.test.assertTrue
  * the source of truth because the actual implementations are thin and the
  * contract is the same.
  */
-class SessionStoreTest {
+class FileSessionStoreJvmTest {
 
     private lateinit var tempDir: Path
     private lateinit var storePath: Path
-    private lateinit var store: SessionStore
+    private lateinit var store: FileSessionStore
 
     @BeforeTest
     fun setUp() {
         tempDir = Files.createTempDirectory("openpolaris-session-store-test-")
         storePath = tempDir.resolve("session.json")
-        store = SessionStore(storePath.toString())
+        store = FileSessionStore(storePath.toString())
     }
 
     @AfterTest
@@ -111,7 +110,7 @@ class SessionStoreTest {
     @Test
     fun writeCreatesMissingParentDirectory() {
         val nestedPath = tempDir.resolve("nested/sub/dir/session.json")
-        val nestedStore = SessionStore(nestedPath.toString())
+        val nestedStore = FileSessionStore(nestedPath.toString())
         val result = nestedStore.write(sample())
         assertTrue(result.isSuccess, "write should create parent dirs, was: $result")
         assertTrue(Files.exists(nestedPath))
@@ -154,7 +153,7 @@ class SessionStoreTest {
 
     @Test
     fun readReturnsNullForOversizedFile() {
-        val huge = "x".repeat(SessionStore.DEFAULT_SIZE_LIMIT_BYTES + 1)
+        val huge = "x".repeat(FileSessionStore.DEFAULT_SIZE_LIMIT_BYTES + 1)
         Files.writeString(storePath, huge)
         assertNull(store.read())
     }
@@ -186,7 +185,7 @@ class SessionStoreTest {
         val blocker = tempDir.resolve("blocker")
         Files.writeString(blocker, "i am a file, not a dir")
         val badPath = blocker.resolve("session.json")
-        val badStore = SessionStore(badPath.toString())
+        val badStore = FileSessionStore(badPath.toString())
 
         val result = badStore.write(sample())
         assertTrue(result.isFailure, "write should fail when parent is a file, was: $result")
@@ -199,14 +198,14 @@ class SessionStoreTest {
         // nested directory we have not created. We have to construct one
         // where the parent is *not* creatable by us.
         val pathInsideMissingNested = tempDir.resolve("missing/missing/session.json")
-        val badStore = SessionStore(pathInsideMissingNested.toString(), sizeLimitBytes = 0)
+        val badStore = FileSessionStore(pathInsideMissingNested.toString(), sizeLimitBytes = 0)
         val result = badStore.write(sample())
         assertTrue(result.isFailure)
     }
 
     @Test
     fun sizeLimitZeroRejectsAnyWrite() {
-        val zeroStore = SessionStore(storePath.toString(), sizeLimitBytes = 0)
+        val zeroStore = FileSessionStore(storePath.toString(), sizeLimitBytes = 0)
         val result = zeroStore.write(sample())
         assertTrue(result.isFailure, "sizeLimitBytes=0 must reject the smallest valid marker")
     }

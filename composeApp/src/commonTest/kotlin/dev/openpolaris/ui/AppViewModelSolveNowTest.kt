@@ -1,6 +1,6 @@
 package dev.openpolaris.ui
 
-import dev.openpolaris.core.domain.AstroMath
+import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.solver.CatalogStar

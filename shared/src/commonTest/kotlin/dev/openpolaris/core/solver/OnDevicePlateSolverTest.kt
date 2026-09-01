@@ -1,6 +1,6 @@
 package dev.openpolaris.core.solver
 
-import dev.openpolaris.core.domain.AstroMath
+import dev.openpolaris.core.astro.AstroMath
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.math.PI

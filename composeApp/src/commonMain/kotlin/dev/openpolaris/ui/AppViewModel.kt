@@ -59,6 +59,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,6 +112,15 @@ class AppViewModel(
     // inside [tryReconnectIfMarkerExists]; production callers use the
     // default Dispatchers.IO to keep the main thread off the filesystem.
     internal val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    // The scope MountSession uses to run its reader loop. Tests inject
+    // the runTest scope so virtual time advances the reader's blocking
+    // `read` call the same way it advances the waiter; production
+    // passes null to keep MountSession's default Dispatchers.Default
+    // scope. Without a test-supplied scope, the reader runs on a
+    // real-time dispatcher and `request()`'s virtual-time
+    // `withTimeout(2000)` fires before the reader's real-time channel
+    // receive delivers the response.
+    private val sessionReaderScope: CoroutineScope? = null,
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -309,6 +319,17 @@ class AppViewModel(
     // without either waiting on the other's flag.
     private val _waking = MutableStateFlow(false)
     val waking: StateFlow<Boolean> = _waking.asStateFlow()
+
+    // 8.0: monotonic counter bumped every time a connect attempt is
+    // *launched*. The wake coroutine snapshots it at entry and compares
+    // at terminal-write time — a mismatch means a connect happened
+    // during the wake, so the wake's "Wake complete — try Connect"
+    // message is suppressed and the connect's "Connected" line is the
+    // authoritative terminal. This is what the in-flight
+    // `!_reconnecting.value` check alone cannot catch, because the
+    // connect's `finally` resets `_reconnecting` to false *before* the
+    // wake resumes from its BT scan delays.
+    private var reconnectGeneration: Int = 0
 
     /**
      * Stream 15.1 (issue #15): the active [CameraProfile] used by
@@ -573,6 +594,15 @@ class AppViewModel(
         // with the connect-outcome message into a single status line
         // so the user sees both: the marker write failed AND the
         // live connect failed.
+        // 8.0: bump the reconnect generation BEFORE disconnect() so
+        // any wake coroutine that is currently suspended on a BT scan
+        // delay sees the new generation on its next terminal-write
+        // check and suppresses its own "Wake complete" / "Wake
+        // failed" line. (Doing this AFTER disconnect() would also
+        // work, but a wake whose gate fires between the suspend and
+        // the generation bump would still clobber — bump first,
+        // always.)
+        reconnectGeneration++
         disconnect()
         demoMode = false
         // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field which
@@ -588,6 +618,14 @@ class AppViewModel(
             // value the user provided via [setPassword]; the 820→821 sequence
             // is skipped when it is null and the gimbal doesn't require one.
             auth = AuthConfig(password = password),
+            // Test-only: see [sessionReaderScope] doc. When the VM is
+            // constructed with a test reader scope, MountSession uses
+            // it for the reader loop so virtual time drives the
+            // response delivery. Production callers leave it null
+            // and we fall through to MountSession's default
+            // Dispatchers.Default scope.
+            readerScope = sessionReaderScope
+                ?: CoroutineScope(SupervisorJob() + Dispatchers.Default),
         )
         session = s
         controller = TrackingController(s)
@@ -744,14 +782,67 @@ class AppViewModel(
         if (_waking.value) return
         _waking.value = true
         scope.launch {
+            // 8.0 wake-then-connect race (v2): a connect that *started* during
+            // the wake must own the terminal status line, even if it finishes
+            // and resets [_reconnecting] before the wake's terminal write
+            // lands. The earlier gate (`!_reconnecting.value` at the terminal
+            // write site) was racy: the wake coroutine suspends on BT scan
+            // delays (~7s total) while the connect coroutine runs to
+            // completion, resets `_reconnecting = false` in its `finally`,
+            // and writes "Connected". The wake then resumes, sees
+            // `_reconnecting = false`, and overwrites "Connected" with
+            // "Wake complete — try Connect" — exactly the silent-failure UX
+            // the user reported. Snapshot [reconnectGeneration] at the start
+            // of the wake and compare it at the terminal site; if the
+            // counter has advanced, a connect ran during the wake and owns
+            // the status line.
+            val wakeStartGeneration = reconnectGeneration
             try {
-                statusMessage = "Waking gimbal over Bluetooth…"
-                wakeProbe { msg -> statusMessage = msg }
-                if (!statusMessage.startsWith("Woke ")) {
+                // The in-flight gate ([!_reconnecting.value]) still does the
+                // right thing for the live progress writes: a connect that is
+                // currently in flight owns the status, so the wake's
+                // "Scanning…" / "Connecting GATT…" / "Woke gimbal: …"
+                // lines are suppressed until the connect's outcome lands.
+                //
+                // The generation gate ([reconnectGeneration ==
+                // wakeStartGeneration]) catches the other half of the race:
+                // the connect may *finish* between two wake progress
+                // publishes and reset `_reconnecting = false` in its
+                // `finally`. Without the generation check, the wake's next
+                // progress line ("Woke gimbal: …") would land AFTER the
+                // connect's "Connected" line and overwrite it — exactly
+                // the silent-failure UX the user reported.
+                val wakeProgress: suspend (String) -> Unit = { msg ->
+                    if (!_reconnecting.value &&
+                        reconnectGeneration == wakeStartGeneration
+                    ) {
+                        statusMessage = msg
+                    }
+                }
+                if (!_reconnecting.value &&
+                    reconnectGeneration == wakeStartGeneration
+                ) {
+                    statusMessage = "Waking gimbal over Bluetooth…"
+                }
+                wakeProbe(wakeProgress)
+                // 8.0 v2: in addition to the in-flight check, suppress the
+                // terminal if a connect *happened* during the wake. Without
+                // this, the wake's terminal lands AFTER the connect's
+                // terminal and clobbers "Connected" with "Wake complete —
+                // try Connect". The generation counter is bumped by
+                // [connect] at its start, so a wake that observed the
+                // current generation at entry and a different one at exit
+                // knows the connect took the status line.
+                val connectRanDuringWake = reconnectGeneration != wakeStartGeneration
+                if (!_reconnecting.value && !connectRanDuringWake &&
+                    !statusMessage.startsWith("Woke ")
+                ) {
                     statusMessage = "Wake complete — try Connect"
                 }
             } catch (e: Throwable) {
-                statusMessage = "Wake failed: ${e.message ?: e::class.simpleName}"
+                if (!_reconnecting.value && reconnectGeneration == wakeStartGeneration) {
+                    statusMessage = "Wake failed: ${e.message ?: e::class.simpleName}"
+                }
             } finally {
                 _waking.value = false
             }
@@ -882,7 +973,17 @@ class AppViewModel(
             // thing to keep on screen until the next connect
             // attempt overwrites it. Match the EXACT prefix used
             // in acceptReconnect.
-            if (!statusMessage.startsWith("Could not save updated host:")) {
+            //
+            // 8.0 wake-then-connect race: also skip the "Disconnected"
+            // write if the wake coroutine is currently publishing
+            // progress (its status is the more useful thing to keep on
+            // screen while the BT pulse is in flight). The wake's
+            // coroutine will either land its own terminal message or
+            // surrender to the connect's terminal message on the
+            // _reconnecting gate added in [wake].
+            if (!statusMessage.startsWith("Could not save updated host:") &&
+                !_waking.value
+            ) {
                 statusMessage = "Disconnected"
             }
         }

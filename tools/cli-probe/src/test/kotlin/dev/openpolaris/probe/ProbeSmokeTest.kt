@@ -81,14 +81,14 @@ class ProbeSmokeTest {
     }
 
     @Test
-    fun mount_session_connect_succeeds() = runTest {
+    fun mount_session_connect_succeeds() = runBlocking {
         val ok = h.session.connect()
         assertTrue(ok, "MountSession.connect() should succeed against FakeMount")
         assertTrue(h.session.state.value.connected, "state should report connected")
     }
 
     @Test
-    fun tracking_round_trip() = runTest {
+    fun tracking_round_trip() = runBlocking {
         h.session.connect()
         val tracking = TrackingController(h.session)
         tracking.start(speed = 2) // 2 == solar-like index
@@ -99,10 +99,11 @@ class ProbeSmokeTest {
     }
 
     @Test
-    fun auto_level_toggle_persists() = runTest {
+    fun auto_level_toggle_persists() = runBlocking {
         h.session.connect()
         val autoLevel = AutoLevelController(h.session)
-        autoLevel.start(this)
+        val scope = CoroutineScope(Dispatchers.Default)
+        autoLevel.start(scope)
         try {
             autoLevel.setEnabled(true)
             assertEquals(true, autoLevel.isEnabled.value, "setEnabled(true) should reflect immediately")
@@ -110,6 +111,7 @@ class ProbeSmokeTest {
             assertEquals(false, autoLevel.isEnabled.value, "setEnabled(false) should reflect immediately")
         } finally {
             autoLevel.stop()
+            scope.cancel()
         }
     }
 
@@ -131,7 +133,7 @@ class ProbeSmokeTest {
     }
 
     @Test
-    fun goto_acknowledged() = runTest {
+    fun goto_acknowledged() = runBlocking {
         h.session.connect()
         // GoToController requires a TrackingController; harness wires one.
         h.goto.goToRaDec(
@@ -149,7 +151,7 @@ class ProbeSmokeTest {
     }
 
     @Test
-    fun jog_acknowledged() = runTest {
+    fun jog_acknowledged() = runBlocking {
         h.session.connect()
         // Code 513 = X jog; FakeMount echoes dir:X;lvl:1; ack.
         h.tracking.jog(code = 513, durationMs = 100)
@@ -157,7 +159,7 @@ class ProbeSmokeTest {
     }
 
     @Test
-    fun alignment_controller_constructs() = runTest {
+    fun alignment_controller_constructs() = runBlocking {
         h.session.connect()
         assertNotNull(h.alignment, "AlignmentController should be constructable against a live session")
         assertEquals(0, h.alignment.starCount, "no stars submitted yet")

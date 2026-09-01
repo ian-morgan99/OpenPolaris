@@ -20,6 +20,9 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
+    // BurstTest starts a stub TCP server in-process; depends on
+    // dev.openpolaris.stub.runServer.
+    testImplementation(project(":tools:stub-server"))
 }
 
 application {

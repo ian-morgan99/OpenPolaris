@@ -148,6 +148,3 @@ class SessionStore(
         }
     }
 }
-
-/** Throws nothing. Read-side failures all fold into `null`; write-side fold into [Result.failure]. */
-class SessionStoreException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

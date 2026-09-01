@@ -242,7 +242,13 @@ class AutoLevelControllerTest {
     @Test
     fun runFailsWhenSourceIsExhausted() = runTest {
         val conn = FakeConnection()
-        // Fewer samples than the window; the source dries up.
+        // Fewer samples than the window; the source dries up. The
+        // nextSampleWithFallback() path falls back to a 537 GET after
+        // ~500ms — but with no scripted 537 response on the wire that
+        // fallback also fails (the session's request() default 2s
+        // timeout elapses). We size the outer budget at 5s so the
+        // inner 537-timeout path fires first and we land on Failed,
+        // not on the outer withTimeout's TimedOut.
         val samples = listOf(
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
@@ -250,7 +256,7 @@ class AutoLevelControllerTest {
         val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples), this)
         s.connect()
 
-        val result = a.runAndAwait(2.seconds)
+        val result = a.runAndAwait(5.seconds)
 
         assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
         s.disconnect()

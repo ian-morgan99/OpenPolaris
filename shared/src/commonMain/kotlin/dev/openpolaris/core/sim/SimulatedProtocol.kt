@@ -224,8 +224,15 @@ class SimulatedProtocol {
                 "1&${Codes.GET_LIMIT_STATE}&2&limit:$limitState;state:$limitState;#"
             )
             Codes.SET_LIMIT_STATE -> {
-                fields["state"]?.toIntOrNull()?.let { limitState = it }
-                out += response("1&${Codes.SET_LIMIT_STATE}&2&state:$limitState;#")
+                // Read the typed `limit` field first; fall back to the
+                // legacy `state` key for any caller still using it. The
+                // typed parser (CommandTable.LIMITS_SET) emits `limit`
+                // per PROTOCOL.md §3.4, and SimulatedProtocolTest pins
+                // the round-trip via the `limit` key.
+                val incoming = fields["limit"]?.toIntOrNull()
+                    ?: fields["state"]?.toIntOrNull()
+                if (incoming != null) limitState = incoming
+                out += response("1&${Codes.SET_LIMIT_STATE}&2&limit:$limitState;state:$limitState;#")
             }
             Codes.GET_SETTLING_TIME -> out += response(
                 "1&${Codes.GET_SETTLING_TIME}&2&time:$settlingTime;#"

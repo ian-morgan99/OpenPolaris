@@ -96,3 +96,17 @@ tasks.register<JavaExec>("liveListen") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("dev.openpolaris.probe.PushListenerKt")
 }
+
+// End-to-end smoke test for the 820/821/823 app handshake. Connects via
+// MountSession (so the full 284 + 820 + 823 sequence runs), then issues a
+// single 519 EX_AXIS_STA read as proof that post-handshake commands work.
+// Use to validate the handshake against a live gimbal; with no password
+// the gimbal must report needed:0 for the probe to succeed.
+// Args: <host> [port] [password] [--app <name>] [--ver <version>]
+tasks.register<JavaExec>("authSmoke") {
+    group = "application"
+    description = "MountSession-based handshake smoke test against a live gimbal (or the stub-server)."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("dev.openpolaris.probe.AuthSmokeKt")
+    standardInput = System.`in`
+}

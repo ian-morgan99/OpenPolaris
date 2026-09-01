@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -33,6 +35,15 @@ class SimulatedMount {
     var ahrs = true
     var yaw = 0f
     var pitch = 0f
+    var roll = 0f
+    /**
+     * 537/538 tilt envelope "state" field. Benro app firmware semantics
+     * (PLAN §3b.5 / issue #32): the firmware is decoupled — `state` is a
+     * distinct field from `pitch`/`roll`, not a derived "level" boolean.
+     * For the simulator we just echo the most recent computed envelope.
+     */
+    var tiltState: Int = 1
+    var autoLevelEnabled: Boolean = false
 
     // Simulated camera parameter indices (demo mode).
     var isoIndex = 5
@@ -92,6 +103,69 @@ class SimulatedMount {
                 265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
                 266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")
                 267 -> queue("1&267&2&state:1;bulb:0;c:1;#")
+                // 3b.5: auto-level primitives. Until hardware round-trip
+                // is verified the codes are gated by FeatureFlags.autoLevel
+                // (see AutoLevelController / FeatureFlags.kt), but the
+                // simulator still answers them so the in-app demo mode
+                // "did nothing" perception goes away.
+                537 -> queue("1&537&2&state:$tiltState;pitch:$pitch;roll:$roll;#")
+                538 -> {
+                    // SET_TILT_STATE is a push-style envelope on real
+                    // firmware. In the simulator we accept the field
+                    // payload for completeness, then echo the current
+                    // envelope (mirroring the live capture's behaviour
+                    // where 538 was reported as a write from the host).
+                    tiltState = fields["state"]?.toIntOrNull() ?: tiltState
+                    fields["pitch"]?.toFloatOrNull()?.let { pitch = it }
+                    fields["roll"]?.toFloatOrNull()?.let { roll = it }
+                    queue("1&538&2&state:$tiltState;pitch:$pitch;roll:$roll;#")
+                }
+                547 -> queue("1&547&2&en:${if (autoLevelEnabled) 1 else 0};#")
+                548 -> {
+                    autoLevelEnabled = fields["en"] == "1"
+                    queue("1&548&2&en:${if (autoLevelEnabled) 1 else 0};#")
+                }
+                549 -> {
+                    // Fire-and-forget trigger. To make the demo actually
+                    // "do something" we spin off a coroutine that emits
+                    // 538 tilt-push frames converging to (0,0) over
+                    // ~500ms. That lets AutoLevelController.awaitSettling
+                    // observe the AHRS settle without any hardware.
+                    queue("1&549&2&ret:0;#")
+                    val readerScope = this@SimulatedMount.readerScope
+                    val inbox = this.inbox
+                    val settle = { snap: Float ->
+                        val frame = "1&538&2&state:1;pitch:$snap;roll:$snap;#"
+                            .toByteArray(Charsets.US_ASCII)
+                        inbox.trySend(frame)
+                    }
+                    readerScope.launch {
+                        // Simple geometric convergence: 538 push every
+                        // ~50ms, halving the residual each step. By
+                        // ~400ms the residual is < SETTLE_EPSILON_DEG
+                        // (0.01°) and the settling window fills.
+                        var r = pitch
+                        var p = roll
+                        if (kotlin.math.abs(r) < 0.001f && kotlin.math.abs(p) < 0.001f) {
+                            r = 1.5f; p = -1.2f
+                        }
+                        repeat(20) {
+                            r *= 0.6f
+                            p *= 0.6f
+                            settle(p)
+                            settle(r)
+                            delay(25)
+                        }
+                    }
+                }
+                else -> {
+                    // Defensive: do NOT swallow unknown codes silently.
+                    // Echoing a 0-byte frame at least surfaces in
+                    // session-level round-trip tests that something
+                    // arrived, rather than hanging the read deadline.
+                    // Real hardware decoding belongs in MountSession;
+                    // here we just bail.
+                }
             }
         }
 

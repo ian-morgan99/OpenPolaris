@@ -240,9 +240,14 @@ class AutoLevelControllerTest {
     }
 
     @Test
-    fun runFailsWhenSourceIsExhausted() = runTest {
+    fun runFallsBackToActivePollWhenSourceIsExhausted() = runTest {
         val conn = FakeConnection()
-        // Fewer samples than the window; the source dries up.
+        // The push source dries up after 2 samples. Pre-queue enough 537
+        // GET_TILT_STATE responses so the controller's polling fallback can
+        // recover and fill the SETTLE_WINDOW (10 samples) with settled data.
+        repeat(AutoLevelController.SETTLE_WINDOW) {
+            conn.responses += "1&537&2&pitch:0.0;roll:0.0;#".toByteArray(Charsets.US_ASCII)
+        }
         val samples = listOf(
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
             AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
@@ -252,7 +257,30 @@ class AutoLevelControllerTest {
 
         val result = a.runAndAwait(2.seconds)
 
-        assertTrue(result is AutoLevelController.AutoLevelResult.Failed)
+        // The 537 polling fallback should let the loop complete (rather than
+        // deadlocking on the exhausted push source, which was the previous
+        // behaviour pre-polling-fallback).
+        assertTrue(result is AutoLevelController.AutoLevelResult.Completed)
+        result as AutoLevelController.AutoLevelResult.Completed
+        assertEquals(0.0, result.pitchDeg, 1e-9)
+        assertEquals(0.0, result.rollDeg, 1e-9)
+        s.disconnect()
+    }
+
+    @Test
+    fun runTimesOutWhenSourceExhaustsAndPollingHangs() = runTest {
+        val conn = FakeConnection()
+        // No 537 responses queued — readTilt will block waiting for one. The
+        // outer 100ms runAndAwait timeout must fire and map to TimedOut.
+        val samples = listOf(
+            AutoLevelController.Tilt(pitchDeg = 0.0, rollDeg = 0.0),
+        )
+        val (s, a) = newSessionWithSource(conn, QueueSampleSource(samples), this)
+        s.connect()
+
+        val result = a.runAndAwait(timeout = 100.milliseconds)
+
+        assertEquals(AutoLevelController.AutoLevelResult.TimedOut, result)
         s.disconnect()
     }
 

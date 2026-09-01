@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.format2
 
 /**
@@ -245,13 +246,34 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             HorizontalDivider()
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
+            // Feature-flag gate (issue "autolevel did nothing" 2026-08-31):
+            // 537/538/549 are writes/reads that have not been round-trip
+            // verified on real hardware, so the button and the toggle are
+            // disabled until the operator opts in via FeatureFlags.autoLevel.
+            // Matches the gating pattern in FullControlPanes.kt:142. The
+            // flag defaults to false; the simulator still answers the
+            // codes so demo mode feels responsive once the flag is on.
+            val autoLevelAvailable = FeatureFlags.isEnabled("autoLevel")
+            if (!autoLevelAvailable) {
+                Text(
+                    "Auto-level is gated by FeatureFlags.autoLevel (537/538/549 are writes — default off until round-trip verified).",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::runAutoLevel, enabled = !vm.autoLevelRunning) {
+                Button(
+                    onClick = vm::runAutoLevel,
+                    enabled = autoLevelAvailable && !vm.autoLevelRunning,
+                ) {
                     Text(if (vm.autoLevelRunning) "Leveling…" else "Level now")
                 }
-                Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
+                Switch(
+                    checked = vm.autoLevelEnabled == true,
+                    onCheckedChange = vm::setAutoLevelEnabled,
+                    enabled = autoLevelAvailable,
+                )
                 Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
-                OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+                OutlinedButton(onClick = vm::refreshAutoLevel, enabled = autoLevelAvailable) { Text("Refresh") }
             }
             AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
         }
@@ -385,64 +407,7 @@ fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Ti
 }
 
 /**
- * Astro helpers pane: dithering, settling time, mechanical limits. Shown only
- * when [vm.advancedMode] is on (these codes are derived from the Alpaca
- * protocol and have not been hardware-validated on every Benro firmware).
+ * Astro helpers pane is provided by [FullControlPanes.HelpersPane] (dither, settling, limits, auto-level).
+ * The advanced-only stub here was removed during the worktree-evidence merge because the
+ * feature-flagged version in FullControlPanes.kt supersedes it.
  */
-@Composable
-fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    if (!vm.advancedMode) return
-    val dither = vm.ditherEnabled
-    val settling = vm.settlingSeconds
-    val limits = vm.limitsEnabled
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Astro helpers", style = MaterialTheme.typography.titleMedium)
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(
-                    checked = dither == true,
-                    enabled = dither != null,
-                    onCheckedChange = vm::setDither,
-                )
-                Text(
-                    if (dither == null) "Dithering: —" else "Dithering: ${if (dither) "on" else "off"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = vm.settlingInput,
-                    onValueChange = vm::updateSettlingInput,
-                    label = { Text("Settling (s)") },
-                    singleLine = true,
-                    enabled = settling != null,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedButton(
-                    onClick = vm::applySettling,
-                    enabled = settling != null,
-                ) { Text("Apply") }
-                Text(
-                    if (settling == null) "now: —" else "now: ${settling}s",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(
-                    checked = limits == true,
-                    enabled = limits != null,
-                    onCheckedChange = vm::setLimits,
-                )
-                Text(
-                    if (limits == null) "Limits: —" else "Limits: ${if (limits) "enforce" else "allow over-slew"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
-        }
-    }
-}

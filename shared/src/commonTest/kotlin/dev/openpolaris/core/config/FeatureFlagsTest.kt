@@ -44,8 +44,10 @@ class FeatureFlagsTest {
     @Test
     fun unverifiedWritePathsDefaultToFalse() {
         FeatureFlags.reset()
-        // Verified: systemSettings (810-829) is round-trip verified → ON
-        assertTrue(FeatureFlags.isEnabled("systemSettings"), "System settings (810-829) verified round-trip → ON")
+        // Verified: systemSettings (817 buzzer, 818 LED) is round-trip verified → ON
+        assertTrue(FeatureFlags.isEnabled("systemSettings"), "System settings (817/818) verified round-trip → ON")
+        // Unverified split: 814/815/816 wire payload contradicts name → OFF
+        assertFalse(FeatureFlags.isEnabled("systemSettingsUnverified"), "814/815/816 wire contradicts name → OFF")
         // Verified: autoLevel (547/548/549) live-confirmed 2026-08-31 → ON
         // (see docs/POLARIS-FUNCTIONS-REPORT.md §2.3)
         assertTrue(FeatureFlags.isEnabled("autoLevel"), "Auto-level (547/548/549) live-confirmed → ON")

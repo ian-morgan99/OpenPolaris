@@ -200,7 +200,7 @@ private fun TimeRow(vm: AppViewModel) {
             modifier = Modifier.width(160.dp),
         )
         Button(
-            enabled = FeatureFlags.isEnabled("systemSettings"),
+            enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toLongOrNull()?.let(vm::setSystemTime) },
         ) { Text("Set") }
         Spacer(Modifier.width(8.dp))
@@ -221,7 +221,7 @@ private fun TzRow(vm: AppViewModel) {
             modifier = Modifier.width(110.dp),
         )
         Button(
-            enabled = FeatureFlags.isEnabled("systemSettings"),
+            enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toIntOrNull()?.let(vm::setTimezone) },
         ) { Text("Set") }
     }
@@ -240,7 +240,7 @@ private fun LangRow(vm: AppViewModel) {
             modifier = Modifier.width(110.dp),
         )
         Button(
-            enabled = FeatureFlags.isEnabled("systemSettings"),
+            enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toIntOrNull()?.let(vm::setLanguage) },
         ) { Text("Set") }
     }
@@ -251,7 +251,11 @@ private fun BuzzerRow(vm: AppViewModel) {
     var on by remember { mutableStateOf(true) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Buzzer", modifier = Modifier.width(110.dp))
-        Switch(checked = on, onCheckedChange = { on = it; vm.setBuzzer(it) })
+        Switch(
+            checked = on,
+            onCheckedChange = { on = it; vm.setBuzzer(it) },
+            enabled = FeatureFlags.isEnabled("systemSettings"),
+        )
         Text(if (on) "ON" else "OFF")
     }
 }
@@ -261,7 +265,11 @@ private fun LedRow(vm: AppViewModel) {
     var on by remember { mutableStateOf(true) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Status LED", modifier = Modifier.width(110.dp))
-        Switch(checked = on, onCheckedChange = { on = it; vm.setLed(it) })
+        Switch(
+            checked = on,
+            onCheckedChange = { on = it; vm.setLed(it) },
+            enabled = FeatureFlags.isEnabled("systemSettings"),
+        )
         Text(if (on) "ON" else "OFF")
     }
 }

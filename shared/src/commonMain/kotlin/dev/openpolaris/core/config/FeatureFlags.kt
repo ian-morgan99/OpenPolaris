@@ -40,7 +40,10 @@ package dev.openpolaris.core.config
  *   with no flag required. Reads are safe.
  * - **Every verified write** is reachable without a config flag flip. The
  *   `systemSettings` and `advancedAstro` toggles default to ON. Kiosk
- *   builds can opt out by setting them to false.
+ *   builds can opt out by setting them to false. Unverified writes
+ *   (e.g. `systemSettingsUnverified` for 814/815/816) stay behind a
+ *   separate flag that defaults to OFF — the read of the current value
+ *   is always visible, but writing is opt-in.
  * - **Every unverified or destructive write** stays behind its flag and
  *   degrades to a read-only display of the current value when the flag is
  *   off. The user always sees the mount's state — they just can't change
@@ -113,13 +116,19 @@ object FeatureFlags {
 
     // ---- system / WiFi ----------------------------------------------------
 
-    /** System settings (810-829): time, timezone, language, buzzer, LED.
-     *  Writes verified round-trip on the live burst (see
-     *  docs/PROTOCOL-CODE-AUDIT-2026-08-31.md). ON by default — every safe
-     *  switch should be reachable without a config flag flip. If you want to
-     *  forbid setSystemTime/setTimezone/setLanguage/setBuzzer/setLed calls
+    /** Verified system settings writes (817 buzzer en, 818 LED en). ON by
+     *  default — the action is reversible and the user can always toggle
+     *  the switch back. If you want to forbid setBuzzer / setLed calls
      *  (e.g. on a kiosk build), set this to false. */
     const val systemSettings: Boolean = true
+
+    /** Unverified system settings writes (814 time, 815 timezone, 816
+     *  language). Per docs/PROTOCOL-CODE-AUDIT-2026-08-31.md §4.6 the wire
+     *  payload contradicts the SYS_TIME / SYS_TIMEZONE / SYS_LANGUAGE name
+     *  (live captures show cellular / auto-off SW payloads). OFF by
+     *  default so the user has to opt in to writing a value the mount may
+     *  silently drop or mis-interpret. */
+    const val systemSettingsUnverified: Boolean = false
 
     /** WiFi scan / list (770-771) — read-only, verified. */
     const val wifiScan: Boolean = true
@@ -199,6 +208,7 @@ object FeatureFlags {
         "fileManagerMutate" -> fileManagerMutate
         "fileManagerFormat" -> fileManagerFormat
         "systemSettings" -> systemSettings
+        "systemSettingsUnverified" -> systemSettingsUnverified
         "wifiScan" -> wifiScan
         "wifiConnect" -> wifiConnect
         "allowReboot" -> allowReboot

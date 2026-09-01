@@ -590,15 +590,44 @@ class AppViewModel(
                     .takeIf { it.startsWith("Could not save updated host:") }
                 if (s.connect()) {
                     statusMessage = "Connected"
-                    saveMarker()
-                    startPolling(s)
-                    startCapturePolling(s)
-                    startPreview()
+                    // 3e E2: catch any throw from the post-connect bootstrap
+                    // (saveMarker / startPolling / startCapturePolling /
+                    // startPreview) so a single failing bootstrap step surfaces
+                    // as a status message instead of killing the launched
+                    // coroutine and leaving the UI in a half-connected state.
+                    // Pre-fix the success branch was bare; an NPE in the
+                    // preview controller (e.g. host resolution failure when the
+                    // user typed an unresolvable hostname) would leave
+                    // statusMessage stuck at "Connected" while the polling
+                    // loops silently never started.
+                    try {
+                        saveMarker()
+                        startPolling(s)
+                        startCapturePolling(s)
+                        startPreview()
+                    } catch (e: Throwable) {
+                        // Make sure the half-built session is torn down so a
+                        // retry starts from a clean slate. The next connect()
+                        // call already calls disconnect() at the top, but a
+                        // successful-then-failed bootstrap means we'd otherwise
+                        // keep polling and streaming from a session whose
+                        // bootstrap never finished.
+                        disconnect()
+                        statusMessage = "Connected, but post-connect setup failed: " +
+                            "${e.message ?: e::class.simpleName}"
+                    }
                 } else {
                     statusMessage = pendingSaveFailure?.let { saveMsg ->
                         "$saveMsg — and could not reach $host. Try Demo mode."
                     } ?: "Could not reach $host — try Demo mode"
                 }
+            } catch (e: Throwable) {
+                // 3e E2: outer catch for anything the inner try did not cover
+                // (e.g. an uncaught throw inside the launching dispatcher, or
+                // a CancellationException we want to swallow so the UI stays
+                // responsive). Surface as a status message; the finally block
+                // still resets the in-flight flag.
+                statusMessage = "Connect failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false
 
@@ -611,10 +640,29 @@ class AppViewModel(
      * policy route). Each phase posts to [statusMessage] as it runs.
      */
     fun connectWifi() {
+        // 3d D3: try/catch the whole launch so a synchronously-throwing
+        // lambda (e.g. an NPE inside the orchestrator that escaped its
+        // own runCatching) does not kill the coroutine and leave
+        // statusMessage stuck on the initial "Connecting…" line. Also
+        // guard against double-tap so two overlapping launches do not
+        // race to write the same status line.
+        if (_reconnecting.value) return
+        _reconnecting.value = true
         scope.launch {
-            statusMessage = "Connecting to mount Wi-Fi…"
-            connectWifi { msg -> statusMessage = msg }
-            statusMessage = "Mount Wi-Fi phase complete — try Connect"
+            try {
+                statusMessage = "Connecting to mount Wi-Fi…"
+                connectWifi { msg -> statusMessage = msg }
+                // The bridge orchestrator ends in a "complete" message
+                // that names the gimbal network it just brought up;
+                // do not overwrite it.
+                if (!statusMessage.startsWith("Bridge to mount Wi-Fi complete")) {
+                    statusMessage = "Mount Wi-Fi phase complete — try Connect"
+                }
+            } catch (e: Throwable) {
+                statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
+            } finally {
+                _reconnecting.value = false
+            }
         }
     }
 
@@ -643,19 +691,28 @@ class AppViewModel(
 
         startAutoLevel(sim.session)
         scope.launch {
-            sim.session.connect()
-            // SimulatedMount's connect() always returns true; treat as
-            // success for the marker-save path. (A future slice that
-            // simulates intermittent failure should gate this on the
-            // return value the same way `connect()` does.)
-            saveMarker()
-            statusMessage = "Demo mode (simulated mount)"
-            if (startPolling) {
-                startPolling(sim.session)
+            try {
+                sim.session.connect()
+                // SimulatedMount's connect() always returns true; treat as
+                // success for the marker-save path. (A future slice that
+                // simulates intermittent failure should gate this on the
+                // return value the same way `connect()` does.)
+                saveMarker()
+                statusMessage = "Demo mode (simulated mount)"
+                if (startPolling) {
+                    startPolling(sim.session)
+                }
+                // No preview in demo mode: there is no MJPEG endpoint in the
+                // simulator. PreviewController stays Idle, which the pane
+                // renders as "Stream unavailable".
+            } catch (e: Throwable) {
+                // 3e E2: demo mode should never really throw (the
+                // simulator is in-process) but if a future slice adds a
+                // simulated intermittent failure or a saveMarker() I/O
+                // regression sneaks in, surface the cause instead of
+                // silently leaving the user with no status feedback.
+                statusMessage = "Demo mode failed: ${e.message ?: e::class.simpleName}"
             }
-            // No preview in demo mode: there is no MJPEG endpoint in the
-            // simulator. PreviewController stays Idle, which the pane
-            // renders as "Stream unavailable".
 
         }
     }
@@ -669,7 +726,7 @@ class AppViewModel(
         // Tear down the simulated mount's private reader scope so the
         // long-lived reader coroutine does not keep the dispatcher alive
         // past the lifetime of this view model.
-        demoSim?.shutdown()
+        runCatching { demoSim?.shutdown() }
         demoSim = null
         // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"
         // flag, not a "disconnect lifecycle" flag. The launched coroutine
@@ -683,7 +740,7 @@ class AppViewModel(
         // not call disconnect() and has its own explicit reset.
         stopAutoLevelAsync()
         cancelHelpersJobs()
-        preview.stop()
+        runCatching { preview.stop() }
         previewFrame = null
 
         session?.disconnect()
@@ -752,7 +809,19 @@ class AppViewModel(
         // when the user picked a non-default port, so the preview never
         // opened. Called before the collector launches so the first frame
         // isn't missed by a start/collect race.
-        preview.start(host, port)
+        try {
+            preview.start(host, port)
+        } catch (e: Throwable) {
+            // 3e E2: PreviewController.start may throw if the host is
+            // unresolvable or the port is closed. Surface as a status
+            // message and skip the collector — the rest of the post-
+            // connect setup (polling, capture polling) will still
+            // continue. Without this, the connect() success branch
+            // catches it at the outer layer, but a cleaner message
+            // here helps the user debug a misconfigured port.
+            statusMessage = "Preview unavailable: ${e.message ?: e::class.simpleName}"
+            return
+        }
         scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
@@ -1717,53 +1786,65 @@ class AppViewModel(
      * the mount until you re-flash over USB.
      */
     fun uploadFirmware(bytes: ByteArray, filename: String, rebootAfter: Boolean) = scope.launch {
-        if (!FeatureFlags.isEnabled("firmwareUpload")) {
-            statusMessage = "Firmware upload disabled — enable firmwareUpload in config"
-            return@launch
-        }
-        val s = session ?: run {
-            statusMessage = "Connect to the mount first"
-            return@launch
-        }
-        if (bytes.isEmpty()) {
-            statusMessage = "Pick a FwPkt.zip file first"
-            return@launch
-        }
-        statusMessage = "Uploading firmware (${bytes.size} bytes)…"
-        val controller = FirmwareUpdateController(
-            session = s,
-            chunkSize = 1024,
-            progressPollMs = 500,
-            progressDoneRepeats = 2,
-            installTimeoutMs = 5 * 60_000L, // 5 minutes
-        )
-        val final = controller.start(
-            bytes = bytes,
-            filename = filename,
-            rebootAfter = rebootAfter,
-        ) { status ->
-            firmwareStatus = status
-            statusMessage = when (status) {
-                is FirmwareUpdateController.Status.Idle -> "Idle"
-                is FirmwareUpdateController.Status.Uploading -> "Uploading: ${status.bytesSent}/${status.bytesTotal} bytes"
-                is FirmwareUpdateController.Status.Installing -> "Installing on mount: ${status.percent}%"
-                is FirmwareUpdateController.Status.Done -> if (rebootAfter) "Done — rebooting" else "Done"
-                is FirmwareUpdateController.Status.Failed -> "Firmware upload failed: ${status.reason}"
+        try {
+            if (!FeatureFlags.isEnabled("firmwareUpload")) {
+                statusMessage = "Firmware upload disabled — enable firmwareUpload in config"
+                return@launch
             }
-        }
-        firmwareStatus = final
-        if (final is FirmwareUpdateController.Status.Done) {
-            statusMessage = if (rebootAfter) "Firmware updated — rebooting" else "Firmware update complete"
-        }
-        firmwareBusy = false
-        // Reset the picker on success so the user can immediately pick the
-        // next firmware (or close the pane without a "you have something
-        // queued" surprise). On failure we keep the path so they can retry
-        // without re-picking.
-        if (final is FirmwareUpdateController.Status.Done) {
-            pickedFirmwarePath = null
-            pickedFirmwareName = null
-            pickedFirmwareSize = null
+            val s = session ?: run {
+                statusMessage = "Connect to the mount first"
+                return@launch
+            }
+            if (bytes.isEmpty()) {
+                statusMessage = "Pick a FwPkt.zip file first"
+                return@launch
+            }
+            statusMessage = "Uploading firmware (${bytes.size} bytes)…"
+            val controller = FirmwareUpdateController(
+                session = s,
+                chunkSize = 1024,
+                progressPollMs = 500,
+                progressDoneRepeats = 2,
+                installTimeoutMs = 5 * 60_000L, // 5 minutes
+            )
+            val final = controller.start(
+                bytes = bytes,
+                filename = filename,
+                rebootAfter = rebootAfter,
+            ) { status ->
+                firmwareStatus = status
+                statusMessage = when (status) {
+                    is FirmwareUpdateController.Status.Idle -> "Idle"
+                    is FirmwareUpdateController.Status.Uploading -> "Uploading: ${status.bytesSent}/${status.bytesTotal} bytes"
+                    is FirmwareUpdateController.Status.Installing -> "Installing on mount: ${status.percent}%"
+                    is FirmwareUpdateController.Status.Done -> if (rebootAfter) "Done — rebooting" else "Done"
+                    is FirmwareUpdateController.Status.Failed -> "Firmware upload failed: ${status.reason}"
+                }
+            }
+            firmwareStatus = final
+            if (final is FirmwareUpdateController.Status.Done) {
+                statusMessage = if (rebootAfter) "Firmware updated — rebooting" else "Firmware update complete"
+            }
+            // Reset the picker on success so the user can immediately pick the
+            // next firmware (or close the pane without a "you have something
+            // queued" surprise). On failure we keep the path so they can retry
+            // without re-picking.
+            if (final is FirmwareUpdateController.Status.Done) {
+                pickedFirmwarePath = null
+                pickedFirmwareName = null
+                pickedFirmwareSize = null
+            }
+        } catch (e: Throwable) {
+            // 3e E2: a synchronous throw from controller.start (e.g. socket
+            // IOException during chunk upload, NPE in a future
+            // FirmwareUpdateController slice) must not leave firmwareBusy
+            // stuck at true forever — that would prevent the user from
+            // even re-picking the file. Surface the cause and clear the
+            // busy flag so they can try again.
+            statusMessage = "Firmware upload crashed: ${e.message ?: e::class.simpleName}"
+            firmwareStatus = FirmwareUpdateController.Status.Failed("crash: ${e.message ?: e::class.simpleName}")
+        } finally {
+            firmwareBusy = false
         }
     }
 
@@ -1813,26 +1894,35 @@ class AppViewModel(
      * thin and the read can be cancelled on disconnect.
      */
     fun uploadPickedFirmware() = scope.launch {
-        val path = pickedFirmwarePath
-        val name = pickedFirmwareName
-        if (path == null || name == null) {
-            statusMessage = "Pick a FwPkt.zip first"
-            return@launch
-        }
-        firmwareBusy = true
-        val bytes = withContext(ioDispatcher) {
-            try {
-                PlatformFile(path).readBytes()
-            } catch (t: Throwable) {
-                null
+        try {
+            val path = pickedFirmwarePath
+            val name = pickedFirmwareName
+            if (path == null || name == null) {
+                statusMessage = "Pick a FwPkt.zip first"
+                return@launch
             }
-        }
-        if (bytes == null) {
+            firmwareBusy = true
+            val bytes = withContext(ioDispatcher) {
+                try {
+                    PlatformFile(path).readBytes()
+                } catch (t: Throwable) {
+                    null
+                }
+            }
+            if (bytes == null) {
+                firmwareBusy = false
+                statusMessage = "Could not read $name"
+                return@launch
+            }
+            uploadFirmware(bytes, name, firmwareRebootAfter)
+        } catch (e: Throwable) {
+            // 3e E2: outer guard — uploadFirmware has its own try/catch
+            // but the read-bytes path or the busy-flag flip could
+            // throw in a future slice. Always reset the flag and
+            // surface the cause.
+            statusMessage = "Firmware upload prep failed: ${e.message ?: e::class.simpleName}"
             firmwareBusy = false
-            statusMessage = "Could not read $name"
-            return@launch
         }
-        uploadFirmware(bytes, name, firmwareRebootAfter)
     }
 
     /** Drop the picked file without uploading — the "Clear" button. */

@@ -60,12 +60,23 @@ fun OpenPolarisApp(
     onLaunchVr: (() -> Unit)? = null,
     viewModel: AppViewModel? = null,
     sessionStore: SessionStore? = null,
+    /**
+     * Desktop-only: bridge the segregated Wi-Fi interface to the gimbal.
+     * Receives a `progress: (String) -> Unit` callback the bridge calls
+     * from its IO dispatcher; the lambda itself is invoked synchronously
+     * from the click handler so it can launch the long-running bridge
+     * coroutine. Defaults to a no-op so the Android build (which has no
+     * bridge implementation) constructs the VM without it. Mirrors the
+     * constructor parameter on [AppViewModel].
+     */
+    connectWifi: ((suspend (String) -> Unit) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm: AppViewModel = viewModel
         ?: AppViewModel(
             scope = scope,
             connectionFactory = connectionFactory,
+            connectWifi = connectWifi ?: {},
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
@@ -99,7 +110,14 @@ fun OpenPolarisApp(
             }
 
             when (dialog) {
-                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
+                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) {
+                    ConnectionPane(
+                        vm,
+                        Modifier.fillMaxWidth(),
+                        onFindWifi = onFindWifi,
+                        onBridgeWifi = if (connectWifi != null) ({ vm.connectWifi() }) else null,
+                    )
+                }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }

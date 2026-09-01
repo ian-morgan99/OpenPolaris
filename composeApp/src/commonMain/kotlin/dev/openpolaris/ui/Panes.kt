@@ -34,9 +34,21 @@ import dev.openpolaris.core.domain.format2
  * Connection pane: host entry, connect/demo buttons, status line.
  * [onFindWifi], when provided, opens a platform Wi-Fi picker so the user can
  * join the mount's access point without leaving the app.
+ * [onBridgeWifi], when provided, surfaces the desktop bridge button — it
+ * drives the BT-wake / NetworkManager-up / policy-route sequence via
+ * [AppViewModel.connectWifi] so the user has a single tap from the app to
+ * the segregated gimbal network. When only [onBridgeWifi] is supplied the
+ * "Connect mount Wi-Fi…" picker button is suppressed (the bridge is the
+ * canonical path on desktop); when both are supplied both buttons render so
+ * the user can fall back to the picker if the bridge fails.
  */
 @Composable
-fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: (() -> Unit)? = null) {
+fun ConnectionPane(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    onFindWifi: (() -> Unit)? = null,
+    onBridgeWifi: (() -> Unit)? = null,
+) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Open Polaris", style = MaterialTheme.typography.headlineSmall)
@@ -67,6 +79,11 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: 
                 Button(onClick = vm::connect) { Text("Connect") }
                 OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+            }
+            if (onBridgeWifi != null) {
+                OutlinedButton(onClick = onBridgeWifi) {
+                    Text("Bridge to mount Wi-Fi…")
+                }
             }
             if (onFindWifi != null) {
                 OutlinedButton(onClick = onFindWifi) {

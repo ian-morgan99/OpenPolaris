@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.format2
-import dev.openpolaris.core.astro.AstroMath
+import dev.openpolaris.core.session.FileSessionStore
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -42,15 +42,32 @@ import dev.openpolaris.core.astro.AstroMath
  *
  * Phone portrait: everything fits without scrolling.
  * Wide/landscape: same fixed view with a vertical call-out rail on the right.
+ *
+ * @param viewModel optional pre-built [AppViewModel]. Production Android
+ *   hosts (3c.4) build the VM in `MainActivity.onCreate` so they can hold a
+ *   reference for `onResume` (to fire [AppViewModel.tryReconnectIfMarkerExists])
+ *   and pass the same instance into the composable. Desktop / tests omit
+ *   this argument; a fresh VM is constructed from [sessionStore] +
+ *   [connectionFactory] (defaulting to `InMemorySessionStore()` if
+ *   [sessionStore] is null — a file-backed target-marker store is the next
+ *   sub-issue; connection persistence lives in `FileSessionStore`).
  */
 @Composable
 fun OpenPolarisApp(
     windowSizeClass: WindowSizeClass,
     connectionFactory: () -> Connection,
-    connectWifi: (suspend (String) -> Unit) -> Unit = {},
+    onFindWifi: (() -> Unit)? = null,
+    onLaunchVr: (() -> Unit)? = null,
+    viewModel: AppViewModel? = null,
+    sessionStore: FileSessionStore? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val vm = AppViewModel(scope, connectionFactory, connectWifi)
+    val vm: AppViewModel = viewModel
+        ?: AppViewModel(
+            scope = scope,
+            connectionFactory = connectionFactory,
+            sessionStore = sessionStore,
+        )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
@@ -68,7 +85,7 @@ fun OpenPolarisApp(
                             JogPane(vm, Modifier.width(260.dp))
                         }
                     }
-                    CalloutRail(vertical = true, Modifier.fillMaxHeight()) { dialog = it }
+                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { dialog = it }
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -77,49 +94,26 @@ fun OpenPolarisApp(
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         JogPane(vm, Modifier.width(220.dp))
                     }
-                    CalloutRail(vertical = false, Modifier.fillMaxWidth()) { dialog = it }
+                    CalloutRail(vertical = false, Modifier.fillMaxWidth(), onLaunchVr) { dialog = it }
                 }
             }
 
             when (dialog) {
-                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi = vm::connectWifi) }
+                Callout.Connection -> CalloutDialog("Connection", { dialog = null }) { ConnectionPane(vm, Modifier.fillMaxWidth(), onFindWifi) }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
-                Callout.Tonight -> CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
-                Callout.Helpers -> CalloutDialog("Helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
-                Callout.System -> CalloutDialog("System", { dialog = null }) { SystemPane(vm, Modifier.fillMaxWidth()) }
-                Callout.Files -> CalloutDialog("Files", { dialog = null }) { FilesPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
+                Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 null -> {}
             }
 
-            // Reconnect prompt (issue #27). Reads the VM state directly so
-            // any update from [AppViewModel.confirmReconnect] /
-            // [AppViewModel.dismissReconnect] / [AppViewModel.disconnect]
-            // re-composes this branch and hides the dialog. We do *not*
-            // gate on `dialog != null`: the prompt is independent of the
-            // callout rail and must be able to show over any open pane.
-            vm.pendingReconnectMarker?.let { marker ->
-                AlertDialog(
-                    onDismissRequest = { vm.dismissReconnect() },
-                    title = { Text("Return to ${marker.name}?") },
-                    text = {
-                        Text(
-                            "Last observed at RA " +
-                                AstroMath.formatRaHours(marker.raHours * 15.0) +
-                                ", Dec " +
-                                AstroMath.formatDecDMS(marker.decDeg) +
-                                ".",
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { vm.confirmReconnect() }) { Text("Slew back") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { vm.dismissReconnect() }) { Text("Not now") }
-                    },
-                )
-            }
+            // 3c.4: surface the "Reconnect to last mount?" prompt whenever the
+            // ViewModel populates `reconnectPrompt`. Hosted at the root surface
+            // so the dialog floats above the call-out stack and survives
+            // navigation between Connection/Slew/Helpers dialogs.
+            ReconnectDialog(vm)
         }
     }
 }
@@ -128,27 +122,31 @@ private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
     Slew("Slew"),
     Camera("Cam"),
-    Tonight("Night"),
-    Helpers("Help"),
-    System("Sys"),
-    Files("Files"),
+    Preview("Preview"),
+    Helpers("Helpers"),
+    VR("VR"),
     Readme("?"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
 @Composable
-private fun CalloutRail(vertical: Boolean, modifier: Modifier = Modifier, onSelect: (Callout) -> Unit) {
-    val items = listOf(
-        Callout.Connection, Callout.Slew, Callout.Camera, Callout.Tonight,
-        Callout.Helpers, Callout.System, Callout.Files, Callout.Readme,
-    )
+private fun CalloutRail(
+    vertical: Boolean,
+    modifier: Modifier = Modifier,
+    onLaunchVr: (() -> Unit)?,
+    onSelect: (Callout) -> Unit,
+) {
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.VR, Callout.Readme)
+    val handle: (Callout) -> Unit = { c ->
+        if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
+    }
     if (vertical) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            items.forEach { c -> CalloutButton(c, onSelect) }
+            items.forEach { c -> CalloutButton(c, handle) }
         }
     } else {
         Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-            items.forEach { c -> CalloutButton(c, onSelect) }
+            items.forEach { c -> CalloutButton(c, handle) }
         }
     }
 }

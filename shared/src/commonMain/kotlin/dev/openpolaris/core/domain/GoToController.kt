@@ -2,6 +2,10 @@ package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.solver.PlateSolver
+import dev.openpolaris.core.solver.SolveHint
+import dev.openpolaris.core.solver.SolveResult
+import dev.openpolaris.core.solver.StarDetection
 import kotlinx.coroutines.delay
 
 /**
@@ -107,6 +111,51 @@ class GoToController(
     suspend fun cancel() {
         session.send(Codes.SET_GOTO_AU_STATE, "state:0;")
         slewing = false
+    }
+
+    /**
+     * Plate-solve and refine in one step. Builds a localized [SolveHint] from
+     * the current gimbal position (via [Codes.GET_GIMBAL_POS]) and the
+     * observer site, hands the detections to the [solver], and on a
+     * confident solve feeds the result into [refine].
+     *
+     * Returns the full [SolveResult] (RA/Dec, confidence, matched-star count,
+     * and the wall-clock timestamp the match converged at) on success, or
+     * null on no-solve / no gimbal position feedback. Callers that only
+     * care about the coordinates can read `result.raDeg` / `result.decDeg`.
+     */
+    suspend fun solveAndRefine(
+        solver: PlateSolver,
+        detections: List<StarDetection>,
+        frameWidth: Int,
+        frameHeight: Int,
+        targetRaDeg: Double,
+        targetDecDeg: Double,
+        latDeg: Double,
+        lngEastDeg: Double,
+        jdUtc: Double,
+    ): SolveResult? {
+        val reqResult = session.request(Codes.GET_GIMBAL_POS, parse = GimbalPosition::fromFrame517)
+        val pos = (reqResult as? MountSession.CmdResult.Ok)?.value
+        if (pos == null) return null
+        val hint = SolveHint(
+            azAltDeg = pos.yaw.toDouble() to pos.pitch.toDouble(),
+            latDeg = latDeg,
+            lngEastDeg = lngEastDeg,
+            jdUtc = jdUtc,
+        )
+        val result = solver.solve(detections, frameWidth, frameHeight, hint)
+        if (result == null) return null
+        refine(
+            measuredRaDeg = result.raDeg,
+            measuredDecDeg = result.decDeg,
+            targetRaDeg = targetRaDeg,
+            targetDecDeg = targetDecDeg,
+            latDeg = latDeg,
+            lngEastDeg = lngEastDeg,
+            jdUtc = jdUtc,
+        )
+        return result
     }
 
     companion object {

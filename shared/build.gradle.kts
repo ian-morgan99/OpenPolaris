@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.androidLibrary)
 }
 
 kotlin {
@@ -31,11 +31,28 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
+            // `api` so downstream modules (composeApp) can name Json in
+            // their call sites without re-declaring the dependency. The
+            // exposure is intentional: SessionStore's public default
+            // parameter is `Json = DEFAULT_JSON`, so callers that want to
+            // pass a custom Json must be able to reference the type.
+            api(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
+        }
+        jvmTest.dependencies {
+            // kotlinx-coroutines-debug artifact carries the JVM
+            // debug agent. The leak test (SessionShutdownLeakTest,
+            // issue #20 / 3a.1) doesn't actually need DebugProbes'
+            // dumpCoroutines() API on JVM 1.9.0 — that variant is
+            // print-to-stream, not list-returning — but the artifact
+            // is also what installs the background coroutine probe
+            // that makes `Dispatchers.Default` parking threads
+            // observable. Belt-and-braces for future expansion of
+            // the leak test to per-coroutine counts.
+            implementation(libs.kotlinx.coroutines.debug)
         }
     }
 }
@@ -58,6 +75,5 @@ tasks.withType<Test>().configureEach {
     reports.junitXml.required = true
     testLogging {
         events("passed", "failed", "skipped")
-        showStandardStreams = false
     }
 }

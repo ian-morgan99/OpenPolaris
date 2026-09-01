@@ -3,61 +3,63 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.protocol.TiltCodec
 import dev.openpolaris.core.protocol.command
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.yield
 
 /**
  * Single owner of the mount connection (ARCHITECTURE §3.1).
  *
- * Wire model after issue #6: a **session-level** background reader owns
- * the single [Connection.read] call. Every complete frame the reader
- * sees is dispatched to one of two places:
+ * **Demux model** (PLAN-CRITICAL-REVIEW §F, issue #6): a single background
+ * [runReaderLoop] coroutine owns the socket read. It parses every incoming
+ * frame and:
  *
- *  - Push frames ([Codes.SET_TILT_STATE] = 538) → [tilt] flow. The
- *    mount emits these continuously on the same socket as request
- *    traffic, and a per-request spin-read used to drop the majority of
- *    them (538 frames per 5 minutes in the live-burst capture).
- *  - Every other frame → the [pending] waiter for that frame's
- *    [ResponseParser.Frame.code], if any is currently registered. The
- *    request method registers a `CompletableDeferred` before it
- *    writes, so its response is the next frame the reader sees that
- *    has the matching code, regardless of any interleaved 538s.
+ * 1. Publishes the frame to [frames] so any subscriber (e.g. an AutoLevel
+ *    flow consuming 538 tilt pushes) sees it.
+ * 2. Completes the [pending] waiter registered for [ResponseParser.Frame.code]
+ *    — if any.
  *
- * The reader is started in [tryConnect] **before** the handshake write
- * so the handshake reply (a 284 frame) is not lost to a race with the
- * reader's first read. The reader is cancelled in [disconnect] and
- * [handleDisconnect].
+ * [request] therefore becomes "register a one-shot waiter for `code`,
+ * write the command, await the waiter". The mutex serialises writes, the
+ * reader does all reads, and unsolicited push frames (538, future 517
+ * events) do not have to be polled.
  *
- * [readerScope] is injected so tests can pass a [kotlinx.coroutines.test.TestScope]
- * (or similar) and avoid racing real time. The default is a private
- * `SupervisorJob() + Dispatchers.Default` so production callers do not
- * have to think about it.
+ * The reader is started automatically by [connect] and torn down by
+ * [disconnect] / [handleDisconnect]. Use [shutdown] for the terminal
+ * release of the entire session (including the underlying reader
+ * scope) — see issue #20.
  *
- * The session itself does **not** reconnect on its own. The original
- * spec implies an exponential-backoff auto-reconnect capped at 30 s;
- * that is tracked as a separate follow-up.
+ * The reader's [CoroutineScope] is injected so tests can pass the
+ * [kotlinx.coroutines.test.TestScope] (which uses virtual time) instead
+ * of a real [Dispatchers.Default] scope — otherwise the reader would
+ * busy-spin real time during a test and the suite would never finish.
  */
 class MountSession(
     private val connectionFactory: () -> Connection,
     private val host: String = "192.168.0.1",
     private val port: Int = 9090,
-    private val readerScope: CoroutineScope = MountSession.defaultReaderScope(),
+    private val readerScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     sealed interface CmdResult<out T> {
         data class Ok<T>(val value: T) : CmdResult<T>
@@ -72,80 +74,359 @@ class MountSession(
     val frames: StateFlow<ResponseParser.Frame?> = _frames
 
     /**
-     * Push stream of [TiltSample]s. Each sample is parsed from a
-     * `SET_TILT_STATE` (538) push frame. Replay is zero (subscribers
-     * that arrive late do not get backlog, which is what the consumer
-     * — the auto-level controller — wants; it should start from the
-     * current sample, not a stale one).
+     * Hot push of decoded 538 (SET_TILT_STATE) samples. This is the
+     * authoritative source of tilt data for
+     * [AutoLevelController.runAndAwait] on real hardware (issue #6):
      *
-     * Buffer is 64 with `SUSPEND` overflow. With the live-burst capture
-     * the tilt push rate is ~2 Hz and the consumer is a single
-     * coroutine, so we never come close to 64 in flight. The buffer
-     * exists to absorb a brief stall (GC pause, deserialisation) without
-     * losing a sample; if a consumer cannot keep up for longer than
-     * ~32 s we suspend it rather than silently drop a sample.
+     *  - **Every** 538 frame the reader parses is delivered, in arrival
+     *    order, to every active collector, with no conflation. A
+     *    [StateFlow] mirror of 538 would drop intermediate samples when
+     *    they arrive faster than the controller samples; a buffered
+     *    [kotlinx.coroutines.flow.MutableSharedFlow] does not.
+     *  - 538 frames do **not** appear in [frames] and do **not** complete
+     *    a [pending] waiter. 538 is a push, not a response — there is no
+     *    inflight [request] for it.
+     *  - Malformed 538 frames (TiltCodec returns null) are silently
+     *    dropped: the flow stays open, the reader keeps reading, no
+     *    caller crashes on a bad payload.
+     *  - The flow is **never** closed — a `SharedFlow` survives
+     *    reconnects. Disconnect only stops new emissions. Collectors from
+     *    a previous session that are still active will see an idle flow
+     *    until the next session emits; collectors should cancel their
+     *    own [kotlinx.coroutines.Job] on disconnect.
+     *  - The buffer is 64 with `DROP_OLDEST` overflow. A slow consumer
+     *    (e.g. UI thread doing a plate-solve) may cause older samples to
+     *    be dropped. The reader MUST NOT block on a full buffer — it
+     *    owns the socket and a stalled reader would wedge the entire
+     *    mount channel. We prefer losing a few intermediate samples over
+     *    blocking. In practice the only consumer is the AutoLevel
+     *    controller, which samples far faster than 538 frames arrive
+     *    (every ~100 ms), so drops should be zero in normal operation.
+     *
+     *  - **What the drop counter actually counts**: [tiltDropsNoSubscriber]
+     *    increments only when an emit occurs with **no live collector
+     *    attached** (the SharedFlow's subscriptionCount is zero at emit
+     *    time). Those emits are guaranteed to never reach a downstream
+     *    consumer — there is no buffer drain that can ever catch up
+     *    because nothing is reading. Evictions caused by a slow but
+     *    *live* collector (the buffer's DROP_OLDEST path firing while
+     *    the collector is still attached but unable to keep up) are
+     *    **not** separately counted: the only honest observability
+     *    hook for that case is to compare the number of 538 frames
+     *    published by the reader against the number of samples a
+     *    consumer actually receives. [TiltStreamTest] pins both paths.
+     *
+     * Use [TiltSampleSource]-style adapters to bridge between this hot
+     * [Flow] and the `suspend () -> Tilt?` shape [AutoLevelController]
+     * expects.
      */
     private val _tilt = MutableSharedFlow<TiltSample>(
         replay = 0,
-        extraBufferCapacity = TILT_BUFFER_CAPACITY,
-        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.SUSPEND,
+        // 538 frames arrive at ~10 Hz on the Polaris. Channel.BUFFERED is a
+        // Channel-specific sentinel (-2), not a number, so we use an explicit
+        // 64 here. 64 gives ~6 seconds of headroom for a slow consumer
+        // (e.g. UI thread doing a plate-solve) before DROP_OLDEST starts
+        // evicting the oldest unread sample. Going lower risks visible
+        // jitter during a stall; going higher wastes memory for no
+        // practical benefit.
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val tilt: Flow<TiltSample> = _tilt.asSharedFlow()
+    val tilt: Flow<TiltSample> = _tilt
 
     /**
-     * Test seam: expose the live MutableSharedFlow so unit tests can
-     * drive it deterministically. Production code should subscribe to
-     * [tilt] instead.
+     * Number of 538 (SET_TILT_STATE) samples the reader attempted to
+     * publish on [tilt] while **no live collector was attached** (the
+     * SharedFlow's subscriptionCount was zero at the moment of emit).
+     * These emits are guaranteed to never reach a downstream consumer:
+     * with no one reading, the buffer is irrelevant — every sample
+     * disappears into the void. The counter exists for observability —
+     * `0` is the expected steady state. A non-zero value means the
+     * AutoLevel controller (or any other [tilt] consumer) was not
+     * subscribed when frames arrived.
+     *
+     * **This counter does NOT include evictions from a slow but live
+     * collector.** When a collector is attached but cannot keep up with
+     * the ~10 Hz push rate, the SharedFlow's DROP_OLDEST policy silently
+     * evicts the oldest queued sample to make room. The reader cannot
+     * observe that eviction through the SharedFlow API — `tryEmit`
+     * returns success because the new sample *was* accepted, even
+     * though an older queued sample was dropped to make room. The only
+     * way to detect that case is to compare the number of frames
+     * published by the reader against the number of samples a consumer
+     * actually received (see [TiltStreamTest] for the regression).
+     *
+     * Incremented on the reader coroutine; safe to read from any
+     * collector because [MutableStateFlow.update] is atomic. Reset to
+     * zero on [connect] so the count always reflects the current
+     * session.
      */
-    internal val tiltForTest: SharedFlow<TiltSample> get() = _tilt
+    private val _tiltDropsNoSubscriber = MutableStateFlow(0L)
+    val tiltDropsNoSubscriber: StateFlow<Long> = _tiltDropsNoSubscriber
+
+    /**
+     * Test-only seam: directly publish a frame on [frames] without going
+     * through the reader loop. The real reader loop drives this from the
+     * socket, but tests need to inject frames deterministically to cover
+     * the 517/538 demux (PLAN-CRITICAL-REVIEW §F). Marked `internal` so
+     * production callers cannot accidentally rely on it.
+     */
+    internal fun publishFrameForTest(f: ResponseParser.Frame) {
+        _frames.value = f
+    }
+
+    /**
+     * Test-only seam: directly publish a [TiltSample] on [tilt] without
+     * going through the reader loop's 538 demux. Mirrors
+     * [publishFrameForTest] for the new flow — tests for the tilt
+     * channel can drive it without standing up a [ResponseParser] frame.
+     */
+    internal fun publishTiltForTest(sample: TiltSample) {
+        // tryEmit is non-suspending; returns false if the buffer is
+        // full. We ignore the failure in tests — the test scope owns
+        // its own collector lifecycle.
+        _tilt.tryEmit(sample)
+    }
+
+    /**
+     * Last [CmdResult.ProtocolError] observed by [request] or [send], or
+     * null. Cleared on a successful [connect] so callers can tell "the
+     * mount came back" from "no error has happened yet" (PLAN-CRITICAL-
+     * REVIEW §H). Synthesised from [MountState.lastErrorMessage] on the
+     * shared [state] flow so the typed API matches the spec (Stream 8.1)
+     * without giving the top-level [MountState] a compile-time
+     * dependency on [MountSession.CmdResult].
+     */
+    val lastError: CmdResult<Nothing>?
+        get() = _state.value.lastErrorMessage?.let { CmdResult.ProtocolError(it) }
+
+    private fun recordError(err: CmdResult<Nothing>) {
+        val msg = (err as? CmdResult.ProtocolError)?.message
+        _state.value = _state.value.copy(lastErrorMessage = msg)
+    }
 
     private val sendMutex = Mutex()
-
-    /** Pending request waiters, keyed by the frame code they are waiting on. */
-    private val pending = mutableMapOf<Int, CompletableDeferred<ResponseParser.Frame>>()
-
     private var connection: Connection? = null
-    private var readerJob: Job? = null
 
     @kotlin.concurrent.Volatile
     private var wantConnected = false
 
+    /**
+     * Set to true by [shutdown] and never reset. A [MountSession] is a
+     * single-use object: once [shutdown] has been called, [connect] is
+     * forbidden (it throws [IllegalStateException]). The flag exists so
+     * the JVM-leak test (issue #20) can stand up a fresh session for
+     * every cycle without worrying about a stale state from a previous
+     * [disconnect] leaking across.
+     */
+    @kotlin.concurrent.Volatile
+    private var closed = false
+
+    /**
+     * Pending request waiters keyed by response [ResponseParser.Frame.code].
+     * Guarded by the [pending] instance monitor (O(1) ops, no coroutine
+     * mutex overhead).
+     */
+    private val pending = mutableMapOf<Int, CompletableDeferred<ResponseParser.Frame>>()
+
+    /**
+     * The background reader coroutine. Null before [startReader] is
+     * called, after [stopReader] / [handleDisconnect], or if the launch
+     * failed to start.
+     */
+    private var readerJob: Job? = null
+
     suspend fun connect(): Boolean {
+        // Shutdown is terminal — a fresh MountSession must be created
+        // after shutdown. We check this here rather than in
+        // tryConnect() because the connect() public surface is the
+        // contract; the private helper is allowed to be called from
+        // tests that drive the state directly.
+        if (closed) throw IllegalStateException("session is shut down")
         wantConnected = true
         return tryConnect()
     }
 
     private suspend fun tryConnect(): Boolean {
-        val conn = connectionFactory()
+        // 3b.5-BUG: connectionFactory() can throw (e.g. the test harness
+        // intentionally returns a throwing factory, or a real factory
+        // hits a permission failure before the socket is opened). Move
+        // it inside the try so the caller's `connect()` sees a clean
+        // `false` instead of an uncaught exception that would crash the
+        // launched coroutine. On failure, `conn` is null so the cleanup
+        // branch skips conn.close().
         return try {
-            conn.connect(host, port, timeoutMs = 5000)
-            connection = conn
-            // Start the background reader BEFORE the handshake write so
-            // the 284 reply is delivered to a running reader and any
-            // pre-existing 538 push frames are not lost.
-            startReader(conn)
-            _state.value = _state.value.copy(connected = true)
-            // Lifecycle handshake: poll status once (PROTOCOL.md §4).
-            // Fire-and-forget. The reader will observe the 284 reply
-            // (it has no waiter, so it is published to `_frames` for
-            // diagnostics) and any 538 push frames will flow to
-            // [tilt]. A waitable handshake is out of scope for issue
-            // #6: the production gap it fixes is push-frame loss, not
-            // handshake robustness.
-            send(Codes.PUSH_MODE_STATE)
-            true
+            val conn = connectionFactory()
+            try {
+                conn.connect(host, port, timeoutMs = 5000)
+                connection = conn
+                // Clear any previous protocol error so observers can tell
+                // "the mount came back" from "no error has happened yet".
+                _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
+                // Reset drop counter so it always reflects the current
+                // session. Drift across reconnects would make the metric
+                // meaningless.
+                _tiltDropsNoSubscriber.value = 0L
+                // Start the demux reader before issuing the handshake so
+                // the 284 response is dispatched to the waiter's deferred
+                // instead of being dropped on the floor.
+                startReader()
+                // Lifecycle handshake: confirm the mount responds at all
+                // (PROTOCOL.md §4). Routes through the new demux path.
+                val handshake = request<ResponseParser.Frame>(
+                    code = Codes.PUSH_MODE_STATE,
+                    timeoutMs = 2000L,
+                ) { it }
+                if (handshake !is CmdResult.Ok) {
+                    throw java.io.IOException("handshake failed: $handshake")
+                }
+                true
+            } catch (e: Exception) {
+                stopReader()
+                conn.close()
+                connection = null
+                _state.value = _state.value.copy(connected = false)
+                false
+            }
         } catch (e: Exception) {
-            stopReader()
-            conn.close()
+            _state.value = _state.value.copy(connected = false)
             false
         }
     }
 
     /**
-     * Send a command and wait for the first response frame with the
-     * same [code]. Returns [CmdResult.Timeout] if no such frame arrives
-     * within [timeoutMs]. Interleaved 538 push frames are
-     * demultiplexed: they go to [tilt] and do not delay this call.
+     * Launch [runReaderLoop] in [readerScope] if it isn't already running.
+     * Idempotent: a second call while the loop is alive is a no-op.
+     */
+    private fun startReader() {
+        if (readerJob?.isActive == true) return
+        readerJob = readerScope.launch {
+            runReaderLoop()
+        }
+    }
+
+    /**
+     * Cancel the reader coroutine and wait for it to wind down. Does not
+     * touch [connection] — that's [handleDisconnect]'s job.
+     */
+    private fun stopReader() {
+        readerJob?.cancel()
+        readerJob = null
+    }
+
+    /**
+     * The single owner of [Connection.read]. Parses every frame, publishes
+     * it to [frames], and completes any matching [pending] waiter.
+     *
+     * Exits when the connection is closed, the reader job is cancelled, or
+     * the socket raises. On exit, all waiters are failed with the cause
+     * so in-flight [request]s unblock instead of timing out.
+     */
+    private suspend fun runReaderLoop() {
+        val conn = connection ?: return
+        val parser = ResponseParser()
+        val buf = ByteArray(4096)
+        var carry = ByteArray(0)
+        try {
+            coroutineScope {
+                while (isActive) {
+                    val n = try {
+                        conn.read(buf, READ_TIMEOUT_MS.toInt())
+                    } catch (e: Exception) {
+                        throw e
+                    }
+                    if (n <= 0) {
+                        // 0 = clean close, -1 = timeout. Either way, yield so
+                        // the scheduler can deliver cancels.
+                        if (n == 0) break
+                        delay(READ_RETRY_MS)
+                        continue
+                    }
+                    val combined = carry + buf.copyOf(n)
+                    val (frames, consumed) = parser.parse(combined)
+                    carry = combined.drop(consumed).toByteArray()
+                    for (f in frames) {
+                        // Demux by code (issue #6 / PLAN-CRITICAL-REVIEW §F):
+                        // 538 is a push, not a response. Route it to the
+                        // tilt channel and skip both the StateFlow mirror
+                        // and the per-code waiter map.
+                        //
+                        // Why not also publish 538 to `_frames`? Doing so
+                        // would re-create the StateFlow-drop problem the
+                        // channel solves — a StateFlow conflates, and the
+                        // conflated value is the LAST frame observed, not
+                        // every one in order. Anyone who needs every 538
+                        // must collect from `tilt` instead.
+                        if (f.code == Codes.SET_TILT_STATE) {
+                            val tilt = TiltCodec.parse(f)
+                            if (tilt != null) {
+                                // _tilt is configured with DROP_OLDEST,
+                                // so tryEmit is non-suspending and never
+                                // returns false: if no collector has
+                                // drained the buffer, the oldest queued
+                                // sample is evicted to make room. The
+                                // return value is therefore ignored.
+                                //
+                                // The reader MUST stay non-suspending
+                                // because it owns the socket; a stalled
+                                // reader would wedge the entire mount
+                                // channel. We prefer losing a few
+                                // intermediate samples to a slow
+                                // consumer over blocking.
+                                //
+                                // Drop counting policy: this counter
+                                // [tiltDropsNoSubscriber] only
+                                // increments when no collector is
+                                // attached at emit time. Those emits
+                                // are guaranteed to be lost because
+                                // nothing is reading the buffer. A
+                                // slow but *live* collector causes
+                                // DROP_OLDEST to evict the oldest
+                                // queued sample, but `tryEmit` cannot
+                                // observe that eviction (the new
+                                // sample was accepted, an older one
+                                // was dropped). [TiltStreamTest]
+                                // pins that case by comparing
+                                // published vs received counts.
+                                _tilt.tryEmit(
+                                    TiltSample(
+                                        pitchDeg = tilt.pitchDeg,
+                                        rollDeg = tilt.rollDeg,
+                                        timestampMs = currentEpochMillis(),
+                                    ),
+                                )
+                                if (_tilt.subscriptionCount.value == 0) {
+                                    _tiltDropsNoSubscriber.update { it + 1 }
+                                }
+                            }
+                            continue
+                        }
+                        _frames.value = f
+                        val waiter = synchronized(pending) { pending.remove(f.code) }
+                        if (waiter != null) {
+                            waiter.complete(f)
+                        }
+                    }
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Re-throw to honour structured concurrency. We have nothing
+            // to do for waiters here — the disconnect path that triggered
+            // the cancel will fail them.
+            throw e
+        } catch (e: Exception) {
+            handleDisconnect(e)
+        }
+    }
+
+    /**
+     * Send a command and wait for a response frame with the same code.
+     * Returns [CmdResult.Timeout] if nothing matching arrives within [timeoutMs].
+     *
+     * The reader loop dispatches the matching frame to the waiter
+     * registered here. If the socket drops, the reader's [handleDisconnect]
+     * will fail this waiter with an IOException so the caller doesn't
+     * have to wait the full timeout.
      */
     suspend fun <T> request(
         code: Int,
@@ -153,62 +434,78 @@ class MountSession(
         timeoutMs: Long = 2000,
         parse: (ResponseParser.Frame) -> T?,
     ): CmdResult<T> {
-        val conn = connection ?: return CmdResult.ProtocolError("not connected")
-        return sendMutex.withLock {
-            val deferred = CompletableDeferred<ResponseParser.Frame>()
-            try {
-                pending[code] = deferred
-                conn.write(command(code) { putRaw(payload) })
-            } catch (e: Exception) {
-                pending.remove(code)
-                handleDisconnect(e)
-                return@withLock CmdResult.ProtocolError(e.message ?: "write failed")
-            }
-            try {
-                val frame = withTimeout(timeoutMs) { deferred.await() }
-                _frames.value = frame
-                val parsed = parse(frame)
-                if (parsed == null) {
-                    CmdResult.ProtocolError("parse failed for code $code")
-                } else {
-                    CmdResult.Ok(parsed)
+        val conn = connection
+        if (conn == null) {
+            val err = CmdResult.ProtocolError("not connected")
+            recordError(err)
+            return err
+        }
+        val waiter = CompletableDeferred<ResponseParser.Frame>()
+        synchronized(pending) { pending[code] = waiter }
+        return try {
+            sendMutex.withLock {
+                try {
+                    conn.write(command(code) { putRaw(payload) })
+                } catch (e: Exception) {
+                    synchronized(pending) { pending.remove(code) }
+                    throw e
                 }
-            } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
-                // Drop the waiter so a late reply does not satisfy a
-                // future request.
-                pending.remove(code, deferred)
-                CmdResult.Timeout
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                pending.remove(code, deferred)
-                throw e
-            } catch (e: Exception) {
-                pending.remove(code, deferred)
-                handleDisconnect(e)
-                CmdResult.ProtocolError(e.message ?: "read failed")
             }
+            val frame = try {
+                withTimeout(timeoutMs) { waiter.await() }
+            } catch (_: TimeoutCancellationException) {
+                // Defensive: the reader should have removed/completed the
+                // waiter, but a slow response could still time out here.
+                synchronized(pending) { pending.remove(code) }
+                return CmdResult.Timeout
+            }
+            val parsed = parse(frame)
+            if (parsed == null) {
+                val err = CmdResult.ProtocolError("parser returned null for code $code")
+                recordError(err)
+                err
+            } else {
+                CmdResult.Ok(parsed)
+            }
+        } catch (e: Exception) {
+            handleDisconnect(e)
+            val err: CmdResult<Nothing> = CmdResult.ProtocolError(e.message ?: "connection lost")
+            recordError(err)
+            err
         }
     }
 
     private fun handleDisconnect(e: Exception) {
-        stopReader()
+        // Fail all in-flight waiters first so their callers don't sit
+        // out the full timeout. The reader's catch will then exit
+        // because `connection` is now null.
+        val waiters: List<CompletableDeferred<ResponseParser.Frame>> =
+            synchronized(pending) {
+                val snapshot = pending.values.toList()
+                pending.clear()
+                snapshot
+            }
+        for (w in waiters) {
+            w.completeExceptionally(e)
+        }
         connection?.close()
         connection = null
-        // Fail any outstanding requests so callers do not hang until their
-        // own per-call timeout fires.
-        val failed = pending.values.toList()
-        pending.clear()
-        for (d in failed) d.completeExceptionally(e)
         _state.value = _state.value.copy(connected = false)
     }
 
     /** Fire-and-forget send (e.g., jog commands); no response awaited. */
     suspend fun send(code: Int, payload: String = EMPTY_CONTENT) {
-        val conn = connection ?: return
+        val conn = connection
+        if (conn == null) {
+            recordError(CmdResult.ProtocolError("not connected"))
+            return
+        }
         sendMutex.withLock {
             try {
                 conn.write(command(code) { putRaw(payload) })
             } catch (e: Exception) {
                 handleDisconnect(e)
+                recordError(CmdResult.ProtocolError(e.message ?: "connection lost"))
             }
         }
     }
@@ -216,122 +513,78 @@ class MountSession(
     fun disconnect() {
         wantConnected = false
         stopReader()
+        // Drop any in-flight waiters — they were waiting for a session
+        // that's about to disappear.
+        val waiters: List<CompletableDeferred<ResponseParser.Frame>> =
+            synchronized(pending) {
+                val snapshot = pending.values.toList()
+                pending.clear()
+                snapshot
+            }
+        for (w in waiters) {
+            w.completeExceptionally(java.io.IOException("session closed"))
+        }
         connection?.close()
         connection = null
-        // Cancel any waiters the reader did not get a chance to fail.
-        val failed = pending.values.toList()
-        pending.clear()
-        for (d in failed) d.completeExceptionally(IllegalStateException("disconnected"))
         _state.value = _state.value.copy(connected = false)
-    }
-
-    // --- Background reader ---------------------------------------------------
-
-    private fun startReader(conn: Connection) {
-        // Idempotent: a second call before stopReader is a no-op. This
-        // matters because some test harnesses may call tryConnect twice.
-        if (readerJob?.isActive == true) return
-        readerJob = readerScope.launch {
-            runReaderLoop(conn)
-        }
-    }
-
-    private fun stopReader() {
-        readerJob?.cancel()
-        readerJob = null
+        // Cancel any coroutines still hanging off the reader scope
+        // (e.g. a still-suspended request() waiter, or a poll loop
+        // like SimulatedMount's). We use cancelChildren() rather than
+        // cancel() so the scope itself stays valid for subsequent
+        // reconnects on a long-lived MountSession — the same scope is
+        // reused by [startReader] on the next [connect]. The child
+        // cancellation is also what makes JVM tests exit cleanly: a
+        // Dispatchers.Default-backed readerScope would otherwise keep
+        // the JVM alive past runTest().
+        readerScope.coroutineContext.cancelChildren()
     }
 
     /**
-     * Single owner of [Connection.read]. Parses every complete frame
-     * out of the read buffer and dispatches it: 538 → [tilt]; other
-     * → the matching waiter in [pending], if any. A frame whose code
-     * has no waiter is published to [frames] for diagnostic visibility
-     * and otherwise dropped.
+     * Terminal operation: permanently tear down the [MountSession] and
+     * release the [readerScope] itself (not just its children, which is
+     * what [disconnect] does). After [shutdown]:
+     *  - [connect] is forbidden and throws [IllegalStateException].
+     *  - The reader coroutine is cancelled; any in-flight [request]
+     *    waiters are failed with a [java.io.IOException] ("session
+     *    closed") the same way they would be on [disconnect].
+     *  - All state flows ([state], [frames], [tiltDropsNoSubscriber]) are reset so a
+     *    caller that still holds references sees a clean "never used"
+     *    view rather than a stale snapshot.
      *
-     * The loop terminates when the connection reports a clean close
-     * (`read` returns 0), the job is cancelled, or any other read
-     * failure occurs. On a non-cancellation failure we mark the
-     * session disconnected and fail all pending requests.
+     * Idempotent: calling [shutdown] more than once is a no-op. The
+     * [readerScope] is cancelled exactly once; subsequent calls observe
+     * [closed] = true and return without touching the scope.
+     *
+     * This is the seam the JVM-leak test in
+     * [dev.openpolaris.core.domain.SessionShutdownLeakTest] (issue #20)
+     * relies on to keep [DebugProbes.dumpCoroutines] count bounded
+     * across many connect→disconnect cycles: without cancelling the
+     * scope itself, a [Dispatchers.Default]-backed readerScope in
+     * production would outlive every [MountSession] and accumulate
+     * reader jobs (and their socket-poll loops) forever.
      */
-    private suspend fun runReaderLoop(conn: Connection) {
-        val parser = ResponseParser()
-        val buf = ByteArray(4096)
-        var carry = ByteArray(0)
-        while (true) {
-            val n = conn.read(buf, READ_TIMEOUT_MS)
-            if (n < 0) {
-                // Read timeout. Go around again; this is the normal
-                // idle state when the mount has nothing to send.
-                // We yield here so a virtual-time test scheduler can
-                // run other coroutines (e.g. a pending request waiter
-                // that needs to register itself, or the test body
-                // that is awaiting the deferred). Without the yield
-                // the reader is a tight CPU-bound loop in virtual
-                // time and starves the rest of the test.
-                kotlinx.coroutines.yield()
-                continue
-            }
-            if (n == 0) {
-                // Clean close.
-                handleDisconnect(IllegalStateException("connection closed"))
-                return
-            }
-            val combined = carry + buf.copyOf(n)
-            val (frames, consumed) = parser.parse(combined)
-            for (f in frames) dispatchFrame(f)
-            carry = combined.drop(consumed).toByteArray()
-        }
-    }
-
-    private fun dispatchFrame(f: ResponseParser.Frame) {
-        // Tilt push: route to the flow, do NOT touch pending.
-        if (f.code == Codes.SET_TILT_STATE) {
-            val sample = TiltSample.fromFrame(f)
-            if (sample != null) {
-                // tryEmit: if there is no active collector the sample
-                // is dropped — the buffer is for absorbing stalls, not
-                // for indefinite retention. The reader must not block
-                // here or we will lose subsequent frames.
-                _tilt.tryEmit(sample)
-            }
-            return
-        }
-        // Request/response: complete the matching waiter, if any.
-        val waiter = pending.remove(f.code)
-        if (waiter != null) {
-            waiter.complete(f)
-        } else {
-            // No waiter. Publish to the StateFlow for diagnostic
-            // visibility (same behaviour as the old per-request loop
-            // had on its best-effort frames).
-            _frames.value = f
-        }
-    }
-
-    /**
-     * Test seam: complete the current waiter for [code] with [frame], or
-     * no-op if no waiter is registered. Lets tests drive the demux
-     * without going through the reader (for sequencing assertions).
-     */
-    internal fun deliverFrameForTest(code: Int, frame: ResponseParser.Frame) {
-        pending.remove(code)?.complete(frame)
-    }
-
-    /**
-     * Test seam: push a [TiltSample] directly into the tilt flow,
-     * bypassing the wire parser. Useful for tests of downstream
-     * consumers (issue #6 follow-on) that should not care about wire
-     * encoding.
-     */
-    internal fun publishTiltForTest(sample: TiltSample) {
-        _tilt.tryEmit(sample)
+    fun shutdown() {
+        if (closed) return
+        closed = true
+        wantConnected = false
+        // disconnect() handles the per-cycle cleanup; it's safe to call
+        // even when nothing is connected (it null-checks connection and
+        // pending is empty when nothing is in flight).
+        disconnect()
+        // Now cancel the scope itself — this is what disconnect() does
+        // NOT do. After cancel() the scope's coroutineContext.job is
+        // in CANCELLED state, and any future launch on the scope
+        // becomes a no-op. This is the leak fix: a Dispatchers.Default
+        // readerScope would otherwise survive every MountSession that
+        // uses it.
+        readerScope.coroutineContext.cancel() // INTENTIONAL: this is the fix; leave in place for normal builds
+        _state.value = MountState()
+        _frames.value = null
+        _tiltDropsNoSubscriber.value = 0L
     }
 
     private companion object {
-        const val READ_TIMEOUT_MS = 50
-        const val TILT_BUFFER_CAPACITY = 64
-
-        fun defaultReaderScope(): CoroutineScope =
-            CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        const val READ_RETRY_MS = 10L
+        const val READ_TIMEOUT_MS = 200L
     }
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Polaris mount and Android-tethered Wi-Fi default gateways are
+  on private subnets. We need to allow cleartext HTTP to those two
+  IPs only; everything else stays HTTPS-only by default (per the
+  platform default for API 28+).
+
+  - 192.168.0.1: factory default of the mount's own AP.
+  - 192.168.43.1: Android's default USB-tethered gateway, used when
+    the phone shares its cellular connection to the mount.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.0.1</domain>
+        <domain includeSubdomains="false">192.168.43.1</domain>
+    </domain-config>
+</network-security-config>

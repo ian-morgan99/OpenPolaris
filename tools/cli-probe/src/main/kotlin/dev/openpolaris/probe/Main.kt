@@ -133,9 +133,14 @@ private fun sendOnce(args: Array<String>) {
         // The real mount returns frames terminated by '#'. We don't know if it
         // also writes a newline; read enough and split on '#' ourselves.
         socket.getOutputStream().apply { write(frame); flush() }
-        val raw = readFrames(socket.getInputStream(), 3000)
+        // 10s window matches `MountSession.request()` for handshake
+        // codes (820/821/823). A 3s window was short enough to clip
+        // the gimbal's APP_HELLO reply, which takes 2-4s in the live
+        // captures; bumping here makes the one-shot `send` command
+        // directly comparable to the desktop app's behaviour.
+        val raw = readFrames(socket.getInputStream(), 10_000)
         if (raw.isEmpty()) {
-            println("  (no response within timeout)")
+            println("  (no response within 10s)")
         } else {
             raw.forEach { println("← ${it.trim()}") }
         }

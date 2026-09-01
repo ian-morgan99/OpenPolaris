@@ -24,7 +24,11 @@ fun main(args: Array<String>) {
 
     val socket = Socket()
     socket.connect(InetSocketAddress(host, port), 5000)
-    socket.soTimeout = 1500
+    // 823 (APP_HELLO) reply can take 2-4s on real gimbal; a 1500ms read
+    // window was classifying it as "no immediate response / push-mode"
+    // and creating misleading evidence. 5000ms matches the in-app
+    // `request()` timeout and gives the gimbal room to answer.
+    socket.soTimeout = 5000
     val out = socket.getOutputStream()
     val `in` = socket.getInputStream()
     val parser = ResponseParser()

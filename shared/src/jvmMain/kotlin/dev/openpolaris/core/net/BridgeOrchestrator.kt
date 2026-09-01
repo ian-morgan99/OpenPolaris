@@ -67,6 +67,24 @@ class BridgeOrchestrator(
     }
 
     /**
+     * BT-wake only — fires the GATT-connect pulse and settles, but does
+     * NOT bring up the Wi-Fi profile or install a policy route. Used by
+     * the desktop "Wake" button when the user wants to pulse the gimbal
+     * awake on a cold start before deciding whether to bridge. Returns
+     * `true` when the pulse completed (whether or not a device was found;
+     * missing-device is treated as "gimbal already awake" and is not a
+     * failure).
+     */
+    suspend fun wakeOnly(
+        progress: suspend (String) -> Unit = {},
+    ): Boolean = withContext(io) {
+        runCatching { wakeOverBluetooth(progress) }
+            .onFailure { progress("BT wake skipped: ${it.message ?: it::class.simpleName}") }
+            .map { true }
+            .getOrElse { true /* missing device is a no-op, not a failure */ }
+    }
+
+    /**
      * Tear-down. The reverse of [bridgeToMount]: policy route first, then NM
      * down. Safe to call even if the link isn't up; every step is wrapped
      * in `runCatching`.

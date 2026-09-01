@@ -93,7 +93,16 @@ class AppViewModel(
      * is a no-op so callers that don't have a bridge implementation (e.g.
      * the Android build) can construct the VM without it.
      */
-    private val connectWifi: (suspend (String) -> Unit) -> Unit = {},
+    private val connectWifi: suspend (suspend (String) -> Unit) -> Unit = {},
+    /**
+     * BT-only wake pulse for the gimbal. Distinct from [connectWifi] (which
+     * does wake → NM up → link → policy route in one shot). The lambda
+     * receives a `progress: (String) -> Unit` callback it calls from a
+     * background dispatcher; the default is a no-op so callers without a
+     * BT stack (e.g. the Android build) can construct the VM without it.
+     * The [ConnectionPane] "Wake" button is shown when this is wired.
+     */
+    private val wakeProbe: suspend (suspend (String) -> Unit) -> Unit = {},
     private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
     private val starDetector: StarDetector = NullStarDetector,
     private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
@@ -291,6 +300,15 @@ class AppViewModel(
     // a non-interactive modal.
     private val _reconnecting = MutableStateFlow(false)
     val reconnecting: StateFlow<Boolean> = _reconnecting.asStateFlow()
+
+    // 7.5: separate in-flight flag for the BT-only Wake button so the
+    // user can wake the gimbal *before* pressing Connect (the gimbal
+    // sleeps to save battery; on first run nothing answers on the Wi-Fi
+    // until the BT GATT-connect pulse has fired). Independent of
+    // `_reconnecting` so a wake and a connect can run back-to-back
+    // without either waiting on the other's flag.
+    private val _waking = MutableStateFlow(false)
+    val waking: StateFlow<Boolean> = _waking.asStateFlow()
 
     /**
      * Stream 15.1 (issue #15): the active [CameraProfile] used by
@@ -706,6 +724,36 @@ class AppViewModel(
                 statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false
+            }
+        }
+    }
+
+    /**
+     * BT-only wake pulse: a single GATT-connect to the gimbal so it brings
+     * its Wi-Fi AP up. Distinct from [connectWifi] which continues on to
+     * bring the segregated network up and install a policy route. The
+     * Benro app uses this BT-wake as the first tap on a cold start — the
+     * gimbal sleeps to save battery and nothing answers on Wi-Fi until
+     * the pulse has fired (see `BluetoothProbe.wake` and
+     * `polaris-re-results.md` §8.5).
+     *
+     * Has its own in-flight flag ([_waking]) so a user can tap Wake and
+     * then Connect without either step waiting on the other.
+     */
+    fun wake() {
+        if (_waking.value) return
+        _waking.value = true
+        scope.launch {
+            try {
+                statusMessage = "Waking gimbal over Bluetooth…"
+                wakeProbe { msg -> statusMessage = msg }
+                if (!statusMessage.startsWith("Woke ")) {
+                    statusMessage = "Wake complete — try Connect"
+                }
+            } catch (e: Throwable) {
+                statusMessage = "Wake failed: ${e.message ?: e::class.simpleName}"
+            } finally {
+                _waking.value = false
             }
         }
     }

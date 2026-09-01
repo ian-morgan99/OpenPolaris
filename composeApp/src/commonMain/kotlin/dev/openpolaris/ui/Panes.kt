@@ -41,6 +41,11 @@ import dev.openpolaris.core.domain.format2
  * "Connect mount Wi-Fi…" picker button is suppressed (the bridge is the
  * canonical path on desktop); when both are supplied both buttons render so
  * the user can fall back to the picker if the bridge fails.
+ * [onWake], when provided, surfaces a single "Wake" button that calls
+ * [AppViewModel.wake] — a BT-only GATT-connect pulse that brings the
+ * gimbal's Wi-Fi AP up without doing the full bridge. The Benro app
+ * exposes this as the first tap on a cold start (the gimbal sleeps to
+ * save battery; nothing answers on Wi-Fi until the pulse has fired).
  */
 @Composable
 fun ConnectionPane(
@@ -48,6 +53,7 @@ fun ConnectionPane(
     modifier: Modifier = Modifier,
     onFindWifi: (() -> Unit)? = null,
     onBridgeWifi: (() -> Unit)? = null,
+    onWake: (() -> Unit)? = null,
 ) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -77,6 +83,14 @@ fun ConnectionPane(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::connect) { Text("Connect") }
+                if (onWake != null) {
+                    OutlinedButton(
+                        onClick = onWake,
+                        enabled = !vm.waking.value,
+                    ) {
+                        Text(if (vm.waking.value) "Waking…" else "Wake")
+                    }
+                }
                 OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
             }

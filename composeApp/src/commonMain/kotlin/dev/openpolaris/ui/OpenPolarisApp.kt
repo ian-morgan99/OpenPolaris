@@ -69,7 +69,15 @@ fun OpenPolarisApp(
      * bridge implementation) constructs the VM without it. Mirrors the
      * constructor parameter on [AppViewModel].
      */
-    connectWifi: ((suspend (String) -> Unit) -> Unit)? = null,
+    connectWifi: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    /**
+     * Optional BT-only wake pulse. When supplied, the Connection pane
+     * shows a "Wake" button that calls [AppViewModel.wake]. Independent
+     * of [connectWifi] (the full bring-up): a user can wake the gimbal
+     * without bringing up the bridge, and vice versa. Mirrors the
+     * constructor parameter on [AppViewModel].
+     */
+    wakeProbe: (suspend (suspend (String) -> Unit) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm: AppViewModel = viewModel
@@ -77,6 +85,7 @@ fun OpenPolarisApp(
             scope = scope,
             connectionFactory = connectionFactory,
             connectWifi = connectWifi ?: {},
+            wakeProbe = wakeProbe ?: {},
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
@@ -116,6 +125,7 @@ fun OpenPolarisApp(
                         Modifier.fillMaxWidth(),
                         onFindWifi = onFindWifi,
                         onBridgeWifi = if (connectWifi != null) ({ vm.connectWifi() }) else null,
+                        onWake = if (wakeProbe != null) ({ vm.wake() }) else null,
                     )
                 }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }

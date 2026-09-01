@@ -463,11 +463,32 @@ class MountSession(
         // anywhere, but [request] already records the parsed
         // frame in [frames] for any subscriber.
         val helloPayload = "app:${auth.appName};ver:${auth.appVersion};"
+        ProtocolTrace.log(
+            "auth",
+            "823 hello → payload='$helloPayload' timeout=10000ms",
+        )
         val hello = request<ResponseParser.Frame>(
             code = Codes.APP_HELLO,
             payload = helloPayload,
             timeoutMs = 10000L,
         ) { it }
+        when (hello) {
+            is CmdResult.Ok ->
+                ProtocolTrace.log(
+                    "auth",
+                    "823 hello ← OK fields=${hello.value.fields}",
+                )
+            is CmdResult.Timeout ->
+                ProtocolTrace.log(
+                    "auth",
+                    "823 hello ← TIMEOUT after 10000ms (gimbal did not ack)",
+                )
+            is CmdResult.ProtocolError ->
+                ProtocolTrace.log(
+                    "auth",
+                    "823 hello ← ProtocolError: ${hello.message}",
+                )
+        }
         if (hello !is CmdResult.Ok) {
             throw java.io.IOException("app hello (823) failed: $hello")
         }
@@ -510,10 +531,19 @@ class MountSession(
                         delay(READ_RETRY_MS)
                         continue
                     }
+                    ProtocolTrace.logBytes(
+                        "reader",
+                        "read $n bytes (carry=${carry.size})",
+                        buf.copyOf(n),
+                    )
                     val combined = carry + buf.copyOf(n)
                     val (frames, consumed) = parser.parse(combined)
                     carry = combined.drop(consumed).toByteArray()
                     for (f in frames) {
+                        ProtocolTrace.log(
+                            "reader",
+                            "frame code=${f.code} fields=${f.fields}",
+                        )
                         // Demux by code (issue #6 / PLAN-CRITICAL-REVIEW §F):
                         // 538 is a push, not a response. Route it to the
                         // tilt channel and skip both the StateFlow mirror
@@ -623,7 +653,9 @@ class MountSession(
         return try {
             sendMutex.withLock {
                 try {
-                    conn.write(command(code) { putRaw(payload) })
+                    val frame = command(code) { putRaw(payload) }
+                    ProtocolTrace.logBytes("writer", "→ code=$code", frame)
+                    conn.write(frame)
                 } catch (e: Exception) {
                     synchronized(pending) { pending.remove(code) }
                     throw e

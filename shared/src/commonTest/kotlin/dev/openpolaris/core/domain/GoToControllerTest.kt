@@ -52,6 +52,7 @@ class GoToControllerTest {
         assertTrue(frame.contains("&519&"), "expected goto 519 frame, got $frame")
         assertTrue(frame.contains("alt:60."), "altitude should be ~60, got $frame")
         assertTrue(frame.contains("az:0."), "azimuth should be ~0, got $frame")
+        session.disconnect()
     }
 
     @Test

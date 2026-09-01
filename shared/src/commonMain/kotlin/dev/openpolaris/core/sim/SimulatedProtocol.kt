@@ -190,11 +190,24 @@ class SimulatedProtocol {
             Codes.GET_DITHER_STATE, Codes.SET_DITHER_STATE -> {
                 when (code) {
                     Codes.GET_TILT_STATE -> {
-                        out += response("1&$code&2&state:$tiltState;#")
+                        // 537 GET returns both the int state slot (per issue #32
+                        // decoupling) AND the tilt envelope (pitch/roll degrees).
+                        // The typed parser (CommandTable.TILT_GET) only reads
+                        // pitch/roll; the int state travels on a different slot
+                        // for callers that need it.
+                        out += response(
+                            "1&$code&2&state:$tiltState;pitch:$pitch;roll:$roll;#"
+                        )
                     }
                     Codes.SET_TILT_STATE -> {
+                        // 538 is firmware-pushed on the wire; the app does not
+                        // request it. For tests and parity with other GET/SET
+                        // pairs, accept the int state slot if present and
+                        // round-trip the current pitch/roll envelope.
                         fields["state"]?.toIntOrNull()?.let { tiltState = it }
-                        out += response("1&$code&2&state:$tiltState;#")
+                        out += response(
+                            "1&$code&2&state:$tiltState;pitch:$pitch;roll:$roll;#"
+                        )
                     }
                     Codes.GET_DITHER_STATE -> {
                         out += response("1&$code&2&state:$ditherState;#")
@@ -205,16 +218,15 @@ class SimulatedProtocol {
                     }
                 }
             }
-            // LIMITS_GET is UNVERIFIED — the typed parser (CommandTable.LIMITS_GET)
-            // expects `state:X` mirroring the TILT pattern, but the real wire
-            // format isn't captured. Report the current limits state so the
-            // round-trip works; revisit when live capture is available.
+            // LIMITS wire format: `limit:0|1;` per CommandTable.LIMITS_GET/SET
+            // (key "limit", not "state" — verified during issue #32 review against
+            // CommandTable.LIMITS_GET parse lambda and LIMITS_SET payload builder).
             Codes.GET_LIMIT_STATE -> out += response(
-                "1&${Codes.GET_LIMIT_STATE}&2&state:$limitState;#"
+                "1&${Codes.GET_LIMIT_STATE}&2&limit:$limitState;#"
             )
             Codes.SET_LIMIT_STATE -> {
-                fields["state"]?.toIntOrNull()?.let { limitState = it }
-                out += response("1&${Codes.SET_LIMIT_STATE}&2&state:$limitState;#")
+                fields["limit"]?.toIntOrNull()?.let { limitState = it }
+                out += response("1&${Codes.SET_LIMIT_STATE}&2&limit:$limitState;#")
             }
             Codes.GET_SETTLING_TIME -> out += response(
                 "1&${Codes.GET_SETTLING_TIME}&2&time:$settlingTime;#"

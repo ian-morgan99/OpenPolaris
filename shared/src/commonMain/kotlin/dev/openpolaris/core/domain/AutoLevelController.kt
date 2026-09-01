@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -201,7 +202,7 @@ class AutoLevelController(
     private suspend fun awaitSettling(): AutoLevelResult {
         val window = ArrayDeque<Tilt>(SETTLE_WINDOW)
         while (true) {
-            val sample = sampleSource() ?: return AutoLevelResult.Failed("no sample")
+            val sample = nextSampleWithFallback() ?: return AutoLevelResult.Failed("no sample")
             window.addLast(sample)
             while (window.size > SETTLE_WINDOW) window.removeFirst()
             // Always update the public tilt so observers see the same stream
@@ -215,6 +216,31 @@ class AutoLevelController(
             }
             if (settled) return AutoLevelResult.Completed(mean.roll, mean.pitch)
         }
+    }
+
+    /**
+     * Next tilt sample, with an active-poll fallback.
+     *
+     * Issue ("autolevel did nothing" — 2026-08-31 user report): on real
+     * firmware the controller subscribes to `session.frames` for 538
+     * tilt pushes, but the push stream is best-effort — if the firmware
+     * never pushes, the settling loop blocks on `sampleSource()`
+     * indefinitely. The 537 GET is a deterministic on-demand read that
+     * works regardless of the push cadence, so this routine falls back
+     * to it after a short idle window. Without the fallback the
+     * controller reports "TimedOut" even when the firmware is healthy
+     * and just not pushing.
+     *
+     * The active-poll path also covers the in-app demo mode, where
+     * `SimulatedMount` answers 537 immediately even when no 538 push
+     * is in flight.
+     */
+    private suspend fun nextSampleWithFallback(): Tilt? {
+        // Race the passive push source against an active 537 poll so a
+        // long push gap still produces a fresh sample within ~500ms.
+        val passive = withTimeoutOrNull(SAMPLE_IDLE_MS) { sampleSource() }
+        if (passive != null) return passive
+        return readTilt()
     }
 
     /** Read the current tilt envelope on demand (537). */
@@ -237,6 +263,15 @@ class AutoLevelController(
 
         /** Number of consecutive samples that must all lie within [SETTLE_EPSILON_DEG] of the mean. */
         const val SETTLE_WINDOW: Int = 10
+
+        /**
+         * Active-poll fallback window. If the passive 538 push source is
+         * idle for longer than this, the settling loop fires a 537 GET
+         * on demand. Tuned for the in-app demo mode's simulated 538
+         * cadence (~25ms/step) — well below the window — while still
+         * catching the "no push at all" firmware case within ~500ms.
+         */
+        const val SAMPLE_IDLE_MS: Long = 500
 
         /**
          * Sentinel value used as the default for the primary-constructor

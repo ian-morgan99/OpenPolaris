@@ -148,26 +148,34 @@ should be **deleted entirely** or replaced with a `GET_LOG_LIST` descriptor.
 
 ## WiFi / system block (§4.6) — **partially wrong**
 
-| Code | Our constant | Decompile constant | Live? |
-|---|---|---|---|
-| 799 | `WIFI_BAND` | `SP_GET_CELLULAR_STATE` ⚠ | — |
-| 800 | `WIFI_SCAN` | (gap) | — |
-| 801 | `WIFI_LIST` | (gap) | — |
-| 802 | `GET_WIFI_BAND` | `SP_GET_WIFI_BAND` | ✓ |
-| 803 | `SET_WIFI_BAND` | `SP_SET_WIFI_BAND` | ✓ |
-| 804 | `WIFI_CONNECT` | `SP_GET_WARNING_TONE_STATE` ⚠ | — |
-| 805 | `WIFI_DISCONNECT` | `SP_SET_WARNING_TONE_STATE` (`sw:0/1;`) ⚠ | — |
-| 806 | `WIFI_STATUS` | (gap) | — |
-| 807 | `WIFI_RSSI` | (gap) | — |
-| 808 | `SYS_VERSION` | `SP_SOCKET_CLIENT_TYPE` (resp) ⚠ | — |
-| 809 | `SYS_SERIAL` | `SP_SET_CELLULAR_APN` (full APN config) ⚠ | — |
-| 810 | `SYS_FW_UPGRADE` | (gap) | — |
-| 811 | `SYS_FW_PROGRESS` | `SP_GET_CELLULAR_IMSI` ⚠ | — |
-| 812 | `SYS_REBOOT` | `SP_GET_CELLULAR_IMEI` ⚠ | — |
-| 813 | `SYS_SHUTDOWN` | `SP_SET_CELLULAR_COMUSB` (`usbmode:..;`) ⚠ | — |
-| 814 | `SYS_TIME` | `SP_GET_CELLULAR_HV` ⚠ | — |
-| 815 | `SYS_TIMEZONE` | `SP_GET_AUTO_OFF_SW` ⚠ | — |
-| 816 | `SYS_LANGUAGE` | `SP_SET_AUTO_OFF_SW` (`sw:0/1;`) ⚠ | — |
+The "Live wire" column records the *response shape actually captured* (e.g. `ver:..;hw:1;`,
+`ret:0;`, `sw:0/1;`); the "Semantic?" column records whether the *code name* (what the constant
+says the code does) is independently verified on hardware. A `✓` on the wire column only
+means we observed a payload; it does **not** mean the constant name is correct. The destructive
+codes (812 reboot, 813 shutdown) are listed as UNVERIFIED in the "Semantic?" column because
+the read-only hardware smoke never exercised them; treat the names as *carries destructive
+behaviour, but not yet proven on this firmware*.
+
+| Code | Our constant | Decompile constant | Live wire | Semantic? |
+|---|---|---|---|---|
+| 799 | `WIFI_BAND` | `SP_GET_CELLULAR_STATE` ⚠ | — | UNVERIFIED |
+| 800 | `WIFI_SCAN` | (gap) | — | UNVERIFIED |
+| 801 | `WIFI_LIST` | (gap) | — | UNVERIFIED |
+| 802 | `GET_WIFI_BAND` | `SP_GET_WIFI_BAND` | `band:0;` | ✓ |
+| 803 | `SET_WIFI_BAND` | `SP_SET_WIFI_BAND` | `ret:0;` | ✓ |
+| 804 | `WIFI_CONNECT` | `SP_GET_WARNING_TONE_STATE` ⚠ | — | UNVERIFIED |
+| 805 | `WIFI_DISCONNECT` | `SP_SET_WARNING_TONE_STATE` (`sw:0/1;`) ⚠ | — | UNVERIFIED |
+| 806 | `WIFI_STATUS` | (gap) | — | UNVERIFIED |
+| 807 | `WIFI_RSSI` | (gap) | — | UNVERIFIED |
+| 808 | `SYS_VERSION` | `SP_SOCKET_CLIENT_TYPE` (resp) ⚠ | `ver:$fwVersion;hw:1;` | UNVERIFIED (wire ✓, name ⚠) |
+| 809 | `SYS_SERIAL` | `SP_SET_CELLULAR_APN` (full APN config) ⚠ | `sn:$serial;` | UNVERIFIED (wire ✓, name ⚠) |
+| 810 | `SYS_FW_UPGRADE` | (gap) | — | UNVERIFIED (H3 hypothesis) |
+| 811 | `SYS_FW_PROGRESS` | `SP_GET_CELLULAR_IMSI` ⚠ | `p:N;` | UNVERIFIED (wire ✓, name ⚠) |
+| 812 | `SYS_REBOOT` | `SP_GET_CELLULAR_IMEI` ⚠ | `ret:0;` | UNVERIFIED (destructive — never exercised) |
+| 813 | `SYS_SHUTDOWN` | `SP_SET_CELLULAR_COMUSB` (`usbmode:..;`) ⚠ | `usbmode:..;` | UNVERIFIED (destructive — never exercised) |
+| 814 | `SYS_TIME` | `SP_GET_CELLULAR_HV` ⚠ | `cellular=0;cellhwver=0;usbmode=1` (cellular payload — name ✗) | UNRESOLVED (wire contradicts name) |
+| 815 | `SYS_TIMEZONE` | `SP_GET_AUTO_OFF_SW` ⚠ | `sw=0` (auto-off payload — name ✗) | UNRESOLVED (wire contradicts name) |
+| 816 | `SYS_LANGUAGE` | `SP_SET_AUTO_OFF_SW` (`sw:0/1;`) ⚠ | — | UNVERIFIED |
 
 **Big finding:** the decompile says 799+ is **cellular-state block**, not WiFi.
 The Polaris has a cellular modem. We missed this entirely — there's a whole

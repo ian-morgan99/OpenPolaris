@@ -354,25 +354,25 @@ class SimulatedProtocolTest {
         val s = newSim()
         // Set autoLevel true but limits false
         s.handle(Codes.SET_AUTO_LEVEL_EN, StringMap("en" to 1))
-        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 0))
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("limit" to 0))
         // GET_LIMIT_STATE must report limitState (0), not autoLevelEnabled (1)
         val resp = s.handle(Codes.GET_LIMIT_STATE, emptyMap())
-        assertEquals("0", fieldOf(String(resp!![0]), "state"))
+        assertEquals("0", fieldOf(String(resp!![0]), "limit"))
     }
 
     @Test
     fun limitsSetThenGetReturnsSetValue() {
         val s = newSim()
-        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 1))
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("limit" to 1))
         assertEquals(1, s.limitState)
         val resp = s.handle(Codes.GET_LIMIT_STATE, emptyMap())
-        assertEquals("1", fieldOf(String(resp!![0]), "state"))
+        assertEquals("1", fieldOf(String(resp!![0]), "limit"))
     }
 
     @Test
     fun limitsSetDoesNotMutateAutoLevel() {
         val s = newSim()
-        s.handle(Codes.SET_LIMIT_STATE, StringMap("state" to 1))
+        s.handle(Codes.SET_LIMIT_STATE, StringMap("limit" to 1))
         assertEquals(false, s.autoLevelEnabled, "SET_LIMIT_STATE must not mutate autoLevelEnabled")
     }
 

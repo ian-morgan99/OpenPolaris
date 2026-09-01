@@ -97,7 +97,9 @@ done
 
 echo
 echo "== stage 5: first-look probe =="
-EVID_DIR="/home/ian/Documents/VSCodeProjects/OpenPolaris/docs/evidence/gimbal-ssh-2026-08-31"
+# Resolve evidence dir relative to this script so the same capture works
+# whether the repo lives at the developer's local checkout or anywhere else.
+EVID_DIR="$(cd "$(dirname "$0")" && pwd)"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="${EVID_DIR}/probes-${STAMP}"
 mkdir -p "${OUT_DIR}"

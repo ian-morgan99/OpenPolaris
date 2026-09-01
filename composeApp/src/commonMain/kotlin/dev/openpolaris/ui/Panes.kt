@@ -19,9 +19,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.format2
 
 /**
@@ -39,6 +44,22 @@ fun ConnectionPane(vm: AppViewModel, modifier: Modifier = Modifier, onFindWifi: 
                 onValueChange = vm::updateHost,
                 label = { Text("Mount host") },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // 3b.5-BUG: port-edit field next to host. Pre-fix, the
+            // user had no way to change the port from the connection
+            // pane at all — `port` was a private mutableStateOf with
+            // no setter, hard-coded to 9090 in connect() and
+            // saveMarker(). Exposed here as a numeric field; if the
+            // user types a non-numeric value we silently fall back to
+            // the default 9090 (the previous valid value), which
+            // avoids ever setting [port] to 0 or -1.
+            OutlinedTextField(
+                value = vm.port.toString(),
+                onValueChange = { v -> vm.updatePort(v.toIntOrNull() ?: 9090) },
+                label = { Text("Port") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -186,6 +207,32 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             HorizontalDivider()
 
+            Text("Plate solve", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Detect stars in the current preview frame and nudge the mount to centre the entered RA/Dec target. Requires a connected camera and a valid observer location.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = vm::solveNow,
+                    enabled = !vm.solveInProgress,
+                ) {
+                    Text(if (vm.solveInProgress) "Solving…" else "Solve now")
+                }
+            }
+            val solve by vm.lastSolveResult.collectAsState()
+            val solved = solve
+            if (solved != null) {
+                Text(
+                    "Last solve: RA %.4f°  Dec %.4f°  (matched=%d, conf=%.2f)".format(
+                        solved.raDeg, solved.decDeg, solved.matchedStars, solved.confidence,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            HorizontalDivider()
+
             Text("Star alignment (${vm.alignmentStars} stars)", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Center a bright star with the jog controls, then record it. 2–3 stars spread across the sky give the best pointing model.",
@@ -199,12 +246,36 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             HorizontalDivider()
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::runAutoLevel) { Text("Level now") }
-                Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
-                Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
-                OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+            // Feature-flag gate (issue "autolevel did nothing" 2026-08-31):
+            // 537/538/549 are writes/reads that have not been round-trip
+            // verified on real hardware, so the button and the toggle are
+            // disabled until the operator opts in via FeatureFlags.autoLevel.
+            // Matches the gating pattern in FullControlPanes.kt:142. The
+            // flag defaults to false; the simulator still answers the
+            // codes so demo mode feels responsive once the flag is on.
+            val autoLevelAvailable = FeatureFlags.isEnabled("autoLevel")
+            if (!autoLevelAvailable) {
+                Text(
+                    "Auto-level is gated by FeatureFlags.autoLevel (537/538/549 are writes — default off until round-trip verified).",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = vm::runAutoLevel,
+                    enabled = autoLevelAvailable && !vm.autoLevelRunning,
+                ) {
+                    Text(if (vm.autoLevelRunning) "Leveling…" else "Level now")
+                }
+                Switch(
+                    checked = vm.autoLevelEnabled == true,
+                    onCheckedChange = vm::setAutoLevelEnabled,
+                    enabled = autoLevelAvailable,
+                )
+                Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
+                OutlinedButton(onClick = vm::refreshAutoLevel, enabled = autoLevelAvailable) { Text("Refresh") }
+            }
+            AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
         }
     }
 }
@@ -257,3 +328,86 @@ private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
         OutlinedButton(onClick = { onChange((value ?: -1) + 1) }) { Text("+") }
     }
 }
+
+/**
+ * Live MJPEG preview of the camera. Best-effort: a slow or absent
+ * stream shows a "Stream unavailable" placeholder and never blocks
+ * the control pane. The frame is decoded off the main thread by
+ * AppViewModel; this composable just renders whatever's latest.
+ */
+@Composable
+fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val frame = vm.previewFrame
+    val state = vm.previewState
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Camera preview", style = MaterialTheme.typography.titleMedium)
+            when {
+                frame != null -> androidx.compose.foundation.Image(
+                    bitmap = frame,
+                    contentDescription = "Live camera preview",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                // 3h-BUG: `state` is a StateFlow, not a State. The previous
+                // check `state is PreviewController.State.Connecting` was
+                // comparing a StateFlow to a State object — always false.
+                // The branch never fired, so the user only ever saw the
+                // generic "Stream unavailable" message while the transport
+                // was still connecting. Use `.value` to read the current
+                // state out of the flow.
+                state.value is dev.openpolaris.core.domain.PreviewController.State.Connecting ->
+                    Text("Connecting…", style = MaterialTheme.typography.bodyMedium)
+                state.value is dev.openpolaris.core.domain.PreviewController.State.Error ->
+                    Text(
+                        "Stream unavailable: ${(state.value as dev.openpolaris.core.domain.PreviewController.State.Error).message}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                else ->
+                    Text("Stream unavailable — connect to the mount or check Wi-Fi.", style = MaterialTheme.typography.bodySmall)
+            }
+            Text(
+                // 3h-BUG: surface the live port (vm.port) instead of a
+                // hard-coded 8080 so the user knows which port the preview
+                // is actually using — matters when they entered a non-
+                // default port in the reconnect dialog.
+                "Streamed from http://${vm.host}:${vm.port}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * Tilt envelope read-out. Shows the latest pitch/roll whenever the controller
+ * has a value, and a color-coded level badge against [AutoLevelController.TOLERANCE_DEG].
+ * Compact enough to live inside the Auto-level card.
+ */
+@Composable
+fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Tilt?) {
+    if (tilt == null) {
+        Text(
+            "Tilt: unknown — tap Refresh or run Level now to poll.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        return
+    }
+    val pitch = tilt.pitchDeg.format2()
+    val roll = tilt.rollDeg.format2()
+    val badge = if (tilt.withinTolerance) "Level" else "Tilt detected"
+    val color = if (tilt.withinTolerance) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.error
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Tilt: pitch $pitch°  roll $roll°", style = MaterialTheme.typography.bodySmall)
+        Text(badge, style = MaterialTheme.typography.labelMedium, color = color)
+    }
+}
+
+/**
+ * Astro helpers pane is provided by [FullControlPanes.HelpersPane] (dither, settling, limits, auto-level).
+ * The advanced-only stub here was removed during the worktree-evidence merge because the
+ * feature-flagged version in FullControlPanes.kt supersedes it.
+ */

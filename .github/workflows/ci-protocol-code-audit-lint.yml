@@ -1,0 +1,38 @@
+name: Protocol-code audit lint
+
+# Regression check for issue #31 followup: forbid claims that an
+# 808-816 code is "VERIFIED" when there is no live-capture evidence in
+# the audit doc. The lint script lives at tools/protocol-code-audit/lint.sh
+# and enforces three rules:
+#   R1. 811-816 rows in PROTOCOL-CODE-AUDIT-*.md must NOT carry ✓ in
+#       the Semantic? column.
+#   R2. SYS_REBOOT/SYS_SHUTDOWN must NOT be tagged VERIFIED anywhere
+#       in CommandTable.kt (destructive — never exercised).
+#   R3. If an 808-816 constant in CommandTable.kt is tagged VERIFIED,
+#       the audit doc row for that code must list ✓ in Semantic?
+#       (catches drift between source comments and the audit table).
+#
+# The job runs the lint on every push and PR to main and the merge/*
+# branches. If the lint ever fails, the redaction policy has regressed
+# and the workflow should be fixed before the leak is allowed through.
+
+on:
+  push:
+    branches: [main, 'merge/**']
+  pull_request:
+    branches: [main, 'merge/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-code-audit-lint:
+    name: Verify 808-816 codes are tagged UNVERIFIED/UNRESOLVED
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run protocol-code-audit lint
+        run: bash tools/protocol-code-audit/lint.sh

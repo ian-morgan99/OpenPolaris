@@ -147,6 +147,12 @@ object FeatureFlags {
      *  interrupted upload can brick the firmware. Off by default. */
     const val firmwareUpload: Boolean = false
 
+    /** Plate solving via nova.astrometry.net. Off by default because
+     *  the call hits a public internet endpoint (privacy + bandwidth
+     *  cost) and the resulting RA/Dec is only as trusted as the
+     *  captured frame's headers. Enable explicitly per-session. */
+    const val plateSolve: Boolean = false
+
     // ---- OMS --------------------------------------------------------------
 
     /** OMS run state (824) and task list (825). Read-only. */
@@ -214,6 +220,7 @@ object FeatureFlags {
         "allowReboot" -> allowReboot
         "allowShutdown" -> allowShutdown
         "firmwareUpload" -> firmwareUpload
+        "plateSolve" -> plateSolve
         "omsRead" -> omsRead
         "omsScheduler" -> omsScheduler
         "rawFrameLog" -> rawFrameLog

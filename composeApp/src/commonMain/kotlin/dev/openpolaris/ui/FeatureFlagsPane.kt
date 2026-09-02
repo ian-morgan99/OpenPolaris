@@ -104,6 +104,10 @@ private val flagSpecs: List<FlagSpec> = listOf(
     FlagSpec("wifiScan", "WiFi scan / list (770-771)",
         "Read-only network scan. Verified.", safe = true),
 
+    // ---- plate solving (network round-trip, unverified) ------------------
+    FlagSpec("plateSolve", "Plate solve (nova.astrometry.net)",
+        "Upload a captured JPEG to nova.astrometry.net for blind plate solving. Requires internet egress. Sends the picked image to a third-party service — review the privacy posture before enabling. OFF by default.", safe = false),
+
     // ---- destructive (destructive=true) ---------------------------------
     FlagSpec("allowReboot", "Reboot (812 — UNVERIFIED)",
         "Sends a reboot command to the mount. Opcode 812 is decompile-classified as SP_GET_CELLULAR_IMEI (a query), so the wire mapping is uncertain. The on-board install auto-reboots on success. Destructive — requires explicit confirm.", safe = false, destructive = true),

@@ -188,6 +188,20 @@ class FirmwareUpdateController(
         onStatus: (Status) -> Unit,
     ): Status {
         onStatus(Status.Uploading(bytesSent = 0, bytesTotal = bytes.size))
+        // Phase 1a pre-flight: confirm `/app/sd` has room for the bundle
+        // *plus* a 1 MB slack (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6).
+        // The on-board card is 128 MB vfat with 121 MB free per the live
+        // evidence; pushing into a full vfat directory corrupts the
+        // FAT and the on-board `SP_UpgradeCheckFw` watcher silently
+        // fails to find the zip. Refuse up-front instead of mid-flight.
+        val runner = sshCommandRunner
+        if (runner != null) {
+            val probe = preflightFreeSpace(bytes.size + 1L * 1024L * 1024L)
+            if (probe is PreflightResult.PreflightRefused) {
+                val s = Status.Failed(probe.reason)
+                onStatus(s); return s
+            }
+        }
         try {
             sshDelivery.deliver(bytes, filename, onProgress = { sent ->
                 onStatus(Status.Uploading(bytesSent = sent, bytesTotal = bytes.size))
@@ -204,7 +218,6 @@ class FirmwareUpdateController(
         // by the on-board watcher after the user reboots — return Done
         // once the bytes are on the SD card. This is the legacy
         // behaviour and matches what the Benro Connect app does.
-        val runner = sshCommandRunner
         if (runner == null) {
             onStatus(Status.Installing(percent = 0))
             if (rebootAfter) {
@@ -359,6 +372,88 @@ class FirmwareUpdateController(
     private sealed interface RebootResult {
         data object Ok : RebootResult
         data class Failed(val reason: String) : RebootResult
+    }
+
+    /**
+     * Outcome of the pre-flight `df /app/sd` check.
+     *
+     *  - [Ok] — either the card has at least [requiredBytes] free, or
+     *    we could not determine the free space and chose to proceed
+     *    optimistically (the upload will still fail loudly if the
+     *    card truly is full, with a clearer "scp delivery failed:
+     *    no space" message from dropbear's `cat`).
+     *  - [PreflightRefused] — the free-space probe ran and the card
+     *    is too small. We refuse before any bytes are pushed so the
+     *    FAT does not get partially overwritten.
+     */
+    private sealed interface PreflightResult {
+        data object Ok : PreflightResult
+        data class PreflightRefused(val reason: String) : PreflightResult
+    }
+
+    /**
+     * Probe `/app/sd` for free bytes via `df -B1` (busybox on the
+     * gimbal supports this). Parses the `Available` column. Refuses
+     * the upload if free < [requiredBytes] plus a 1 MB slack
+     * (caller-supplied).
+     *
+     * If `df` is missing, the column does not parse, or the SSH
+     * transport itself errors out, we return [PreflightResult.Ok]
+     * rather than blocking the upload — the in-band `cat > ...`
+     * will fail with `No space left on device` and the controller
+     * surfaces that as a normal `Status.Failed("scp delivery
+     * failed: ...")`. The pre-flight is a fast-fail nicety, not
+     * a correctness gate.
+     */
+    private suspend fun preflightFreeSpace(requiredBytes: Long): PreflightResult {
+        val runner = sshCommandRunner ?: return PreflightResult.Ok
+        val r = try {
+            runner.run("df -B1 /app/sd")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Throwable) {
+            return PreflightResult.Ok
+        }
+        if (!r.isSuccess) return PreflightResult.Ok
+        val available = parseDfAvailableBytes(r.stdout) ?: return PreflightResult.Ok
+        if (available < requiredBytes) {
+            return PreflightResult.PreflightRefused(
+                "/app/sd has $available bytes free; firmware needs at least $requiredBytes bytes (bundle + 1 MB slack)"
+            )
+        }
+        return PreflightResult.Ok
+    }
+
+    /**
+     * Parse a single-row `df -B1 <path>` output. The second line is
+     * `<fs> <used> <available> <use%> <mount>`. Returns the
+     * `available` field as a Long, or null on any shape mismatch.
+     */
+    private fun parseDfAvailableBytes(stdout: String): Long? {
+        val rows = stdout.lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+        // `df -B1` output (columns are whitespace-separated):
+        //   Filesystem  1B-blocks  Used  Available  Use%  Mounted  on
+        //   /dev/root   253132800  50000000  199999976  20%  /app/sd
+        // i.e. parts[0]=Filesystem, parts[1]=total 1B-blocks,
+        // parts[2]=Used, parts[3]=Available, parts[4]=Use%, parts[5]=Mounted.
+        // Default `df` (no `-B1`) prints 1K-blocks or 1M-blocks — we
+        // refuse to interpret those because the unit scaling is wrong
+        // for our pre-flight. Bail to Ok (fail-open) and let the
+        // in-band `cat > ...` surface a real "no space" if needed.
+        val header = rows.firstOrNull { it.startsWith("Filesystem") } ?: return null
+        if (!header.contains("1B-blocks")) return null
+        val dataRow = rows.firstOrNull { row ->
+            val parts = row.split(Regex("\\s+"))
+            parts.size >= 4 &&
+                parts[1].all { it.isDigit() } &&
+                parts[2].all { it.isDigit() } &&
+                parts[3].all { it.isDigit() }
+        } ?: return null
+        val parts = dataRow.split(Regex("\\s+"))
+        return parts.getOrNull(3)?.toLongOrNull()
     }
 
     private suspend fun armFirmwareUpgrade(filename: String): ArmResult {

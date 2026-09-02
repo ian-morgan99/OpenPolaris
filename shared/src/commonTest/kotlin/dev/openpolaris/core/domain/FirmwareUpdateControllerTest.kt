@@ -142,12 +142,14 @@ class FirmwareUpdateControllerTest {
     private class RecordingDelivery : FirmwareDelivery {
         var lastBytes: ByteArray? = null
         var lastFilename: String? = null
-        val callCount = 0.let { var n = 0; { n++ } }
+        var callCount: Int = 0
+            private set
         override suspend fun deliver(
             bytes: ByteArray,
             filename: String,
             onProgress: (bytesSent: Int) -> Unit,
         ) {
+            callCount++
             lastBytes = bytes
             lastFilename = filename
             // Report progress in two steps so the test sees a Uploading
@@ -519,6 +521,7 @@ class FirmwareUpdateControllerTest {
         assertTrue(session.connect())
 
         val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")  // pre-flight df: 150 MB free
         ssh.scriptNext(0, "")                  // pkill+nohup restart
         ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")  // first Mlog tail
 
@@ -539,12 +542,15 @@ class FirmwareUpdateControllerTest {
         ) { statuses += it }
 
         assertIs<FirmwareUpdateController.Status.Done>(final)
-        // 2 scripted SSH calls: 1 restart + 1 tail (the tail returned Pass, so we don't keep polling).
-        assertEquals(2, ssh.commands.size, "expected exactly 2 SSH calls, got: ${ssh.commands}")
-        assertTrue(ssh.commands[0].contains("pkill polestar_app"),
-            "first SSH call should restart polestar_app, got: ${ssh.commands[0]}")
-        assertTrue(ssh.commands[1].contains("/app/Mlog.txt"),
-            "second SSH call should tail Mlog.txt, got: ${ssh.commands[1]}")
+        // 3 scripted SSH calls: 1 pre-flight df + 1 restart + 1 tail
+        // (the tail returned Pass, so we don't keep polling).
+        assertEquals(3, ssh.commands.size, "expected exactly 3 SSH calls, got: ${ssh.commands}")
+        assertTrue(ssh.commands[0].contains("df -B1 /app/sd"),
+            "first SSH call should be the pre-flight df, got: ${ssh.commands[0]}")
+        assertTrue(ssh.commands[1].contains("pkill polestar_app"),
+            "second SSH call should restart polestar_app, got: ${ssh.commands[1]}")
+        assertTrue(ssh.commands[2].contains("/app/Mlog.txt"),
+            "third SSH call should tail Mlog.txt, got: ${ssh.commands[2]}")
         // The controller must surface an Installing(100) before Done so the UI can show 100%.
         val installing100 = statuses.filterIsInstance<FirmwareUpdateController.Status.Installing>()
             .any { it.percent == 100 }
@@ -563,6 +569,7 @@ class FirmwareUpdateControllerTest {
         assertTrue(session.connect())
 
         val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")  // pre-flight df
         ssh.scriptNext(0, "")                                // restart
         ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_FAIL crc_mismatch\n")  // tail → Fail
 
@@ -584,8 +591,9 @@ class FirmwareUpdateControllerTest {
         val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
         assertTrue(failed.reason.contains("on-board install failed"),
             "expected on-board install failure reason, got: ${failed.reason}")
-        // Exactly 2 SSH calls: 1 restart + 1 tail (the tail returned Fail, so we stop).
-        assertEquals(2, ssh.commands.size, "expected exactly 2 SSH calls, got: ${ssh.commands}")
+        // Exactly 3 SSH calls: 1 pre-flight df + 1 restart + 1 tail
+        // (the tail returned Fail, so we stop).
+        assertEquals(3, ssh.commands.size, "expected exactly 3 SSH calls, got: ${ssh.commands}")
 
         session.disconnect()
         runCurrent()
@@ -601,6 +609,7 @@ class FirmwareUpdateControllerTest {
 
         // All Mlog tails are empty — no sentinel ever appears.
         val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")  // pre-flight df
         ssh.scriptNext(0, "")  // restart
         // The watcher keeps calling tail forever; we pre-script a finite
         // number of empty responses. The watcher will eventually time out
@@ -627,11 +636,13 @@ class FirmwareUpdateControllerTest {
             "expected on-board install timeout reason, got: ${failed.reason}")
         assertTrue(failed.reason.contains("50ms"),
             "expected the 50ms timeout to be quoted in the reason, got: ${failed.reason}")
-        // At least 1 restart + at least 1 tail before timing out.
-        assertTrue(ssh.commands.size >= 2,
-            "expected at least restart + 1 tail call, got: ${ssh.commands.size}")
-        assertTrue(ssh.commands[0].contains("pkill polestar_app"),
-            "first SSH call should restart polestar_app, got: ${ssh.commands[0]}")
+        // At least 1 pre-flight + 1 restart + at least 1 tail before timing out.
+        assertTrue(ssh.commands.size >= 3,
+            "expected at least pre-flight + restart + 1 tail call, got: ${ssh.commands.size}")
+        assertTrue(ssh.commands[0].contains("df -B1 /app/sd"),
+            "first SSH call should be the pre-flight df, got: ${ssh.commands[0]}")
+        assertTrue(ssh.commands[1].contains("pkill polestar_app"),
+            "second SSH call should restart polestar_app, got: ${ssh.commands[1]}")
 
         session.disconnect()
         runCurrent()
@@ -646,6 +657,7 @@ class FirmwareUpdateControllerTest {
         assertTrue(session.connect())
 
         val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")  // pre-flight df
         ssh.scriptNext(127, "", "pkill: no such process")  // restart fails
 
         val delivery = RecordingDelivery()
@@ -666,9 +678,224 @@ class FirmwareUpdateControllerTest {
         val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
         assertTrue(failed.reason.contains("restart") || failed.reason.contains("exit=127"),
             "expected restart-failure reason, got: ${failed.reason}")
-        // Only the restart was attempted — no tail calls because we bailed out.
+        // Pre-flight ran + restart was attempted — no tail calls because we bailed out.
+        assertEquals(2, ssh.commands.size,
+            "expected pre-flight + restart, got: ${ssh.commands.size}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Pre-flight `df` reports less free space than the bundle
+     * needs. The controller must refuse *before* any bytes are
+     * pushed, so `sshDelivery.deliver()` should never be called.
+     * This guards the FAT-corruption footgun the audit calls out
+     * in `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` §6.
+     */
+    @Test
+    fun sshPipePreflight_refusesUploadWhenSdIsTooSmall() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        // df reports only 1024 bytes free — bundle needs bundle-size + 1 MB.
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 199999976 1024 100% /app/sd\n")
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(failed.reason.contains("/app/sd has"),
+            "expected pre-flight refusal reason, got: ${failed.reason}")
+        assertEquals(0, delivery.callCount,
+            "scp delivery must not run when pre-flight refused, got ${delivery.callCount} calls")
         assertEquals(1, ssh.commands.size,
-            "expected only the restart attempt, got: ${ssh.commands.size}")
+            "only the pre-flight df should have run, got: ${ssh.commands}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Pre-flight `df` is missing (busybox stripped) — controller
+     * should fall through (fail-open) and continue with the upload.
+     * The in-band `cat > ...` will still surface a real
+     * "no space" error if the card is actually full.
+     */
+    @Test
+    fun sshPipePreflight_isFailOpenWhenDfMissing() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        // `df` exits 127 (not found) — pre-flight should treat as
+        // "could not determine" and continue optimistically.
+        ssh.scriptNext(127, "", "sh: df: not found")
+        ssh.scriptNext(0, "")                                     // restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")    // tail → Pass
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(1, delivery.callCount,
+            "scp delivery should still run when df is missing, got ${delivery.callCount} calls, ssh.commands=${ssh.commands}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Pre-flight `df` returns only the header (no data row), e.g.
+     * the path doesn't exist on the target. The controller must
+     * fail open and continue with the upload.
+     */
+    @Test
+    fun sshPipePreflight_isFailOpenWhenDfHasNoDataRow() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n")  // header only
+        ssh.scriptNext(0, "")                                     // restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")    // tail → Pass
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(1, delivery.callCount,
+            "scp delivery should run when df returns header only, got ${delivery.callCount} calls")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Pre-flight `df` succeeds with plenty of space — sanity check
+     * that a healthy response does not falsely refuse.
+     */
+    @Test
+    fun sshPipePreflight_proceedsWhenSdHasPlentyOfSpace() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        // 200 MB free — way more than the 1 MB + 64 byte bundle.
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 250000000 50000000 200000000 20% /app/sd\n")
+        ssh.scriptNext(0, "")                                     // restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")    // tail → Pass
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(1, delivery.callCount)
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Pre-flight `df` returns non-numeric columns in the data row
+     * (e.g. `df` was aliased to a busybox applet that omits
+     * `-B1` support). Controller must fail open rather than
+     * refuse based on a parse failure.
+     */
+    @Test
+    fun sshPipePreflight_isFailOpenWhenDfColumnsAreNonNumeric() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        // busybox-style output with `1K-blocks` units — parts[1..3]
+        // are not all digits, so the parser should bail and return Ok.
+        ssh.scriptNext(0, "Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/root 123456 78901 44444 64% /app/sd\n")
+        ssh.scriptNext(0, "")                                     // restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")    // tail → Pass
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(1, delivery.callCount,
+            "scp delivery should run when df columns are non-numeric, got ${delivery.callCount} calls")
 
         session.disconnect()
         runCurrent()

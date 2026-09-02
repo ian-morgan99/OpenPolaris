@@ -42,13 +42,30 @@ import dev.openpolaris.core.config.FeatureFlags
  * The default is whatever the const val in [FeatureFlags] currently says;
  * [FeatureFlags.isEnabled] merges the override map on top.
  */
-private data class FlagSpec(
+internal data class FlagSpec(
     val name: String,
     val label: String,
     val description: String,
     val safe: Boolean,
     val destructive: Boolean = false,
 )
+
+/**
+ * Returns true when the [FlagSpec] is interactive from the Settings pane.
+ *
+ * A spec is interactive if it is **safe** (a plain toggle, no further
+ * confirmation) or **destructive** (a confirmation dialog gates the
+ * change — see [DestructiveConfirmDialog]). A spec that is neither safe
+ * nor destructive is read-only — surfaced for visibility but not
+ * user-toggleable.
+ *
+ * Exposed `internal` (not `private`) so [FeatureFlagsEnabledPolicyTest]
+ * can exercise the policy without a Compose test harness. The
+ * `FlagSpec` data class itself stays private because it is a UI
+ * catalog concern.
+ */
+internal fun isFlagSpecInteractive(spec: FlagSpec): Boolean =
+    spec.safe || spec.destructive
 
 /** All 25 flags, organised by category for the UI. The UI iterates these in
  *  declaration order; the section header is rendered whenever the category
@@ -153,10 +170,18 @@ private fun FlagRow(spec: FlagSpec, isOn: Boolean, onToggle: (Boolean) -> Unit) 
                 style = MaterialTheme.typography.labelSmall,
             )
         }
+        // The switch is interactive when the spec is `safe` (read/write
+        // toggle, no further confirmation) or `destructive` (a
+        // confirmation dialog gates the change — see `DestructiveConfirmDialog`).
+        // Unsafe non-destructive specs (e.g. raw frame logging) are still
+        // surfaced for visibility but stay read-only until someone promotes
+        // them to `safe` or `destructive` in [flagSpecs].
+        // The policy itself lives in [isFlagSpecInteractive] so it can
+        // be unit-tested without a Compose test harness.
         Switch(
             checked = isOn,
             onCheckedChange = onToggle,
-            enabled = spec.safe,
+            enabled = isFlagSpecInteractive(spec),
         )
     }
 }

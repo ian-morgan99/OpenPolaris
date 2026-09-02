@@ -16,7 +16,10 @@ kotlin {
             implementation(compose.foundation)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.material3.window.size)
-            runtimeOnly("org.jetbrains.skiko:skiko-awt-runtime-linux-x64:0.8.18")
+            // Skiko AWT native runtime, resolved per host OS (linux-x64 on the
+            // dev box, windows-x64 when building on Windows). Replaces a
+            // hardcoded linux-x64 pin that would leak into Windows builds.
+            implementation(compose.desktop.currentOs)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

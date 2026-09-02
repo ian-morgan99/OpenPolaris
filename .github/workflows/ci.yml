@@ -229,3 +229,39 @@ jobs:
             exit 1
           fi
           echo "Evidence-bundle lint OK ($EVDIR)."
+
+  windows-desktop:
+    name: Windows desktop distribution (jpackage)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      # createDistributable produces a self-contained app-image (bundled JRE +
+      # OpenPolaris.exe) via jpackage; packageMsi wraps it in an installer.
+      # The Compose plugin downloads WiX automatically for the MSI step, so no
+      # extra runner setup is needed.
+      - name: Build Windows distribution
+        run: .\gradlew.bat :desktopApp:createDistributable :desktopApp:packageMsi --console=plain
+
+      - name: Zip app-image
+        # Self-contained folder (bundled JRE + OpenPolaris.exe) as a single
+        # artifact; users unzip and run the .exe — no Java install required.
+        run: Compress-Archive -Path desktopApp\build\compose\distributions\OpenPolaris\* -DestinationPath desktopApp\build\compose\distributions\OpenPolaris-windows-x64.zip
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openpolaris-windows-x64
+          path: |
+            desktopApp/build/compose/distributions/OpenPolaris-windows-x64.zip
+            desktopApp/build/compose/packages/*.msi
+          retention-days: 30

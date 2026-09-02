@@ -46,6 +46,27 @@ export ANDROID_SDK_ROOT=/home/ian/android-sdk
 ./gradlew build
 ```
 
+## Windows desktop executable
+
+The `:desktopApp` module applies the Compose Desktop application plugin, so it
+can produce a self-contained Windows distribution (bundled JRE +
+`OpenPolaris.exe`) via jpackage. Run these **on** a Windows machine with JDK 17
+or 21 installed — no VS Code required:
+
+```bat
+:: Self-contained folder at desktopApp\build\compose\distributions\OpenPolaris\
+gradlew.bat :desktopApp:createDistributable
+
+:: MSI installer at desktopApp\build\compose\packages\ (WiX is auto-downloaded)
+gradlew.bat :desktopApp:packageMsi
+```
+
+The Skiko AWT runtime resolves per host OS (`compose.desktop.currentOs` in
+[`desktopApp/build.gradle.kts`](../desktopApp/build.gradle.kts)), so the Windows
+build pulls the windows-x64 native libraries automatically. Alternatively,
+trigger the **CI** workflow from the Actions tab: the `windows-desktop` job
+runs on `windows-latest`, builds both artifacts, and uploads them for download.
+
 ## Why Temurin 21 instead of 17
 
 AGP 8.7.2 will happily consume JDK 21 to compile to Java 17 bytecode.

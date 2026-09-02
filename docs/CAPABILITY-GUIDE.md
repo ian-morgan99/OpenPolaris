@@ -450,20 +450,33 @@ Open Polaris ships two runnable targets from one codebase:
 
 | Target | Gradle task | Output | How to run |
 |--------|-------------|--------|------------|
-| **Desktop (JVM / Compose Multiplatform)** | `./gradlew :composeApp:run` | AWT window on the dev box | Needs a display (`$DISPLAY` on Linux, Aqua on macOS, the desktop session on Windows) |
+| **Desktop (JVM / Compose Multiplatform)** | `./gradlew :desktopApp:run` | AWT window on the dev box | Needs a display (`$DISPLAY` on Linux, Aqua on macOS, the desktop session on Windows) |
+| **Windows distribution** | `.\gradlew.bat :desktopApp:createDistributable` (on Windows) | Self-contained folder at `desktopApp/build/compose/distributions/OpenPolaris/` with bundled JRE + `OpenPolaris.exe` | Unzip/copy the folder, run the `.exe` — no Java install needed |
+| **Windows MSI installer** | `.\gradlew.bat :desktopApp:packageMsi` (on Windows) | `desktopApp/build/compose/packages/OpenPolaris-1.0.0.msi` | Double-click to install |
 | **Android APK (debug)** | `./gradlew :androidApp:assembleDebug` | `androidApp/build/outputs/apk/debug/androidApp-debug.apk` | `adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk` |
 
-The `run` task is hand-rolled in [`composeApp/build.gradle.kts`](../../composeApp/build.gradle.kts)
-because the `org.jetbrains.compose.desktop.application` plugin marker
+The `run` task in [`composeApp/build.gradle.kts`](../../composeApp/build.gradle.kts)
+is hand-rolled because the `org.jetbrains.compose.desktop.application` plugin marker
 artifact was dropped at Compose 1.7.2 and the
 `compose.desktop { application { ... } }` DSL accessor is therefore
-not generated in this project. The custom task forks the JVM against
+not generated in that module. The custom task forks the JVM against
 the built `composeApp-jvm.jar` with the full `jvmRuntimeClasspath`
-(Skiko + AWT runtime + Compose runtime) on the classpath. This is
-the minimum viable wiring — it does **not** build native installers
-(`.deb`/`.dmg`/`.msi`); for those, run the gradle script with a one-off
-init script that applies `org.jetbrains.compose:compose-gradle-plugin:1.7.3`
-in standalone mode.
+(Skiko + AWT runtime + Compose runtime) on the classpath.
+
+Native distributions come from the separate [`desktopApp`](../../desktopApp/build.gradle.kts)
+module, which *does* apply the desktop-application plugin and declares a
+full `compose.desktop { application { ... } }` block (main class
+`dev.openpolaris.desktop.MainKt`, package name `OpenPolaris`). Its
+Skiko AWT runtime is resolved per host OS via `compose.desktop.currentOs`,
+so building on Windows pulls the windows-x64 native libraries. The
+packaging tasks (`createDistributable`, `packageMsi`) use jpackage;
+the MSI step downloads WiX automatically, so no extra tooling is needed.
+
+To get a Windows executable without VS Code: clone the repo on the
+Windows machine (JDK 17 or 21 installed), then run
+`.\gradlew.bat :desktopApp:createDistributable`. Alternatively, trigger
+the **CI** workflow from the Actions tab — the `windows-desktop` job
+builds the distribution and uploads it as an artifact.
 
 Build prerequisites:
 

@@ -44,23 +44,20 @@ import kotlin.test.assertTrue
  */
 class SessionShutdownLeakTest {
 
-    /** In-memory [Connection] that records writes and serves queued responses. */
+    /**
+     * In-memory [Connection] that records writes and serves queued responses.
+     *
+     * Replies are keyed by request code and only revealed to [read] **after**
+     * a matching [write] has been observed. This mirrors how the real mount
+     * behaves: a request is the only thing that ever elicits a code-matched
+     * reply. Pre-queuing the reply ahead of the write is what surfaced
+     * issue #10 — the reader's first iteration would consume the response
+     * before the writer's waiter was registered, and the matching
+     * `request(code, ...)` would then time out.
+     */
     private class FakeConnection : Connection {
         val written = mutableListOf<ByteArray>()
-        // Responses gated by the request code they answer. The
-        // writer's request goes through `write()` before the
-        // reader can plausibly see the response, so a code-keyed
-        // map keeps the reader honest: a 284 push (no code in the
-        // request) is still served from `pushResponses`; a 820/823
-        // request gets its reply only after we've seen a write with
-        // that code.
-        //
-        // `pendingByCode` is the "queue" of pre-loaded responses,
-        // only revealed by `read()` after `write()` for that code
-        // has been seen. `seenRequestCodes` is the set of codes
-        // we've already received a write for.
         val pendingByCode = mutableMapOf<Int, ByteArray>()
-        val pushResponses = mutableListOf<ByteArray>()
         val seenRequestCodes = mutableSetOf<Int>()
         @Volatile var dropped = false
 
@@ -69,11 +66,9 @@ class SessionShutdownLeakTest {
         override suspend fun write(data: ByteArray) {
             if (dropped) throw java.io.IOException("socket closed")
             written += data
-            // Parse out the request code from the wire format and
-            // remember we've seen a request for that code, so the
-            // next read can return the queued response. The wire
-            // format is `1&<code>&2&...;#`, so the code is the
-            // segment after the first `&`.
+            // Wire format is `1&<code>&2&...;#` — the code is the segment
+            // after the first `&`. Record it so [read] knows the matching
+            // reply is now legitimate to deliver.
             val s = String(data, Charsets.US_ASCII)
             val parts = s.split("&")
             if (parts.size >= 2) {
@@ -84,13 +79,7 @@ class SessionShutdownLeakTest {
 
         override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int {
             if (dropped) throw java.io.IOException("socket closed")
-            // First, drain any pre-queued push responses.
-            if (pushResponses.isNotEmpty()) {
-                val r = pushResponses.removeAt(0)
-                r.copyInto(buffer)
-                return r.size
-            }
-            // Then, for any request code we've seen, return the
+            // For any request code we've seen a write for, return the
             // matching pending response once and remove it.
             for (code in seenRequestCodes) {
                 val r = pendingByCode.remove(code) ?: continue
@@ -127,11 +116,10 @@ class SessionShutdownLeakTest {
 
         repeat(10) { cycle ->
             val conn = FakeConnection()
-            // 284 push-mode-state arrives on its own (no request code
-            // matching it — the 284 push is a gimbal-pushed message).
-            conn.pushResponses += handshake
-            // 820/823 responses are gated behind the writer actually
-            // writing a request with that code (see FakeConnection).
+            // 284 handshake reply: only released to the reader after the
+            // writer actually writes a 284 request (see FakeConnection).
+            conn.pendingByCode[284] = handshake
+            // 820/823 auth replies: same gating.
             conn.pendingByCode[820] = "1&820&2&needed:0;#".toByteArray(Charsets.US_ASCII)
             conn.pendingByCode[823] = "1&823&2&app:openpolaris;ver:0.1.0;#".toByteArray(Charsets.US_ASCII)
             // Production scope — Dispatchers.Default + SupervisorJob,

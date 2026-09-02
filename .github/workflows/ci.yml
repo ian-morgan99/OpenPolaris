@@ -192,16 +192,19 @@ jobs:
 
           # 6. Non-allowlisted MAC addresses (allow gimbal's own MAC only).
           # Walk every .txt under evidence; for each line that matches a MAC,
-          # ensure it is the gimbal MAC or the broadcast/loopback/ff:ff:ff MAC.
+          # check EVERY MAC on that line (not just the first). This catches
+          # dmesg-style lines that emit the gimbal's allowlisted MAC alongside
+          # a client/device MAC on the same line.
           while IFS= read -r f; do
             while IFS= read -r line; do
-              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
-              [ -z "$mac" ] && continue
-              case "$mac" in
-                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
-                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
-                   FAIL=1 ;;
-              esac
+              while IFS= read -r mac; do
+                [ -z "$mac" ] && continue
+                case "$mac" in
+                  48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                  *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                     FAIL=1 ;;
+                esac
+              done < <(printf '%s\n' "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' || true)
             done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
           done < <(find "$EVDIR" -type f -name '*.txt')
 

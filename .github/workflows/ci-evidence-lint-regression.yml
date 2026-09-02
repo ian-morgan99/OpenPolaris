@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p "$EVDIR/_regression-fixture"
 
-      - name: Stage 1 - inject five forbidden fixtures
+      - name: Stage 1 - inject six forbidden fixtures
         # Each fixture is a *type* of leak the redaction policy is meant
         # to catch. The fixtures only need to look like leaks; they are
         # removed at the end of the job and never committed.
@@ -62,7 +62,14 @@ jobs:
           #    single capture; the lint rejects it in non-allowlisted .md).
           printf 'The static RE pipeline is **production-grade** for this device.\n' \
             > "$EVDIR/_regression-fixture/over-claim.md"
-          echo "::notice::Injected five leak fixtures into $EVDIR/_regression-fixture/"
+          # 6. Multi-MAC line: the allowlisted gimbal MAC followed later on the
+          #    same line by a non-allowlisted MAC. The previous lint only
+          #    validated the first MAC on each line, so this style of leak
+          #    slipped past the gate. The new loop iterates over every MAC
+          #    match on the line and must catch the second address.
+          printf '[ 1234.567890] wlan0: associate with 48:e7:da:d4:b5:73 (parent 11:22:33:44:55:66) RSSI -42\n' \
+            > "$EVDIR/_regression-fixture/mac-multi.txt"
+          echo "::notice::Injected six leak fixtures into $EVDIR/_regression-fixture/"
 
       - name: Stage 2 - run the same evidence-bundle lint
         # This block is copied verbatim from .github/workflows/ci.yml so the
@@ -108,13 +115,14 @@ jobs:
 
           while IFS= read -r f; do
             while IFS= read -r line; do
-              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
-              [ -z "$mac" ] && continue
-              case "$mac" in
-                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
-                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
-                   FAIL=1 ;;
-              esac
+              while IFS= read -r mac; do
+                [ -z "$mac" ] && continue
+                case "$mac" in
+                  48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                  *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                     FAIL=1 ;;
+                esac
+              done < <(printf '%s\n' "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' || true)
             done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
           done < <(find "$EVDIR" -type f -name '*.txt')
 
@@ -155,7 +163,7 @@ jobs:
           # The previous step's exit code is the source of truth; this
           # step is just a marker so reviewers see a green check when
           # the negative test passes.
-          echo "Negative regression OK: the lint rejected the four injected leaks."
+          echo "Negative regression OK: the lint rejected the six injected leaks."
 
       - name: Cleanup - remove the regression fixtures
         # Always run so the workflow doesn't leak the fixtures into the
@@ -211,13 +219,14 @@ jobs:
             "$EVDIR/MANIFEST.md" "$EVDIR/KNOWLEDGE-SHARE-FOR-PATCHER.md"
           while IFS= read -r f; do
             while IFS= read -r line; do
-              mac=$(echo "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' | head -n1 || true)
-              [ -z "$mac" ] && continue
-              case "$mac" in
-                48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
-                *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
-                   FAIL=1 ;;
-              esac
+              while IFS= read -r mac; do
+                [ -z "$mac" ] && continue
+                case "$mac" in
+                  48:e7:da:d4:b5:73|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) : ;;
+                  *) echo "::error file=$f::Non-allowlisted MAC $mac in evidence: $line"
+                     FAIL=1 ;;
+                esac
+              done < <(printf '%s\n' "$line" | grep -Eo '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' || true)
             done < <(grep -E '[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}' "$f" || true)
           done < <(find "$EVDIR" -type f -name '*.txt')
           OVERCLAIM_ALLOW_BN=("MANIFEST.md" "HANDOVER-2026-08-31.md" "KNOWLEDGE-SHARE-FOR-PATCHER.md")

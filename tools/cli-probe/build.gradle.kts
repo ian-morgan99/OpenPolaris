@@ -54,6 +54,10 @@ tasks.test {
         systemProperty("openpolaris.realMount", "true")
         systemProperty("openpolaris.realMount.host", realHost)
         systemProperty("openpolaris.realMount.port", realPort)
+        val allowMotion = (project.findProperty("openpolaris.realMount.allowMotion") as String?)?.toBoolean() == true
+        val allowDestructive = (project.findProperty("openpolaris.realMount.allowDestructive") as String?)?.toBoolean() == true
+        if (allowMotion) systemProperty("openpolaris.realMount.allowMotion", "true")
+        if (allowDestructive) systemProperty("openpolaris.realMount.allowDestructive", "true")
     }
 }
 

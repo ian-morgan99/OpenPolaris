@@ -15,6 +15,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import org.junit.Assume
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -80,8 +81,39 @@ class ProbeSmokeTest {
         }
     }
 
+    /**
+     * Real-mount policy gate. On `FakeMount` (default), every policy is a
+     * no-op so the suite is unchanged. On a real mount, tests are skipped
+     * (JUnit `AssumptionViolatedException` → reported as `skipped`, not
+     * `failed`) unless the caller opts in:
+     *
+     * - [motion]: causes the mount to slew/jog/tracking-start. Requires
+     *   `-Popenpolaris.realMount.allowMotion=true`.
+     * - [destructive]: persists state across power cycles (auto-level
+     *   enable, dither/limits/settling toggles). Requires
+     *   `-Popenpolaris.realMount.allowDestructive=true`.
+     *
+     * Both default to `false` on `smokeReal`, so the default run is
+     * read-only / non-moving only. Use `./gradlew smokeRealFull` (or pass
+     * both flags) to opt into the full suite.
+     */
+    private fun requireRealMountPolicy(motion: Boolean = false, destructive: Boolean = false) {
+        if (System.getProperty("openpolaris.realMount")?.toBoolean() != true) return
+        val allowMotion = System.getProperty("openpolaris.realMount.allowMotion")?.toBoolean() == true
+        val allowDestructive = System.getProperty("openpolaris.realMount.allowDestructive")?.toBoolean() == true
+        Assume.assumeTrue(
+            "skipped on real mount: -Popenpolaris.realMount.allowMotion=true is required for motion tests",
+            !motion || allowMotion,
+        )
+        Assume.assumeTrue(
+            "skipped on real mount: -Popenpolaris.realMount.allowDestructive=true is required for destructive tests",
+            !destructive || allowDestructive,
+        )
+    }
+
     @Test
     fun mount_session_connect_succeeds() = runBlocking {
+        requireRealMountPolicy()
         val ok = h.session.connect()
         assertTrue(ok, "MountSession.connect() should succeed against FakeMount")
         assertTrue(h.session.state.value.connected, "state should report connected")
@@ -89,6 +121,8 @@ class ProbeSmokeTest {
 
     @Test
     fun tracking_round_trip() = runBlocking {
+        // tracking.start + gotoAzAlt cause physical motion. Requires allowMotion.
+        requireRealMountPolicy(motion = true)
         h.session.connect()
         val tracking = TrackingController(h.session)
         tracking.start(speed = 2) // 2 == solar-like index
@@ -100,6 +134,8 @@ class ProbeSmokeTest {
 
     @Test
     fun auto_level_toggle_persists() = runBlocking {
+        // setEnabled persists across power cycles on real hardware.
+        requireRealMountPolicy(destructive = true)
         h.session.connect()
         val autoLevel = AutoLevelController(h.session)
         val scope = CoroutineScope(Dispatchers.Default)
@@ -117,6 +153,8 @@ class ProbeSmokeTest {
 
     @Test
     fun auto_level_read_tilt_round_trip() = runBlocking {
+        // read-only: just observes a status reply.
+        requireRealMountPolicy()
         h.session.connect()
         val autoLevel = AutoLevelController(h.session)
         val scope = CoroutineScope(Dispatchers.Default)
@@ -134,6 +172,8 @@ class ProbeSmokeTest {
 
     @Test
     fun goto_acknowledged() = runBlocking {
+        // goToRaDec and cancel cause physical motion. Requires allowMotion.
+        requireRealMountPolicy(motion = true)
         h.session.connect()
         // GoToController requires a TrackingController; harness wires one.
         h.goto.goToRaDec(
@@ -152,6 +192,8 @@ class ProbeSmokeTest {
 
     @Test
     fun jog_acknowledged() = runBlocking {
+        // tracking.jog causes physical motion. Requires allowMotion.
+        requireRealMountPolicy(motion = true)
         h.session.connect()
         // Code 513 = X jog; FakeMount echoes dir:X;lvl:1; ack.
         h.tracking.jog(code = 513, durationMs = 100)
@@ -160,6 +202,8 @@ class ProbeSmokeTest {
 
     @Test
     fun alignment_controller_constructs() = runBlocking {
+        // read-only: just constructs a controller against a connected session.
+        requireRealMountPolicy()
         h.session.connect()
         assertNotNull(h.alignment, "AlignmentController should be constructable against a live session")
         assertEquals(0, h.alignment.starCount, "no stars submitted yet")
@@ -167,6 +211,7 @@ class ProbeSmokeTest {
 
     @Test
     fun preview_controller_constructs() = runTest {
+        // Decoupled from MountSession entirely — no harness needed.
         // PreviewController is decoupled from MountSession — it just wraps a
         // transportFactory. Smoke-test the no-arg path.
         val preview = PreviewController()
@@ -175,6 +220,8 @@ class ProbeSmokeTest {
 
     @Test
     fun helpers_round_trip() = runBlocking {
+        // setDither/setSettling/setLimits persist across power cycles.
+        requireRealMountPolicy(destructive = true)
         h.session.connect()
 
         // refresh* uses MountSession.request() which does a blocking conn.read() and
@@ -208,6 +255,55 @@ class ProbeSmokeTest {
         assertEquals(false, h.helpers.limitsEnabled.value)
         h.helpers.setLimits(true)
         assertEquals(true, h.helpers.limitsEnabled.value)
+    }
+
+    /**
+     * Regression: proves the default `smokeReal` selection cannot include
+     * mutating tests. On a real mount with no policy flags, every
+     * `requireRealMountPolicy(motion=true)` and `(destructive=true)` call
+     * must raise [org.junit.AssumptionViolatedException] (which JUnit
+     * reports as `skipped`, not `failed`). On the FakeMount (default),
+     * the same call must be a no-op so the test itself is not skipped.
+     */
+    @Test
+    fun default_smokeReal_is_read_only() {
+        val real = System.getProperty("openpolaris.realMount")?.toBoolean() == true
+        val allowMotion = System.getProperty("openpolaris.realMount.allowMotion")?.toBoolean() == true
+        val allowDestructive = System.getProperty("openpolaris.realMount.allowDestructive")?.toBoolean() == true
+        if (!real) {
+            // FakeMount path: every policy must be a no-op. Verify both.
+            requireRealMountPolicy(motion = true)
+            requireRealMountPolicy(destructive = true)
+            return
+        }
+        // Real mount, default flags: motion and destructive must be assumed-out.
+        val sawMotionSkip = runCatching {
+            requireRealMountPolicy(motion = true)
+            false
+        }.recoverCatching { e ->
+            assertTrue(
+                e::class.qualifiedName == "org.junit.AssumptionViolatedException",
+                "motion policy must raise AssumptionViolatedException, got ${e::class.simpleName}",
+            )
+            true
+        }.getOrElse { throw it }
+        val sawDestructiveSkip = runCatching {
+            requireRealMountPolicy(destructive = true)
+            false
+        }.recoverCatching { e ->
+            assertTrue(
+                e::class.qualifiedName == "org.junit.AssumptionViolatedException",
+                "destructive policy must raise AssumptionViolatedException, got ${e::class.simpleName}",
+            )
+            true
+        }.getOrElse { throw it }
+        assertTrue(sawMotionSkip, "default smokeReal must skip motion tests on real mount")
+        assertTrue(sawDestructiveSkip, "default smokeReal must skip destructive tests on real mount")
+        // If both flags are flipped, the policies must NOT skip.
+        if (allowMotion && allowDestructive) {
+            requireRealMountPolicy(motion = true)
+            requireRealMountPolicy(destructive = true)
+        }
     }
 }
 

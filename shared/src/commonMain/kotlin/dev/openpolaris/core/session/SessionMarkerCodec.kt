@@ -1,6 +1,7 @@
 package dev.openpolaris.core.session
 
 import dev.openpolaris.core.domain.MountMode
+import dev.openpolaris.core.io.Utf8
 
 /**
  * FNV-1a 64-bit checksum and the canonical "fields-for-hashing" string form.
@@ -52,7 +53,7 @@ internal object SessionMarkerCodec {
                 append(k).append('=').append(v).append(';')
             }
         }
-        return fnv1a64(canonical.toByteArray(Charsets.UTF_8))
+        return fnv1a64(Utf8.encode(canonical))
     }
 
     /** FNV-1a 64-bit, byte-at-a-time. Public so tests can sanity-check the algorithm. */

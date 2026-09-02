@@ -1,5 +1,7 @@
 package dev.openpolaris.core.astro
 
+import kotlin.math.asin
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
@@ -29,7 +31,7 @@ object Sun {
         val l0 = AstroMath.normalizeDeg(280.46646 + 36000.76983 * t + 0.0003032 * t * t)
         // Mean anomaly (deg), Meeus 25.3
         val m = AstroMath.normalizeDeg(357.52911 + 35999.05029 * t - 0.0001537 * t * t)
-        val mRad = Math.toRadians(m)
+        val mRad = AstroMath.toRadians(m)
 
         // Equation of centre (deg), Meeus 25.4
         val c = sin(mRad) * (1.914602 - 0.004817 * t - 0.000014 * t * t) +
@@ -40,19 +42,19 @@ object Sun {
         val trueLong = l0 + c
         // Apparent longitude (corrected for nutation/aberration ~0.0057°)
         val omega = 125.04 - 1934.136 * t
-        val apparentLong = trueLong - 0.00569 - 0.00478 * sin(Math.toRadians(omega))
+        val apparentLong = trueLong - 0.00569 - 0.00478 * sin(AstroMath.toRadians(omega))
 
         // Obliquity of the ecliptic, Meeus 22.2
         val seconds = 21.448 - t * (46.8150 + t * (0.00059 - t * 0.001813))
         val epsilon0 = 23.0 + (26.0 + seconds / 60.0) / 60.0
-        val epsilon = epsilon0 + 0.00256 * cos(Math.toRadians(omega))
+        val epsilon = epsilon0 + 0.00256 * cos(AstroMath.toRadians(omega))
 
-        val lambdaR = Math.toRadians(apparentLong)
-        val epsR = Math.toRadians(epsilon)
+        val lambdaR = AstroMath.toRadians(apparentLong)
+        val epsR = AstroMath.toRadians(epsilon)
         val raRad = kotlin.math.atan2(cos(epsR) * sin(lambdaR), cos(lambdaR))
-        val raDeg = AstroMath.normalizeDeg(Math.toDegrees(raRad))
+        val raDeg = AstroMath.normalizeDeg(AstroMath.toDegrees(raRad))
         val decRad = kotlin.math.asin(sin(epsR) * sin(lambdaR))
-        val decDeg = Math.toDegrees(decRad)
+        val decDeg = AstroMath.toDegrees(decRad)
         return Equatorial(raDeg, decDeg)
     }
 
@@ -95,10 +97,10 @@ object Moon {
         // truncated set from Meeus table 47.A — full table is ~60 terms;
         // the dozen below reach ~0.2° geocentric accuracy, which is the
         // "low-precision" tier Meeus describes for civil purposes.
-        val dRad = Math.toRadians(d)
-        val mRad = Math.toRadians(m)
-        val mpRad = Math.toRadians(mp)
-        val fRad = Math.toRadians(f)
+        val dRad = AstroMath.toRadians(d)
+        val mRad = AstroMath.toRadians(m)
+        val mpRad = AstroMath.toRadians(mp)
+        val fRad = AstroMath.toRadians(f)
 
         val sumL = sin(dRad) * (6.289) +
             sin(2 * dRad) * (1.274) +
@@ -132,20 +134,20 @@ object Moon {
         val seconds = 21.448 - t * (46.8150 + t * (0.00059 - t * 0.001813))
         val epsilon0 = 23.0 + (26.0 + seconds / 60.0) / 60.0
         val omega = 125.04 - 1934.136 * t
-        val epsilon = epsilon0 + 0.00256 * kotlin.math.cos(Math.toRadians(omega))
+        val epsilon = epsilon0 + 0.00256 * cos(AstroMath.toRadians(omega))
 
-        val lambdaR = Math.toRadians(lambda)
-        val betaR = Math.toRadians(beta)
-        val epsR = Math.toRadians(epsilon)
-        val raRad = kotlin.math.atan2(
+        val lambdaR = AstroMath.toRadians(lambda)
+        val betaR = AstroMath.toRadians(beta)
+        val epsR = AstroMath.toRadians(epsilon)
+        val raRad = atan2(
             sin(lambdaR) * cos(epsR) - tan(betaR) * sin(epsR),
             cos(lambdaR),
         )
-        val raDeg = AstroMath.normalizeDeg(Math.toDegrees(raRad))
-        val decRad = kotlin.math.asin(
+        val raDeg = AstroMath.normalizeDeg(AstroMath.toDegrees(raRad))
+        val decRad = asin(
             sin(betaR) * cos(epsR) + cos(betaR) * sin(epsR) * sin(lambdaR),
         )
-        val decDeg = Math.toDegrees(decRad)
+        val decDeg = AstroMath.toDegrees(decRad)
         return Equatorial(raDeg, decDeg)
     }
 

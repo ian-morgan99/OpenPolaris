@@ -23,6 +23,7 @@ package dev.openpolaris.core.domain
  */
 object ProtocolTrace {
     private val TRUTHY = setOf("1", "true", "yes", "on")
+    private val HEX = "0123456789abcdef"
 
     // Re-checked on every call so the gate can be flipped from a test
     // (e.g. setProperty at the top of a diagnostic test). The cost is
@@ -45,7 +46,7 @@ object ProtocolTrace {
     fun logBytes(tag: String, prefix: String, bytes: ByteArray, max: Int = 256) {
         if (!enabled()) return
         val shown = if (bytes.size <= max) bytes else bytes.copyOfRange(0, max)
-        val hex = shown.joinToString(" ") { "%02x".format(it) }
+        val hex = shown.joinToString(" ") { byte -> HEX[byte.toInt().ushr(4).and(0xF)].toString() + HEX[byte.toInt().and(0xF)] }
         val tail = if (bytes.size > max) " …(+${bytes.size - max} more)" else ""
         println("[trace:$tag] $prefix ${bytes.size}B: $hex$tail")
     }

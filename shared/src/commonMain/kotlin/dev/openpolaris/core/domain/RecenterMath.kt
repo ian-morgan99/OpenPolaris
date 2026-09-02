@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import kotlin.math.PI
 import kotlin.math.abs
 
 /**
@@ -47,9 +48,9 @@ class RecenterMath(
     private val maxOffsetRad: Float = MAX_OFFSET_RAD,
 ) {
     /** @Volatile equivalent: read on the GL thread, written on the UI thread. */
-    @Volatile var yawOffset: Float = 0f
+    @kotlin.concurrent.Volatile var yawOffset: Float = 0f
         private set
-    @Volatile var pitchOffset: Float = 0f
+    @kotlin.concurrent.Volatile var pitchOffset: Float = 0f
         private set
 
     /**
@@ -87,8 +88,8 @@ class RecenterMath(
 
     companion object {
         /** ~10 deg. Comfortably inside the Cardboard shader's 34 deg / 28.6 deg clamps. */
-        const val MAX_OFFSET_RAD: Float = 10f * (Math.PI.toFloat() / 180f)
+        const val MAX_OFFSET_RAD: Float = 10f * (PI.toFloat() / 180f)
         /** "Already centred" radius for debouncing the recenter toast. */
-        const val RECENTER_EPSILON_RAD: Float = 0.5f * (Math.PI.toFloat() / 180f)
+        const val RECENTER_EPSILON_RAD: Float = 0.5f * (PI.toFloat() / 180f)
     }
 }

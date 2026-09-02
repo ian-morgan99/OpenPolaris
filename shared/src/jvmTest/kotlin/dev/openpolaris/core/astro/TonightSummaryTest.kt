@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class TonightSummaryTest {
 
     /** A tiny but representative catalog: Orion Nebula, Polaris, and Vega. */
-    private val tinyCatalog: Catalog = Catalog.of(
+    private val tinyCatalog: Catalog = CatalogParser.of(
         listOf(
             AstroObject(
                 designation = "M42",
@@ -133,16 +133,16 @@ class TonightSummaryTest {
 
     @Test
     fun `max targets caps result`() {
-        val catalog = Catalog.of(
+        val catalog = CatalogParser.of(
             (1..20).map { i ->
                 AstroObject(
                     designation = "X$i",
-                    name = null,
+                    name = "",
                     type = ObjectType.STAR,
                     raDeg = (i * 18.0) % 360.0,
                     decDeg = 0.0, // On equator → above horizon half the time everywhere
                     magnitude = 6.0 - i / 20.0, // bright to dim
-                    constellation = null,
+                    constellation = "",
                 )
             },
             version = 1,

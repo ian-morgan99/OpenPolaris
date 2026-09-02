@@ -1,6 +1,7 @@
 package dev.openpolaris.core.solver
 
 import dev.openpolaris.core.astro.AstroMath
+import dev.openpolaris.core.domain.SystemMillis
 
 /**
  * Plate-solver contract for the phone app.
@@ -139,6 +140,6 @@ data class SolveResult(
          * `System.currentTimeMillis()` mock. Production callers get
          * wall-clock time.
          */
-        internal var currentTimeMillisProvider: () -> Long = { System.currentTimeMillis() }
+        internal var currentTimeMillisProvider: () -> Long = { SystemMillis.now() }
     }
 }

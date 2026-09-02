@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.solver.SolveResult
 import kotlin.math.cos
 import kotlin.math.sin
@@ -84,7 +85,7 @@ object SolveTargetProjector {
         require(fovYDeg > 0.0) { "fovYDeg must be >0, was $fovYDeg" }
 
         val decMid = 0.5 * (target.decDeg + field.decDeg)
-        val cosDec = cos(Math.toRadians(decMid))
+        val cosDec = cos(AstroMath.toRadians(decMid))
 
         // Small-angle: ΔRA → x via the cos(δ) factor so a 1° RA step
         // at the equator is the same arc-length as a 1° Dec step.

@@ -109,7 +109,7 @@ class OnBoardInstallWatcher(
         /** Single-watcher, in-memory cursor. The default for
          *  tests so each test starts from offset 0. */
         class InMemory : MlogCursor {
-            @Volatile private var offset: Long = 0
+            @kotlin.concurrent.Volatile private var offset: Long = 0
             override fun read(): Long = offset
             override fun write(offset: Long) { this.offset = offset }
         }
@@ -222,7 +222,6 @@ class OnBoardInstallWatcher(
         // Production clock source. Wraps the JVM-side
         // System.currentTimeMillis(). Tests should always
         // inject their own nowMs() so virtual time advances.
-        @JvmStatic
         val SYSTEM_NOW: () -> Long = { SystemMillis.now() }
         /**
          * Substring sentinels that, when seen on the Mlog, mark

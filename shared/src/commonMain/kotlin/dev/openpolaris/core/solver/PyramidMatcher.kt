@@ -188,10 +188,10 @@ class PyramidMatcher(
      * then scaled to pixel coordinates with the frame centred at (w/2, h/2).
      */
     private fun project(s: CatalogStar, centre: CatalogStar, frameW: Double, frameH: Double): Point {
-        val ra0 = Math.toRadians(centre.raDeg)
-        val dec0 = Math.toRadians(centre.decDeg)
-        val ra = Math.toRadians(s.raDeg)
-        val dec = Math.toRadians(s.decDeg)
+        val ra0 = AstroMath.toRadians(centre.raDeg)
+        val dec0 = AstroMath.toRadians(centre.decDeg)
+        val ra = AstroMath.toRadians(s.raDeg)
+        val dec = AstroMath.toRadians(s.decDeg)
 
         val cosC = sin(dec0) * sin(dec) + cos(dec0) * cos(dec) * cos(ra - ra0)
         if (cosC < 1e-6) return Point(frameW / 2.0, frameH / 2.0) // behind the tangent plane

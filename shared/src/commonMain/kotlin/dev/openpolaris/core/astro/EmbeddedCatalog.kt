@@ -28,7 +28,7 @@ object EmbeddedCatalog {
      * to a platform-specific reader injected via [reader]; the default
      * null reader lets tests inject a string directly via [parse].
      */
-    fun parse(text: String): Catalog = Catalog.parse(text)
+    fun parse(text: String): Catalog = CatalogParser.parse(text)
 
     /**
      * Convenience for callers that already have the JSON text in hand
@@ -36,7 +36,7 @@ object EmbeddedCatalog {
      * natively). This wrapper exists so the call-site stays symmetric
      * with the bundled version above.
      */
-    fun fromJson(jsonText: String): Catalog = Catalog.parse(jsonText)
+    fun fromJson(jsonText: String): Catalog = CatalogParser.parse(jsonText)
 
     /**
      * Combine multiple embedded shards into one [Catalog]. The
@@ -51,13 +51,19 @@ object EmbeddedCatalog {
         val catalogs = paths.mapNotNull { p ->
             val text = reader(p) ?: return@mapNotNull null
             try {
-                Catalog.parse(text)
+                CatalogParser.parse(text)
             } catch (e: Exception) {
                 // Don't blow up the whole app for one bad shard; log and skip.
                 null
             }
         }
-        return if (catalogs.isEmpty()) Catalog.of(emptyList(), version = 0)
-        else Catalog.merge(*catalogs.toTypedArray())
+        return if (catalogs.isEmpty()) {
+            Catalog(version = 0, objects = emptyList())
+        } else {
+            Catalog(
+                version = catalogs.maxOf { it.version },
+                objects = catalogs.flatMap { it.objects },
+            )
+        }
     }
 }

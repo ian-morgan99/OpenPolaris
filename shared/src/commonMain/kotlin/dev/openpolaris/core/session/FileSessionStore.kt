@@ -3,6 +3,7 @@ package dev.openpolaris.core.session
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import dev.openpolaris.core.io.Utf8
 
 /**
  * File-backed persistence for [SessionMarker]. 3c.2/3c.3 from issue #7.
@@ -57,7 +58,7 @@ class FileSessionStore(
         if (bytes.isEmpty()) return null
 
         val text = try {
-            bytes.toString(Charsets.UTF_8)
+            Utf8.decode(bytes, 0, bytes.size)
         } catch (_: Exception) {
             return null
         }
@@ -94,7 +95,7 @@ class FileSessionStore(
         }
 
         // Byte size cap on the encoded form, too — symmetric with the read cap.
-        if (encoded.toByteArray(Charsets.UTF_8).size > sizeLimitBytes) {
+        if (Utf8.encode(encoded).size > sizeLimitBytes) {
             return Result.failure(SessionStoreException("marker exceeds size limit"))
         }
 
@@ -116,7 +117,7 @@ class FileSessionStore(
         }
 
         return try {
-            file.writeBytes(encoded.toByteArray(Charsets.UTF_8))
+            file.writeBytes(Utf8.encode(encoded))
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(SessionStoreException("write failed", e))

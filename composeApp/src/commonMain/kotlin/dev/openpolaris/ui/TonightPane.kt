@@ -200,7 +200,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                             value = "${t.type.name.lowercase().replace('_', ' ')}" +
                                 "  Alt ${t.altitudeDeg.format2()}°  Az ${t.azimuthDeg.format2()}°" +
                                 (t.magnitude?.let { "  mag ${"%.1f".format(it)}" } ?: "") +
-                                (t.constellation?.let { "  in $it" } ?: ""),
+                                (if (t.constellation.isNullOrEmpty()) "" else "  in ${t.constellation}"),
                         )
                         TextButton(onClick = {
                             val obj = vm.tonightCatalog.objects.firstOrNull { it.designation == t.designation }
@@ -208,7 +208,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                 vm.slewToObject(
                                     dev.openpolaris.core.astro.AstroObject(
                                         designation = t.designation,
-                                        name = t.name,
+                                        name = t.name ?: "",
                                         type = t.type,
                                         raDeg = t.raDeg, decDeg = t.decDeg,
                                     )

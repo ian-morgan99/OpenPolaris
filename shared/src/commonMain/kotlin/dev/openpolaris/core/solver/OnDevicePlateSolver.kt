@@ -1,6 +1,7 @@
 package dev.openpolaris.core.solver
 
 import dev.openpolaris.core.astro.AstroMath
+import dev.openpolaris.core.domain.SystemMillis
 
 /**
  * On-device plate-solver: pyramid star-pattern match against a [StarCatalog].
@@ -83,7 +84,7 @@ class OnDevicePlateSolver(
             decDeg = match.centerDecDeg,
             confidence = match.confidence,
             matchedStars = match.matchedStars,
-            timestampMs = System.currentTimeMillis(),
+            timestampMs = SystemMillis.now(),
         )
     }
 }

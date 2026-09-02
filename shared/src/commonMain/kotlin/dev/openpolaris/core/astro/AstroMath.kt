@@ -1,6 +1,7 @@
 package dev.openpolaris.core.astro
 
 import dev.openpolaris.core.domain.currentEpochMillis
+import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -19,6 +20,12 @@ object AstroMath {
 
     /** Result of an RA/Dec → Alt/Az transform. */
     data class Horizontal(val azimuthDeg: Double, val altitudeDeg: Double)
+
+    /** Multiplatform `Math.toRadians` equivalent. */
+    fun toRadians(deg: Double): Double = deg * PI / 180.0
+
+    /** Multiplatform `Math.toDegrees` equivalent. */
+    fun toDegrees(rad: Double): Double = rad * 180.0 / PI
 
     /** Result of an Alt/Az → RA/Dec transform. */
     data class Equatorial(val raDeg: Double, val decDeg: Double)
@@ -57,15 +64,15 @@ object AstroMath {
      */
     fun toHorizontal(raDeg: Double, decDeg: Double, latDeg: Double, lstDeg: Double): Horizontal {
         val ha = normalizeDeg(lstDeg - raDeg) // hour angle
-        val haR = Math.toRadians(ha)
-        val decR = Math.toRadians(decDeg)
-        val latR = Math.toRadians(latDeg)
+        val haR = toRadians(ha)
+        val decR = toRadians(decDeg)
+        val latR = toRadians(latDeg)
 
         val sinAlt = sin(decR) * sin(latR) + cos(decR) * cos(latR) * cos(haR)
-        val alt = Math.toDegrees(asin(sinAlt.coerceIn(-1.0, 1.0)))
+        val alt = toDegrees(asin(sinAlt.coerceIn(-1.0, 1.0)))
 
         // Azimuth from North, increasing Eastward (Meeus 13.5 with N-based convention).
-        val azS = Math.toDegrees(
+        val azS = toDegrees(
             atan2(sin(haR), cos(haR) * sin(latR) - tan(decR) * cos(latR))
         )
         return Horizontal(normalizeDeg(azS + 180.0), alt)
@@ -87,17 +94,17 @@ object AstroMath {
      * @param lstDeg local sidereal time, degrees
      */
     fun toEquatorial(azDeg: Double, altDeg: Double, latDeg: Double, lstDeg: Double): Equatorial {
-        val azR = Math.toRadians(azDeg)
-        val altR = Math.toRadians(altDeg)
-        val latR = Math.toRadians(latDeg)
+        val azR = toRadians(azDeg)
+        val altR = toRadians(altDeg)
+        val latR = toRadians(latDeg)
 
         // Meeus 13.6, expressed in N-based azimuth.  Derived from the S-based
         // form by substituting cos(azS) = -cos(azN) and sin(azS) = -sin(azN)
         // (since azN = (azS + 180) mod 360).
         val sinDec = cos(altR) * cos(azR) * cos(latR) + sin(altR) * sin(latR)
-        val dec = Math.toDegrees(asin(sinDec.coerceIn(-1.0, 1.0)))
+        val dec = toDegrees(asin(sinDec.coerceIn(-1.0, 1.0)))
 
-        val ha = Math.toDegrees(
+        val ha = toDegrees(
             atan2(
                 -cos(altR) * sin(azR),
                 -cos(altR) * cos(azR) * sin(latR) + sin(altR) * cos(latR),

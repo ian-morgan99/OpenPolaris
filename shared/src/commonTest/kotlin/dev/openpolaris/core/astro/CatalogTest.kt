@@ -27,7 +27,7 @@ class CatalogTest {
               ]
             }
         """.trimIndent()
-        val cat = Catalog.parse(json)
+        val cat = CatalogParser.parse(json)
         assertEquals(1, cat.objects.size)
         assertEquals("Polaris", cat.objects[0].designation)
     }
@@ -112,18 +112,18 @@ class CatalogTest {
 
     @Test
     fun mergeDeduplicatesByDesignation() {
-        val a = Catalog.parse(
+        val a = CatalogParser.parse(
             """{"version":1,"objects":[
               |{"designation":"X","name":"X","type":"STAR","raDeg":1.0,"decDeg":2.0,"magnitude":1.0,"constellation":""}
               |]}""".trimMargin()
         )
-        val b = Catalog.parse(
+        val b = CatalogParser.parse(
             """{"version":1,"objects":[
               |{"designation":"X","name":"X v2","type":"STAR","raDeg":3.0,"decDeg":4.0,"magnitude":2.0,"constellation":""},
               |{"designation":"Y","name":"Y","type":"STAR","raDeg":5.0,"decDeg":6.0,"magnitude":3.0,"constellation":""}
               |]}""".trimMargin()
         )
-        val merged = Catalog.merge(a, b)
+        val merged = CatalogParser.merge(a, b)
         // X deduped (last-write-wins, so X.name == "X v2"); Y added.
         assertEquals(2, merged.objects.size)
         val x = merged.objects.first { it.designation == "X" }
@@ -188,6 +188,6 @@ class CatalogTest {
             ?.getResource("catalog.json")
             ?.readText()
             ?: error("catalog.json not on test classpath")
-        return Catalog.parse(text)
+        return CatalogParser.parse(text)
     }
 }

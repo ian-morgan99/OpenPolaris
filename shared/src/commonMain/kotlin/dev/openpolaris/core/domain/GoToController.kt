@@ -7,6 +7,9 @@ import dev.openpolaris.core.solver.SolveHint
 import dev.openpolaris.core.solver.SolveResult
 import dev.openpolaris.core.solver.StarDetection
 import kotlinx.coroutines.delay
+import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Full "real GoTo": target RA/Dec → Alt/Az via [AstroMath] (time + location),
@@ -163,11 +166,11 @@ class GoToController(
 
         /** Great-circle-ish distance on the sphere between two az/alt pairs, degrees. */
         fun angularDistance(az1: Double, alt1: Double, az2: Double, alt2: Double): Double {
-            val a1 = Math.toRadians(alt1)
-            val a2 = Math.toRadians(alt2)
-            val dAz = Math.toRadians(shortestAngle(az2 - az1))
-            val cosD = Math.sin(a1) * Math.sin(a2) + Math.cos(a1) * Math.cos(a2) * Math.cos(dAz)
-            return Math.toDegrees(Math.acos(cosD.coerceIn(-1.0, 1.0)))
+            val a1 = AstroMath.toRadians(alt1)
+            val a2 = AstroMath.toRadians(alt2)
+            val dAz = AstroMath.toRadians(shortestAngle(az2 - az1))
+            val cosD = sin(a1) * sin(a2) + cos(a1) * cos(a2) * cos(dAz)
+            return AstroMath.toDegrees(acos(cosD.coerceIn(-1.0, 1.0)))
         }
 
         fun angularDistance(yawPitch: Pair<Double, Double>, target: Pair<Double, Double>): Double =

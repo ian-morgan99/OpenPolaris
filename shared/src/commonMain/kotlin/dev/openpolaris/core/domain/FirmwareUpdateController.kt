@@ -441,10 +441,10 @@ class FirmwareUpdateController(
     }
 
     private suspend fun pollProgress(onStatus: (Status) -> Unit): Status = coroutineScope {
-        val deadline = System.currentTimeMillis() + installTimeoutMs
+        val deadline = currentEpochMillis() + installTimeoutMs
         var doneStreak = 0
         var lastPercent = 0
-        while (System.currentTimeMillis() < deadline) {
+        while (currentEpochMillis() < deadline) {
             if (!isActive) return@coroutineScope Status.Failed("cancelled while polling")
             val r = session.request<ProgressParsed>(
                 code = Codes.SYS_FW_PROGRESS,

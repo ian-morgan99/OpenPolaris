@@ -292,7 +292,7 @@ class MountSession(
                     timeoutMs = 2000L,
                 ) { it }
                 if (handshake !is CmdResult.Ok) {
-                    throw java.io.IOException("handshake failed: $handshake")
+                    throw ConnectionException("handshake failed: $handshake")
                 }
                 // App handshake: 820 → 821 (if needed) → 823. Without this
                 // the gimbal silently drops almost every command (526
@@ -316,22 +316,22 @@ class MountSession(
                 // Tagging with the step name (handshake / 820 / 821 / 823 /
                 // other) makes the message self-disclosing.
                 val reason = when {
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("handshake failed:") == true ->
                         "no response to 284 handshake (gimbal may be in deep sleep — try Wake)"
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("auth probe (820) failed:") == true ->
                         "no response to 820 auth probe within 10s"
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("auth token (821) failed:") == true ->
                         "no response to 821 token within 10s"
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("app hello (823) failed:") == true ->
                         "no response to 823 hello within 10s"
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("gimbal rejected connection password") == true ->
                         "821 reported ret≠0 — wrong password"
-                    e is java.io.IOException &&
+                    e is ConnectionException &&
                         e.message?.startsWith("gimbal requires connection password") == true ->
                         "gimbal requires a connection password (none configured)"
                     else -> e.message ?: e::class.simpleName ?: "unknown"
@@ -399,7 +399,7 @@ class MountSession(
      *      not the one we sent — useful for telemetry. We don't
      *      branch on it (the decompiled Android app doesn't either).
      *
-     * Throws [java.io.IOException] (via the [tryConnect] catch) on
+     * Throws [ConnectionException] (via the [tryConnect] catch) on
      * any non-`Ok` step, so a connect-time handshake failure
      * surfaces as `connect() == false` to the caller.
      *
@@ -420,7 +420,7 @@ class MountSession(
             timeoutMs = 10000L,
         ) { it }
         if (probe !is CmdResult.Ok) {
-            throw java.io.IOException("auth probe (820) failed: $probe")
+            throw ConnectionException("auth probe (820) failed: $probe")
         }
         val needed = probe.value[NEEDED]?.trim() == "1"
         // 2. Token step: only when the gimbal demands one AND we
@@ -432,7 +432,7 @@ class MountSession(
         // required" status via the resulting [connect] == false.
         if (needed) {
             val password = auth.password
-                ?: throw java.io.IOException(
+                ?: throw ConnectionException(
                     "gimbal requires connection password but AuthConfig.password is null",
                 )
             val token = request<ResponseParser.Frame>(
@@ -441,7 +441,7 @@ class MountSession(
                 timeoutMs = 10000L,
             ) { it }
             if (token !is CmdResult.Ok) {
-                throw java.io.IOException("auth token (821) failed: $token")
+                throw ConnectionException("auth token (821) failed: $token")
             }
             // The token reply also carries ret:0/1. ret:1 means the
             // gimbal rejected our password. Convert to a clean
@@ -449,7 +449,7 @@ class MountSession(
             // session.
             val ret = token.value[RET]?.trim()
             if (ret != null && ret != "0") {
-                throw java.io.IOException(
+                throw ConnectionException(
                     "gimbal rejected connection password (821 ret=$ret)",
                 )
             }
@@ -482,7 +482,7 @@ class MountSession(
             ProtocolTrace.log("auth", "823 hello ← sent (no reply expected)")
         } catch (e: Exception) {
             ProtocolTrace.log("auth", "823 hello ← send failed: ${e.message}")
-            throw java.io.IOException("app hello (823) send failed: ${e.message}", e)
+            throw ConnectionException("app hello (823) send failed: ${e.message}", e)
         }
     }
 
@@ -690,7 +690,7 @@ class MountSession(
      */
     suspend fun sendOnly(code: Int, payload: String = EMPTY_CONTENT) {
         val conn = connection
-            ?: throw java.io.IOException("not connected")
+            ?: throw ConnectionException("not connected")
         sendMutex.withLock {
             val frame = command(code) { putRaw(payload) }
             ProtocolTrace.logBytes("writer", "→ code=$code (no-reply)", frame)
@@ -745,7 +745,7 @@ class MountSession(
                 snapshot
             }
         for (w in waiters) {
-            w.completeExceptionally(java.io.IOException("session closed"))
+            w.completeExceptionally(ConnectionException("session closed"))
         }
         connection?.close()
         connection = null
@@ -768,7 +768,7 @@ class MountSession(
      * what [disconnect] does). After [shutdown]:
      *  - [connect] is forbidden and throws [IllegalStateException].
      *  - The reader coroutine is cancelled; any in-flight [request]
-     *    waiters are failed with a [java.io.IOException] ("session
+     *    waiters are failed with a [ConnectionException] ("session
      *    closed") the same way they would be on [disconnect].
      *  - All state flows ([state], [frames], [tiltDropsNoSubscriber]) are reset so a
      *    caller that still holds references sees a clean "never used"

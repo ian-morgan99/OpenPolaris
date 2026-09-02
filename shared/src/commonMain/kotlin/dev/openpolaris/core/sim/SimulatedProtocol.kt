@@ -1,5 +1,6 @@
 package dev.openpolaris.core.sim
 
+import dev.openpolaris.core.io.Utf8
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import dev.openpolaris.core.protocol.ResponseParser
@@ -519,7 +520,7 @@ class SimulatedProtocol {
     /** Convenience: parse a complete frame and feed it to [handle]. */
     fun handleFrame(frame: ResponseParser.Frame): List<ByteArray> = handle(frame.code, frame.fields)
 
-    private fun response(ascii: String): ByteArray = ascii.toByteArray(Charsets.US_ASCII)
+    private fun response(ascii: String): ByteArray = Utf8.encodeAscii(ascii)
 }
 
 /** Lightweight file record used by the simulator's FILE_LIST reply. */

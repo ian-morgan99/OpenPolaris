@@ -104,7 +104,24 @@ data class SessionMarker(
             nowEpochMs: Long,
         ): String {
             val (y, mo, d, hh, mm) = civilFromEpochMs(nowEpochMs)
-            return "$designation %04d-%02d-%02d %02d:%02d".format(y, mo, d, hh, mm)
+            // Hand-rolled zero-padded formatter: JVM-only String.format
+            // ("%04d") is unavailable in commonMain. Negative years are
+            // not produced by civilFromDays() (Hinnant's algorithm always
+            // returns a non-negative year for the proleptic Gregorian
+            // calendar), so we can pad to a fixed width without a sign.
+            return buildString {
+                append(designation)
+                append(' ')
+                append(y.toString().padStart(4, '0'))
+                append('-')
+                append(mo.toString().padStart(2, '0'))
+                append('-')
+                append(d.toString().padStart(2, '0'))
+                append(' ')
+                append(hh.toString().padStart(2, '0'))
+                append(':')
+                append(mm.toString().padStart(2, '0'))
+            }
         }
 
         /** Five-tuple (year, month, day, hour, minute) in UTC. */

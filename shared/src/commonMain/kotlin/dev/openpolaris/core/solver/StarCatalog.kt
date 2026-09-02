@@ -1,5 +1,8 @@
 package dev.openpolaris.core.solver
 
+import dev.openpolaris.core.astro.AstroMath
+import kotlin.math.cos
+
 /**
  * A single catalog entry. Equatorial coordinates in J2000.
  *
@@ -69,7 +72,7 @@ interface StarCatalog {
         // 30° is enough to find k stars in any realistic catalog density
         // up to mag 6.5; for a denser catalog, override.
         val candidates = starsWithin(raDeg, decDeg, 30.0)
-        val cosDec = Math.cos(Math.toRadians(decDeg)).coerceAtLeast(1e-6)
+        val cosDec = cos(AstroMath.toRadians(decDeg)).coerceAtLeast(1e-6)
         return candidates
             .sortedBy {
                 val dra = it.raDeg - raDeg
@@ -100,7 +103,7 @@ class InMemoryCatalog(
         stars.maxOfOrNull { it.mag } ?: Double.POSITIVE_INFINITY
 
     override fun starsWithin(raDeg: Double, decDeg: Double, radiusDeg: Double): List<CatalogStar> {
-        val cosDec = Math.cos(Math.toRadians(decDeg)).coerceAtLeast(1e-6)
+        val cosDec = cos(AstroMath.toRadians(decDeg)).coerceAtLeast(1e-6)
         val r2 = radiusDeg * radiusDeg
         val out = ArrayList<CatalogStar>(16)
         for (s in stars) {

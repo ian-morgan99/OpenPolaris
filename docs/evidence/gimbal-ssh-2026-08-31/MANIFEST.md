@@ -74,6 +74,7 @@ sensitive-content handling this bundle applies.
 | `etc-passwd.txt` | The entire `/etc/shadow` block was **removed** (replaced with an explanatory comment block). | A single root hash is the highest-sensitivity item; we do not commit any of the shadow content. |
 | `dmesg.txt` | Two client-device MACs (`a6:cf:f9:ea:ea:49`, `4c:23:38:c8:7b:6f`) replaced with `[REDACTED:client-mac]`. | These are user devices (phones/PCs) that connected to the gimbal's AP — they leak the user's network info and have no analytical value. |
 | `dmesg.txt` | The gimbal's own MAC `48:e7:da:d4:b5:73` is **retained** (it appears in many lines). | It is the device-under-test identifier; researchers correlating findings to this specific Polaris need it. |
+| `probes-20260901-112625/01-first-look.txt`, `live-probe-2026-09-01-11-26/01-first-look.txt` | Same client-MAC replacement applied to the dmesg-equivalent content these probe bundles re-emit (`4c:23:38:c8:7b:6f` → `[REDACTED:client-mac]`). | The probe subdirectory of this bundle and the sibling `live-probe-2026-09-01-11-26/` bundle were captured from the same gimbal and contain the same dmesg output, so the same redaction had to be applied to keep the lint coverage honest. The original `dmesg.txt` redaction entry above was the seed; the audit (`2026-09-01`) found the two probe files were missed at the original redaction pass. |
 | `hostkeys.txt` | Replaced `sh: ssh-keygen: not found` (4×) with an explanatory note. | No actual key material leaked (the gimbal's PATH did not include `ssh-keygen`), but the file is now a clear negative result rather than four cryptic errors. |
 | `README.md`, `HANDOVER-2026-08-31.md` | Removed `polaris-re-results.md` link that pointed into a per-machine `.copilot/session-state/...` path. Removed two absolute `/home/ian/...` build-tree references. Narrowed "authoritative ground truth" / "entire firmware-analysis pipeline" over-claims to "observed evidence from this device/firmware" and itemised which static RE predictions were checked. | The bundle should not leak user filesystem layout, link into a per-machine session state, or make over-broad claims that the evidence does not support. |
 
@@ -93,28 +94,44 @@ that should have been redacted, please file an issue.
   capture — see `app-conf.txt`).
 - The literal value of the root password hash (redacted; see above).
 
-## SHA-256 of every file in this directory (post-redaction)
+## SHA-256 of every file in this bundle (post-redaction)
 
 These hashes describe the bundle as committed. Any change to a file
 in this directory (including this manifest) will change its hash.
+
+This block was last refreshed `2026-09-01` after the audit pass for
+issue #29 found that two probe files (`probes-20260901-112625/01-first-look.txt`
+and the sibling `live-probe-2026-09-01-11-26/01-first-look.txt`) carried
+the same un-redacted client MAC as the original `dmesg.txt`, and that
+two helper shell scripts (`post-fw-update-probe.sh`, `wake-and-probe.sh`)
+plus the probe subdirectory were not previously included in the hash
+list at all. The same audit also refreshed the hashes for files whose
+content drifted from the original capture (e.g. `HANDOVER-2026-08-31.md`,
+`README.md`) — those drifts are non-sensitive (narrative/text edits) and
+do not appear in the redactions table.
 
 ```
 017a8aabf200fd9de4a96a46e779784ec9267313e052be471a399efe9dff244d  etc-passwd.txt
 11bdc08c7a9820805f2a8a512e7e96e6056a0c8cbb9337d3280161fd834c5089  control-plane-probes.txt
 13847dc52f1924659c006edc620d6b1fbab25e4d81faa67997ac8ec748d023ee  dmesg.txt
+13b754bca11e028fa8bb129d147079a16625beabe07e7ee31baf6bd85d749db7  HANDOVER-2026-08-31.md
 19a552096681ec57a3c83245bee05abe6a515178ecd71e04e047122736afc37d  meminfo.txt
+2130fb8bce4d6accc375dcca63852cfeedccb01b23e5c8d7daab41df0cf1f1dd  probes-20260901-112625/02-cmdline.txt
 3476473d66aa9f08fe11e32a2b0c39ba1219e6bc13dc73921b1b8f036bac46ad  app-conf.txt
 35c01c7f2dfaecc0367a4fa85b70093626e7cdabb69e8326945abcdefb778cab  app-bin.txt
-40e348bda6b980e29ab980fa9f848bb5cf6f95834efe673505078a0f63c36024  README.md
+40824e5b5667f889ccf8628ff468362cee87c1fc8bceca4f402435500e5eb20d  wake-and-probe.sh
 4d0c7b3ad90fa5dd90ecbb931cf868c6a1ef0a914d1b046e2394ccb73131b587  var.txt
 53697cceef9303f875dab3304e82be6fb975511f525b34c5b4ad3989c2de1759  ip.txt
 54986fb1255ba44fc2d4dc727ab4889e3e15ee65373e14ea3538ffe0e812f249  sshd_config.txt
 57a3de9150c5a393a37373d88c1b08a39884b7986f3b2d6f130395da81b90110  dev.txt
+91fbbcdd158089fc22bc65e701a89f2f0d76f459e442014930430cea58fac3ab  MANIFEST.md
 59ce4d00e35643e013859a2d0a0aa8f6f0f81bb2a6eeb3df55d4c3aa5b5d03d7  usb.txt
-7833f56fde9546c85e2f98ac1dd42d4f036e744652055ef51dc33609b89cb965  HANDOVER-2026-08-31.md
+6ed938505a52b17752af96391a2fd7005cb110d474f92421eeeaec325c35524b  probes-20260901-112625/02-version.txt
+74500a25669c4f666be23b36c4d6de1fddde4e9b55d4623c9f6ff7df114fb397  probes-20260901-112625/01-first-look.txt
 7e26e0c67f9dd577fc185a18acc928e96697d657db42b2854a7ed497efeb350f  mounts.txt
 846d165ac8d6d528a7b0eb42cb0ab6f04dc7ff09d9d377b3be0b8dc40eb4fd90  nmap.txt
 8e7aee75d33e4aed01aa395f17c56a652809e12ad355ef17b8df075b400df9a8  app-tree.txt
+8f83728048ba546c4f6bd06dd731cf8f3dde9a1e1e48382422226b06cabc1e0a  README.md
 9991fb94f5f628bf5055a014067f9c01e77a6da0a200f86e79255506dc26a4e6  etc.txt
 a9f6ef83a13030b71cb065705b8e19b0babb58d2bd0cc7730373dc1513f371a4  uname.txt
 acc1d56726e47d255905f7a5bc961a115010352002fe7d9e26029d1b515d8765  hostkeys.txt
@@ -125,15 +142,17 @@ d4d03f340dc48a749530def35f87931727570f91ae4c7d1cef0110a1d1ff104a  df.txt
 e19caeb23a94a738d4116a0e0de695da7e6b88cbb32e0c1b6392acc0d1f19499  KNOWLEDGE-SHARE-FOR-PATCHER.md
 e310bd6bba8b6f84d3b15ef369294c972b3b16ae895b4a02a23c18929bb1bb16  logs.txt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  version.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  probes-20260901-112625/02-os-release.txt
+f2ff0982f32aa235301d108f79d0b7bc3ebaf245acd4dbd9cbb4007a453d10ee  post-fw-update-probe.sh
 f4f39208f14f81a81707c9ac1c75520e98c7694fd0842a91f68bea8418234ad8  listening.txt
 f7fa005411c3214e465035c21fe913a485d2f100b14d90a7ecc55c36b0ff61af  ps.txt
 ```
 
 The empty `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-for `version.txt` is the SHA-256 of an empty file (the gimbal's
-`/app/FwVer` was unreadable or empty at capture time; see
-`fw-install-flow.txt` which shows the version was read by a different
-path).
+for `version.txt` and `probes-20260901-112625/02-os-release.txt` is the
+SHA-256 of an empty file (the gimbal's `/app/FwVer` and `/etc/os-release`
+were unreadable or empty at capture time; see `fw-install-flow.txt` which
+shows the version was read by a different path).
 
 ## Validation
 

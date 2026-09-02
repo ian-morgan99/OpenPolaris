@@ -265,17 +265,17 @@ dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
 _tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
 dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
 wl_process_host_event: Link event 6, flags 0, status 0
-MACEVENT: WLC_E_DEAUTH_IND, MAC 4c:23:38:c8:7b:6f, reason 3
+MACEVENT: WLC_E_DEAUTH_IND, MAC [REDACTED:client-mac], reason 3
 wl_process_host_event: Link event 12, flags 0, status 0
-MACEVENT: WLC_E_DISASSOC_IND, MAC 4c:23:38:c8:7b:6f, reason 8
+MACEVENT: WLC_E_DISASSOC_IND, MAC [REDACTED:client-mac], reason 8
 CFG80211-ERROR) wl_notify_connect_status_ap : 
 event WLC_E_DEAUTH_IND(6) status 0 reason 3
 CFG80211-ERROR) wl_notify_connect_status_ap : 
 event WLC_E_DISASSOC_IND(12) status 0 reason 8
 CFG80211-ERROR) wl_cfg80211_del_station : 
-Disconnect STA : 4c:23:38:c8:7b:6f scb_val.val 3
-MACEVENT: WLC_E_AUTH_IND, MAC 4c:23:38:c8:7b:6f, Open System
-MACEVENT: WLC_E_ASSOC_IND, MAC 4c:23:38:c8:7b:6f
+Disconnect STA : [REDACTED:client-mac] scb_val.val 3
+MACEVENT: WLC_E_AUTH_IND, MAC [REDACTED:client-mac], Open System
+MACEVENT: WLC_E_ASSOC_IND, MAC [REDACTED:client-mac]
 CFG80211-ERROR) wl_cfg80211_change_station : 
 WLC_SCB_AUTHORIZE sta_flags_mask not set 
 DHCP - REQUEST [RX] [REQUEST]

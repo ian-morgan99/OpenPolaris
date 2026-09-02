@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p "$EVDIR/_regression-fixture"
 
-      - name: Stage 1 - inject four forbidden fixtures
+      - name: Stage 1 - inject five forbidden fixtures
         # Each fixture is a *type* of leak the redaction policy is meant
         # to catch. The fixtures only need to look like leaks; they are
         # removed at the end of the job and never committed.
@@ -58,7 +58,11 @@ jobs:
           #    by the lint, so we pick a deliberately-fake one).
           printf 'remote device MAC: aa:bb:cc:dd:ee:ff seen on the LAN\n' \
             > "$EVDIR/_regression-fixture/mac.txt"
-          echo "::notice::Injected four leak fixtures into $EVDIR/_regression-fixture/"
+          # 5. Over-claim phrase ("production-grade" is not supported by this
+          #    single capture; the lint rejects it in non-allowlisted .md).
+          printf 'The static RE pipeline is **production-grade** for this device.\n' \
+            > "$EVDIR/_regression-fixture/over-claim.md"
+          echo "::notice::Injected five leak fixtures into $EVDIR/_regression-fixture/"
 
       - name: Stage 2 - run the same evidence-bundle lint
         # This block is copied verbatim from .github/workflows/ci.yml so the
@@ -122,7 +126,7 @@ jobs:
               [ "$bn" = "$allow" ] && skip=1 && break
             done
             [ "$skip" -eq 1 ] && continue
-            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline|\*\*production-grade\*\*|is production-grade' "$f"; then
               echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
               FAIL=1
             fi
@@ -224,7 +228,7 @@ jobs:
               [ "$bn" = "$allow" ] && skip=1 && break
             done
             [ "$skip" -eq 1 ] && continue
-            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline|\*\*production-grade\*\*|is production-grade' "$f"; then
               echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
               FAIL=1
             fi

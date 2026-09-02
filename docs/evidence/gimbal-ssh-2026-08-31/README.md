@@ -275,7 +275,11 @@ Predictions **not yet testable from this capture**:
 - The protocol on port 9090 → confirmed live (TCP connect succeeds, nmap
   identifies it as `zeus-admin` which is just nmap's guess)
 
-The static RE pipeline is **production-grade** for this device.
+For each prediction above, the live capture **confirms** the static RE
+finding on this device and firmware build. It does not by itself prove
+that the same finding holds on other firmware builds; broader claim is
+deliberately out of scope for this evidence bundle (see
+`MANIFEST.md`).
 
 ---
 

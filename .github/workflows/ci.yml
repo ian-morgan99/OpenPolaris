@@ -217,7 +217,7 @@ jobs:
               [ "$bn" = "$allow" ] && skip=1 && break
             done
             [ "$skip" -eq 1 ] && continue
-            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline' "$f"; then
+            if grep -Eq 'authoritative ground truth|entire firmware-analysis pipeline|\*\*production-grade\*\*|is production-grade' "$f"; then
               echo "::error file=$f::Over-claim phrase present (re-added after #29 redaction?)"
               FAIL=1
             fi

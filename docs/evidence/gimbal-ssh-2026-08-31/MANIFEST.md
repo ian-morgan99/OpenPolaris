@@ -110,6 +110,16 @@ content drifted from the original capture (e.g. `HANDOVER-2026-08-31.md`,
 `README.md`) — those drifts are non-sensitive (narrative/text edits) and
 do not appear in the redactions table.
 
+Re-refresh `2026-09-15`: removed a residual over-claim ("The static RE
+pipeline is **production-grade** for this device.") from `README.md`
+§7 and replaced it with a scope-narrowing statement ("This capture
+confirms the static RE predictions on this specific device/firmware;
+broader claims about the entire fleet are deliberately out of scope.").
+The CI evidence-bundle lint was extended to catch this phrase in
+future (and a negative regression workflow was updated to prove the
+extension works). The MANIFEST itself was updated to record the
+refresh, so its own hash also changes (see the new value below).
+
 ```
 017a8aabf200fd9de4a96a46e779784ec9267313e052be471a399efe9dff244d  etc-passwd.txt
 11bdc08c7a9820805f2a8a512e7e96e6056a0c8cbb9337d3280161fd834c5089  control-plane-probes.txt
@@ -124,14 +134,15 @@ do not appear in the redactions table.
 53697cceef9303f875dab3304e82be6fb975511f525b34c5b4ad3989c2de1759  ip.txt
 54986fb1255ba44fc2d4dc727ab4889e3e15ee65373e14ea3538ffe0e812f249  sshd_config.txt
 57a3de9150c5a393a37373d88c1b08a39884b7986f3b2d6f130395da81b90110  dev.txt
-91fbbcdd158089fc22bc65e701a89f2f0d76f459e442014930430cea58fac3ab  MANIFEST.md
+91fbbcdd158089fc22bc65e701a89f2f0d76f459e442014930430cea58fac3ab  MANIFEST.md  (sealed 2026-09-01; re-hash after this point would change the file itself — see "Hash-of-the-manifest" note below)
+53ac663c1360168ef2b3eea16f241e375dc43e22e69721c2a47ae1d049712f2d  MANIFEST.md  (re-hashed 2026-09-15 after production-grade over-claim fix in README.md; canonical once the next audit pass seals)
 59ce4d00e35643e013859a2d0a0aa8f6f0f81bb2a6eeb3df55d4c3aa5b5d03d7  usb.txt
 6ed938505a52b17752af96391a2fd7005cb110d474f92421eeeaec325c35524b  probes-20260901-112625/02-version.txt
 74500a25669c4f666be23b36c4d6de1fddde4e9b55d4623c9f6ff7df114fb397  probes-20260901-112625/01-first-look.txt
 7e26e0c67f9dd577fc185a18acc928e96697d657db42b2854a7ed497efeb350f  mounts.txt
 846d165ac8d6d528a7b0eb42cb0ab6f04dc7ff09d9d377b3be0b8dc40eb4fd90  nmap.txt
 8e7aee75d33e4aed01aa395f17c56a652809e12ad355ef17b8df075b400df9a8  app-tree.txt
-8f83728048ba546c4f6bd06dd731cf8f3dde9a1e1e48382422226b06cabc1e0a  README.md
+649d66dda84c2c62d5741ebe617421c28451093ab001d8754a87e1190a0586a7  README.md
 9991fb94f5f628bf5055a014067f9c01e77a6da0a200f86e79255506dc26a4e6  etc.txt
 a9f6ef83a13030b71cb065705b8e19b0babb58d2bd0cc7730373dc1513f371a4  uname.txt
 acc1d56726e47d255905f7a5bc961a115010352002fe7d9e26029d1b515d8765  hostkeys.txt
@@ -154,6 +165,20 @@ SHA-256 of an empty file (the gimbal's `/app/FwVer` and `/etc/os-release`
 were unreadable or empty at capture time; see `fw-install-flow.txt` which
 shows the version was read by a different path).
 
+### Hash-of-the-manifest
+
+The line above marked `MANIFEST.md` carries the SHA-256 of this file as
+it was **sealed** on `2026-09-01`. Any subsequent edit to this file
+(e.g. adding a new over-claim fix) will change its hash, so the line
+is, by construction, one revision behind. To re-hash: after the bundle
+is otherwise complete and no further edits are pending, compute
+`sha256sum MANIFEST.md` once and add the result as a new line. The
+line marked `(sealed 2026-09-01; …)` is the historical anchor; the
+new line is the current anchor; both can coexist without ambiguity.
+This is the only file in the bundle whose hash is allowed to be
+re-stated; every other file's hash line is canonical for the commit
+that contains it.
+
 ## Validation
 
 A CI lint (`.github/workflows/ci.yml` `lint` job) fails the build if any
@@ -168,5 +193,10 @@ file under `docs/evidence/` matches:
   own `48:e7:da:d4:b5:73`, which is in the allowlist)
 
 The lint also fails if any `\.md$` file in this directory contains the
-phrase `authoritative ground truth` or `entire firmware-analysis
-pipeline` (the over-claim phrases removed from `README.md` §0).
+phrases `authoritative ground truth`, `entire firmware-analysis
+pipeline`, or `**production-grade**` / `is production-grade` (the
+over-claim phrases removed from `README.md` §0 and §7). A negative
+regression workflow (`.github/workflows/ci-evidence-lint-regression.yml`)
+injects each of these phrases plus four other forbidden patterns
+(local paths, session-state links, private-key headers, unlisted MACs)
+into `_regression-fixture/` and proves the lint catches every one.

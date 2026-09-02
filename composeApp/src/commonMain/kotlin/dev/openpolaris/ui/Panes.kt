@@ -615,6 +615,20 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Firmware update", style = MaterialTheme.typography.headlineSmall)
 
+            // Phase 1a banner (docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #1).
+            // The WIRE envelope below is reconstructed from the Benro Connect
+            // decompile and has not been observed in a live traffic capture.
+            // A bad FwPkt.zip bricks the gimbal until you re-flash over USB.
+            // Always verify the bundle with `crcInfo` in the Benro Connect
+            // app before pressing Upload.
+            Text(
+                "EXPERIMENTAL — a bad image bricks the gimbal until you re-flash over USB. " +
+                    "Verify the bundle's CRC in the Benro Connect app before uploading. " +
+                    "Use the SSH_PIPE delivery (default) unless you have a reason not to.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
             if (!featureEnabled) {
                 Text(
                     "Firmware upload is disabled. Open the 'Settings' callout and turn " +

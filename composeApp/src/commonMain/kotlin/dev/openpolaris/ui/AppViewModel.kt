@@ -2056,16 +2056,25 @@ class AppViewModel(
         statusMessage = "LED ${if (on) "on" else "off"}"
     }
 
+    @Suppress("DEPRECATION")
     fun reboot() = scope.launch {
         if (!FeatureFlags.isEnabled("allowReboot")) { statusMessage = "Reboot disabled — enable allowReboot in config"; return@launch }
         val s = session ?: return@launch
+        // SYS_REBOOT (812) is unverified — see docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §2.
+        // The decompile names 812 SP_GET_CELLULAR_IMEI. Production firmware auto-reboots
+        // on install success; this is an explicit request from the UI, gated by
+        // FeatureFlags.allowReboot, destructive, and requires the user to have opted in.
         s.send(Codes.SYS_REBOOT)
         statusMessage = "Reboot sent — connection will drop"
     }
 
+    @Suppress("DEPRECATION")
     fun shutdown() = scope.launch {
         if (!FeatureFlags.isEnabled("allowShutdown")) { statusMessage = "Shutdown disabled — enable allowShutdown in config"; return@launch }
         val s = session ?: return@launch
+        // SYS_SHUTDOWN (813) is unverified — see docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §2.
+        // The decompile names 813 SP_SET_CELLULAR_COMUSB. Shutdown is not part of the
+        // verified Benro Connect install flow; gated by FeatureFlags.allowShutdown.
         s.send(Codes.SYS_SHUTDOWN)
         statusMessage = "Shutdown sent — connection will drop"
     }

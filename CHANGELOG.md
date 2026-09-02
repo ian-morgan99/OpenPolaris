@@ -41,6 +41,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 1a §6 #5 (firmware audit):** the seven unverified opcodes
+  used by the experimental wire-delivery channel — `SYS_FW_UPGRADE`
+  (810), `FILE_UPLOAD_FW` (784), `FILE_UPLOAD_CHUNK` (794),
+  `FILE_UPLOAD_END` (795), `SYS_FW_PROGRESS` (811), `SYS_REBOOT` (812),
+  and `SYS_SHUTDOWN` (813) — now carry explicit
+  `@Deprecated(level = DeprecationLevel.WARNING)` annotations in
+  `shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt`.
+  Each annotation cites `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` §2
+  and explains that the verified install path is the on-board SD-card
+  SCP delivery (`scp /app/sd/FwPkt.zip`), not 9090 push. The constants
+  remain usable so the experimental `WIRE` delivery mode (gated behind
+  `FeatureFlags.firmwareUpload` and behind a red brick-warning banner
+  in `FirmwarePane`) keeps working, but the deprecation surfaces the
+  decompile gap to any new caller and forces an explicit
+  `@Suppress("DEPRECATION")` at the call site. Call sites annotated:
+  - `SimulatedProtocol.kt` — `@file:Suppress("DEPRECATION")` (the
+    simulator must keep responding to all six opcodes for testing).
+  - `CommandTable.kt` — `@file:Suppress("DEPRECATION")` (Descriptor
+    entries for all seven).
+  - `FirmwareUpdateController.kt` — `@file:Suppress("DEPRECATION")`
+    (drives the experimental wire delivery path).
+  - `AppViewModel.kt` — narrow `@Suppress("DEPRECATION")` on
+    `reboot()` and `shutdown()` (the only two uses; both are gated by
+    `FeatureFlags.allowReboot` / `FeatureFlags.allowShutdown` and now
+    carry inline comments reiterating the audit warning).
+  All 476 `:shared:jvmTest` and 53 `:composeApp:jvmTest` still pass.
+  Debug APK rebuilds clean (v0.1.3, code 4). Closes Phase 1a item §6
+  #5. See `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` "Phase 1a status"
+  table for the full Phase 1a close-out.
 - `tools:cli-probe` `--full` burst mode: pass `--full` as the 3rd arg
   to send the canonical 9-code pre-camera burst from
   `CommandTable.BURST_PRE_CAMERA` (808, 809, 802, 778, 779, 775, 824,

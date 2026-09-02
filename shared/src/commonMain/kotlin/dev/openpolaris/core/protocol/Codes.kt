@@ -170,6 +170,13 @@ object Codes {
     // for the experimental DeliveryMode.WIRE controller, gated behind
     // FeatureFlags.firmwareUpload. Do not exercise against a real gimbal
     // without a Benro Connect pcap capture confirming the wire format.
+    @Deprecated(
+        "UNVERIFIED on production firmware. The on-board install path is SD-card based " +
+            "(scp to /app/sd/FwPkt.zip), not 9090-based. See audit §2 and the primary " +
+            "path in FirmwareUpdateController. Kept for the experimental WIRE delivery " +
+            "mode gated behind FeatureFlags.firmwareUpload.",
+        level = DeprecationLevel.WARNING,
+    )
     const val FILE_UPLOAD_FW = 784      // UNVERIFIED — see audit §2 "784"
     const val FILE_BACKUP = 785
     const val FILE_RESTORE = 786
@@ -180,7 +187,22 @@ object Codes {
     const val FILE_UNPROTECT = 791
     const val FILE_QUOTA = 792
     const val FILE_PAGINATE = 793
+    @Deprecated(
+        "UNVERIFIED on production firmware. Exact payload format (binary vs base64 vs " +
+            "raw zip) is unknown. The on-board install reads /app/sd/FwPkt.zip; this " +
+            "opcode is a Benro Connect app-private 9090-side channel. See audit §2 and " +
+            "the primary path in FirmwareUpdateController. Kept for the experimental " +
+            "WIRE delivery mode gated behind FeatureFlags.firmwareUpload.",
+        level = DeprecationLevel.WARNING,
+    )
     const val FILE_UPLOAD_CHUNK = 794  // UNVERIFIED — see audit §2 "794"
+    @Deprecated(
+        "UNVERIFIED on production firmware. Role on the on-board state machine is " +
+            "unknown (decompile gap). See audit §2 and the primary path in " +
+            "FirmwareUpdateController. Kept for the experimental WIRE delivery mode " +
+            "gated behind FeatureFlags.firmwareUpload.",
+        level = DeprecationLevel.WARNING,
+    )
     const val FILE_UPLOAD_END = 795    // UNVERIFIED — see audit §2 "795"
     const val FILE_CAM_RAW = 796
     const val FILE_SCAN_COMPLETE = 797
@@ -230,14 +252,42 @@ object Codes {
     const val WIFI_RSSI = 807   // (gap in decompile)
     const val SYS_VERSION = 808 // ✓ live (`ver:$fwVersion;hw:1;`). decompile: SP_SOCKET_CLIENT_TYPE (resp) — see audit
     const val SYS_SERIAL = 809  // ✓ live (`sn:$serial;`). decompile: SP_SET_CELLULAR_APN — see audit
+    @Deprecated(
+        "UNVERIFIED on production firmware. No decompile name; H3 hypothesis only. " +
+            "Production firmware does not pull bytes from port 9090; install reads " +
+            "/app/sd/FwPkt.zip. See audit §1, §2 and the primary path in " +
+            "FirmwareUpdateController. Kept for the experimental WIRE delivery mode " +
+            "gated behind FeatureFlags.firmwareUpload.",
+        level = DeprecationLevel.WARNING,
+    )
     const val SYS_FW_UPGRADE = 810   // UNVERIFIED — see audit §2 "810"
     // 810 has no decompile name. The Benro app is hypothesised to send 810
     // as a precondition before dropping FwPkt.zip — see H3 in
     // KNOWLEDGE-SHARE-FOR-PATCHER.md. Production firmware does not pull
     // bytes from port 9090; the install reads /app/sd/FwPkt.zip instead.
     // See docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §1 (production path).
+    @Deprecated(
+        "UNVERIFIED. Decompile names this SP_GET_CELLULAR_IMSI (a cellular query), " +
+            "not firmware progress. Live response `p:N;` is a different shape than " +
+            "expected if it were progress. See audit §2 \"811\". Production firmware " +
+            "auto-reboots on install success; we don't poll this opcode.",
+        level = DeprecationLevel.WARNING,
+    )
     const val SYS_FW_PROGRESS = 811 // UNVERIFIED — decompile: SP_GET_CELLULAR_IMSI ⚠ (live: `p:N;`)
+    @Deprecated(
+        "UNVERIFIED. Decompile names this SP_GET_CELLULAR_IMEI (a cellular query), " +
+            "not reboot. Live response `ret:0;` matches a query retcode. See audit §2 " +
+            "\"812\". Production firmware auto-reboots on install success; an " +
+            "explicit reboot is not part of the verified flow.",
+        level = DeprecationLevel.WARNING,
+    )
     const val SYS_REBOOT = 812      // UNVERIFIED — decompile: SP_GET_CELLULAR_IMEI ⚠ (live: `ret:0;`)
+    @Deprecated(
+        "UNVERIFIED. Decompile names this SP_SET_CELLULAR_COMUSB (cellular USB-mode " +
+            "setter), not shutdown. See audit §2 \"813\". Shutdown is not part of the " +
+            "verified Benro Connect install flow.",
+        level = DeprecationLevel.WARNING,
+    )
     const val SYS_SHUTDOWN = 813    // UNVERIFIED — decompile: SP_SET_CELLULAR_COMUSB (`usbmode:..;`) ⚠
     const val SYS_TIME = 814        // decompile: SP_GET_CELLULAR_HV ⚠
     const val SYS_TIMEZONE = 815    // decompile: SP_GET_AUTO_OFF_SW ⚠

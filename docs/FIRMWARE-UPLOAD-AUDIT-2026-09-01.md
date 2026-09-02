@@ -376,6 +376,20 @@ This section records what has been implemented against the §6 list above.
 The original §6 list is kept verbatim as the audit record; this section is
 the change log.
 
+### Phase 1a status
+
+| §6 # | Item                                                  | Status                  | Where                                                  |
+| ---: | ----------------------------------------------------- | ----------------------- | ------------------------------------------------------ |
+|    1 | Red brick-warning banner above upload button          | DONE (v0.1.1)           | `composeApp/.../ui/Panes.kt` (`FirmwarePane`)         |
+|    2 | Verify-before-upload MD5 cross-check                  | DONE (v0.1.x)           | `shared/.../util/Md5.kt`, `FirmwareUpdateController`   |
+|    3 | 128 MB size cap                                       | DONE (v0.1.x)           | `FirmwareUpdateController.start`                      |
+|    4 | Pre-flight SD free-space check                        | DONE (v0.1.x)           | `ScpFirmwareDelivery` (≥ `bytes.size + 1 MB` free)    |
+|    5 | `@Deprecated` on unverified opcodes                   | DONE (2026-09-02)       | `shared/.../protocol/Codes.kt`                        |
+
+All five Phase 1a items are now closed in code. Phase 1b (the
+secondary SSH/SCP-push path) and Phase 2 (real Benro Connect pcap
+capture on wlan0) remain open per §5.
+
 ### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.x)
 
 Implemented as the user asked: every byte of the chosen local zip is
@@ -412,4 +426,38 @@ Tests added (all green, 476/476 :shared:jvmTest pass):
   - `md5MismatchShortCircuitsBeforeAnyWireTraffic` (asserts no code in
     the firmware session's wire set is sent)
   - `md5NullBehavesAsBefore`
+
+### §6 #5 — DONE (2026-09-02): `@Deprecated` annotations on unverified opcodes
+
+Per §5's "deprecation note" instruction, the seven unverified opcodes
+(810, 784, 794, 795, 811, 812, 813) now carry explicit `@Deprecated(
+..., level = DeprecationLevel.WARNING)` annotations in
+`shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt`.
+Each annotation cites this audit document and explains the decompile
+gap and the verified on-board install path.
+
+The deprecation is purely advisory; the constants are still usable
+because they back the experimental `WIRE` delivery mode that is gated
+behind `FeatureFlags.firmwareUpload` and behind a red brick-warning
+banner in `FirmwarePane`. The annotation's purpose is to make any
+new caller of these constants aware that:
+
+- The opcode is not confirmed on production firmware.
+- The verified install path is `scp /app/sd/FwPkt.zip`, not 9090.
+- The decompile may name the opcode something completely different
+  (e.g. 811 = `SP_GET_CELLULAR_IMSI`, 812 = `SP_GET_CELLULAR_IMEI`).
+- A real Benro Connect pcap capture is the only way to know the actual
+  wire format (Phase 2 of §5).
+
+Call sites of the deprecated constants in `SimulatedProtocol.kt`,
+`CommandTable.kt`, and `FirmwareUpdateController.kt` are now annotated
+with `@file:Suppress("DEPRECATION")` since those files are the
+*intended* users of the experimental channel. The two narrow usages in
+`AppViewModel.reboot()` / `AppViewModel.shutdown()` are annotated
+with `@Suppress("DEPRECATION")` at function level and carry an inline
+comment reiterating the audit warning.
+
+No new files; no protocol changes; no API-breaking changes. All 476
+`:shared:jvmTest` pass and all 53 `:composeApp:jvmTest` pass. Debug
+APK rebuilds clean (v0.1.3, code 4).
 

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.net.SshCommandRunner

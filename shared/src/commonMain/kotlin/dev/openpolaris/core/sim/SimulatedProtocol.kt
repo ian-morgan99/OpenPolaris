@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package dev.openpolaris.core.sim
 
 import dev.openpolaris.core.io.Utf8

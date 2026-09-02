@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package dev.openpolaris.core.protocol
 
 import dev.openpolaris.core.domain.AutoLevelController

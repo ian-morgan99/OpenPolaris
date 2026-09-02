@@ -381,7 +381,7 @@ the change log.
 | §6 # | Item                                                  | Status                  | Where                                                  |
 | ---: | ----------------------------------------------------- | ----------------------- | ------------------------------------------------------ |
 |    1 | Red brick-warning banner above upload button          | DONE (v0.1.1)           | `composeApp/.../ui/Panes.kt` (`FirmwarePane`)         |
-|    2 | Verify-before-upload MD5 cross-check                  | DONE (v0.1.x)           | `shared/.../util/Md5.kt`, `FirmwareUpdateController`   |
+|    2 | Verify-before-upload MD5 cross-check (fail-closed)    | DONE (v0.1.4)           | `shared/.../util/Md5.kt`, `FirmwareUpdateController`   |
 |    3 | 128 MB size cap                                       | DONE (v0.1.x)           | `FirmwareUpdateController.start`                      |
 |    4 | Pre-flight SD free-space check                        | DONE (v0.1.x)           | `ScpFirmwareDelivery` (≥ `bytes.size + 1 MB` free)    |
 |    5 | `@Deprecated` on unverified opcodes                   | DONE (2026-09-02)       | `shared/.../protocol/Codes.kt`                        |
@@ -390,42 +390,80 @@ All five Phase 1a items are now closed in code. Phase 1b (the
 secondary SSH/SCP-push path) and Phase 2 (real Benro Connect pcap
 capture on wlan0) remain open per §5.
 
-### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.x)
+### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.4, fail-closed)
 
 Implemented as the user asked: every byte of the chosen local zip is
 hashed with `dev.openpolaris.core.util.Md5` (pure-Kotlin, RFC 1321) and
 compared case-insensitively to a user-pasted expected MD5 before any
-wire/SCP traffic. The 121 MB SD free-space pre-flight still runs first
-(§6 #4, also done in a prior turn), so the order is:
+network/wire activity. The MD5 cross-check is **fail-closed**: a blank,
+null, or malformed expected MD5 now aborts the upload with a clear
+`Failed` status before any wire/SCP traffic is initiated, rather than
+silently falling through as in the prior optional behaviour. An
+explicit `unsafeAllowNoChecksum: Boolean = false` escape hatch is
+retained on `FirmwareUpdateController.start()` for internal callers and
+tests; the production UI path in `AppViewModel.uploadFirmware()` never
+sets it.
 
-1. Size cap (`bytes.size > 128 MB` → fail)
-2. Free-space check (`/app/sd` free ≥ `bytes.size + 1 MB`)
-3. MD5 cross-check (only if user pasted a non-blank expected hash;
-   otherwise behaves as before — the cross-check is opt-in to mirror
-   the Benro Connect app's flow)
-4. Delivery dispatch
+**Runtime order inside `start()` (must match the code):**
+
+1. Empty bytes (`bytes.isEmpty()` → fail)
+2. Size cap (`bytes.size > 128 MB` → fail)
+3. MD5 presence (`expectedMd5 == null` or `isBlank()` → `Failed`, unless
+   `unsafeAllowNoChecksum = true`)
+4. MD5 format (must be exactly 32 hex characters; case-insensitive
+   trim-tolerant)
+5. MD5 compare (local hash vs. `expectedMd5`, case-insensitive)
+6. Free-space pre-flight (`/app/sd` free ≥ `bytes.size + 1 MB`; §6 #4)
+7. Delivery dispatch (SSH/SCP `push` first, `wire` second)
+
+The free-space check now runs **after** the MD5 check (and after the
+size cap) — i.e. the security gate runs before the I/O gate. This is
+intentional: an unsigned bytes blob should never touch the SD card
+(even to check its free space) and should never reach the SCP/SSH
+transport. The §6 #4 progress note previously said the pre-flight
+"runs first"; that wording is stale and superseded by the v0.1.4 order
+above.
 
 Wired in:
 
 - `shared/.../util/Md5.kt` — pure-Kotlin MD5
-- `shared/.../domain/FirmwareUpdateController.kt` — new `expectedMd5`
-  parameter with case-insensitive trim compare
+- `shared/.../domain/FirmwareUpdateController.kt` — `expectedMd5`
+  parameter, `unsafeAllowNoChecksum` bypass, MD5 presence/format/compare
+  gates (case-insensitive trim-tolerant)
 - `composeApp/.../ui/AppViewModel.kt` — `firmwareExpectedMd5` user
-  input, `pickedFirmwareMd5` surface, computes local hash on upload
+  input, `pickedFirmwareMd5` surface, computes local hash on upload,
+  pre-validates MD5 format (length + hex charset) before calling
+  `controller.start()` and never sets `unsafeAllowNoChecksum = true`
 - `composeApp/.../ui/Panes.kt` — `OutlinedTextField` for the expected
   hash and a "Local MD5: …" line
 
-Tests added (all green, 476/476 :shared:jvmTest pass):
+Tests added (all green, 22/22 in
+`FirmwareUpdateControllerTest`, full `:shared:jvmTest` suite green):
 
 - `dev.openpolaris.core.util.Md5Test` — 14 tests (RFC 1321 vectors,
   single-block, two-block, 64-byte boundary, 119-byte boundary, all
   zeros, all ones, alternating, end-of-message padding variants, etc.)
-- `dev.openpolaris.core.domain.FirmwareUpdateControllerTest` — 3 new
-  tests:
+- `dev.openpolaris.core.domain.FirmwareUpdateControllerTest` — 4 new
+  tests for the v0.1.4 fail-closed behaviour:
+  - `blankExpectedMd5FailsBeforeAnyWireTraffic`
+  - `nullExpectedMd5FailsBeforeAnyWireTraffic`
+  - `malformedExpectedMd5FailsBeforeAnyWireTraffic` (covers 5 bad
+    cases: short, 31 chars, 33 chars, non-hex chars, mixed
+    punctuation)
+  - `unsafeAllowNoChecksumTrueSkipsMd5Check` (replaces the prior
+    `md5NullBehavesAsBefore` opt-in test)
+- Plus the 3 pre-existing v0.1.x MD5 tests, retained:
   - `md5MatchProceedsAndReachesDelivery`
   - `md5MismatchShortCircuitsBeforeAnyWireTraffic` (asserts no code in
     the firmware session's wire set is sent)
-  - `md5NullBehavesAsBefore`
+  - (and the v0.1.x "null behaves as before" test is replaced by
+    `unsafeAllowNoChecksumTrueSkipsMd5Check` per above)
+
+Sixteen pre-existing happy-path / error-path tests in
+`FirmwareUpdateControllerTest` were updated to pass a real
+`expectedMd5 = md5Of(payload)` (or `unsafeAllowNoChecksum = true` for
+the one test that exercises the NoOp-delivery sentinel and is
+unrelated to MD5).
 
 ### §6 #5 — DONE (2026-09-02): `@Deprecated` annotations on unverified opcodes
 

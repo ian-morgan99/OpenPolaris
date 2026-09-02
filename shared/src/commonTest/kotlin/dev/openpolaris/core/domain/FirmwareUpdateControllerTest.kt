@@ -3,6 +3,7 @@ package dev.openpolaris.core.domain
 import dev.openpolaris.core.net.SshCommandResult
 import dev.openpolaris.core.net.SshCommandRunner
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.util.Md5
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,6 +34,13 @@ import kotlin.test.assertTrue
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirmwareUpdateControllerTest {
+
+    /** Pre-compute the expected MD5 of the bytes under test, so that the
+     *  fail-closed MD5 gate (#39) doesn't block the legacy happy-path
+     *  tests. New tests for #39 explicitly pass a blank / malformed
+     *  value (or `unsafeAllowNoChecksum = true`) to exercise the gate. */
+    private fun md5Of(bytes: ByteArray): String = Md5.digest(bytes)
+
 
     private class FakeConnection : Connection {
         val written = mutableListOf<ByteArray>()
@@ -115,7 +123,7 @@ class FirmwareUpdateControllerTest {
             installTimeoutMs = 2_000,
         )
         val statuses = mutableListOf<FirmwareUpdateController.Status>()
-        val final = controller.start(bytes = ByteArray(8) { it.toByte() }, filename = "FwPkt.zip", rebootAfter = false) {
+        val final = controller.start(bytes = ByteArray(8) { it.toByte() }, filename = "FwPkt.zip", expectedMd5 = md5Of(ByteArray(8) { it.toByte() }), rebootAfter = false) {
             statuses += it
         }
         pump.cancel()
@@ -263,11 +271,13 @@ class FirmwareUpdateControllerTest {
     }
 
     @Test
-    fun md5NullBehavesAsBefore() = runTest {
-        // Passing expectedMd5=null must preserve the original behaviour:
-        // no MD5 check is performed, and the upload proceeds. This is
-        // the default for callers that haven't yet wired the paste-in
-        // box (e.g. the desktop app on first launch).
+    fun unsafeAllowNoChecksumTrueSkipsMd5Check() = runTest {
+        // Issue #39: the explicit `unsafeAllowNoChecksum = true` escape
+        // hatch is the *only* way to skip the MD5 cross-check. The
+        // production UI never sets it. When set, the controller must
+        // accept any string (or null) and proceed straight to delivery,
+        // matching the legacy "no-MD5" code path that this method
+        // replaced. The behaviour is intentionally loud and limited.
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         conn.queueDefaultAuthOk()
@@ -295,6 +305,7 @@ class FirmwareUpdateControllerTest {
             bytes = ByteArray(8) { it.toByte() },
             filename = "FwPkt.zip",
             expectedMd5 = null,
+            unsafeAllowNoChecksum = true,
             rebootAfter = false,
         )
         pump.cancel()
@@ -306,6 +317,148 @@ class FirmwareUpdateControllerTest {
 
         session.disconnect()
         runCurrent()
+    }
+
+    @Test
+    fun blankExpectedMd5FailsBeforeAnyWireTraffic() = runTest {
+        // Issue #39: a missing expected MD5 is a *user error* in the
+        // normal flow. The controller must reject it before any
+        // 810/784/794/795/811 opcodes go out — the wire must stay
+        // completely quiet.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.WIRE,
+            chunkSize = 4,
+            progressPollMs = 50,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(8) { it.toByte() },
+            filename = "FwPkt.zip",
+            expectedMd5 = "",
+            unsafeAllowNoChecksum = false,
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(
+            (final as FirmwareUpdateController.Status.Failed).reason.contains("expected MD5 is required"),
+            "expected the required-MD5 failure reason, got: ${final.reason}",
+        )
+        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+        assertEquals(
+            emptyList(), firmwareCodes,
+            "blank MD5 must short-circuit before any wire traffic; got $firmwareCodes",
+        )
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun nullExpectedMd5FailsBeforeAnyWireTraffic() = runTest {
+        // Issue #39: null is just another way of saying "no expected
+        // MD5", and the controller must reject it for the same reason.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.WIRE,
+            chunkSize = 4,
+            progressPollMs = 50,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(8) { it.toByte() },
+            filename = "FwPkt.zip",
+            expectedMd5 = null,
+            unsafeAllowNoChecksum = false,
+            rebootAfter = false,
+        )
+
+        assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(
+            (final as FirmwareUpdateController.Status.Failed).reason.contains("expected MD5 is required"),
+            "expected the required-MD5 failure reason, got: ${final.reason}",
+        )
+        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+        assertEquals(
+            emptyList(), firmwareCodes,
+            "null MD5 must short-circuit before any wire traffic; got $firmwareCodes",
+        )
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun malformedExpectedMd5FailsBeforeAnyWireTraffic() = runTest {
+        // Issue #39: a paste error (wrong length, non-hex characters)
+        // must be caught by the format check and surfaced with a clear
+        // "must be 32 hexadecimal characters" reason, *before* the
+        // local-bytes MD5 is even computed. This keeps the failure
+        // message actionable: the user knows their paste is wrong, not
+        // that the firmware itself is corrupted.
+        val cases = listOf(
+            "abcdef",                       // 6 chars
+            "0".repeat(31),                 // 31 chars
+            "0".repeat(33),                 // 33 chars
+            "Z".repeat(32),                 // 32 chars but non-hex
+            "1234567890abcdef1234567890abcde!", // 32 chars, 31 hex + 1 !
+        )
+        for (bad in cases) {
+            val conn = FakeConnection()
+            conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+            conn.queueDefaultAuthOk()
+            val session = MountSession({ conn }, readerScope = backgroundScope)
+            assertTrue(session.connect())
+
+            val controller = FirmwareUpdateController(
+                session = session,
+                delivery = DeliveryMode.WIRE,
+                chunkSize = 4,
+                progressPollMs = 50,
+                progressDoneRepeats = 2,
+                installTimeoutMs = 2_000,
+            )
+            val final = controller.start(
+                bytes = ByteArray(8) { it.toByte() },
+                filename = "FwPkt.zip",
+                expectedMd5 = bad,
+                unsafeAllowNoChecksum = false,
+                rebootAfter = false,
+            )
+
+            assertIs<FirmwareUpdateController.Status.Failed>(final)
+            val reason = (final as FirmwareUpdateController.Status.Failed).reason
+            assertTrue(
+                reason.contains("32 hexadecimal characters"),
+                "expected format failure for \"$bad\", got: $reason",
+            )
+            val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+                .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+            assertEquals(
+                emptyList(), firmwareCodes,
+                "malformed MD5 (\"$bad\") must short-circuit before any wire traffic; got $firmwareCodes",
+            )
+
+            session.disconnect()
+            runCurrent()
+        }
     }
 
     @Test
@@ -328,7 +481,7 @@ class FirmwareUpdateControllerTest {
         )
         val statuses = mutableListOf<FirmwareUpdateController.Status>()
         val payload = ByteArray(64) { it.toByte() }
-        val final = controller.start(bytes = payload, filename = "FwPkt.zip", rebootAfter = false) {
+        val final = controller.start(bytes = payload, filename = "FwPkt.zip", expectedMd5 = md5Of(payload), rebootAfter = false) {
             statuses += it
         }
 
@@ -374,6 +527,7 @@ class FirmwareUpdateControllerTest {
         val final = controller.start(
             bytes = ByteArray(16) { it.toByte() },
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(ByteArray(16) { it.toByte() }),
             rebootAfter = true,
         )
         pump.cancel()
@@ -400,7 +554,12 @@ class FirmwareUpdateControllerTest {
             delivery = DeliveryMode.SSH_PIPE,
             // sshDelivery defaults to NoOpFirmwareDelivery
         )
-        val final = controller.start(bytes = ByteArray(8) { it.toByte() }, filename = "FwPkt.zip")
+        val final = controller.start(
+            bytes = ByteArray(8) { it.toByte() },
+            filename = "FwPkt.zip",
+            // Bypass the MD5 gate so this test exercises the NoOp-delivery sentinel.
+            unsafeAllowNoChecksum = true,
+        )
         val s = assertIs<FirmwareUpdateController.Status.Failed>(final)
         assertTrue(s.reason.contains("scp delivery failed"),
             "expected the NoOp-sentinel throw to be wrapped into a 'scp delivery failed' failure, got: ${s.reason}")
@@ -436,7 +595,8 @@ class FirmwareUpdateControllerTest {
             progressDoneRepeats = 2,
             installTimeoutMs = 2_000,
         )
-        val final = controller.start(bytes = ByteArray(4) { 0x10 }, filename = "FwPkt.zip", rebootAfter = true)
+        val payload = ByteArray(4) { 0x10 }
+        val final = controller.start(bytes = payload, filename = "FwPkt.zip", expectedMd5 = md5Of(payload), rebootAfter = true)
         pump.cancel()
 
         val codes = conn.written.mapNotNull { parseCode(it) }
@@ -523,7 +683,7 @@ class FirmwareUpdateControllerTest {
             sshDelivery = delivery,
         )
         val exact = ByteArray(128 * 1024 * 1024)
-        val final = controller.start(bytes = exact, filename = "FwPkt.zip", rebootAfter = false)
+        val final = controller.start(bytes = exact, filename = "FwPkt.zip", expectedMd5 = md5Of(exact), rebootAfter = false)
 
         assertIs<FirmwareUpdateController.Status.Done>(final)
         assertEquals(128 * 1024 * 1024, delivery.lastBytes?.size)
@@ -546,9 +706,11 @@ class FirmwareUpdateControllerTest {
             delivery = DeliveryMode.WIRE,
             armTimeoutMs = 100,
         )
+        val armPayload = ByteArray(4) { 0xAA.toByte() }
         val final = controller.start(
-            bytes = ByteArray(4) { 0xAA.toByte() },
+            bytes = armPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(armPayload),
         )
 
         assertIs<FirmwareUpdateController.Status.Failed>(final)
@@ -593,9 +755,11 @@ class FirmwareUpdateControllerTest {
             progressDoneRepeats = 2,
             installTimeoutMs = 300,
         )
+        val installPayload = ByteArray(2) { 0xCC.toByte() }
         val final = controller.start(
-            bytes = ByteArray(2) { 0xCC.toByte() },
+            bytes = installPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(installPayload),
         )
         pump.cancel()
 
@@ -635,7 +799,7 @@ class FirmwareUpdateControllerTest {
         )
         val bytes = ByteArray(12) { it.toByte() }
         val statuses = mutableListOf<FirmwareUpdateController.Status>()
-        controller.start(bytes = bytes, filename = "FwPkt.zip", rebootAfter = false) {
+        controller.start(bytes = bytes, filename = "FwPkt.zip", expectedMd5 = md5Of(bytes), rebootAfter = false) {
             statuses += it
         }
         pump.cancel()
@@ -684,9 +848,11 @@ class FirmwareUpdateControllerTest {
             onBoardInstallTimeoutMs = 2_000,
         )
         val statuses = mutableListOf<FirmwareUpdateController.Status>()
+        val watcherPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = watcherPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(watcherPayload),
             rebootAfter = false,
         ) { statuses += it }
 
@@ -731,9 +897,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val failPayload = ByteArray(32) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(32) { it.toByte() },
+            bytes = failPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(failPayload),
             rebootAfter = false,
         )
 
@@ -774,9 +942,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 50,
         )
+        val timeoutPayload = ByteArray(16) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(16) { it.toByte() },
+            bytes = timeoutPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(timeoutPayload),
             rebootAfter = false,
         )
 
@@ -818,9 +988,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val restartPayload = ByteArray(16) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(16) { it.toByte() },
+            bytes = restartPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(restartPayload),
             rebootAfter = false,
         )
 
@@ -863,9 +1035,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val preflightPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = preflightPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(preflightPayload),
             rebootAfter = false,
         )
 
@@ -911,9 +1085,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val preflightPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = preflightPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(preflightPayload),
             rebootAfter = false,
         )
 
@@ -952,9 +1128,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val preflightPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = preflightPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(preflightPayload),
             rebootAfter = false,
         )
 
@@ -993,9 +1171,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val preflightPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = preflightPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(preflightPayload),
             rebootAfter = false,
         )
 
@@ -1036,9 +1216,11 @@ class FirmwareUpdateControllerTest {
             installPollIntervalMs = 0,
             onBoardInstallTimeoutMs = 2_000,
         )
+        val preflightPayload = ByteArray(64) { it.toByte() }
         val final = controller.start(
-            bytes = ByteArray(64) { it.toByte() },
+            bytes = preflightPayload,
             filename = "FwPkt.zip",
+            expectedMd5 = md5Of(preflightPayload),
             rebootAfter = false,
         )
 

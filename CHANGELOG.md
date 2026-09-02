@@ -5,6 +5,62 @@ All notable changes to OpenPolaris are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.1.4] - 2026-09-03
+
+### Fixed
+- **Firmware upload verify-before-upload is now fail-closed (#39).**
+  In v0.1.3 the MD5 cross-check was opt-in: a blank or null
+  `expectedMd5` was silently treated as "no cross-check" and the
+  upload proceeded. v0.1.4 makes the MD5 **required** in the normal
+  path so that an unverified bytes blob can never reach the SD card
+  or the SCP/SSH transport.
+  - `FirmwareUpdateController.start()` now takes a new
+    `unsafeAllowNoChecksum: Boolean = false` escape hatch. The
+    `expectedMd5` parameter remains `String? = null` for source
+    compatibility, but is now treated as **required** in the normal
+    path: a blank or null value causes `start()` to return
+    `Status.Failed("missing expected MD5; ...")`. Production callers
+    in `AppViewModel.uploadFirmware()` always supply a real value and
+    never set `unsafeAllowNoChecksum = true`. The MD5 gate runs
+    **before** the SD free-space pre-flight and **before** any
+    delivery dispatch, in this exact order:
+    1. empty bytes
+    2. 128 MB size cap
+    3. MD5 presence (blank/null → `Failed`, unless
+       `unsafeAllowNoChecksum = true`)
+    4. MD5 format (must be exactly 32 hex characters)
+    5. MD5 compare (case-insensitive)
+    6. SD free-space pre-flight (§6 #4)
+    7. delivery dispatch
+  - `AppViewModel.uploadFirmware()` pre-validates the user-pasted
+    expected MD5 (trim, length, hex charset) and short-circuits to
+    `Status.Failed(...)` with a clear message on bad input. The
+    production path never sets `unsafeAllowNoChecksum = true`.
+  - 4 new controller tests cover the fail-closed behaviour
+    (`blankExpectedMd5FailsBeforeAnyWireTraffic`,
+    `nullExpectedMd5FailsBeforeAnyWireTraffic`,
+    `malformedExpectedMd5FailsBeforeAnyWireTraffic` — 5 bad cases —
+    and `unsafeAllowNoChecksumTrueSkipsMd5Check` which replaces the
+    prior `md5NullBehavesAsBefore` opt-in test). 16 pre-existing
+    happy-path / error-path tests were updated to pass a real
+    `expectedMd5 = md5Of(payload)` (or `unsafeAllowNoChecksum = true`
+    for the single test that exercises the NoOp-delivery sentinel
+    and is unrelated to MD5). All
+    `:shared:jvmTest` and `:composeApp:jvmTest` pass.
+  - `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` §6 #2 progress note
+    updated to reflect the v0.1.4 order and the v0.1.x "free-space
+    runs first" wording is now marked stale.
+
+### Notes
+- No protocol changes. The only signature change on
+  `FirmwareUpdateController.start()` is the new
+  `unsafeAllowNoChecksum: Boolean = false` parameter (defaulted, so
+  it is source- and binary-compatible at the call site). Callers
+  wishing to preserve the v0.1.x "MD5 is optional" behaviour must
+  explicitly pass `unsafeAllowNoChecksum = true`.
+
 ## [0.1.3] - 2026-09-02
 
 ### Fixed

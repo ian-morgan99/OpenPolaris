@@ -2137,17 +2137,42 @@ class AppViewModel(
                 installTimeoutMs = 5 * 60_000L, // 5 minutes
             )
             // Pass expectedMd5 only when the user has actually entered one.
-            // Empty / blank string means "no cross-check" — mirrors the
-            // Benro Connect flow where the expected hash is optional from
-            // the UI's perspective but the user is expected to enter it
-            // before pressing Upload. The controller itself normalises
-            // (trim, ignore-case) so we just need to forward a non-blank
-            // value or null.
-            val expectedMd5 = firmwareExpectedMd5.takeIf { it.isNotBlank() }
+            // Empty / blank string is *rejected* by the controller in the
+            // normal UI path (issue #39) — we surface the same fail-closed
+            // error inline so the user gets a clear, localised message
+            // before any wire / SD traffic. unsafeAllowNoChecksum is
+            // intentionally never enabled from the UI: the bypass is a
+            // development / test-only escape hatch and exposing it would
+            // defeat the entire fail-closed gate.
+            val expectedMd5 = firmwareExpectedMd5.trim().takeIf { it.isNotBlank() }
+            if (expectedMd5 == null) {
+                val s = FirmwareUpdateController.Status.Failed(
+                    "expected MD5 is required: paste the bundle's MD5 " +
+                        "(32 hex characters) into the verify-before-upload " +
+                        "field before uploading"
+                )
+                firmwareStatus = s
+                statusMessage = "Firmware upload failed: ${s.reason}"
+                firmwareBusy = false
+                return@launch
+            }
+            if (expectedMd5.length != 32 ||
+                !expectedMd5.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+            ) {
+                val s = FirmwareUpdateController.Status.Failed(
+                    "expected MD5 must be 32 hexadecimal characters " +
+                        "(got ${expectedMd5.length} chars)"
+                )
+                firmwareStatus = s
+                statusMessage = "Firmware upload failed: ${s.reason}"
+                firmwareBusy = false
+                return@launch
+            }
             val final = controller.start(
                 bytes = bytes,
                 filename = filename,
                 expectedMd5 = expectedMd5,
+                unsafeAllowNoChecksum = false,
                 rebootAfter = rebootAfter,
             ) { status ->
                 firmwareStatus = status

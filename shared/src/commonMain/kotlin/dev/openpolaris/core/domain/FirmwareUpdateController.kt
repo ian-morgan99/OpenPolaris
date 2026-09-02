@@ -136,14 +136,38 @@ class FirmwareUpdateController(
      * written into the precondition frame for logging (the mount does
      * not currently echo the filename back — the field is advisory).
      *
-     * [expectedMd5], when non-null and non-blank, is compared against
-     * `Md5.digest(bytes)` before any network traffic. A mismatch aborts
-     * with [Status.Failed] and never touches the SD card or the WIRE
-     * socket. This mirrors the Benro Connect flow where the user pastes
-     * a per-piece `crcInfo` hash from the Benro web console and the app
-     * refuses to upload if the local MD5 does not match — preventing
+     * The expected MD5 of the bundle must be supplied via [expectedMd5]
+     * (32 hex chars, case-insensitive, trim-tolerant). It is compared
+     * against `Md5.digest(bytes)` before any network/SD traffic. A
+     * missing or malformed expected MD5 aborts with [Status.Failed] and
+     * never touches the SD card or the WIRE socket — see issue #39.
+     * This mirrors the Benro Connect flow where the user pastes a
+     * per-piece `crcInfo` hash from the Benro web console and the app
+     * refuses to upload if the local MD5 does not match, preventing
      * partial / corrupted bundles from wedging `SP_UpgradeCheckFw` or
      * bricking the mount's recovery partition.
+     *
+     * The `unsafeAllowNoChecksum` escape hatch exists for development
+     * and tests that want to exercise the wire layer without producing
+     * a real FwPkt bundle. It is **off by default** and the production
+     * UI ([dev.openpolaris.ui.AppViewModel.uploadFirmware]) never
+     * enables it, so a blank or missing expected MD5 will always block
+     * a normal firmware upload with zero SSH/WIRE traffic. Any caller
+     * that sets it to `true` accepts responsibility for the integrity
+     * gap (see the test class for the documented regression).
+     *
+     * The runtime order of pre-flight checks is:
+     *  1. **Empty bytes** — refuse up-front.
+     *  2. **Size cap** — 128 MB; matches the on-board SD card's vfat
+     *     partition. Anything larger cannot land on the card.
+     *  3. **Expected MD5 present + 32-hex** — required unless
+     *     [unsafeAllowNoChecksum] is true. Surfaces the format error
+     *     *before* we hash the local bytes, so a typo in the paste-in
+     *     box gives a clear message rather than a "mismatch".
+     *  4. **Local-vs-expected MD5 compare** — only if step 3 passed.
+     *  5. **Remote `/app/sd` free-space probe** (SSH_PIPE only) — must
+     *     hold at least `bytes.size + 1 MB`; see [startSshPipe].
+     *  6. **Delivery dispatch.**
      *
      * Emits one or more [Status] updates to [onStatus] (called from a
      * background coroutine; must be safe to invoke off the UI thread).
@@ -153,6 +177,7 @@ class FirmwareUpdateController(
         bytes: ByteArray,
         filename: String = "FwPkt.zip",
         expectedMd5: String? = null,
+        unsafeAllowNoChecksum: Boolean = false,
         rebootAfter: Boolean = false,
         onStatus: (Status) -> Unit = {},
     ): Status {
@@ -174,17 +199,39 @@ class FirmwareUpdateController(
             onStatus(s); return s
         }
 
-        // Phase 1a #2 (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #2):
-        // verify-before-upload MD5 cross-check. The on-board
-        // `polestar_app` computes per-piece `crcInfo` hashes and the
-        // Benro Connect flow has the user paste the bundle's MD5 in to
-        // gate the upload. We mirror that here: if the user supplied an
-        // expected MD5 and the local file does not match, refuse the
-        // upload *before* any bytes leave the desktop. Comparison is
-        // case-insensitive (md5sum output is lowercase, but we don't
-        // want a typo to brick a flash).
+        // Phase 1a #2 (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #2) +
+        // issue #39: the expected MD5 is REQUIRED in the normal
+        // upload path. A missing or malformed hash is a *user error*,
+        // not a permission to skip the integrity check, so we surface
+        // it here — before hashing the local bytes — to give a clear,
+        // actionable failure reason.
         val expected = expectedMd5?.trim().orEmpty()
-        if (expected.isNotEmpty()) {
+        if (expected.isEmpty()) {
+            if (unsafeAllowNoChecksum) {
+                // Documented escape hatch. Log nothing; the test
+                // asserts the upload proceeds without an integrity
+                // check. The caller accepts the integrity gap.
+            } else {
+                val s = Status.Failed(
+                    "expected MD5 is required: paste the bundle's MD5 (32 hex characters) " +
+                        "into the verify-before-upload field, or call start() with " +
+                        "unsafeAllowNoChecksum=true to explicitly bypass the check " +
+                        "(development only — not exposed in the UI)"
+                )
+                onStatus(s); return s
+            }
+        } else if (!isValidMd5Hex(expected)) {
+            // Format check: 32 hex chars, no whitespace, no quotes,
+            // no leading "0x". A `md5sum` output is exactly this
+            // shape, and the Benro web console shows the same form,
+            // so anything else is a paste mistake we can name.
+            val s = Status.Failed(
+                "expected MD5 must be 32 hexadecimal characters " +
+                    "(got ${expected.length} chars: \"${expected.take(64)}\")"
+            )
+            onStatus(s); return s
+        } else {
+            // Real compare — only happens once format is validated.
             val local = dev.openpolaris.core.util.Md5.digest(bytes)
             if (!local.equals(expected, ignoreCase = true)) {
                 val s = Status.Failed(
@@ -198,6 +245,15 @@ class FirmwareUpdateController(
             DeliveryMode.SSH_PIPE -> startSshPipe(bytes, filename, rebootAfter, onStatus)
             DeliveryMode.WIRE -> startWire(bytes, filename, rebootAfter, onStatus)
         }
+    }
+
+    private fun isValidMd5Hex(s: String): Boolean {
+        if (s.length != 32) return false
+        for (c in s) {
+            val ok = c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F'
+            if (!ok) return false
+        }
+        return true
     }
 
     /**

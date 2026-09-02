@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -238,10 +239,21 @@ class MountSession(
 
     /**
      * Pending request waiters keyed by response [ResponseParser.Frame.code].
-     * Guarded by the [pending] instance monitor (O(1) ops, no coroutine
-     * mutex overhead).
+     * All access must be performed under [pendingMutex]; the map itself is
+     * a plain `mutableMapOf` with no internal synchronisation.
+     *
+     * Why a `Mutex` rather than the JVM `kotlin.synchronized` intrinsic
+     * (issue #38): Kotlin/Native (iOS) does not have a monitor primitive,
+     * and the previous `expect inline fun synchronized` shim was a no-op
+     * on iOS — it compiled but provided no mutual exclusion. That left
+     * `pending` vulnerable to data races when a registration, completion,
+     * or disconnect cleanup happened concurrently. We now use
+     * `kotlinx.coroutines.sync.Mutex` which has real KMP actuals (a JVM
+     * `ReentrantLock` on JVM/Android, a `pthread_mutex_t` on iOS). The
+     * lock is held only for O(1) map operations so contention is bounded.
      */
     private val pending = mutableMapOf<Int, CompletableDeferred<ResponseParser.Frame>>()
+    private val pendingMutex = Mutex()
 
     /**
      * The background reader coroutine. Null before [startReader] is
@@ -592,7 +604,7 @@ class MountSession(
                             continue
                         }
                         _frames.value = f
-                        val waiter = synchronized(pending) { pending.remove(f.code) }
+                        val waiter = pendingMutex.withLock { pending.remove(f.code) }
                         if (waiter != null) {
                             waiter.complete(f)
                             // Yield after completing a waiter so the
@@ -641,7 +653,7 @@ class MountSession(
             return err
         }
         val waiter = CompletableDeferred<ResponseParser.Frame>()
-        synchronized(pending) { pending[code] = waiter }
+        pendingMutex.withLock { pending[code] = waiter }
         return try {
             sendMutex.withLock {
                 try {
@@ -649,7 +661,7 @@ class MountSession(
                     ProtocolTrace.logBytes("writer", "→ code=$code", frame)
                     conn.write(frame)
                 } catch (e: Exception) {
-                    synchronized(pending) { pending.remove(code) }
+                    pendingMutex.withLock { pending.remove(code) }
                     throw e
                 }
             }
@@ -658,7 +670,7 @@ class MountSession(
             } catch (_: TimeoutCancellationException) {
                 // Defensive: the reader should have removed/completed the
                 // waiter, but a slow response could still time out here.
-                synchronized(pending) { pending.remove(code) }
+                pendingMutex.withLock { pending.remove(code) }
                 return CmdResult.Timeout
             }
             val parsed = parse(frame)
@@ -698,12 +710,12 @@ class MountSession(
         }
     }
 
-    private fun handleDisconnect(e: Exception) {
+    private suspend fun handleDisconnect(e: Exception) {
         // Fail all in-flight waiters first so their callers don't sit
         // out the full timeout. The reader's catch will then exit
         // because `connection` is now null.
         val waiters: List<CompletableDeferred<ResponseParser.Frame>> =
-            synchronized(pending) {
+            pendingMutex.withLock {
                 val snapshot = pending.values.toList()
                 pending.clear()
                 snapshot
@@ -733,13 +745,13 @@ class MountSession(
         }
     }
 
-    fun disconnect() {
+    suspend fun disconnect() {
         wantConnected = false
         stopReader()
         // Drop any in-flight waiters — they were waiting for a session
         // that's about to disappear.
         val waiters: List<CompletableDeferred<ResponseParser.Frame>> =
-            synchronized(pending) {
+            pendingMutex.withLock {
                 val snapshot = pending.values.toList()
                 pending.clear()
                 snapshot
@@ -792,8 +804,13 @@ class MountSession(
         wantConnected = false
         // disconnect() handles the per-cycle cleanup; it's safe to call
         // even when nothing is connected (it null-checks connection and
-        // pending is empty when nothing is in flight).
-        disconnect()
+        // pending is empty when nothing is in flight). Now that
+        // disconnect() is suspend (issue #38 Mutex cleanup), and
+        // shutdown() is called from non-coroutine paths in tests, we
+        // bridge with runBlocking here. The pending map is empty by
+        // the time we reach this branch in normal flow, so the lock
+        // acquisition is uncontended and instant.
+        runBlocking { disconnect() }
         // Now cancel the scope itself — this is what disconnect() does
         // NOT do. After cancel() the scope's coroutineContext.job is
         // in CANCELLED state, and any future launch on the scope

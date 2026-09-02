@@ -72,6 +72,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -998,7 +999,7 @@ class AppViewModel(
         runCatching { preview.stop() }
         previewFrame = null
 
-        session?.disconnect()
+        session?.let { runBlocking { it.disconnect() } }
         session = null
         controller = null
         cameraController = null

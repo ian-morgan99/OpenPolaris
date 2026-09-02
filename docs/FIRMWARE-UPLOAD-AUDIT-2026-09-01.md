@@ -367,3 +367,49 @@ These are documentation + UI changes only, no protocol change:
 - `shared/src/commonMain/kotlin/dev/openpolaris/core/config/FeatureFlags.kt`
   -- `firmwareUpload` gate (OFF by default, must be flipped by the
   user via Settings)
+
+---
+
+## Phase 1a progress (append-only)
+
+This section records what has been implemented against the §6 list above.
+The original §6 list is kept verbatim as the audit record; this section is
+the change log.
+
+### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.x)
+
+Implemented as the user asked: every byte of the chosen local zip is
+hashed with `dev.openpolaris.core.util.Md5` (pure-Kotlin, RFC 1321) and
+compared case-insensitively to a user-pasted expected MD5 before any
+wire/SCP traffic. The 121 MB SD free-space pre-flight still runs first
+(§6 #4, also done in a prior turn), so the order is:
+
+1. Size cap (`bytes.size > 128 MB` → fail)
+2. Free-space check (`/app/sd` free ≥ `bytes.size + 1 MB`)
+3. MD5 cross-check (only if user pasted a non-blank expected hash;
+   otherwise behaves as before — the cross-check is opt-in to mirror
+   the Benro Connect app's flow)
+4. Delivery dispatch
+
+Wired in:
+
+- `shared/.../util/Md5.kt` — pure-Kotlin MD5
+- `shared/.../domain/FirmwareUpdateController.kt` — new `expectedMd5`
+  parameter with case-insensitive trim compare
+- `composeApp/.../ui/AppViewModel.kt` — `firmwareExpectedMd5` user
+  input, `pickedFirmwareMd5` surface, computes local hash on upload
+- `composeApp/.../ui/Panes.kt` — `OutlinedTextField` for the expected
+  hash and a "Local MD5: …" line
+
+Tests added (all green, 476/476 :shared:jvmTest pass):
+
+- `dev.openpolaris.core.util.Md5Test` — 14 tests (RFC 1321 vectors,
+  single-block, two-block, 64-byte boundary, 119-byte boundary, all
+  zeros, all ones, alternating, end-of-message padding variants, etc.)
+- `dev.openpolaris.core.domain.FirmwareUpdateControllerTest` — 3 new
+  tests:
+  - `md5MatchProceedsAndReachesDelivery`
+  - `md5MismatchShortCircuitsBeforeAnyWireTraffic` (asserts no code in
+    the firmware session's wire set is sent)
+  - `md5NullBehavesAsBefore`
+

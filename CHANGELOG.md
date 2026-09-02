@@ -5,6 +5,39 @@ All notable changes to OpenPolaris are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-09-02
+
+### Fixed
+- **Firmware upload verify-before-upload (Phase 1a §6 #2 of the
+  firmware audit):** every byte of the chosen local zip is now hashed
+  with a pure-Kotlin RFC 1321 MD5 and compared (case-insensitive,
+  trim-tolerant) to a user-pasted expected MD5 before any wire/SCP
+  traffic. The 121 MB SD free-space pre-flight still runs first. A
+  mismatch short-circuits with `Status.Failed("MD5 mismatch: ...")`
+  and no firmware-related opcodes are written to the socket — mirrors
+  the `crcInfo` MD5 step the production `polestar_app` performs
+  during the on-device install. Wired end-to-end:
+  - `shared/.../util/Md5.kt` (new) — 14 unit tests, all green.
+  - `shared/.../domain/FirmwareUpdateController.kt` — new
+    `expectedMd5: String?` parameter + cross-check + 3 new
+    controller tests covering match, mismatch-no-wire, and null
+    backwards-compatible behaviour.
+  - `composeApp/.../ui/AppViewModel.kt` — `firmwareExpectedMd5` user
+    input state, `pickedFirmwareMd5` computed surface, and
+    `Md5.digest(bytes)` computation at upload time (avoids reading
+    the 50 MB zip twice).
+  - `composeApp/.../ui/Panes.kt` `FirmwarePane` — `OutlinedTextField`
+    for the expected hash and a "Local MD5: …" display line.
+  - `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` — append-only
+    progress log for §6 #2.
+  - All 476 `:shared:jvmTest` tests pass.
+
+### Notes
+- 128 MB size cap and SD free-space pre-flight (Phase 1a §6 #3, #4)
+  were already in place in v0.1.2 and remain unchanged.
+- v0.1.3 is a bug-fix release. No protocol changes, no API-breaking
+  changes for downstream Kotlin/Compose consumers of `shared`.
+
 ## [Unreleased]
 
 ### Added

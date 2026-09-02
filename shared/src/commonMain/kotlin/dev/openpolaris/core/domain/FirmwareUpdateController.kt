@@ -134,6 +134,15 @@ class FirmwareUpdateController(
      * written into the precondition frame for logging (the mount does
      * not currently echo the filename back — the field is advisory).
      *
+     * [expectedMd5], when non-null and non-blank, is compared against
+     * `Md5.digest(bytes)` before any network traffic. A mismatch aborts
+     * with [Status.Failed] and never touches the SD card or the WIRE
+     * socket. This mirrors the Benro Connect flow where the user pastes
+     * a per-piece `crcInfo` hash from the Benro web console and the app
+     * refuses to upload if the local MD5 does not match — preventing
+     * partial / corrupted bundles from wedging `SP_UpgradeCheckFw` or
+     * bricking the mount's recovery partition.
+     *
      * Emits one or more [Status] updates to [onStatus] (called from a
      * background coroutine; must be safe to invoke off the UI thread).
      * Returns the final [Status].
@@ -141,6 +150,7 @@ class FirmwareUpdateController(
     suspend fun start(
         bytes: ByteArray,
         filename: String = "FwPkt.zip",
+        expectedMd5: String? = null,
         rebootAfter: Boolean = false,
         onStatus: (Status) -> Unit = {},
     ): Status {
@@ -160,6 +170,26 @@ class FirmwareUpdateController(
                 "firmware bundle is ${bytes.size} bytes; exceeds $maxBytes byte (128 MB) cap"
             )
             onStatus(s); return s
+        }
+
+        // Phase 1a #2 (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #2):
+        // verify-before-upload MD5 cross-check. The on-board
+        // `polestar_app` computes per-piece `crcInfo` hashes and the
+        // Benro Connect flow has the user paste the bundle's MD5 in to
+        // gate the upload. We mirror that here: if the user supplied an
+        // expected MD5 and the local file does not match, refuse the
+        // upload *before* any bytes leave the desktop. Comparison is
+        // case-insensitive (md5sum output is lowercase, but we don't
+        // want a typo to brick a flash).
+        val expected = expectedMd5?.trim().orEmpty()
+        if (expected.isNotEmpty()) {
+            val local = dev.openpolaris.core.util.Md5.digest(bytes)
+            if (!local.equals(expected, ignoreCase = true)) {
+                val s = Status.Failed(
+                    "MD5 mismatch: local=$local, expected=$expected"
+                )
+                onStatus(s); return s
+            }
         }
 
         return when (delivery) {

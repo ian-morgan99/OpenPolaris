@@ -160,6 +160,155 @@ class FirmwareUpdateControllerTest {
     }
 
     @Test
+    fun md5MatchProceedsAndReachesDelivery() = runTest {
+        // When the caller passes a correct expected MD5, the upload
+        // proceeds normally. The MD5 check must run BEFORE any wire
+        // traffic (Phase 1a #2: verify-before-upload), but a match
+        // means the rest of the upload continues as before.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val pump = backgroundScope.launch {
+            conn.awaitWriteOf(810); conn.replyForCode(810, "state:1;")
+            conn.awaitWriteOf(784); conn.replyForCode(784, "ret:0;")
+            conn.awaitWriteOf(795); conn.replyForCode(795, "ret:0;")
+            conn.awaitWriteOf(811); conn.replyForCode(811, "p:100;")
+            conn.awaitWriteCountOf(811, target = 2)
+            conn.replyForCode(811, "p:100;")
+        }
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.WIRE,
+            chunkSize = 4,
+            progressPollMs = 50,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 2_000,
+        )
+        val payload = ByteArray(8) { it.toByte() }
+        // Local MD5: compute it from the same payload we hand to start().
+        val localMd5 = dev.openpolaris.core.util.Md5.digest(payload)
+        val final = controller.start(
+            bytes = payload,
+            filename = "FwPkt.zip",
+            expectedMd5 = localMd5,
+            rebootAfter = false,
+        )
+        pump.cancel()
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        // The full firmware sequence ran, i.e. the MD5 match did not
+        // short-circuit any subsequent step.
+        val codes = conn.written.mapNotNull { parseCode(it) }
+        assertTrue(codes.contains(810), "expected 810 on wire, got $codes")
+        assertTrue(codes.contains(784), "expected 784 on wire, got $codes")
+        assertTrue(codes.contains(795), "expected 795 on wire, got $codes")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun md5MismatchShortCircuitsBeforeAnyWireTraffic() = runTest {
+        // When the caller passes a wrong expected MD5, the upload must
+        // fail immediately with Status.Failed and must NOT issue ANY of
+        // 810/784/794/795 on the wire. The user can fix the paste and
+        // retry without corrupting the SD card.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.WIRE,
+            chunkSize = 4,
+            progressPollMs = 50,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 2_000,
+        )
+        val payload = ByteArray(8) { it.toByte() }
+        val final = controller.start(
+            bytes = payload,
+            filename = "FwPkt.zip",
+            // 32 hex chars, all '0' — guaranteed not to match the
+            // computed MD5 of any non-trivial payload.
+            expectedMd5 = "0".repeat(32),
+            rebootAfter = false,
+        )
+        val s = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(
+            s.reason.contains("MD5 mismatch"),
+            "expected failure reason to start with 'MD5 mismatch', got: ${s.reason}",
+        )
+        assertTrue(
+            s.reason.contains("expected=00000000000000000000000000000000"),
+            "expected the user-supplied MD5 to appear in the reason, got: ${s.reason}",
+        )
+        // No firmware-plane codes must have been written. The 820+823
+        // auth pair is allowed (those are the session's own handshake).
+        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+        assertEquals(
+            emptyList(), firmwareCodes,
+            "MD5 mismatch must short-circuit before any wire traffic; got $firmwareCodes",
+        )
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun md5NullBehavesAsBefore() = runTest {
+        // Passing expectedMd5=null must preserve the original behaviour:
+        // no MD5 check is performed, and the upload proceeds. This is
+        // the default for callers that haven't yet wired the paste-in
+        // box (e.g. the desktop app on first launch).
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val pump = backgroundScope.launch {
+            conn.awaitWriteOf(810); conn.replyForCode(810, "state:1;")
+            conn.awaitWriteOf(784); conn.replyForCode(784, "ret:0;")
+            conn.awaitWriteOf(795); conn.replyForCode(795, "ret:0;")
+            conn.awaitWriteOf(811); conn.replyForCode(811, "p:100;")
+            conn.awaitWriteCountOf(811, target = 2)
+            conn.replyForCode(811, "p:100;")
+        }
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.WIRE,
+            chunkSize = 4,
+            progressPollMs = 50,
+            progressDoneRepeats = 2,
+            installTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(8) { it.toByte() },
+            filename = "FwPkt.zip",
+            expectedMd5 = null,
+            rebootAfter = false,
+        )
+        pump.cancel()
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        val codes = conn.written.mapNotNull { parseCode(it) }
+        assertTrue(codes.contains(810), "expected 810 on wire, got $codes")
+        assertTrue(codes.contains(795), "expected 795 on wire, got $codes")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
     fun sshPipeDeliveryDoesNotTouchTheWire() = runTest {
         // SshPipe delivery must NOT issue 810/784/794/795/811. The
         // controller has no business talking to the gimbal — the user's

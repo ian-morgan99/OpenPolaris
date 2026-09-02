@@ -647,6 +647,17 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     text = if (size != null) "Selected: $name (${humanBytes(size)})" else "Selected: $name",
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                // Phase 1a #2: surface the locally-computed MD5 so the user
+                // can sanity-check the picked file against an external
+                // source (Benro web console, the original download's
+                // checksum, a side-loaded copy, etc.). Populated at
+                // upload time, not pick time, so it stays "—" until the
+                // first time Upload runs.
+                val localMd5 = vm.pickedFirmwareMd5
+                Text(
+                    text = if (localMd5 != null) "Local MD5:  $localMd5" else "Local MD5:  — (computed at upload time)",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             } else {
                 Text(
                     "No firmware selected. Tap 'Pick firmware…' to choose a FwPkt.zip.",
@@ -679,6 +690,23 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+
+            // Phase 1a #2: expected-MD5 cross-check. The user pastes the
+            // bundle's MD5 (typically from the Benro web console) and the
+            // controller refuses to touch the wire / SD if the local hash
+            // disagrees. Mirrors the Benro Connect flow where the user is
+            // expected to verify the hash before pressing Upload. Leaving
+            // the field blank disables the check (the controller's
+            // expectedMd5=null branch is exercised in the null test).
+            OutlinedTextField(
+                value = vm.firmwareExpectedMd5,
+                onValueChange = { vm.firmwareExpectedMd5 = it.trim() },
+                enabled = !vm.firmwareBusy,
+                singleLine = true,
+                label = { Text("Expected MD5 (from Benro console — optional)") },
+                placeholder = { Text("32-char hex, e.g. d41d8cd98f00b204e9800998ecf8427e") },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             // ---- Delivery mode (verified vs experimental) -----------------
             // The default SSH_PIPE path is the verified one — the bytes

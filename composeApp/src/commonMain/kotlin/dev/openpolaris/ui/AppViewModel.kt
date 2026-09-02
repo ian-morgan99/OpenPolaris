@@ -58,6 +58,7 @@ import dev.openpolaris.core.solver.SolveHint
 import dev.openpolaris.core.solver.SolveResult
 import dev.openpolaris.core.solver.StarDetector
 import dev.openpolaris.core.solver.SyntheticTestCatalog
+import dev.openpolaris.core.util.Md5
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -256,6 +257,26 @@ class AppViewModel(
     /** Bytes of the picked firmware file, lazily read by the upload button. */
     var pickedFirmwareSize by mutableStateOf<Long?>(null)
         private set
+
+    /**
+     * Lower-case hex MD5 of the picked firmware file, computed at upload
+     * time (NOT at pick time — multi-MB files would be wasteful to read
+     * twice, and the upload is the first time we actually load the bytes).
+     * Surfaced in the FirmwarePane so the user can sanity-check the file
+     * against an external source. Phase 1a #2 of
+     * docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md.
+     */
+    var pickedFirmwareMd5 by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Expected MD5 of the firmware bundle, supplied by the user (typically
+     * pasted from the Benro web console). When non-blank, the controller
+     * cross-checks this against the locally-computed MD5 and refuses to
+     * touch the wire if they disagree. Mirrors the Benro Connect flow
+     * where the user is expected to verify the bundle's hash before upload.
+     */
+    var firmwareExpectedMd5 by mutableStateOf("")
 
     /** Whether the firmware upload is currently in flight. Drives UI gating. */
     var firmwareBusy by mutableStateOf(false)
@@ -2082,6 +2103,20 @@ class AppViewModel(
                 statusMessage = "Pick a FwPkt.zip file first"
                 return@launch
             }
+            // Phase 1a #2: compute the local MD5 over the just-read bytes and
+            // surface it in the pane. The controller's verify-before-upload
+            // step will compare this to firmwareExpectedMd5 (when set) and
+            // short-circuit if they disagree. Storing the value here also
+            // lets the user copy it out for an external cross-check.
+            val localMd5 = try {
+                Md5.digest(bytes)
+            } catch (t: Throwable) {
+                statusMessage = "Failed to compute local MD5: ${t.message ?: t::class.simpleName}"
+                firmwareBusy = false
+                return@launch
+            }
+            pickedFirmwareMd5 = localMd5
+
             statusMessage = "Uploading firmware (${bytes.size} bytes) via ${firmwareDeliveryMode}…"
             val controller = FirmwareUpdateController(
                 session = s,
@@ -2092,9 +2127,18 @@ class AppViewModel(
                 progressDoneRepeats = 2,
                 installTimeoutMs = 5 * 60_000L, // 5 minutes
             )
+            // Pass expectedMd5 only when the user has actually entered one.
+            // Empty / blank string means "no cross-check" — mirrors the
+            // Benro Connect flow where the expected hash is optional from
+            // the UI's perspective but the user is expected to enter it
+            // before pressing Upload. The controller itself normalises
+            // (trim, ignore-case) so we just need to forward a non-blank
+            // value or null.
+            val expectedMd5 = firmwareExpectedMd5.takeIf { it.isNotBlank() }
             val final = controller.start(
                 bytes = bytes,
                 filename = filename,
+                expectedMd5 = expectedMd5,
                 rebootAfter = rebootAfter,
             ) { status ->
                 firmwareStatus = status
@@ -2118,6 +2162,8 @@ class AppViewModel(
                 pickedFirmwarePath = null
                 pickedFirmwareName = null
                 pickedFirmwareSize = null
+                pickedFirmwareMd5 = null
+                firmwareExpectedMd5 = ""
             }
         } catch (e: Throwable) {
             // 3e E2: a synchronous throw from controller.start (e.g. socket
@@ -2168,6 +2214,11 @@ class AppViewModel(
         // Reset the previous attempt's status so the pane goes back to a
         // clean "ready to pick" state when the user reaches for a new file.
         if (firmwareBusy) return // ignore picks while uploading
+        // Clear stale MD5 fields from a prior pick — we'll recompute on
+        // upload once we have the bytes in hand. We deliberately do NOT
+        // hash at pick time: a 50MB FwPkt.zip read twice (stat, then
+        // hash, then upload) would be wasteful.
+        pickedFirmwareMd5 = null
         FilePicker.pickFile(
             title = "Pick FwPkt.zip",
             mimeType = "application/zip",
@@ -2236,6 +2287,7 @@ class AppViewModel(
         pickedFirmwarePath = null
         pickedFirmwareName = null
         pickedFirmwareSize = null
+        pickedFirmwareMd5 = null
         firmwareStatus = null
     }
 

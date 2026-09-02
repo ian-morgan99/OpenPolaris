@@ -105,12 +105,12 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Read-only network scan. Verified.", safe = true),
 
     // ---- destructive (destructive=true) ---------------------------------
-    FlagSpec("allowReboot", "Reboot (830)",
-        "Sends a reboot command to the mount. Destructive — requires explicit confirm.", safe = false, destructive = true),
-    FlagSpec("allowShutdown", "Shutdown (831)",
-        "Sends a shutdown command. Destructive — requires explicit confirm.", safe = false, destructive = true),
-    FlagSpec("firmwareUpload", "Firmware upload (780-782)",
-        "Uploads a firmware blob to the mount. An interrupted upload can brick the firmware.", safe = false, destructive = true),
+    FlagSpec("allowReboot", "Reboot (812 — UNVERIFIED)",
+        "Sends a reboot command to the mount. Opcode 812 is decompile-classified as SP_GET_CELLULAR_IMEI (a query), so the wire mapping is uncertain. The on-board install auto-reboots on success. Destructive — requires explicit confirm.", safe = false, destructive = true),
+    FlagSpec("allowShutdown", "Shutdown (813 — UNVERIFIED)",
+        "Sends a shutdown command. Opcode 813 is decompile-classified as SP_SET_CELLULAR_COMUSB (a cellular USB-mode setter), so the wire mapping is uncertain. Destructive — requires explicit confirm.", safe = false, destructive = true),
+    FlagSpec("firmwareUpload", "Firmware upload (810 / 784 / 794 / 795 / 811 / 812 — UNVERIFIED)",
+        "Experimental 9090-side upload using opcodes 810→784→794→795→811→812. None of these opcodes are verified on production firmware: the live install path is SSH/scp to /app/sd/FwPkt.zip, not port 9090. See docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §2. An interrupted upload CAN BRICK the gimbal.", safe = false, destructive = true),
 
     // ---- diagnostic ------------------------------------------------------
     FlagSpec("rawFrameLog", "Frame raw dump",

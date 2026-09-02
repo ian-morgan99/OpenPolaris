@@ -10,30 +10,51 @@ import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
 
 /**
- * Firmware update controller — drives a complete FwPkt.zip upload using the
- * same protocol the Benro Connect app uses (the decompile audit's H1–H3
- * envelope), with chunked payload off the [Connection] seam.
+ * Firmware update controller — drives a complete FwPkt.zip upload to the
+ * Benro Polaris gimbal.
  *
- * **Protocol sequence** (reconstructed from the Benro Connect reverse-engineering
- * doc and the live-captured frames in
- * [docs/evidence/gimbal-ssh-2026-08-31/](../evidence/gimbal-ssh-2026-08-31/)):
+ * Two delivery modes are supported, each with a different trust profile:
  *
- *  1. `SYS_FW_UPGRADE` (810) — precondition. The Benro app arms the on-board
- *     watcher with `type:N;` (the only H3 trigger we know of; see audit
- *     hypothesis H3 in `KNOWLEDGE-SHARE-FOR-PATCHER.md`).
- *  2. `FILE_UPLOAD_FW` (784) — start. The mount replies with `ret:0;` if it
- *     is ready to accept a chunked firmware transfer.
- *  3. `FILE_UPLOAD_CHUNK` (794) — repeat, sending [chunkSize] bytes per call
- *     (the **payload slot** carries the raw zip bytes, base-64 *is not*
- *     applied — the chunked upload channel is the same one file-manager
- *     uses for SD-card content, which the simulator already round-trips
- *     as opaque bytes via [MountSession.send]).
+ *  - [DeliveryMode.SSH_PIPE] (default, **verified**): the controller
+ *    hands the bytes to a [FirmwareDelivery] seam that shells out to `scp`
+ *    (or, equivalently, `ssh root@<host> 'cat > /app/sd/FwPkt.zip'`) and
+ *    drops the zip onto the SD card. This is the path the on-board
+ *    `polestar_app` binary actually watches (see `HANDOVER-2026-08-31.md`
+ *    §4.4 — `SP_UpgradeCheckFw` at `0x14023c` in `polestar_app`). The
+ *    user must then reboot the gimbal for the install to fire. No
+ *    protocol magic, no per-code envelope guess.
+ *
+ *  - [DeliveryMode.WIRE] (experimental, **unverified**): the controller
+ *    drives a chunked upload through the gimbal's binary control plane
+ *    using codes 810/784/794/795/811/812 (reconstructed from the Benro
+ *    Connect Android app's decompile). The sequence is the one documented
+ *    in the H1–H3 audit (`KNOWLEDGE-SHARE-FOR-PATCHER.md`). **As of
+ *    2026-08-31, the OpenPolaris RE has not captured a live Benro Connect
+ *    upload frame**, so the wire-format assumptions below are best-effort
+ *    guesses. The `polestar_app` 810 precondition payload (`type:N;`),
+ *    the 784 envelope (`size:N;name:FwPkt.zip;`), and the chunked
+ *    payload slot (currently an empty `len:N;` — see [sendChunk]) are
+ *    all unverified at the byte level. A live Benro Connect traffic
+ *    capture is the only thing that will close that gap.
+ *
+ * **Wire sequence (DeliveryMode.WIRE only)**, reconstructed from the
+ * `polestar_app` decompile and the live-captured post-connect burst
+ * (see [docs/evidence/gimbal-ssh-2026-08-31/](../evidence/gimbal-ssh-2026-08-31/)):
+ *
+ *  1. `SYS_FW_UPGRADE` (810) — precondition. The Benro app arms the
+ *     on-board watcher with `type:N;`. Live-captured reply is
+ *     `state:0/1/2/3/4` (H3 hypothesis; not yet observed in a
+ *     Benro-Connect-captured frame).
+ *  2. `FILE_UPLOAD_FW` (784) — start. The mount replies with `ret:0;` if
+ *     it is ready to accept a chunked firmware transfer.
+ *  3. `FILE_UPLOAD_CHUNK` (794) — repeat, sending [chunkSize] bytes per
+ *     call. **Caveat:** the actual payload slot for binary chunks has
+ *     not been observed; the current code sends `len:N;` only.
  *  4. `FILE_UPLOAD_END` (795) — finalize. Mount returns to listening.
  *  5. `SYS_FW_PROGRESS` (811) — poll. The watcher emits `p:N;` with
  *     `N` in `0..100` until install completes.
  *  6. **Optional** `SYS_REBOOT` (812) — if [rebootAfter] is true, send a
- *     reboot command once progress hits 100. Skipped by default; the
- *     firmware typically reboots itself once verified.
+ *     reboot command once progress hits 100.
  *
  * **Safety**: this controller is gated behind
  * [dev.openpolaris.core.config.FeatureFlags.firmwareUpload], which is OFF
@@ -48,18 +69,30 @@ import kotlin.coroutines.coroutineContext
  */
 class FirmwareUpdateController(
     private val session: MountSession,
+    /** How the bytes are pushed onto the mount. [DeliveryMode.SSH_PIPE]
+     *  uses the on-board watcher (verified). [DeliveryMode.WIRE] uses
+     *  the 810/784/794/795 envelope (unverified). */
+    private val delivery: DeliveryMode = DeliveryMode.SSH_PIPE,
+    /** Required when [delivery] is [DeliveryMode.SSH_PIPE] — handed the
+     *  bytes; expected to drop them at `/app/sd/FwPkt.zip` on the
+     *  mount. Ignored for [DeliveryMode.WIRE]. */
+    private val sshDelivery: FirmwareDelivery = NoOpFirmwareDelivery,
     /** Max bytes per `FILE_UPLOAD_CHUNK` frame. The default 1024 is the
      *  size the Benro Connect app uses for firmware chunks; anything
-     *  larger risks the mount's UART ring. */
+     *  larger risks the mount's UART ring. WIRE mode only. */
     private val chunkSize: Int = 1024,
-    /** How often to poll `SYS_FW_PROGRESS` while waiting for install. */
+    /** How often to poll `SYS_FW_PROGRESS` while waiting for install.
+     *  WIRE mode only. */
     private val progressPollMs: Long = 500,
-    /** Stop polling once we see this many successive `p:100;` frames. */
+    /** Stop polling once we see this many successive `p:100;` frames.
+     *  WIRE mode only. */
     private val progressDoneRepeats: Int = 2,
-    /** Overall timeout for the install phase (after upload completes). */
+    /** Overall timeout for the install phase (after upload completes).
+     *  WIRE mode only. */
     private val installTimeoutMs: Long = 5 * 60_000L,
     /** Timeout for the 810 arm precondition. Tighter than the install
-     *  timeout because the precondition is supposed to be near-instant. */
+     *  timeout because the precondition is supposed to be near-instant.
+     *  WIRE mode only. */
     private val armTimeoutMs: Long = 2_000,
 ) {
 
@@ -98,6 +131,81 @@ class FirmwareUpdateController(
             onStatus(s); return s
         }
 
+        // Phase 1a size cap (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6).
+        // The on-board SD card is 128 MB vfat with 121 MB free. Anything
+        // larger cannot land on the card and would either wedge the
+        // writer (SSH_PIPE) or push us into untested long-write territory
+        // (WIRE). Refuse up-front rather than mid-flight.
+        val maxBytes = 128L * 1024L * 1024L
+        if (bytes.size.toLong() > maxBytes) {
+            val s = Status.Failed(
+                "firmware bundle is ${bytes.size} bytes; exceeds $maxBytes byte (128 MB) cap"
+            )
+            onStatus(s); return s
+        }
+
+        return when (delivery) {
+            DeliveryMode.SSH_PIPE -> startSshPipe(bytes, filename, rebootAfter, onStatus)
+            DeliveryMode.WIRE -> startWire(bytes, filename, rebootAfter, onStatus)
+        }
+    }
+
+    /**
+     * Verified path: hand the bytes to [sshDelivery], which is expected
+     * to drop them at `/app/sd/FwPkt.zip` on the mount. Returns [Status.Done]
+     * once the bytes are on the SD card; the user must reboot the
+     * gimbal for the on-board watcher (`SP_UpgradeCheckFw`) to pick
+     * them up. We do not poll progress because we have no wire-side
+     * observability for an install we did not start.
+     */
+    private suspend fun startSshPipe(
+        bytes: ByteArray,
+        filename: String,
+        rebootAfter: Boolean,
+        onStatus: (Status) -> Unit,
+    ): Status {
+        onStatus(Status.Uploading(bytesSent = 0, bytesTotal = bytes.size))
+        try {
+            sshDelivery.deliver(bytes, filename, onProgress = { sent ->
+                onStatus(Status.Uploading(bytesSent = sent, bytesTotal = bytes.size))
+            })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val s = Status.Failed("scp delivery failed: ${e.message ?: e::class.simpleName}")
+            onStatus(s); return s
+        }
+        onStatus(Status.Uploading(bytesSent = bytes.size, bytesTotal = bytes.size))
+        onStatus(Status.Installing(percent = 0))
+        // No wire-side progress to poll — the install runs after the
+        // user reboots the gimbal. The status stays at Installing(0)
+        // until reboot, which is the right user-facing message
+        // ("dropped, now reboot").
+        if (rebootAfter) {
+            val rb = reboot()
+            if (rb is RebootResult.Failed) {
+                val s = Status.Failed(rb.reason)
+                onStatus(s); return s
+            }
+        }
+        val s = Status.Done
+        onStatus(s)
+        return s
+    }
+
+    /**
+     * Unverified path: drives the 810/784/794/795/811/812 envelope
+     * through the gimbal's binary control plane. See the class KDoc
+     * for the known-unknowns. The chunk payload slot is a `len:N;`
+     * placeholder; **the binary-blob framing is the next phase once a
+     * captured chunk appears in a live Benro Connect trace**.
+     */
+    private suspend fun startWire(
+        bytes: ByteArray,
+        filename: String,
+        rebootAfter: Boolean,
+        onStatus: (Status) -> Unit,
+    ): Status {
         // 1. Precondition: arm the on-board watcher (810).
         val arm = armFirmwareUpgrade(filename)
         if (arm is ArmResult.Failed) {
@@ -321,4 +429,74 @@ class FirmwareUpdateController(
     private data class ArmParsed(val state: Int)
     private data class UploadParsed(val ret: Int)
     private data class ProgressParsed(val percent: Int)
+}
+
+/**
+ * Which transport the controller uses to push the FwPkt.zip onto the
+ * mount. See [FirmwareUpdateController] class KDoc for the trust
+ * profile of each.
+ */
+enum class DeliveryMode {
+    /**
+     * Default. Verified path: deliver the bytes via the host's
+     * [FirmwareDelivery] (typically a `scp` to root@<gimbal-ip>:/app/sd/FwPkt.zip)
+     * and let the on-board `SP_UpgradeCheckFw` watcher handle the rest
+     * after the user reboots.
+     */
+    SSH_PIPE,
+
+    /**
+     * Unverified path: drive the 810/784/794/795/811/812 envelope
+     * through the binary control plane. Use only when you have a
+     * live-captured frame to validate the wire format against; the
+     * current implementation has the chunk payload slot as a `len:N;`
+     * placeholder.
+     */
+    WIRE,
+}
+
+/**
+ * Transport seam for [DeliveryMode.SSH_PIPE]. Implementations push the
+ * bytes onto the mount at the path the on-board watcher monitors
+ * (`/app/sd/FwPkt.zip`). The seam is multiplatform — `commonMain` only
+ * declares the contract; the JVM-side uses `scp`/JSch/etc., the
+ * Android-side uses a JSch or SSHJ Kotlin port.
+ *
+ * The default [NoOpFirmwareDelivery] is a sentinel that throws if
+ * `SSH_PIPE` is selected without a real implementation wired in. The
+ * `AppViewModel` is expected to provide a real one (see
+ * `JvmScpFirmwareDelivery` in the JVM module).
+ */
+interface FirmwareDelivery {
+    /**
+     * Push the bytes. May take a few seconds for a 60 MB zip over
+     * a 100 Mbit/s link. [onProgress] is called with the running
+     * byte count (not bytes per second — the consumer can derive
+     * the rate itself).
+     *
+     * Throws on transport failure. The controller wraps the
+     * exception into a [FirmwareUpdateController.Status.Failed].
+     */
+    suspend fun deliver(
+        bytes: ByteArray,
+        filename: String,
+        onProgress: (bytesSent: Int) -> Unit = {},
+    )
+}
+
+/** Sentinel: throws if SSH_PIPE is selected without a real [FirmwareDelivery]
+ *  wired in. Avoids a silent "no-op delivery" that would let the
+ *  user think they uploaded. */
+object NoOpFirmwareDelivery : FirmwareDelivery {
+    override suspend fun deliver(
+        bytes: ByteArray,
+        filename: String,
+        onProgress: (bytesSent: Int) -> Unit,
+    ) {
+        throw IllegalStateException(
+            "SSH_PIPE delivery requested but no FirmwareDelivery is wired in. " +
+                "Provide one via FirmwareUpdateController(delivery = SSH_PIPE, sshDelivery = ...). " +
+                "See JvmScpFirmwareDelivery for a working JVM implementation."
+        )
+    }
 }

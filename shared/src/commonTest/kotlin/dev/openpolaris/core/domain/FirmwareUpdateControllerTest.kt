@@ -106,6 +106,7 @@ class FirmwareUpdateControllerTest {
 
         val controller = FirmwareUpdateController(
             session = session,
+            delivery = DeliveryMode.WIRE,
             chunkSize = 4,
             progressPollMs = 50,
             progressDoneRepeats = 2,
@@ -126,6 +127,130 @@ class FirmwareUpdateControllerTest {
             "expected at least one Uploading status, got $statuses")
         assertTrue(statuses.any { it is FirmwareUpdateController.Status.Installing },
             "expected at least one Installing status, got $statuses")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * In-memory [FirmwareDelivery] for tests. Records every call to
+     * [deliver] and replays a [onProgress] ramp so the test can assert
+     * the controller surfaces [Status.Uploading] updates.
+     */
+    private class RecordingDelivery : FirmwareDelivery {
+        var lastBytes: ByteArray? = null
+        var lastFilename: String? = null
+        val callCount = 0.let { var n = 0; { n++ } }
+        override suspend fun deliver(
+            bytes: ByteArray,
+            filename: String,
+            onProgress: (bytesSent: Int) -> Unit,
+        ) {
+            lastBytes = bytes
+            lastFilename = filename
+            // Report progress in two steps so the test sees a Uploading
+            // with a non-final byteSent.
+            onProgress(bytes.size / 2)
+            onProgress(bytes.size)
+        }
+    }
+
+    @Test
+    fun sshPipeDeliveryDoesNotTouchTheWire() = runTest {
+        // SshPipe delivery must NOT issue 810/784/794/795/811. The
+        // controller has no business talking to the gimbal — the user's
+        // [FirmwareDelivery] handles it, and the user then reboots the
+        // gimbal manually. The wire must stay quiet.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+        )
+        val statuses = mutableListOf<FirmwareUpdateController.Status>()
+        val payload = ByteArray(64) { it.toByte() }
+        val final = controller.start(bytes = payload, filename = "FwPkt.zip", rebootAfter = false) {
+            statuses += it
+        }
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(payload.size, delivery.lastBytes?.size)
+        assertEquals("FwPkt.zip", delivery.lastFilename)
+        // No firmware-plane codes (810, 784, 794, 795, 811, 812) on the
+        // wire — the 820+823 auth pair is allowed (those are the
+        // session's own handshake, not firmware).
+        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+        assertEquals(emptyList(), firmwareCodes,
+            "SSH_PIPE delivery must not write firmware codes; got $firmwareCodes")
+        // And the controller reported an Uploading + Installing sequence.
+        assertTrue(statuses.any { it is FirmwareUpdateController.Status.Uploading })
+        assertTrue(statuses.any { it is FirmwareUpdateController.Status.Installing })
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun sshPipeWithRebootFiresReboot() = runTest {
+        // SshPipe + rebootAfter=true should send 812 (reboot) after
+        // the bytes are dropped. This is the rare case where the wire
+        // IS involved in SSH_PIPE — but only for the post-install
+        // reboot, not the upload itself.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val pump = backgroundScope.launch {
+            conn.awaitWriteOf(812); conn.replyForCode(812, "ret:0;")
+        }
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+        )
+        val final = controller.start(
+            bytes = ByteArray(16) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = true,
+        )
+        pump.cancel()
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertTrue(conn.writtenCode(812), "expected reboot (812) on the wire")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun sshPipeWithoutDeliveryThrowsClearError() = runTest {
+        // The default NoOpFirmwareDelivery is a sentinel — it throws so
+        // the user cannot accidentally upload nothing. The controller
+        // wraps the throw into a Status.Failed with a useful reason.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            // sshDelivery defaults to NoOpFirmwareDelivery
+        )
+        val final = controller.start(bytes = ByteArray(8) { it.toByte() }, filename = "FwPkt.zip")
+        val s = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(s.reason.contains("scp delivery failed"),
+            "expected the NoOp-sentinel throw to be wrapped into a 'scp delivery failed' failure, got: ${s.reason}")
 
         session.disconnect()
         runCurrent()
@@ -152,6 +277,7 @@ class FirmwareUpdateControllerTest {
 
         val controller = FirmwareUpdateController(
             session = session,
+            delivery = DeliveryMode.WIRE,
             chunkSize = 4,
             progressPollMs = 50,
             progressDoneRepeats = 2,
@@ -193,6 +319,66 @@ class FirmwareUpdateControllerTest {
     }
 
     @Test
+    fun oversizeFirmwareFailsImmediately() = runTest {
+        // Phase 1a size cap (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6).
+        // Anything over 128 MB cannot land on the on-board SD card
+        // (121 MB free, 128 MB partition). The controller must refuse
+        // up-front rather than mid-flight, and must not even attempt
+        // the wire sequence.
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val controller = FirmwareUpdateController(session = session)
+        // 128 MB + 1 byte — over the cap.
+        val oversize = ByteArray(128 * 1024 * 1024 + 1)
+        val final = controller.start(bytes = oversize, filename = "FwPkt.zip")
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(
+            failed.reason.contains("128 MB") || failed.reason.contains("134217729"),
+            "expected the 128 MB cap message in the failure reason, got: ${failed.reason}"
+        )
+        // No firmware-plane codes (810, 784, 794, 795, 811, 812) on the
+        // wire — the cap short-circuits before startWire is called.
+        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
+            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
+        assertEquals(emptyList(), firmwareCodes,
+            "oversize bundle must not write firmware codes; got $firmwareCodes")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun at128MbFirmwareIsAccepted() = runTest {
+        // 128 MB exactly is on the boundary. It should pass the cap and
+        // proceed to the delivery path (SSH_PIPE here, so the wire stays
+        // quiet and the FakeDelivery absorbs the bytes).
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+        )
+        val exact = ByteArray(128 * 1024 * 1024)
+        val final = controller.start(bytes = exact, filename = "FwPkt.zip", rebootAfter = false)
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        assertEquals(128 * 1024 * 1024, delivery.lastBytes?.size)
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
     fun armTimeoutReportsFailure() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
@@ -204,6 +390,7 @@ class FirmwareUpdateControllerTest {
 
         val controller = FirmwareUpdateController(
             session = session,
+            delivery = DeliveryMode.WIRE,
             armTimeoutMs = 100,
         )
         val final = controller.start(
@@ -247,6 +434,7 @@ class FirmwareUpdateControllerTest {
 
         val controller = FirmwareUpdateController(
             session = session,
+            delivery = DeliveryMode.WIRE,
             chunkSize = 2,
             progressPollMs = 50,
             progressDoneRepeats = 2,
@@ -286,6 +474,7 @@ class FirmwareUpdateControllerTest {
 
         val controller = FirmwareUpdateController(
             session = session,
+            delivery = DeliveryMode.WIRE,
             chunkSize = 4,
             progressPollMs = 50,
             progressDoneRepeats = 2,

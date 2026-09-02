@@ -164,7 +164,13 @@ object Codes {
     const val FILE_THUMB = 781
     const val FILE_THUMB_LIST = 782
     const val FILE_INFO = 783
-    const val FILE_UPLOAD_FW = 784
+    // 784/794/795 are UNVERIFIED on production firmware — see
+    // docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §2. The on-board install
+    // path is SD-card based, not 9090-based. These constants are kept
+    // for the experimental DeliveryMode.WIRE controller, gated behind
+    // FeatureFlags.firmwareUpload. Do not exercise against a real gimbal
+    // without a Benro Connect pcap capture confirming the wire format.
+    const val FILE_UPLOAD_FW = 784      // UNVERIFIED — see audit §2 "784"
     const val FILE_BACKUP = 785
     const val FILE_RESTORE = 786
     const val FILE_CAM_LIST = 787
@@ -174,8 +180,8 @@ object Codes {
     const val FILE_UNPROTECT = 791
     const val FILE_QUOTA = 792
     const val FILE_PAGINATE = 793
-    const val FILE_UPLOAD_CHUNK = 794
-    const val FILE_UPLOAD_END = 795
+    const val FILE_UPLOAD_CHUNK = 794  // UNVERIFIED — see audit §2 "794"
+    const val FILE_UPLOAD_END = 795    // UNVERIFIED — see audit §2 "795"
     const val FILE_CAM_RAW = 796
     const val FILE_SCAN_COMPLETE = 797
     const val FILE_RENAME = 798 // placeholder; original 780 collided with DEVICE_INFO
@@ -224,12 +230,15 @@ object Codes {
     const val WIFI_RSSI = 807   // (gap in decompile)
     const val SYS_VERSION = 808 // ✓ live (`ver:$fwVersion;hw:1;`). decompile: SP_SOCKET_CLIENT_TYPE (resp) — see audit
     const val SYS_SERIAL = 809  // ✓ live (`sn:$serial;`). decompile: SP_SET_CELLULAR_APN — see audit
-    const val SYS_FW_UPGRADE = 810
-    // 810 has no decompile name. The Benro app sends 810 as a precondition
-    // before dropping FwPkt.zip — see H3 in KNOWLEDGE-SHARE-FOR-PATCHER.md.
-    const val SYS_FW_PROGRESS = 811 // decompile: SP_GET_CELLULAR_IMSI ⚠ (live: `p:N;`)
-    const val SYS_REBOOT = 812      // decompile: SP_GET_CELLULAR_IMEI ⚠ (live: `ret:0;`)
-    const val SYS_SHUTDOWN = 813    // decompile: SP_SET_CELLULAR_COMUSB (`usbmode:..;`) ⚠
+    const val SYS_FW_UPGRADE = 810   // UNVERIFIED — see audit §2 "810"
+    // 810 has no decompile name. The Benro app is hypothesised to send 810
+    // as a precondition before dropping FwPkt.zip — see H3 in
+    // KNOWLEDGE-SHARE-FOR-PATCHER.md. Production firmware does not pull
+    // bytes from port 9090; the install reads /app/sd/FwPkt.zip instead.
+    // See docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §1 (production path).
+    const val SYS_FW_PROGRESS = 811 // UNVERIFIED — decompile: SP_GET_CELLULAR_IMSI ⚠ (live: `p:N;`)
+    const val SYS_REBOOT = 812      // UNVERIFIED — decompile: SP_GET_CELLULAR_IMEI ⚠ (live: `ret:0;`)
+    const val SYS_SHUTDOWN = 813    // UNVERIFIED — decompile: SP_SET_CELLULAR_COMUSB (`usbmode:..;`) ⚠
     const val SYS_TIME = 814        // decompile: SP_GET_CELLULAR_HV ⚠
     const val SYS_TIMEZONE = 815    // decompile: SP_GET_AUTO_OFF_SW ⚠
     const val SYS_LANGUAGE = 816    // decompile: SP_SET_AUTO_OFF_SW (`sw:0/1;`) ⚠

@@ -1,10 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  # Manual trigger only — push/PR triggers disabled to conserve GitHub
+  # Actions minutes. Run from the Actions tab when CI evidence is needed.
   workflow_dispatch:
 
 # Cancel in-flight runs for the same ref when new commits land.

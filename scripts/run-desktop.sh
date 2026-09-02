@@ -24,15 +24,39 @@ if [[ "${OPENPOLARIS_GPU:-0}" != "1" ]]; then
   export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dskiko.renderApi=SOFTWARE_FAST -Dprism.order=sw -Dprism.text=t2k"
 fi
 
-# Stream the gradle wrapper's output to a tee'd log file by default so the
-# calling shell doesn't hang on a long-running pipe (`:composeApp:run` is
-# a foreground task and never closes stdout on its own). Override with
-# OPENPOLARIS_LOG=- to stream directly to the terminal.
+# By default the wrapper logs the Compose JVM's stdout to /tmp/openpolaris-desktop.log
+# (in addition to the calling terminal, if any) and stays attached for the full
+# lifetime of the JVM — `:composeApp:run` is a foreground task and never exits
+# on its own, so the wrapper will only return when the Compose window closes
+# (or the JVM is killed). This is intentional: a user who runs the script in
+# a terminal wants the JVM to follow their session's lifecycle.
+#
+# If you need the wrapper to return while the JVM keeps running, launch it
+# from your own backgrounding context (e.g. `nohup`, `setsid`, systemd, or
+# a terminal multiplexer). The `tee` here is purely for log redirection, not
+# lifecycle management.
+#
+# Override the log target with OPENPOLARIS_LOG=path or OPENPOLARIS_LOG=- to
+# stream directly to the terminal (the latter still keeps the wrapper attached
+# to the JVM).
 LOG_TARGET="${OPENPOLARIS_LOG:-/tmp/openpolaris-desktop.log}"
+
+run_with_tee() {
+  # Pipes the given long-lived command's output to a tee'd log file, keeping
+  # the wrapper attached for the full lifetime of the command. Sourced
+  # separately by scripts/run-desktop-test.sh so the contract can be
+  # regression-tested with a stub command.
+  local log_target="$1"; shift
+  if [[ "$log_target" == "-" ]]; then
+    exec "$@"
+  else
+    ( "$@" 2>&1 ) | tee "$log_target"
+  fi
+}
 
 if [[ "$LOG_TARGET" == "-" ]]; then
   exec ./gradlew :composeApp:run "$@"
 else
-  echo "Logging desktop UI startup to: $LOG_TARGET" >&2
-  ( ./gradlew :composeApp:run "$@" 2>&1 ) | tee "$LOG_TARGET"
+  echo "Logging desktop UI startup to: $LOG_TARGET (wrapper stays attached until JVM exits)" >&2
+  run_with_tee "$LOG_TARGET" ./gradlew :composeApp:run "$@"
 fi

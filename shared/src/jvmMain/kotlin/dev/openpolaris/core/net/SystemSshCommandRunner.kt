@@ -2,7 +2,6 @@ package dev.openpolaris.core.net
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
@@ -44,11 +43,9 @@ class SystemSshCommandRunner(
     val identityFile: String? = null,
 ) : SshCommandRunner {
 
-    /** Synchronous `fun interface` entry point. Wraps [execute] in
-     *  `runBlocking` so the function-interface contract is met. */
-    override fun run(command: String): SshCommandResult = runBlocking {
-        execute(command)
-    }
+    /** `fun interface` entry point. Delegates to [execute] so
+     *  cancellation propagates from the caller's coroutine. */
+    override suspend fun run(command: String): SshCommandResult = execute(command)
 
     /** Suspendable variant. Run from inside a coroutine so
      *  cancellation propagates: cancelling the caller interrupts

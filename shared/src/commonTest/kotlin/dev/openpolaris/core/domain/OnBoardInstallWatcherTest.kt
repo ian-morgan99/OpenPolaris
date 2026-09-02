@@ -26,7 +26,7 @@ class OnBoardInstallWatcherTest {
         var nextFailure: Throwable? = null
         var calls: Int = 0
 
-        override fun run(command: String): SshCommandResult {
+        override suspend fun run(command: String): SshCommandResult {
             calls++
             nextFailure?.let { throw it }
             return SshCommandResult(exitCode = 0, stdout = mlog, stderr = "")

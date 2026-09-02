@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.net.SshCommandRunner
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
@@ -77,6 +78,23 @@ class FirmwareUpdateController(
      *  bytes; expected to drop them at `/app/sd/FwPkt.zip` on the
      *  mount. Ignored for [DeliveryMode.WIRE]. */
     private val sshDelivery: FirmwareDelivery = NoOpFirmwareDelivery,
+    /** Optional SSH runner used after the scp delivery to:
+     *   1) restart the on-board `polestar_app` so it picks up the
+     *      freshly-staged `FwPkt.zip`, and
+     *   2) poll `/app/Mlog.txt` for the install state-machine's
+     *      terminal sentinels (Pass / Fail / Timeout) so the user
+     *      gets real feedback instead of "dropped, now reboot".
+     *  Null disables both — the controller will fall back to the
+     *  legacy behaviour of returning `Status.Done` after the bytes
+     *  land on the SD card. Ignored for [DeliveryMode.WIRE]. */
+    private val sshCommandRunner: SshCommandRunner? = null,
+    /** How often the on-board install watcher polls Mlog.txt.
+     *  SSH_PIPE mode only. */
+    private val installPollIntervalMs: Long = 500,
+    /** Overall timeout for the on-board install phase. SSH_PIPE mode
+     *  only. A 30 MB firmware takes 60–120 s end-to-end on the gimbal
+     *  (MD5 verify + NAND write), so 5 minutes is generous. */
+    private val onBoardInstallTimeoutMs: Long = 5 * 60_000L,
     /** Max bytes per `FILE_UPLOAD_CHUNK` frame. The default 1024 is the
      *  size the Benro Connect app uses for firmware chunks; anything
      *  larger risks the mount's UART ring. WIRE mode only. */
@@ -152,11 +170,16 @@ class FirmwareUpdateController(
 
     /**
      * Verified path: hand the bytes to [sshDelivery], which is expected
-     * to drop them at `/app/sd/FwPkt.zip` on the mount. Returns [Status.Done]
-     * once the bytes are on the SD card; the user must reboot the
-     * gimbal for the on-board watcher (`SP_UpgradeCheckFw`) to pick
-     * them up. We do not poll progress because we have no wire-side
-     * observability for an install we did not start.
+     * to drop them at `/app/sd/FwPkt.zip` on the mount. If
+     * [sshCommandRunner] is provided, also restart the on-board
+     * `polestar_app` so its `SP_UpgradeCheckFw` watcher picks up the
+     * freshly-staged zip, then poll `/app/Mlog.txt` for the install
+     * state-machine's terminal sentinels (Pass / Fail / Timeout) and
+     * surface them as [Status.Done] / [Status.Failed].
+     *
+     * Without an [sshCommandRunner] the controller falls back to the
+     * legacy "dropped, now reboot" behaviour — the bytes are on the
+     * SD card and we trust the user to reboot.
      */
     private suspend fun startSshPipe(
         bytes: ByteArray,
@@ -176,21 +199,72 @@ class FirmwareUpdateController(
             onStatus(s); return s
         }
         onStatus(Status.Uploading(bytesSent = bytes.size, bytesTotal = bytes.size))
+
+        // If we don't have an SSH runner, the install will be observed
+        // by the on-board watcher after the user reboots — return Done
+        // once the bytes are on the SD card. This is the legacy
+        // behaviour and matches what the Benro Connect app does.
+        val runner = sshCommandRunner
+        if (runner == null) {
+            onStatus(Status.Installing(percent = 0))
+            if (rebootAfter) {
+                val rb = reboot()
+                if (rb is RebootResult.Failed) {
+                    val s = Status.Failed(rb.reason)
+                    onStatus(s); return s
+                }
+            }
+            val s = Status.Done
+            onStatus(s)
+            return s
+        }
+
+        // Restart the on-board `polestar_app` so the freshly-staged
+        // `FwPkt.zip` is picked up by `SP_UpgradeCheckFw` immediately
+        // (the running instance already finished its install check on
+        // boot and won't look again until the next reboot).
         onStatus(Status.Installing(percent = 0))
-        // No wire-side progress to poll — the install runs after the
-        // user reboots the gimbal. The status stays at Installing(0)
-        // until reboot, which is the right user-facing message
-        // ("dropped, now reboot").
-        if (rebootAfter) {
-            val rb = reboot()
-            if (rb is RebootResult.Failed) {
-                val s = Status.Failed(rb.reason)
+        try {
+            val restart = runner.run(
+                "pkill polestar_app; nohup /app/polestar_app >/dev/null 2>&1 &",
+            )
+            if (restart.exitCode != 0) {
+                val s = Status.Failed(
+                    "could not restart on-board app: exit=${restart.exitCode} ${restart.stderr.orEmpty()}"
+                )
                 onStatus(s); return s
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val s = Status.Failed(
+                "ssh restart failed: ${e.message ?: e::class.simpleName}"
+            )
+            onStatus(s); return s
         }
-        val s = Status.Done
-        onStatus(s)
-        return s
+
+        // Poll Mlog for the install state-machine's terminal sentinels.
+        val watcher = OnBoardInstallWatcher(
+            ssh = runner,
+            overallTimeoutMs = onBoardInstallTimeoutMs,
+            pollIntervalMs = installPollIntervalMs,
+        )
+        val install = watcher.watch()
+        return when (install) {
+            is OnBoardInstallWatcher.Outcome.Pass -> {
+                onStatus(Status.Installing(percent = 100))
+                val s = Status.Done
+                onStatus(s); s
+            }
+            is OnBoardInstallWatcher.Outcome.Fail -> {
+                val s = Status.Failed("on-board install failed: ${install.reason}")
+                onStatus(s); s
+            }
+            is OnBoardInstallWatcher.Outcome.Timeout -> {
+                val s = Status.Failed("on-board install timed out after ${onBoardInstallTimeoutMs}ms")
+                onStatus(s); s
+            }
+        }
     }
 
     /**

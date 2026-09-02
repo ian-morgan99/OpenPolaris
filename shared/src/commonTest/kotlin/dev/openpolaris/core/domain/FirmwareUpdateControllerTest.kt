@@ -1,5 +1,7 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.net.SshCommandResult
+import dev.openpolaris.core.net.SshCommandRunner
 import dev.openpolaris.core.protocol.Codes
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -492,5 +494,208 @@ class FirmwareUpdateControllerTest {
 
         session.disconnect()
         runCurrent()
+    }
+
+    // ---- SSH_PIPE install-with-watcher (Phase 2) -------------------------
+
+    /**
+     * [FirmwareUpdateController] with an [SshCommandRunner] provided
+     * must, after the bytes land on the SD card:
+     *   1. restart `polestar_app` via `pkill polestar_app; nohup ...`,
+     *   2. poll `/app/Mlog.txt` until a terminal sentinel appears,
+     *   3. surface `Status.Done` when the sentinel is a Pass.
+     *
+     * The SSH seam is faked with [ScriptedSshRunner] which hands back
+     * a different stdout per call. The test scripts the first call
+     * (the restart) to succeed and the second (the first tail) to
+     * include `SP_EVENT_UPGRADE_SUCCESS`.
+     */
+    @Test
+    fun sshPipeWithWatcher_returnsDone_whenMlogReportsSuccess() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "")                  // pkill+nohup restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")  // first Mlog tail
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val statuses = mutableListOf<FirmwareUpdateController.Status>()
+        val final = controller.start(
+            bytes = ByteArray(64) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        ) { statuses += it }
+
+        assertIs<FirmwareUpdateController.Status.Done>(final)
+        // 2 scripted SSH calls: 1 restart + 1 tail (the tail returned Pass, so we don't keep polling).
+        assertEquals(2, ssh.commands.size, "expected exactly 2 SSH calls, got: ${ssh.commands}")
+        assertTrue(ssh.commands[0].contains("pkill polestar_app"),
+            "first SSH call should restart polestar_app, got: ${ssh.commands[0]}")
+        assertTrue(ssh.commands[1].contains("/app/Mlog.txt"),
+            "second SSH call should tail Mlog.txt, got: ${ssh.commands[1]}")
+        // The controller must surface an Installing(100) before Done so the UI can show 100%.
+        val installing100 = statuses.filterIsInstance<FirmwareUpdateController.Status.Installing>()
+            .any { it.percent == 100 }
+        assertTrue(installing100, "expected Installing(100) before Done, got: $statuses")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun sshPipeWithWatcher_returnsFailed_whenMlogReportsFail() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "")                                // restart
+        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_FAIL crc_mismatch\n")  // tail → Fail
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(32) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(failed.reason.contains("on-board install failed"),
+            "expected on-board install failure reason, got: ${failed.reason}")
+        // Exactly 2 SSH calls: 1 restart + 1 tail (the tail returned Fail, so we stop).
+        assertEquals(2, ssh.commands.size, "expected exactly 2 SSH calls, got: ${ssh.commands}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun sshPipeWithWatcher_returnsTimeout_whenMlogNeverSentinels() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        // All Mlog tails are empty — no sentinel ever appears.
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "")  // restart
+        // The watcher keeps calling tail forever; we pre-script a finite
+        // number of empty responses. The watcher will eventually time out
+        // based on its own clock (real wall clock here; we set timeout to 50ms
+        // so this test still finishes quickly).
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 50,
+        )
+        val final = controller.start(
+            bytes = ByteArray(16) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(failed.reason.contains("on-board install timed out"),
+            "expected on-board install timeout reason, got: ${failed.reason}")
+        assertTrue(failed.reason.contains("50ms"),
+            "expected the 50ms timeout to be quoted in the reason, got: ${failed.reason}")
+        // At least 1 restart + at least 1 tail before timing out.
+        assertTrue(ssh.commands.size >= 2,
+            "expected at least restart + 1 tail call, got: ${ssh.commands.size}")
+        assertTrue(ssh.commands[0].contains("pkill polestar_app"),
+            "first SSH call should restart polestar_app, got: ${ssh.commands[0]}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
+    fun sshPipeWithWatcher_returnsFailed_whenRestartExitsNonZero() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(127, "", "pkill: no such process")  // restart fails
+
+        val delivery = RecordingDelivery()
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val final = controller.start(
+            bytes = ByteArray(16) { it.toByte() },
+            filename = "FwPkt.zip",
+            rebootAfter = false,
+        )
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(failed.reason.contains("restart") || failed.reason.contains("exit=127"),
+            "expected restart-failure reason, got: ${failed.reason}")
+        // Only the restart was attempted — no tail calls because we bailed out.
+        assertEquals(1, ssh.commands.size,
+            "expected only the restart attempt, got: ${ssh.commands.size}")
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    /**
+     * Scripted [SshCommandRunner] that hands out a different
+     * stdout/stderr/exitCode per call. Tests push scripted
+     * outcomes with [scriptNext] in the order the calls happen.
+     */
+    private class ScriptedSshRunner : SshCommandRunner {
+        val commands = mutableListOf<String>()
+        private val queue = ArrayDeque<SshCommandResult>()
+
+        fun scriptNext(exitCode: Int, stdout: String, stderr: String = "") {
+            queue.addLast(SshCommandResult(exitCode = exitCode, stdout = stdout, stderr = stderr))
+        }
+
+        override suspend fun run(command: String): SshCommandResult {
+            commands += command
+            return if (queue.isEmpty()) {
+                // Beyond the scripted end: keep returning empty stdout so the
+                // watcher keeps polling and eventually times out.
+                SshCommandResult(exitCode = 0, stdout = "", stderr = "")
+            } else {
+                queue.removeFirst()
+            }
+        }
     }
 }

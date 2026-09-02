@@ -171,7 +171,7 @@ class OnBoardInstallWatcher(
      * empty string and lets the next poll try again. A persistent
      * transport failure will eventually trip [Outcome.Timeout].
      */
-    private fun readMlogFrom(offset: Long): String {
+    private suspend fun readMlogFrom(offset: Long): String {
         val cmd = if (offset <= 0) {
             "cat $mlogPath 2>/dev/null"
         } else {

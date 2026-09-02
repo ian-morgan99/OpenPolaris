@@ -43,7 +43,7 @@ fun interface SshCommandRunner {
      * coroutine's cancellation: cancelling the call must
      * destroy any subprocess the runner forked.
      */
-    fun run(command: String): SshCommandResult
+    suspend fun run(command: String): SshCommandResult
 }
 
 /**

@@ -24,6 +24,10 @@ import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
 import dev.openpolaris.core.domain.FirmwareUpdateController
+import dev.openpolaris.core.domain.DeliveryMode
+import dev.openpolaris.core.domain.FirmwareDelivery
+import dev.openpolaris.core.domain.NoOpFirmwareDelivery
+import dev.openpolaris.core.domain.platformFirmwareDelivery
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.io.FilePicker
 import dev.openpolaris.core.session.PlatformFile
@@ -258,6 +262,35 @@ class AppViewModel(
 
     /** Whether the user wants the mount to reboot after a successful install. */
     var firmwareRebootAfter by mutableStateOf(false)
+
+    /**
+     * Which delivery transport the firmware upload uses. The default
+     * [DeliveryMode.SSH_PIPE] is the verified path — bytes are
+     * scp'd to `/app/sd/FwPkt.zip` and the on-board
+     * `SP_UpgradeCheckFw` watcher takes over after the user reboots
+     * the gimbal. The alternate [DeliveryMode.WIRE] drives the
+     * 810/784/794/795/811/812 envelope through the binary control
+     * plane; that sequence is reconstructed from the Benro Connect
+     * Android decompile but **has not been observed in a live
+     * Benro Connect traffic capture as of 2026-08-31**, so the
+     * chunk payload slot (`len:N;`) is a placeholder. See
+     * [FirmwareUpdateController] class KDoc for the full
+     * verification status of each path.
+     *
+     * The default lives in the VM (not in the KDoc) so a power user
+     * can flip the radio button in the FirmwarePane without editing
+     * source. The runtime change does not persist across restarts.
+     */
+    var firmwareDeliveryMode by mutableStateOf(DeliveryMode.SSH_PIPE)
+
+    /**
+     * The host the gimbal's AP exposes. Used by [DeliveryMode.SSH_PIPE]
+     * to construct an `ssh root@<host>` command. Defaults to
+     * `192.168.2.1` (the Benro Polaris AP default) and is editable
+     * in the FirmwarePane so the user can override for a custom
+     * network.
+     */
+    var firmwareSshHost by mutableStateOf("192.168.2.1")
 
     // ---- session persistence + reconnect prompt (issue #27) ----------------
 
@@ -1994,6 +2027,14 @@ class AppViewModel(
      * config file before the call has any effect. The flag defaults to
      * false because firmware install is destructive: a bad image bricks
      * the mount until you re-flash over USB.
+     *
+     * The transport ([firmwareDeliveryMode] / [firmwareSshHost]) is
+     * supplied by the user via the FirmwarePane. [DeliveryMode.SSH_PIPE]
+     * is the verified path (drops the bytes at `/app/sd/FwPkt.zip`
+     * and the on-board watcher takes over after reboot);
+     * [DeliveryMode.WIRE] is the experimental envelope through the
+     * binary control plane. See the [FirmwareUpdateController] class
+     * KDoc for the trust profile of each.
      */
     fun uploadFirmware(bytes: ByteArray, filename: String, rebootAfter: Boolean) = scope.launch {
         try {
@@ -2009,9 +2050,11 @@ class AppViewModel(
                 statusMessage = "Pick a FwPkt.zip file first"
                 return@launch
             }
-            statusMessage = "Uploading firmware (${bytes.size} bytes)…"
+            statusMessage = "Uploading firmware (${bytes.size} bytes) via ${firmwareDeliveryMode}…"
             val controller = FirmwareUpdateController(
                 session = s,
+                delivery = firmwareDeliveryMode,
+                sshDelivery = buildFirmwareDelivery(),
                 chunkSize = 1024,
                 progressPollMs = 500,
                 progressDoneRepeats = 2,
@@ -2057,6 +2100,26 @@ class AppViewModel(
             firmwareBusy = false
         }
     }
+
+    /**
+     * Build the [FirmwareDelivery] for the current [firmwareDeliveryMode].
+     * For [DeliveryMode.SSH_PIPE] this delegates to the platform seam
+     * (`platformFirmwareDelivery`) which on JVM wires up
+     * [dev.openpolaris.core.domain.ScpFirmwareDelivery] and on
+     * Android currently returns [NoOpFirmwareDelivery] (Android does
+     * not ship ssh on PATH; the OpenPolaris build does not yet include
+     * a JSch/SSHJ port).
+     *
+     * For [DeliveryMode.WIRE] the controller does not need a delivery
+     * seam, but we still pass the result of this method (the controller
+     * ignores it). Returning a no-op sentinel keeps the wiring uniform.
+     */
+    private fun buildFirmwareDelivery(): FirmwareDelivery =
+        if (firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
+            platformFirmwareDelivery(host = firmwareSshHost)
+        } else {
+            NoOpFirmwareDelivery
+        }
 
     /**
      * Open the native file picker so the user can choose a FwPkt.zip. On

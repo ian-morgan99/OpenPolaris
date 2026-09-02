@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -18,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.domain.format2
+import dev.openpolaris.core.domain.DeliveryMode
 
 /**
  * Connection pane: host entry, connect/demo buttons, status line.
@@ -630,6 +633,60 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     "  Reboot mount after install",
                     style = MaterialTheme.typography.bodyMedium,
                 )
+            }
+
+            // ---- Delivery mode (verified vs experimental) -----------------
+            // The default SSH_PIPE path is the verified one — the bytes
+            // are scp'd to /app/sd/FwPkt.zip and the on-board
+            // SP_UpgradeCheckFw watcher takes over after the user
+            // reboots. The WIRE path drives 810/784/794/795/811/812
+            // through the binary control plane; that envelope is a
+            // best-effort reconstruction from the Benro Connect
+            // Android decompile and has not been observed in a live
+            // Benro Connect capture. See FirmwareUpdateController KDoc
+            // for the trust profile of each.
+            Column {
+                Text("Delivery mode", style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE,
+                        onClick = { vm.firmwareDeliveryMode = DeliveryMode.SSH_PIPE },
+                        enabled = !vm.firmwareBusy,
+                    )
+                    Text("SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = vm.firmwareDeliveryMode == DeliveryMode.WIRE,
+                        onClick = { vm.firmwareDeliveryMode = DeliveryMode.WIRE },
+                        enabled = !vm.firmwareBusy,
+                    )
+                    Text("Wire envelope (unverified) — 810/784/794/795/811/812", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (vm.firmwareDeliveryMode == DeliveryMode.WIRE) {
+                    Text(
+                        "WIRE is reconstructed from the Benro Connect decompile and " +
+                            "has not been observed in a live Benro Connect traffic " +
+                            "capture. The chunk payload slot is currently a `len:N;` " +
+                            "placeholder. Use SSH_PIPE for a verified upload.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            // ---- SSH host (only meaningful for SSH_PIPE) -----------------
+            if (vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("SSH host:", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = vm.firmwareSshHost,
+                        onValueChange = { vm.firmwareSshHost = it },
+                        enabled = !vm.firmwareBusy,
+                        singleLine = true,
+                        modifier = Modifier.width(180.dp),
+                    )
+                }
             }
 
             // ---- Action ----------------------------------------------------

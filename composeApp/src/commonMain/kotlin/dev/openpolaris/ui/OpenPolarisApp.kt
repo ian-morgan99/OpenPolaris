@@ -135,6 +135,9 @@ fun OpenPolarisApp(
                 Callout.Firmware -> CalloutDialog("Firmware update", { dialog = null }) { FirmwarePane(vm, Modifier.fillMaxWidth()) }
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
+                Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
+                    FeatureFlagsPaneContent(Modifier.fillMaxWidth())
+                }
                 null -> {}
             }
 
@@ -166,6 +169,7 @@ private enum class Callout(val glyph: String) {
     Firmware("FW"),
     VR("VR"),
     Readme("?"),
+    Settings("Cfg"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
@@ -176,7 +180,7 @@ private fun CalloutRail(
     onLaunchVr: (() -> Unit)?,
     onSelect: (Callout) -> Unit,
 ) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.Firmware, Callout.VR, Callout.Readme)
+    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.Firmware, Callout.VR, Callout.Readme, Callout.Settings)
     val handle: (Callout) -> Unit = { c ->
         if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
     }

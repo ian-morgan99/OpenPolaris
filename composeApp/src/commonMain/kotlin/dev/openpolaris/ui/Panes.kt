@@ -583,9 +583,9 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             if (!featureEnabled) {
                 Text(
-                    "Firmware upload is disabled. Enable the 'firmwareUpload' flag in " +
-                        "your config to use this pane. Firmware install is destructive — a " +
-                        "bad image bricks the mount until you re-flash over USB.",
+                    "Firmware upload is disabled. Open the 'Settings' callout and turn " +
+                        "on the 'firmwareUpload' flag to use this pane. Firmware install is " +
+                        "destructive — a bad image bricks the mount until you re-flash over USB.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )

@@ -193,49 +193,60 @@ private fun DestructiveConfirmDialog(
 }
 
 /**
- * Settings dialog exposing every FeatureFlag with its current effective
- * value, a one-line description of what it gates, and a runtime override
- * switch for the safe flags.
+ * Top-level entry point for the settings pane.
  *
- * Layout:
- *  - Top bar: title + "Reset all" button (clears runtime overrides).
- *  - Scrollable column of [FlagRow]s grouped by the order in [flagSpecs].
- *  - Safe flags are directly switchable.
- *  - Destructive flags require a confirm dialog before flipping.
- *  - Unsafe (UNVERIFIED) flags are shown as read-only.
+ * Two overloads:
+ *  - [FeatureFlagsPane] wraps the content in a [Card]. Use this when rendering
+ *    the pane as a free-standing surface (a full-screen page, an embed in a
+ *    non-dialog container, etc.).
+ *  - [FeatureFlagsPaneContent] is the bare column. Use this when embedding
+ *    inside another scroller / dialog body (e.g. [CalloutDialog] already
+ *    provides its own Card-style surface).
+ *
+ * Both share the same flag state via [FeatureFlags] so flipping a switch in
+ * one is immediately visible in the other.
  */
 @Composable
 fun FeatureFlagsPane(modifier: Modifier = Modifier) {
+    Card(modifier = modifier.padding(8.dp)) {
+        FeatureFlagsPaneContent(Modifier.padding(16.dp))
+    }
+}
+
+/**
+ * Bare column of flag rows, suitable for embedding inside a [CalloutDialog].
+ * Owns the destructive-confirm dialog state.
+ */
+@Composable
+fun FeatureFlagsPaneContent(modifier: Modifier = Modifier) {
     // Bump this counter whenever a flag flips so the rows re-read isEnabled
     // (isEnabled itself isn't backed by a snapshot, so we bridge through
     // a `mutableStateOf` to force recomposition).
     var revision by remember { mutableStateOf(0) }
     var pending by remember { mutableStateOf<Pair<FlagSpec, Boolean>?>(null) }
 
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            FlagsHeader()
-            // Read revision to subscribe the header to flag changes too.
-            revision
-            Spacer(Modifier.height(4.dp))
-            HorizontalDivider()
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                flagSpecs.forEach { spec ->
-                    val on = FeatureFlags.isEnabled(spec.name).also { revision.let { _ -> } }
-                    FlagRow(
-                        spec = spec,
-                        isOn = on,
-                        onToggle = { desired ->
-                            if (spec.destructive) {
-                                pending = spec to desired
-                            } else if (spec.safe) {
-                                if (desired) FeatureFlags.enable(spec.name) else FeatureFlags.disable(spec.name)
-                                revision++
-                            }
-                            // unsafe (safe=false, destructive=false) → no-op
-                        },
-                    )
-                }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlagsHeader()
+        // Read revision to subscribe the header to flag changes too.
+        revision
+        Spacer(Modifier.height(4.dp))
+        HorizontalDivider()
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            flagSpecs.forEach { spec ->
+                val on = FeatureFlags.isEnabled(spec.name).also { revision.let { _ -> } }
+                FlagRow(
+                    spec = spec,
+                    isOn = on,
+                    onToggle = { desired ->
+                        if (spec.destructive) {
+                            pending = spec to desired
+                        } else if (spec.safe) {
+                            if (desired) FeatureFlags.enable(spec.name) else FeatureFlags.disable(spec.name)
+                            revision++
+                        }
+                        // unsafe (safe=false, destructive=false) → no-op
+                    },
+                )
             }
         }
     }

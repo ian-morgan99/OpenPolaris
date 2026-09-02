@@ -1,6 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- "Find & wake Polaris…" flow on the Connection pane.
+         ACCESS_FINE_LOCATION: required for WifiManager.startScan() on
+         Android 9+ (scan results are gated on the location permission).
+         ACCESS_WIFI_STATE: read current Wi-Fi state and scan results.
+         CHANGE_WIFI_STATE: start a fresh scan from the helper.
+         All three are runtime permissions on Android 13+; the
+         MountWifiScan helper requests them via
+         ActivityResultContracts.RequestMultiplePermissions. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Bluetooth wake pulse. BLUETOOTH/BLUETOOTH_ADMIN cover
+         Android 11 and below; BLUETOOTH_CONNECT/BLUETOOTH_SCAN
+         are the Android 12+ runtime permissions and are
+         forward-declared with maxSdkVersion so older devices
+         ignore them. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        tools:targetApi="s" />
+
     <application
         android:label="Open Polaris"
         android:icon="@mipmap/ic_launcher"

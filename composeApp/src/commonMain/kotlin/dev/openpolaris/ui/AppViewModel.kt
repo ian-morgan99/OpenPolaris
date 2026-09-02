@@ -353,6 +353,13 @@ class AppViewModel(
     private val _waking = MutableStateFlow(false)
     val waking: StateFlow<Boolean> = _waking.asStateFlow()
 
+    // Mount-Wi-Fi scan: in-flight flag for the "Find & wake Polaris…"
+    // button on the Android Connection pane. Independent of `_waking`
+    // (BT-only pulse) because the scan flow also does a Wi-Fi scan +
+    // permission check, which can outlive the BT pulse itself.
+    private val _scanning = MutableStateFlow(false)
+    val scanning: StateFlow<Boolean> = _scanning.asStateFlow()
+
     // 8.0: monotonic counter bumped every time a connect attempt is
     // *launched*. The wake coroutine snapshots it at entry and compares
     // at terminal-write time — a mismatch means a connect happened
@@ -888,6 +895,30 @@ class AppViewModel(
                 _waking.value = false
             }
         }
+    }
+
+    /**
+     * Public write-access to [statusMessage] for host-driven flows that
+     * already own their own coroutine and progress callback (e.g. the
+     * Android `MountWifiScan` wake+scan flow). Mirrors how
+     * [AppViewModel.wake] writes through its own progress lambda, but
+     * skips the wake-in-flight and reconnect-generation gates because
+     * the host is already on its own scope and is the authoritative
+     * owner of the status line.
+     */
+    fun notifyStatus(msg: String) {
+        statusMessage = msg
+    }
+
+    /**
+     * Toggle [_scanning] for hosts that own the in-flight tracking on
+     * the host side (e.g. `MountWifiScan` on Android, which has its own
+     * coroutine scope). Most hosts can just observe [scanning] and
+     * gate UI on it; this is a no-op when [_scanning] is already in
+     * the desired state.
+     */
+    fun setScanning(value: Boolean) {
+        _scanning.value = value
     }
 
     /** Simulator mode: no hardware needed; drives a fake session locally. */

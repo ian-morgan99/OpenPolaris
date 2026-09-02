@@ -1,14 +1,26 @@
 package dev.openpolaris.android
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.DialogProperties
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.domain.installResourceContext
@@ -18,6 +30,7 @@ import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
 import dev.openpolaris.ui.AppViewModel
 import dev.openpolaris.ui.OpenPolarisApp
+import kotlinx.coroutines.launch
 
 /**
  * 3c.4 of issue #7: this is the Android production host for the multiplatform
@@ -92,12 +105,170 @@ class MainActivity : ComponentActivity() {
                 connectionFactory = { JvmConnection() },
                 sessionStore = sessionStore,
             )
+
+            // The dialog that lists Polaris APs the latest scan found.
+            // Hoisted to the activity so it persists across recomposition
+            // and so the click handler on the dialog buttons has a stable
+            // place to clear state.
+            var foundAps by remember { mutableStateOf<List<MountAp>>(emptyList()) }
+            var showFoundAps by remember { mutableStateOf(false) }
+            val scanFlow = viewModel.scanning.collectAsState()
+
+            // "Find & wake Polaris…" — mirrors the Benro app's
+            // first-tap flow. The host owns the coroutine scope and the
+            // permission dance; the composable just hands us a
+            // progress sink so we can write into `vm.statusMessage`.
+            //
+            // This is the fix for the regression where the Android
+            // version of the button was hard-wired to
+            // `Settings.ACTION_WIFI_SETTINGS`, which routes to the
+            // system Wi-Fi settings root instead of pulsing the BT
+            // wake + scanning for the polaris* AP. Desktop is
+            // unaffected (this parameter is only set on Android).
+            val wifiScanHelper = remember { MountWifiScan(this) }
+            val permsLauncher = remember {
+                registerForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { grants ->
+                    val allGranted = grants.values.all { it }
+                    if (!allGranted) {
+                        viewModel.notifyStatus(
+                            "Wi-Fi/BT permission denied; cannot find Polaris"
+                        )
+                    } else {
+                        scope.launch {
+                            viewModel.setScanning(true)
+                            try {
+                                val aps = wifiScanHelper.scan { msg ->
+                                    viewModel.notifyStatus(msg)
+                                }
+                                if (aps.isNotEmpty()) {
+                                    foundAps = aps
+                                    showFoundAps = true
+                                }
+                            } finally {
+                                viewModel.setScanning(false)
+                            }
+                        }
+                    }
+                }
+            }
+
+            fun launchMountScan() {
+                val perms = buildList {
+                    add(Manifest.permission.ACCESS_FINE_LOCATION)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        add(Manifest.permission.BLUETOOTH_CONNECT)
+                    }
+                }
+                val missing = perms.filter {
+                    checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+                if (missing.isEmpty()) {
+                    scope.launch {
+                        viewModel.setScanning(true)
+                        try {
+                            val aps = wifiScanHelper.scan { msg ->
+                                viewModel.notifyStatus(msg)
+                            }
+                            if (aps.isNotEmpty()) {
+                                foundAps = aps
+                                showFoundAps = true
+                            }
+                        } finally {
+                            viewModel.setScanning(false)
+                        }
+                    }
+                } else {
+                    permsLauncher.launch(missing.toTypedArray())
+                }
+            }
+
+            if (showFoundAps && foundAps.isNotEmpty()) {
+                AlertDialog(
+                    onDismissRequest = { showFoundAps = false },
+                    properties = DialogProperties(dismissOnClickOutside = true),
+                    title = { Text("Polaris networks found") },
+                    text = {
+                        // Render one row per AP. Kept as plain text
+                        // (not a LazyColumn) because the result set is
+                        // bounded — a Polaris gimbal only ever
+                        // advertises itself, so realistic sizes are
+                        // 1-3 rows.
+                        val sb = StringBuilder()
+                        for (ap in foundAps) {
+                            sb.append(ap.ssid)
+                                .append("   ")
+                                .append(ap.qualityLabel())
+                                .append("   ")
+                                .append(ap.rssi).append(" dBm\n")
+                        }
+                        Text(sb.toString().trimEnd())
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            // Pick the strongest (already sorted) and
+                            // hand it to the system. On Android 10+
+                            // this pops a "Connect?" notification; on
+                            // older versions we fall back to
+                            // openNetworkSuggestions / the system
+                            // Wi-Fi settings.
+                            val picked = foundAps.first()
+                            val ok = wifiScanHelper.join(picked)
+                            viewModel.notifyStatus(
+                                if (ok) "Requesting join: ${picked.ssid}"
+                                else "Could not auto-join ${picked.ssid}; open Wi-Fi settings"
+                            )
+                            showFoundAps = false
+                            if (!ok) {
+                                startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                            }
+                        }) { Text("Join strongest") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            // Send the user to the system Wi-Fi
+                            // picker so they can pick a non-Polaris
+                            // network, or enter a password manually.
+                            showFoundAps = false
+                            startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                        }) { Text("Open Wi-Fi settings") }
+                    },
+                )
+            }
+
             OpenPolarisApp(
                 windowSizeClass = wsc,
                 connectionFactory = { JvmConnection() },
                 onFindWifi = {
-                    // Opens the system Wi-Fi picker so the user can join Polaris_XXXX.
+                    // Legacy fallback: open the system Wi-Fi picker.
+                    // The new "Find & wake Polaris…" button is the
+                    // primary entry point on Android; this is kept so
+                    // a user who wants to manually pick a different
+                    // network still has a path. (Was the *only* path
+                    // before the wake+scan fix; now it's a fallback.)
                     startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                },
+                onMountWifiScan = { progress ->
+                    // Hand the host's progress sink to the helper so
+                    // it can update vm.statusMessage directly. The
+                    // host still owns the coroutine scope (and thus
+                    // the button-disable dance via [setScanning]).
+                    // We launch the coroutine here so the composable
+                    // can return immediately and not block on
+                    // dialog/permission flows.
+                    scope.launch {
+                        viewModel.setScanning(true)
+                        try {
+                            val aps = wifiScanHelper.scan(progress)
+                            if (aps.isNotEmpty()) {
+                                foundAps = aps
+                                showFoundAps = true
+                            }
+                        } finally {
+                            viewModel.setScanning(false)
+                        }
+                    }
                 },
                 onLaunchVr = {
                     // 3h-BUG: pass host and port so the VR activity connects

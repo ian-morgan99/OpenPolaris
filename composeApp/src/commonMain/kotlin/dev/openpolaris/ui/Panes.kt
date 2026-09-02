@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,11 +43,20 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.domain.DeliveryMode
+import kotlinx.coroutines.launch
 
 /**
  * Connection pane: host entry, connect/demo buttons, status line.
  * [onFindWifi], when provided, opens a platform Wi-Fi picker so the user can
- * join the mount's access point without leaving the app.
+ * join the mount's access point without leaving the app. This is the
+ * coarse fallback — it drops the user into the system settings screen.
+ * [onMountWifiScan], when provided, surfaces a "Find & wake Polaris…"
+ * button that runs the platform's wake+AP-scan flow (BT pulse + Wi-Fi
+ * scan filtered to `polaris*` SSIDs) and offers the strongest match.
+ * This is the mobile analogue of the Benro app's first-tap behaviour
+ * and supersedes the [onFindWifi] picker on Android. When both are
+ * supplied, both buttons render so the user can fall back to the system
+ * picker if the scan finds nothing.
  * [onBridgeWifi], when provided, surfaces the desktop bridge button — it
  * drives the BT-wake / NetworkManager-up / policy-route sequence via
  * [AppViewModel.connectWifi] so the user has a single tap from the app to
@@ -67,8 +77,10 @@ fun ConnectionPane(
     onFindWifi: (() -> Unit)? = null,
     onBridgeWifi: (() -> Unit)? = null,
     onWake: (() -> Unit)? = null,
+    onMountWifiScan: (suspend (suspend (String) -> Unit) -> Unit)? = null,
 ) {
     Card(modifier = modifier.padding(8.dp)) {
+        val scope = rememberCoroutineScope()
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Open Polaris", style = MaterialTheme.typography.headlineSmall)
             OutlinedTextField(
@@ -138,9 +150,28 @@ fun ConnectionPane(
                     Text("Bridge to mount Wi-Fi…")
                 }
             }
+            if (onMountWifiScan != null) {
+                OutlinedButton(
+                    onClick = {
+                        // Host handles its own long-running work and posts
+                        // progress through the VM's statusMessage so the
+                        // line below tracks the wake/scan phases. The host
+                        // callback is suspend, so we hop into the pane's
+                        // own rememberCoroutineScope to invoke it without
+                        // coupling the host (Android) to the pane's
+                        // internal coroutine machinery.
+                        scope.launch {
+                            onMountWifiScan { msg -> vm.notifyStatus(msg) }
+                        }
+                    },
+                    enabled = !vm.scanning.value,
+                ) {
+                    Text(if (vm.scanning.value) "Scanning…" else "Find & wake Polaris…")
+                }
+            }
             if (onFindWifi != null) {
                 OutlinedButton(onClick = onFindWifi) {
-                    Text("Connect mount Wi-Fi…")
+                    Text("Open system Wi-Fi…")
                 }
             }
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)

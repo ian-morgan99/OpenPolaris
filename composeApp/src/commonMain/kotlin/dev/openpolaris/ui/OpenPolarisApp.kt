@@ -78,6 +78,21 @@ fun OpenPolarisApp(
      * constructor parameter on [AppViewModel].
      */
     wakeProbe: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    /**
+     * Optional platform "find & wake Polaris" flow that mirrors the
+     * Benro app's first tap on a cold start: send a BT wake pulse to
+     * the gimbal, then scan for any `polaris*` access point and offer
+     * the strongest match. Independent of [onFindWifi] (the system
+     * Wi-Fi picker) — `onFindWifi` is a coarse fallback, this is the
+     * intended path on mobile. When supplied, the Connection pane
+     * shows a "Find & wake Polaris…" button that drives the flow.
+     *
+     * The lambda accepts a `progress: suspend (String) -> Unit` the
+     * implementation calls from its IO dispatcher so the user sees
+     * live status lines ("Pulsing Bluetooth…", "Scanning Wi-Fi…",
+     * "Found polaris_d13e86 (-42 dBm)").
+     */
+    onMountWifiScan: (suspend (suspend (String) -> Unit) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm: AppViewModel = viewModel
@@ -126,6 +141,7 @@ fun OpenPolarisApp(
                         onFindWifi = onFindWifi,
                         onBridgeWifi = if (connectWifi != null) ({ vm.connectWifi() }) else null,
                         onWake = if (wakeProbe != null) ({ vm.wake() }) else null,
+                        onMountWifiScan = onMountWifiScan,
                     )
                 }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }

@@ -306,6 +306,13 @@ class AutoLevelControllerTest {
         val conn = FakeConnection()
         val (s, a) = newSession(conn, this)
         s.connect()
+        // 823 hello is fire-and-forget on real firmware (MountSession.authenticate
+        // uses sendOnly). On this branch, the FakeConnection still auto-acks 823
+        // but the reader hasn't necessarily processed it yet. Drain here so the
+        // 823 ack doesn't race with our 538 publishFrameForTest in
+        // runCurrent() below — both publish to _frames (StateFlow) and the 823
+        // ack would otherwise overwrite the 538 frame, breaking the collector.
+        runCurrent()
         val scope = CoroutineScope(dispatcher)
         a.start(scope)
 
@@ -372,6 +379,10 @@ class AutoLevelControllerTest {
         val conn = FakeConnection()
         val (s, a) = newSession(conn, this)
         s.connect()
+        // See tiltStateFrame538DoesFeedTilt for why this runCurrent is needed:
+        // drain the reader's 823 hello ack so it doesn't race with the 538
+        // publishFrameForTest in runCurrent() below.
+        runCurrent()
         val scope = CoroutineScope(dispatcher)
         a.start(scope)
 
@@ -403,6 +414,8 @@ class AutoLevelControllerTest {
         val conn = FakeConnection()
         val (s, a) = newSession(conn, this)
         s.connect()
+        // See tiltStateFrame538DoesFeedTilt for why this runCurrent is needed.
+        runCurrent()
         val scopeA = CoroutineScope(dispatcher + kotlinx.coroutines.Job())
         a.start(scopeA)
 

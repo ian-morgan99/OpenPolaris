@@ -160,30 +160,36 @@ class MountSessionConnectFailureTest {
     }
 
     // ---------------------------------------------------------------
-    // 4. 823 hello times out
+    // 4. 823 hello is fire-and-forget on real firmware
     //
-    // 284 + 820 succeed; 821 is skipped (needed:0); but the 823 hello
-    // never gets a reply. User sees a "823" tag.
+    // Earlier code treated 823 as request/reply and surfaced a
+    // "823" tag when the gimbal stayed silent. Live captures against
+    // current production firmware (sw 6.x) show that 823 is a
+    // one-way notification from the app — the gimbal does NOT
+    // reply. We must therefore NOT fail connect() just because no
+    // 823 frame came back. The test below pins the new contract:
+    // 284 + 820 succeed, 823 is sent, no reply comes back, and
+    // connect() returns true.
     // ---------------------------------------------------------------
     @Test
-    fun testAppHelloTimeoutIsTagged() = runTest {
+    fun testAppHelloFireAndForgetSucceeds() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&${Codes.PUSH_MODE_STATE}&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         conn.responses += "1&${Codes.APP_PASSWORD_INFO}&2&needed:0;#".toByteArray(Charsets.US_ASCII)
-        // No 823 reply queued.
+        // No 823 reply queued — gimbal stays silent on 823.
 
         val session = MountSession(
             connectionFactory = { conn },
             readerScope = backgroundScope,
         )
         val ok = session.connect()
-        assertFalse(ok, "823 timeout must surface as connect() == false")
-        val reason = session.state.value.lastErrorMessage
-        assertNotNull(reason, "823 timeout must populate lastErrorMessage")
-        assertTrue(
-            reason!!.contains("823"),
-            "823-tagged reason should mention '823'; got: $reason",
-        )
+        assertTrue(ok, "823 silence must NOT fail connect() on real firmware")
+        // And the 823 frame must still have been written to the wire.
+        val wroteHello = conn.written.any {
+            val s = String(it, Charsets.US_ASCII)
+            s.startsWith("1&${Codes.APP_HELLO}&2&")
+        }
+        assertTrue(wroteHello, "823 hello must be sent (fire-and-forget)")
         session.disconnect()
     }
 

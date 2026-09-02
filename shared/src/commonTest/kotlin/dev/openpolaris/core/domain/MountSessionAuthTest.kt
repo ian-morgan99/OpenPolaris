@@ -92,6 +92,42 @@ class MountSessionAuthTest {
         session.disconnect()
     }
 
+    /** Real gimbal firmware does NOT reply to 823 — it's a fire-and-forget
+     *  notification from the app. Connect must succeed as long as 820
+     *  acks (even with `ret:-1`) — the 823 send must NOT block waiting
+     *  for a matching reply, or `connect` would hang for the full 10s
+     *  823 timeout on every link. */
+    @Test
+    fun helloIsFireAndForgetOnRealFirmware() = runTest {
+        val conn = FakeConnection()
+        conn.queueLifecycleHandshake()
+        // 820 acks with ret:-1 (some production firmware does this
+        // before the app-handshake; the gimbal still becomes usable
+        // once 823 has been sent). 823 is NOT replied to.
+        conn.responses += "1&820&2&ret:-1;#".toByteArray(Charsets.US_ASCII)
+        // No 823 reply enqueued — the gimbal stays silent on 823.
+
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        val ok = session.connect()
+
+        assertTrue(
+            ok,
+            "connect should succeed even when gimbal does not reply to 823",
+        )
+        val codes = conn.written.map { String(it, Charsets.US_ASCII) }
+            .map { it.split("&").getOrNull(1)?.toIntOrNull() }
+        assertTrue(
+            Codes.APP_PASSWORD_INFO in codes,
+            "820 probe must be written; got $codes",
+        )
+        assertTrue(
+            Codes.APP_HELLO in codes,
+            "823 hello must be written (fire-and-forget); got $codes",
+        )
+
+        session.disconnect()
+    }
+
     @Test
     fun passwordedSuccess() = runTest {
         val conn = FakeConnection()

@@ -456,41 +456,33 @@ class MountSession(
         }
 
         // 3. Hello: identify ourselves. Always sent (even on
-        // passwordless networks), per the live captures. The
-        // gimbal replies with its OWN `ver:` value (the firmware
-        // version), which we log for the next maintainer's
-        // benefit. We don't currently surface it on the wire
-        // anywhere, but [request] already records the parsed
-        // frame in [frames] for any subscriber.
+        // passwordless networks), per the live captures.
+        //
+        // On real gimbal firmware (sw 6.x), 823 is a *fire-and-forget*
+        // notification from the app — the gimbal does NOT reply with
+        // a matching 823 frame. Earlier docs (PROTOCOL.md §3.3,
+        // POLARIS-FUNCTIONS-REPORT §206) assumed request/reply based
+        // on a capture that turned out to be from a different
+        // firmware; live captures against current production
+        // firmware (2026-09-02) show zero bytes returned for 823
+        // even though the socket itself is healthy (820 still
+        // returns `820@ret:-1;#`).
+        //
+        // We therefore send 823 via [sendOnly] (no waiter) and
+        // tolerate silence. If the gimbal does happen to push a
+        // 823 frame later, the reader will still publish it to
+        // [frames] for any subscriber.
         val helloPayload = "app:${auth.appName};ver:${auth.appVersion};"
         ProtocolTrace.log(
             "auth",
-            "823 hello → payload='$helloPayload' timeout=10000ms",
+            "823 hello → payload='$helloPayload' (fire-and-forget)",
         )
-        val hello = request<ResponseParser.Frame>(
-            code = Codes.APP_HELLO,
-            payload = helloPayload,
-            timeoutMs = 10000L,
-        ) { it }
-        when (hello) {
-            is CmdResult.Ok ->
-                ProtocolTrace.log(
-                    "auth",
-                    "823 hello ← OK fields=${hello.value.fields}",
-                )
-            is CmdResult.Timeout ->
-                ProtocolTrace.log(
-                    "auth",
-                    "823 hello ← TIMEOUT after 10000ms (gimbal did not ack)",
-                )
-            is CmdResult.ProtocolError ->
-                ProtocolTrace.log(
-                    "auth",
-                    "823 hello ← ProtocolError: ${hello.message}",
-                )
-        }
-        if (hello !is CmdResult.Ok) {
-            throw java.io.IOException("app hello (823) failed: $hello")
+        try {
+            sendOnly(code = Codes.APP_HELLO, payload = helloPayload)
+            ProtocolTrace.log("auth", "823 hello ← sent (no reply expected)")
+        } catch (e: Exception) {
+            ProtocolTrace.log("auth", "823 hello ← send failed: ${e.message}")
+            throw java.io.IOException("app hello (823) send failed: ${e.message}", e)
         }
     }
 
@@ -682,6 +674,27 @@ class MountSession(
             val err: CmdResult<Nothing> = CmdResult.ProtocolError(e.message ?: "connection lost")
             recordError(err)
             err
+        }
+    }
+
+    /**
+     * Send a command without waiting for a reply.
+     *
+     * Used for opcodes the gimbal treats as one-way notifications
+     * (e.g. 823 APP_HELLO) — see the audit note in [authenticate].
+     * The reader still publishes any unsolicited frame that
+     * happens to match the same code, so subscribers of [frames]
+     * see it; we just don't block waiting for one.
+     *
+     * Throws if the socket write itself fails (disconnect etc.).
+     */
+    suspend fun sendOnly(code: Int, payload: String = EMPTY_CONTENT) {
+        val conn = connection
+            ?: throw java.io.IOException("not connected")
+        sendMutex.withLock {
+            val frame = command(code) { putRaw(payload) }
+            ProtocolTrace.logBytes("writer", "→ code=$code (no-reply)", frame)
+            conn.write(frame)
         }
     }
 

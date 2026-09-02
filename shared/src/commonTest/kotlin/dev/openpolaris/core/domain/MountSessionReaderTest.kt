@@ -237,13 +237,23 @@ class MountSessionReaderTest {
         // before we observe the StateFlow.
         conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         // ...then the 820+823 auth handshake (see [queueDefaultAuthOk]).
+        // NB: 823 is fire-and-forget on real firmware, so the test
+        // still enqueues a reply to verify the reader publishes it to
+        // `frames` when it does happen to come back.
         conn.queueDefaultAuthOk()
         s.connect()
 
-        // After connect, the 823 hello ack is the most recent frame on
-        // `_frames` (it's published after 284 and 820). The 284 frame was
-        // also published — it just got overwritten by the later frames.
-        // See [MountSession.connect] for the full handshake order.
+        // 823 is fire-and-forget now — connect() returns as soon as
+        // the 823 frame is *written*, before the reader has had a
+        // chance to consume the queued 823 reply. Advance virtual
+        // time so the reader picks it up.
+        advanceTimeBy(50)
+
+        // After connect + the 823 reply is read, the 823 hello ack is
+        // the most recent frame on `_frames` (it's published after
+        // 284 and 820). The 284 frame was also published — it just
+        // got overwritten by the later frames. See
+        // [MountSession.connect] for the full handshake order.
         assertEquals(Codes.APP_HELLO, s.frames.value?.code)
 
         // Queue a non-538 push (285) to exercise the generic path on

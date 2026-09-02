@@ -282,6 +282,14 @@ object Codes {
     // is unambiguous; the *name* is the only question.
     const val APP_HELLO = 823
     // audit: decompile says SP_OMS_BAT_STATE. ✓ live (`ret:0;` ack).
+    //
+    // Wire semantics: fire-and-forget. The gimbal acks with `1&823&2&...;#`
+    // but never publishes a follow-up frame on this code, so blocking
+    // on the ack buys nothing. MountSession.authenticate() uses sendOnly()
+    // rather than request() for this code. Tests that rely on _frames being
+    // 823-free after a connect() must drain the reader first (runCurrent
+    // or equivalent) — the ack is published to _frames StateFlow and would
+    // otherwise race a later publishFrameForTest.
     const val OMS_RUN_STATE = 824
     // ✓ live (`state:0;` push). Both namings agree: our OMS_RUN_STATE
     // and decompile's SP_OMS_RUN_STATE.

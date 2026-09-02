@@ -203,7 +203,7 @@ Codes 822-825 are confirmed live-acks (`@ret:0;`). Codes 817-821 are payload-sha
 | **820** | APP_PASSWORD_INFO | SP_OMS_LOAD_UPGRADE_FW_STATE | C | App password info | `820@..;#` |
 | **821** | APP_TOKEN | SP_OMS_PUSH_UPGRADE_STATUS | C | App token | `821@..;#` |
 | **822** | APP_PING | SP_OMS_PUSH_UPGRADE_PROGRESS | L | App ping — live `ret:0;` | `822@ret:0;#` |
-| **823** | APP_HELLO | SP_OMS_BAT_STATE | L | App hello — live `ret:0;` | `823@ret:0;#` |
+| **823** | APP_HELLO | SP_OMS_BAT_STATE | L | App hello — live `ret:0;` — **fire-and-forget** (sendOnly, no request/await) | `823@ret:0;#` |
 | **824** | OMS_RUN_STATE | SP_OMS_RUN_STATE | L | On-Mount State push (`state:0;`) — both names agree | `824@state:0;#` |
 | **825** | OMS_TASK_LIST | SP_UPGRADE_RESULT_EXIT | L | Scheduled task table — push-only on real hw (quirk §4) | `825@count:N;id:N;state:N;name:X;...;#` |
 

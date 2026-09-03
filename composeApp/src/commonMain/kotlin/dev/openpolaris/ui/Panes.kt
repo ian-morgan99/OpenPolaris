@@ -82,7 +82,10 @@ fun ConnectionPane(
     Card(modifier = modifier.padding(8.dp)) {
         val scope = rememberCoroutineScope()
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Open Polaris", style = MaterialTheme.typography.headlineSmall)
+            // No header — the Benro Connect aesthetic is a flat, full-width
+            // form; the app name is already in the launcher icon, not the
+            // content area. The status line beneath the form acts as the
+            // surface label.
             OutlinedTextField(
                 value = vm.host,
                 onValueChange = vm::updateHost,

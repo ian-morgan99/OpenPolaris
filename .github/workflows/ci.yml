@@ -246,11 +246,28 @@ jobs:
           cache: gradle
 
       # createDistributable produces a self-contained app-image (bundled JRE +
-      # OpenPolaris.exe) via jpackage; packageMsi wraps it in an installer.
-      # The Compose plugin downloads WiX automatically for the MSI step, so no
-      # extra runner setup is needed.
-      - name: Build Windows distribution
-        run: .\gradlew.bat :desktopApp:createDistributable :desktopApp:packageMsi --console=plain
+      # OpenPolaris.exe) via jpackage. This does NOT require WiX; it only
+      # packages the app + bundled JRE into a folder (and a .zip we make
+      # below). Verified independently of the MSI path so a broken WiX
+      # install does not mask a working app-image build.
+      - name: Build Windows app-image (no WiX)
+        run: .\gradlew.bat :desktopApp:createDistributable --console=plain
+
+      # packageMsi wraps the app-image in an MSI installer. jpackage's MSI
+      # path explicitly requires WiX 3.0+ on Windows (see Oracle JDK
+      # jpackage docs); the Compose plugin does NOT auto-download it.
+      # Pin the major version (wixtoolset) so the build is reproducible
+      # regardless of the runner's ambient state.
+      - name: Install WiX 3 (required by jpackage --type msi)
+        run: choco install wixtoolset --no-progress -y
+
+      - name: WiX preflight
+        # Fail fast with a diagnostic if WiX did not install correctly.
+        # `candle -?` writes a usage banner to stdout; we discard it.
+        run: candle -? | Out-Null; if ($LASTEXITCODE -ne 0) { throw "WiX (candle) not on PATH after install" }
+
+      - name: Build Windows MSI installer
+        run: .\gradlew.bat :desktopApp:packageMsi --console=plain
 
       # Single-file EXE installer via Inno Setup; the createExeInstaller task
       # compiles the generated .iss with ISCC (installed here via choco).
@@ -264,6 +281,18 @@ jobs:
         # Self-contained folder (bundled JRE + OpenPolaris.exe) as a single
         # artifact; users unzip and run the .exe — no Java install required.
         run: Compress-Archive -Path desktopApp\build\compose\distributions\OpenPolaris\* -DestinationPath desktopApp\build\compose\distributions\OpenPolaris-windows-x64.zip
+
+      - name: Verify MSI is non-empty
+        # Sanity check the MSI artifact before uploading so an empty/broken
+        # installer doesn't ship. WiX/jpackage failure modes include
+        # producing a 0-byte file or no file at all.
+        run: |
+          $msi = Get-Item desktopApp\build\compose\packages\*.msi -ErrorAction SilentlyContinue
+          if (-not $msi) { throw "No MSI artifact produced" }
+          foreach ($f in $msi) {
+            if ($f.Length -le 0) { throw "MSI $($f.Name) is 0 bytes" }
+            Write-Host "MSI: $($f.Name) ($($f.Length) bytes)"
+          }
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

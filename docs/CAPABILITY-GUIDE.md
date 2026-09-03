@@ -470,8 +470,11 @@ full `compose.desktop { application { ... } }` block (main class
 `dev.openpolaris.desktop.MainKt`, package name `OpenPolaris`). Its
 Skiko AWT runtime is resolved per host OS via `compose.desktop.currentOs`,
 so building on Windows pulls the windows-x64 native libraries. The
-packaging tasks (`createDistributable`, `packageMsi`) use jpackage;
-the MSI step downloads WiX automatically, so no extra tooling is needed.
+packaging tasks (`createDistributable`, `packageMsi`) use jpackage.
+`createDistributable` only needs a JDK; `packageMsi` additionally
+requires WiX 3.0+ on the build host (jpackage shells out to `candle`/
+`light` to compile the MSI — the Compose plugin does **not**
+auto-download it; install with `choco install wixtoolset`).
 
 To get a Windows executable without VS Code: clone the repo on the
 Windows machine (JDK 17 or 21 installed), then run
@@ -488,6 +491,9 @@ Build prerequisites:
 - A network connection the first time (Gradle resolves everything from Maven Central + Google Maven)
 - For desktop: an X11 / Wayland / macOS / Windows desktop session
 - For Android: the Android SDK with platform 35 + build-tools 35.0.0
+- For Windows MSI packaging (build host only): WiX 3.0+ on PATH
+  (`choco install wixtoolset`). jpackage requires it; the Compose
+  plugin does not auto-download WiX.
 
 Useful tasks:
 

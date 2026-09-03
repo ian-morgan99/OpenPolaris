@@ -57,12 +57,22 @@ or 21 installed — no VS Code required:
 :: Self-contained folder at desktopApp\build\compose\distributions\OpenPolaris\
 gradlew.bat :desktopApp:createDistributable
 
-:: MSI installer at desktopApp\build\compose\packages\ (WiX is auto-downloaded)
+:: MSI installer at desktopApp\build\compose\packages\ (requires WiX 3+,
+:: e.g. `choco install wixtoolset` — jpackage does NOT auto-download WiX)
 gradlew.bat :desktopApp:packageMsi
 
 :: Single-file EXE installer via Inno Setup (Windows hosts only; skipped elsewhere)
 gradlew.bat :desktopApp:createExeInstaller
 ```
+
+`createDistributable` only needs a JDK (no Windows-specific tooling); it
+produces the app-image folder that the other two installers wrap.
+
+`packageMsi` invokes jpackage with `--type msi`, which in turn shells out
+to WiX's `candle`/`light` to compile the MSI. The Compose plugin does
+**not** auto-download WiX — you must install it yourself. On a
+Windows build host: `choco install wixtoolset` (or grab the binary
+distribution from <https://wixtoolset.org/releases/> and add it to PATH).
 
 `createExeInstaller` wraps the app-image folder in an Inno Setup script
 (generated at `build/inno/OpenPolaris.iss`) and compiles it with ISCC,

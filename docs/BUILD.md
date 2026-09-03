@@ -59,13 +59,27 @@ gradlew.bat :desktopApp:createDistributable
 
 :: MSI installer at desktopApp\build\compose\packages\ (WiX is auto-downloaded)
 gradlew.bat :desktopApp:packageMsi
+
+:: Single-file EXE installer via Inno Setup (Windows hosts only; skipped elsewhere)
+gradlew.bat :desktopApp:createExeInstaller
 ```
+
+`createExeInstaller` wraps the app-image folder in an Inno Setup script
+(generated at `build/inno/OpenPolaris.iss`) and compiles it with ISCC,
+producing `OpenPolaris-Setup-1.0.0.exe` under
+`desktopApp\build\inno\output\`. It needs [Inno Setup 6+](https://jrsoftware.org/isinfo.php)
+on the host — either on PATH (e.g. `choco install innosetup`), in a standard
+install location, or pointed at via the `INNO_SETUP_HOME` env var. On non-Windows
+hosts the task runs its dependencies and then skips, so it is safe to invoke
+anywhere; use `:desktopApp:generateInnoScript` alone if you just want to inspect
+the generated `.iss`.
 
 The Skiko AWT runtime resolves per host OS (`compose.desktop.currentOs` in
 [`desktopApp/build.gradle.kts`](../desktopApp/build.gradle.kts)), so the Windows
 build pulls the windows-x64 native libraries automatically. Alternatively,
 trigger the **CI** workflow from the Actions tab: the `windows-desktop` job
-runs on `windows-latest`, builds both artifacts, and uploads them for download.
+runs on `windows-latest`, builds all three artifacts (app-image zip, MSI, and
+Inno Setup EXE installer), and uploads them for download.
 
 ## Why Temurin 21 instead of 17
 

@@ -252,6 +252,14 @@ jobs:
       - name: Build Windows distribution
         run: .\gradlew.bat :desktopApp:createDistributable :desktopApp:packageMsi --console=plain
 
+      # Single-file EXE installer via Inno Setup; the createExeInstaller task
+      # compiles the generated .iss with ISCC (installed here via choco).
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build EXE installer
+        run: .\gradlew.bat :desktopApp:createExeInstaller --console=plain
+
       - name: Zip app-image
         # Self-contained folder (bundled JRE + OpenPolaris.exe) as a single
         # artifact; users unzip and run the .exe — no Java install required.
@@ -264,4 +272,5 @@ jobs:
           path: |
             desktopApp/build/compose/distributions/OpenPolaris-windows-x64.zip
             desktopApp/build/compose/packages/*.msi
+            desktopApp/build/inno/output/*-Setup-*.exe
           retention-days: 30

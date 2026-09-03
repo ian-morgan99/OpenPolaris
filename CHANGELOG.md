@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-03
+
+### Added
+- **Compose UI test baseline** (resolves #47).
+  `MobileResponsiveLayoutContractTest` adds 9 source-level policy-pin
+  tests under `composeApp/src/commonTest/kotlin/dev/openpolaris/ui/`
+  that lock down the v0.1.8 mobile responsive-layout contract. The
+  tests run on every CI invocation via `./gradlew :composeApp:jvmTest`
+  and require zero new dependencies.
+  - `phoneDetectionUsesBothSizeClasses` pins that the phone
+    detection combines width and height size classes (so landscape
+    phones with Compact height get the phone layout, not the tablet
+    layout).
+  - `operateItemsPlusMoreItemsPartitionIsExclusiveAndTotal` pins that
+    OperateItems (Connection, Slew, Camera, Preview) plus MoreItems
+    (Helpers, Firmware, VR, Readme, Settings) are disjoint and total
+    9 callouts.
+  - `dangerousCalloutsAreBehindMoreMenu` pins that destructive or
+    admin panes live in the overflow More menu, not the main rail.
+  - `moreMenuButtonIsPresentInPhoneRail` pins the MoreMenuButton
+    handle is wired into the phone rail.
+  - `firmwarePaneIsPaginatedIntoThreeSteps` pins
+    `FirmwareStep1`/`2`/`3` exist as `private fun`s and the
+    `FirmwarePane` owns the step state.
+  - `cameraPaneIsLaidOutInTwoColumns` pins CameraPane builds a
+    stepper list and partitions it into two columns.
+  - `connectionPaneUsesFlowRowNotRow` pins the connection pane opts
+    into `ExperimentalLayoutApi` for FlowRow reflow.
+  - `calloutDialogBodyIsStillNotAVerticalScroll` re-pins the v0.1.6
+    #40 / #42 contract that the callout dialog body is a plain
+    Column with no verticalScroll (regression guard).
+  - `settingsPaneStillExposesBuildIdentity` re-pins the v0.1.5 #43
+    fix that the settings pane exposes the `versionLabel` parameter
+    for build identity.
+
+## [0.1.8] - 2026-09-03
+
+### Fixed
+- **Callout dialog clipped on landscape phones** (resolves #45).
+  Three tall panes (Firmware, Camera, Connection) used a single
+  Column that overflowed the dialog on landscape phones whose
+  height is only ~360 dp. Each pane has been redesigned:
+  - `FirmwarePane` is now paginated into three sub-composables
+    (Step 1: file picker + MD5, Step 2: delivery + SSH, Step 3:
+    upload progress) with Back/Next buttons. Step 1's Next is gated
+    on both a picked file and the feature flag.
+  - `CameraPane` lays its 10 steppers out as a 2-column grid
+    (`Row` with two `weight(1f)` Columns) so a 320 dp phone fits
+    without clipping.
+  - `ConnectionPane` swaps its primary button `Row` for a
+    `FlowRow` (`@OptIn(ExperimentalLayoutApi::class)`) so the
+    buttons reflow when the dialog is narrow.
+- **Callout rail density** (resolves #46). The single 9-item
+  horizontal rail overflowed on 320 dp landscape phones. The
+  callouts are now partitioned: 4 always-visible **Operate**
+  items (Connection, Slew, Camera, Preview) plus a **More** menu
+  button (handle icon) that opens a dropdown of the remaining 5
+  admin items (Helpers, Firmware, VR, Readme, Settings). On
+  tablets / Expanded width the rail stays vertical with all 9
+  callouts visible.
+
+### Changed
+- Phone detection now uses **both** width and height size classes:
+  `wide = !widthCompact && !heightCompact`. Previously a phone in
+  landscape (width Expanded, height Compact) was being routed to
+  the tablet layout, which only made the callout-clipping problem
+  worse.
+- Status strip and Az/Alt readout now use `MaterialTheme.typography`
+  styles (`titleSmall`, `bodySmall`) instead of unstyled `Text`.
+  This is a prerequisite for a future dark-mode contrast pass.
+- A `NightTypography` override on `Theme.kt` lets the readouts
+  pick up a system font consistently across light and dark.
+
 ## [0.1.7] - 2026-09-03
 
 ### Fixed

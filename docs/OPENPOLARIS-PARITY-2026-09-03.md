@@ -1,8 +1,64 @@
 # OpenPolaris Feature Parity Audit — 2026-09-03
 
-**Scope:** Compare OpenPolaris (`eb0ef2d` on `main`) against (a) the original
-Benro Polaris app and (b) the full Polaris protocol surface discovered during
-the `BenroPolarisPatcher` corpus analysis.
+## Scope of this audit (Polaris ONLY, not Theta)
+
+> ⚠️ **The Benro app supports TWO product lines: Polaris (3-axis gimbal head) and
+> Theta (360° camera). This audit is strictly Polaris-only.**
+
+The Benro Connect app is a unified client that talks to two distinct device
+families on the same codebase:
+
+- **Polaris** — the 3-axis electronic gimbal head that this project targets.
+  The head speaks the `SP_*` opcode protocol on TCP/9090 (or 9091 fallback).
+  The protocol surface is documented in
+  [POLARIS-FUNCTIONS-REPORT.md](POLARIS-FUNCTIONS-REPORT.md) and
+  [PROTOCOL.md](PROTOCOL.md).
+- **Theta** — Ricoh's 360° consumer camera product line. The Theta family is
+  paired with the gimbal as a *secondary device* and uses a completely
+  different command set (Ricoh's THETA API over HTTP/USB, not the SP_* wire
+  protocol). Theta commands are how the Benro app triggers 360° capture
+  sequences and stitches panoramas from the camera's two fish-eye lenses.
+
+OpenPolaris does **not** support Theta and explicitly excludes it. This is
+documented in three places:
+
+- [SPEC.md §2.6](SPEC.md) — "Explicitly NOT replicated (kept for official app):
+  …Theta secondary-device support."
+- [PROTOCOL.md §3.5](PROTOCOL.md) — "Out of scope (documented for completeness):
+  …Theta secondary device commands."
+- [POLARIS-FUNCTIONS-REPORT.md §5](POLARIS-FUNCTIONS-REPORT.md#5) — "v1
+  explicitly NOT replicating …Theta secondary-device support."
+
+### How features were classified "Polaris" vs "Theta"
+
+Every feature in the parity matrix below was vetted against this filter:
+
+1. **Wire-protocol test:** the feature must be reachable through the Polaris
+   TCP/9090 `SP_*` opcode surface (the deserialised payloads in
+   [POLARIS-FUNCTIONS-REPORT.md §3](POLARIS-FUNCTIONS-REPORT.md)). If the
+   feature rides a Ricoh THETA HTTP API endpoint or the Benro cloud bridge,
+   it is excluded.
+2. **Corpus test:** the feature must be present in the Polaris firmware's own
+   decompile (the `BenroPolarisPatcher` corpus: `String.xml`,
+   `PolarisOrderCommunication`, `getFwInfo.sh`, `polestar_app` artefacts).
+   Theta-only code paths are not in that corpus.
+3. **User-mental-model test:** the feature must be a thing a Polaris operator
+   would do — slew, track, align, level, plate-solve, capture, upload
+   firmware. Auto-stitching 360° equirectangulars and Theta social sharing
+   are excluded.
+
+**Features the Benro app offers that this audit intentionally does not score
+against (Theta-only):**
+
+- 360° dual-fish-eye capture orchestration
+- Theta WiFi pairing and live-360° preview stream
+- Equirectangular stitching and in-app panorama export
+- Theta social/Discover feed integration
+- Benro Cloud ↔ Theta media sync
+
+These are listed in the [Capability gaps](#capability-gaps-where-benro-has-something-we-dont-if-any)
+section at the bottom with the explicit "Theta — out of scope" tag, so a
+reader cannot mistake them for a regression.
 
 **Sources:**
 
@@ -29,6 +85,16 @@ the `BenroPolarisPatcher` corpus analysis.
 
 **Verdict:** **Feature-equivalent on every Benro Connect "v1 surface" feature,
 exceeds Benro on plate-solving, and adds 12 capabilities Benro does not have.**
+
+*Scope reminder:* The 77 features above are **Polaris-only**. Benro Connect's
+Theta (360° camera) features are documented as out-of-scope in
+[SPEC.md §2.6](SPEC.md) / [PROTOCOL.md §3.5](PROTOCOL.md) /
+[POLARIS-FUNCTIONS-REPORT.md §5](POLARIS-FUNCTIONS-REPORT.md#5) and are
+re-listed at the bottom of this document under
+[Capability gaps](#capability-gaps-where-benro-has-something-we-dont-if-any)
+with the explicit "Theta — out of scope" tag. See
+[Scope of this audit](#scope-of-this-audit-polaris-only-not-theta) at the top
+of this file for the full classification rules.
 
 The only first-class regression since v0.1.2 is the **Windows MSI gap** (issue
 #41 — WiX not present in the build environment). Everything else documented
@@ -107,6 +173,14 @@ task.
 |30 | Settling time UI              | ✅ Live       | ✅ wired                  | 543 / 544                   | ✅ Live            |
 
 ## 4. Camera control
+
+> **Polaris-only.** This section covers camera control *as the gimbal head
+> controls a camera mounted on it* (shutter release, ISO, aperture, etc.,
+> over the SP_* wire protocol). It does **not** cover Theta 360° capture
+> orchestration or 360° preview streams — those ride Ricoh's THETA HTTP API,
+> are out of scope for OpenPolaris, and are listed under
+> [Capability gaps](#capability-gaps-where-benro-has-something-we-dont-if-any)
+> with the "Theta — out of scope" tag.
 
 | # | Feature                       | Benro Connect | OpenPolaris              | Codes                       | Status            |
 |---|-------------------------------|---------------|--------------------------|-----------------------------|-------------------|
@@ -278,8 +352,16 @@ the 13 quirks documented in POLARIS-FUNCTIONS-REPORT.md §4:
 ## Capability gaps (where Benro has something we don't, if any)
 
 A literal sweep of POLARIS-FUNCTIONS-REPORT.md §3 against the descriptor
-table and the UI surfaces reveals **no Benro Connect v1 feature that
-OpenPolaris is missing**. The only candidates that could read as gaps are:
+table and the UI surfaces reveals **no Benro Connect v1 Polaris feature
+that OpenPolaris is missing**. Every item below is either out-of-scope by
+design, or a Benro-Connect capability that does not exist in the Polaris
+corpus at all. **None of the items below are regressions.**
+
+The single largest category of deliberately-out-of-scope features is the
+**Theta (Ricoh 360° camera) family**, which the Benro app supports alongside
+Polaris. Those are listed in a separate
+[Theta — out of scope](#theta--out-of-scope) subsection at the end of this
+section.
 
 1. **OpenSky / social feed** — Benro app has a "Discover" tab. We have
    `TonightPane` (better for our user base) but no social layer. **Out of
@@ -296,6 +378,36 @@ OpenPolaris is missing**. The only candidates that could read as gaps are:
    production. Not a v1 priority.
 6. **VR/stereo preview rendering** — OpenPolaris has `VrStereoShaders` and
    `CardboardWarp`, which Benro Connect does not. Reverse-gap: we have more.
+
+### Theta — out of scope
+
+The Benro Connect app is a **unified client for two product lines**:
+Polaris (3-axis gimbal head, our target) and Theta (Ricoh's 360° consumer
+camera, paired with the gimbal as a *secondary device*). OpenPolaris
+explicitly does **not** support Theta; this is documented in
+[SPEC.md §2.6](SPEC.md), [PROTOCOL.md §3.5](PROTOCOL.md), and
+[POLARIS-FUNCTIONS-REPORT.md §5](POLARIS-FUNCTIONS-REPORT.md#5).
+
+Theta features ride Ricoh's THETA HTTP API, **not** the Polaris SP_* wire
+protocol, and they are not present in the Polaris firmware corpus
+(`BenroPolarisPatcher`: `String.xml`, `PolarisOrderCommunication`,
+`getFwInfo.sh`, `polestar_app`). For these reasons they are not part of
+this audit and are listed here only so a reader cannot mistake them for a
+regression.
+
+| # | Theta feature (Benro app offers)         | Why out of scope                                |
+|---|------------------------------------------|-------------------------------------------------|
+| T1 | 360° dual-fish-eye capture orchestration | Ricoh THETA HTTP API; not in SP_* protocol.    |
+| T2 | Theta WiFi pairing & live-360° preview   | Theta product; no Polaris SP_* opcode.          |
+| T3 | Equirectangular stitching in-app         | Image processing; not mount functionality.      |
+| T4 | Theta social / Discover feed integration | Proprietary Benro cloud product.                |
+| T5 | Benro Cloud ↔ Theta media sync           | Proprietary Benro cloud bridge.                 |
+| T6 | Theta firmware update                    | Ricoh's own update flow; not in Polaris corpus. |
+
+The OpenPolaris BT scan filter in
+[PLANNING-2026-08.md §BT scan](PLANNING-2026-08.md) intentionally matches
+`polaris_*` advertisements only; `theta_*` advertisements are dropped at
+the scanner layer.
 
 ## Mobile / desktop feature surface — parity by platform
 

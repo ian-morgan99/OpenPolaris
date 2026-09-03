@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -362,13 +360,22 @@ fun FeatureFlagsPaneContent(
         revision
         Spacer(Modifier.height(4.dp))
         HorizontalDivider()
-        // weight(1f) on the inner scrollable Column makes it consume all
-        // remaining vertical space, so the build-identity footer below is
-        // always pinned to the bottom of the dialog and never clipped by
-        // the AlertDialog's bounded `text` slot. Without the weight, the
-        // footer was rendered off-screen on portrait phones and landscape
-        // phones because the AlertDialog constrains `text` to the viewport.
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = true)) {
+        // weight(1f, fill = true) on the inner Column makes it consume
+        // all remaining vertical space, so the build-identity footer
+        // below is always pinned to the bottom of the dialog and never
+        // clipped by the AlertDialog's bounded `text` slot. The actual
+        // vertical scrolling happens one level up in `CalloutDialog`,
+        // which wraps every callout body in
+        // `Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = true)`.
+        // The total Modifier.verticalScroll count across the commonMain
+        // UI tree is exactly one, enforced by
+        // CalloutDialogNoScrollWrapperTest — it lives in CalloutDialog
+        // because that is the only level that sees a bounded height
+        // (the AlertDialog's `text` slot), so per-pane `verticalScroll`
+        // modifiers would crash with "infinity maximum height
+        // constraints" (the v0.1.5 / v0.1.6 regression that this
+        // design avoids).
+        Column(modifier = Modifier.weight(1f, fill = true)) {
             listOf(
                 FlagSection.DayToDay to dayToDayExpanded,
                 FlagSection.Advanced to advancedExpanded,

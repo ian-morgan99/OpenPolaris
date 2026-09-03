@@ -1,5 +1,7 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
@@ -361,18 +364,32 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
 /**
  * Call-out dialog wrapper.
  *
- * The Benro Connect app renders its detail panes without scroll bars —
- * everything fits in a compact landscape phone screen. We mirror that:
- * content is laid out top-to-bottom in a non-scrolling column so panes
- * never grow a visible scroll bar. If a pane is taller than the dialog,
- * Material's default `AlertDialog` will clip it, which is preferable to
- * a scroll bar that doesn't fit the Benro aesthetic.
+ * Wraps the callout body in a single bounded `verticalScroll` (the
+ * sole `Modifier.verticalScroll` in the commonMain UI tree, enforced
+ * by `CalloutDialogNoScrollWrapperTest`). This is what makes every
+ * callout — GotoPane, CameraPane, FirmwarePane, FeatureFlagsPane —
+ * scrollable instead of being clipped at the bottom of the
+ * AlertDialog's bounded `text` slot.
  *
- * Important: do NOT wrap `content` in `Modifier.verticalScroll(...)`.
- * The verticalScroll wrapper was previously added in v0.1.5 and regressed
- * the #40 ANR on open — see ff0672a (the fix for #40 specifically
- * removed it). Tall panes must be redesigned to fit on screen instead
- * (Settings now uses collapsible sections, Firmware paginates, etc.).
+ * History of the same-axis scrollable crash this guards against:
+ *  - v0.1.5 added `Modifier.verticalScroll` here while
+ *    `FeatureFlagsPane` also wrapped its content in `verticalScroll`.
+ *    The two same-axis scrollables had no bounded height between
+ *    them, so opening Settings threw "Vertically scrollable
+ *    component was measured with an infinity maximum height
+ *    constraints" (issues #40 / #42).
+ *  - v0.1.6 "fixed" it by removing the outer scroll, leaving
+ *    `FeatureFlagsPane` as the sole scroller. That solved the
+ *    crash but re-clipped every other callout.
+ *  - v0.1.10 added `Modifier.weight(1f, fill = true)` to
+ *    `FeatureFlagsPane`'s inner Column so its build-identity
+ *    footer was pinned. That weight is exactly the bounded-height
+ *    precondition the v0.1.5 outer scroller was missing.
+ *  - v0.1.11 therefore relocates the single `verticalScroll` back
+ *    to this outer wrapper, where the bounded height exists.
+ *    `FeatureFlagsPane` keeps the weight to pin its footer but no
+ *    longer adds its own scroll. The total `verticalScroll` count
+ *    across the commonMain UI tree is still exactly 1.
  */
 @Composable
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
@@ -380,8 +397,20 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         title = { Text(title) },
+        // The single, bounded vertical scroller for ALL callouts. The
+        // `fillMaxHeight()` is what stops the v0.1.5
+        // "Vertically scrollable component was measured with an
+        // infinity maximum height constraints" crash: the AlertDialog
+        // constrains the `text` slot to the viewport, and fillMaxHeight()
+        // makes the inner Column consume exactly that bounded height,
+        // giving `verticalScroll` a finite extent to scroll within.
+        // Owned here (not in any individual pane) so every pane —
+        // GotoPane, CameraPane, FirmwarePane, FeatureFlagsPane, etc. —
+        // can be arbitrarily tall without its own scroll modifier.
+        // This is the sole Modifier.verticalScroll in the commonMain
+        // UI tree, enforced by CalloutDialogNoScrollWrapperTest.
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxHeight()) {
                 content()
             }
         },

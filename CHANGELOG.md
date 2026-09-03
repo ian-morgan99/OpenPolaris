@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-09-04
+
+### Fixed
+- **Callout dialog body clipped on landscape phones** (closes #45
+  follow-up, completes the v0.1.8 fix). The Slew callout's Plate
+  solve section, Slew/Cancel buttons, and rotated Lat/Lng labels
+  were clipped at 472 px below the visible 880x948 dialog area
+  because v0.1.6's "no same-axis nested scrollables" policy
+  (reverting v0.1.5's outer `verticalScroll`) only added a per-pane
+  scroll to Settings. Every other callout (GotoPane, CameraPane,
+  FirmwarePane, etc.) was re-clipped at the bottom of the
+  AlertDialog's bounded `text` slot.
+  - v0.1.10 added `Modifier.weight(1f, fill = true)` to the inner
+    FeatureFlagsPane Column so its build-identity footer was
+    pinned. That weight is exactly the bounded-height precondition
+    the v0.1.5 outer scroller was missing.
+  - v0.1.11 therefore relocates the single `verticalScroll` from
+    `FeatureFlagsPane.kt` up into the outer `CalloutDialog`
+    Column in `OpenPolarisApp.kt`, keeping the inner
+    FeatureFlagsPane weight. The total `verticalScroll` count
+    across the commonMain UI tree is still exactly 1
+    (`CalloutDialogNoScrollWrapperTest.noSameAxisNestedVerticalScrollsAcrossUiTree`),
+    and every callout now scrolls, including Slew which reveals
+    its previously clipped Plate solve section, Slew/Cancel
+    buttons, and rotated Lat/Lng labels.
+
+### Tests
+- `CalloutDialogNoScrollWrapperTest` inverted to enforce the new
+  v0.1.11 policy:
+  - `calloutDialogBodyOwnsExactlyOneVerticalScroll` asserts the
+    `CalloutDialog` body in `OpenPolarisApp.kt` is the sole
+    `Modifier.verticalScroll` owner and the `rememberScrollState`/
+    `verticalScroll` imports are present.
+  - `featureFlagsPaneOwnsZeroVerticalScrolls` asserts
+    `FeatureFlagsPane.kt` has no `Modifier.verticalScroll` but
+    still uses `Modifier.weight(1f, fill = true)` on its inner
+    Column (footer pin).
+  - `noSameAxisNestedVerticalScrollsAcrossUiTree` unchanged
+    (asserts total across `OpenPolarisApp.kt` / `FeatureFlagsPane.kt` /
+    `FullControlPanes.kt` / `Panes.kt` is still 1).
+- `MobileResponsiveLayoutContractTest.calloutDialogBodyOwnsTheSoleVerticalScroll`
+  inverted from its v0.1.9 name
+  `calloutDialogBodyIsStillNotAVerticalScroll` to reflect the
+  v0.1.11 ownership inversion.
+
 ## [0.1.9] - 2026-09-03
 
 ### Added

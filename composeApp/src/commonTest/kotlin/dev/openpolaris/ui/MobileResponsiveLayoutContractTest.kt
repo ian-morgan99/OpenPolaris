@@ -170,24 +170,34 @@ class MobileResponsiveLayoutContractTest {
         assertTrue("FlowRow" in body, "ConnectionPane body must use FlowRow (v0.1.8, issue #45)")
     }
 
-    // --- (4) CalloutDialog body remains non-scrolling ---------------
+    // --- (4) CalloutDialog body now owns the sole scroller ---------
 
     @Test
-    fun calloutDialogBodyIsStillNotAVerticalScroll() {
+    fun calloutDialogBodyOwnsTheSoleVerticalScroll() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = stripComments(src)
+        // v0.1.11 inversion: the bounded vertical scroller now lives
+        // here, not in FeatureFlagsPane. The two-scrollables-with-no-
+        // bounded-height crash from v0.1.5 cannot recur because there
+        // is now exactly one `verticalScroll` in the commonMain UI
+        // tree, sitting at the AlertDialog `text` slot which has a
+        // bounded height.
         assertEquals(
-            0,
+            1,
             Regex("""Modifier\.verticalScroll\s*\(""").findAll(noComments).count(),
-            "OpenPolarisApp.kt must not contain Modifier.verticalScroll (regresses #40/#42)"
+            "OpenPolarisApp.kt must contain exactly one Modifier.verticalScroll for the " +
+                "CalloutDialog body (v0.1.11). See CalloutDialog docstring and issues " +
+                "#40 / #42 for the same-axis nested-scrollables crash this avoids."
         )
-        assertFalse(
+        assertTrue(
             "import androidx.compose.foundation.rememberScrollState" in noComments,
-            "OpenPolarisApp.kt must not import rememberScrollState (v0.1.5 #40 regression)"
+            "OpenPolarisApp.kt must import rememberScrollState to back the v0.1.11 " +
+                "CalloutDialog verticalScroll wrapper."
         )
-        assertFalse(
+        assertTrue(
             "import androidx.compose.foundation.verticalScroll" in noComments,
-            "OpenPolarisApp.kt must not import verticalScroll (v0.1.5 #40 regression)"
+            "OpenPolarisApp.kt must import verticalScroll to wrap the v0.1.11 " +
+                "CalloutDialog body."
         )
     }
 

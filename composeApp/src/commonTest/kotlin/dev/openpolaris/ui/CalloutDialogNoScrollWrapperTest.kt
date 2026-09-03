@@ -2,35 +2,57 @@ package dev.openpolaris.ui
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Pins the v0.1.6 fix for the v0.1.5 regression that wrapped
- * CalloutDialog in `Modifier.verticalScroll(rememberScrollState())`
- * (commit 8f6c971), which together with the inner `verticalScroll`
- * inside FeatureFlagsPane created same-axis nested scrollables with
- * no bounded height. Opening the Settings callout would then throw
- * "Vertically scrollable component was measured with an infinity
- * maximum height constraints" at layout.
+ * Pins the v0.1.11 inversion: the single bounded vertical scroller
+ * for every callout has been moved from
+ * [dev.openpolaris.ui.FeatureFlagsPane] up into
+ * [dev.openpolaris.ui.OpenPolarisApp]'s `CalloutDialog` wrapper.
  *
- * The policy this test pins:
+ * History of the same-axis scrollable crash this test guards against:
  *
- * 1. CalloutDialog MUST NOT wrap its body in verticalScroll.
- *    A plain Column is preferred so Material.AlertDialog clipping
- *    handles overflow on the 320x568 dp landscape surface, mirroring
- *    the Benro Connect aesthetic and the project's explicit
- *    no-scroll-bars requirement.
- * 2. The inner FeatureFlagsPane MAY keep a single verticalScroll
- *    for its 25 flag rows (the exception explicitly allowed by the
- *    fix that closed #40, ff0672a).
- * 3. There MUST be exactly one verticalScroll modifier in
- *    commonMain UI code (i.e. no same-axis nesting).
+ *  - v0.1.5 (commit 8f6c971) added `Modifier.verticalScroll` to the
+ *    outer CalloutDialog Column while FeatureFlagsPane already
+ *    wrapped its 25 flag rows in its own `verticalScroll`. The two
+ *    same-axis scrollables had no bounded height between them, so
+ *    opening Settings threw "Vertically scrollable component was
+ *    measured with an infinity maximum height constraints" at layout
+ *    (issues #40 / #42).
  *
- * Background: this regression was the cause of issue #42 (filed at
- * v0.1.5) and indirectly re-broke issue #40. The runtime symptom was
- * "android app won't even open" on top of "android says the app is
- * not valid" (the v0.1.5 APK was also unsigned - fixed separately).
+ *  - v0.1.6 (commit ff0672a) "fixed" it by removing the outer
+ *    CalloutDialog scroll, leaving FeatureFlagsPane as the sole
+ *    `verticalScroll` owner. That solved the crash but also re-clipped
+ *    every other callout (GotoPane, CameraPane, FirmwarePane, etc.)
+ *    whose content was taller than the AlertDialog's bounded `text`
+ *    slot - the visual audit at v0.1.10 found the Slew callout had
+ *    lost the Plate solve section, Slew/Cancel buttons, and rotated
+ *    Lat/Lng labels below its 472 px Card.
+ *
+ *  - v0.1.10 added `Modifier.weight(1f, fill = true)` next to the
+ *    FeatureFlagsPane scroll so its own build-identity footer was
+ *    pinned to the bottom of the dialog. This made the inner column
+ *    consume the AlertDialog's bounded slot, which is exactly the
+ *    precondition that the v0.1.5 outer scroller was missing.
+ *
+ *  - v0.1.11 therefore relocates the single `verticalScroll` to the
+ *    outer CalloutDialog Column (where the bounded height exists),
+ *    keeping the same `weight(1f, fill = true)` on the inner
+ *    FeatureFlagsPane Column so its footer is still pinned to the
+ *    bottom. Every callout now scrolls, and there is still exactly
+ *    one `verticalScroll` in the commonMain UI tree, just owned by a
+ *    different file.
+ *
+ * The policy this test pins (v0.1.11):
+ *
+ *  1. CalloutDialog MUST wrap its body in exactly one `verticalScroll`
+ *     (this is the single bounded scrollable for all callouts).
+ *  2. FeatureFlagsPane MUST NOT add its own `verticalScroll` - the
+ *     outer wrapper already scrolls the whole callout body. It
+ *     continues to use `weight(1f, fill = true)` on its inner column
+ *     to pin the build-identity footer.
+ *  3. There MUST be exactly one `verticalScroll` modifier in
+ *     commonMain UI code (i.e. no same-axis nesting).
  */
 class CalloutDialogNoScrollWrapperTest {
 
@@ -54,8 +76,8 @@ class CalloutDialogNoScrollWrapperTest {
     /**
      * Strip lines that are inside a `/** ... */` or `//` block
      * comment so the regex below does not match the
-     * "DO NOT RE-ADD" warning we explicitly wrote into the
-     * CalloutDialog docstring.
+     * explanatory references to `verticalScroll` in our own
+     * docstrings.
      */
     private fun stripComments(src: String): String {
         val noBlockComments = Regex("""/\*[\s\S]*?\*/""").replace(src, "")
@@ -70,46 +92,56 @@ class CalloutDialogNoScrollWrapperTest {
     }
 
     @Test
-    fun calloutDialogBodyIsNotAVerticalScroll() {
+    fun calloutDialogBodyOwnsExactlyOneVerticalScroll() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         assertEquals(
-            0,
+            1,
             countVerticalScrollModifiers(src),
-            "OpenPolarisApp.kt must not contain any Modifier.verticalScroll call. " +
-                "The outer CalloutDialog wrapper was the v0.1.5 regression. " +
-                "See CalloutDialog docstring and issues #40/#42."
+            "OpenPolarisApp.kt's CalloutDialog must own exactly one Modifier.verticalScroll " +
+                "for its callout body. v0.1.11 inverted the v0.1.6 policy: the outer wrapper is " +
+                "now the sole scroller, so all callouts (GotoPane, CameraPane, FirmwarePane, " +
+                "FeatureFlagsPane, ...) scroll without each needing its own. Without this, " +
+                "taller callouts are clipped at the bottom by the AlertDialog's bounded `text` " +
+                "slot (Slew at v0.1.10 lost its Plate solve section and Slew/Cancel buttons)."
         )
-        // The recallScrollState import was the smoking gun for v0.1.5.
-        assertFalse(
+        // The rememberScrollState import is required to back the
+        // single verticalScroll in CalloutDialog.
+        assertTrue(
             "import androidx.compose.foundation.rememberScrollState" in src,
-            "OpenPolarisApp.kt must not import rememberScrollState - its presence indicates " +
-                "a verticalScroll wrapper has been re-added. See issues #40/#42."
+            "OpenPolarisApp.kt must import rememberScrollState to back the v0.1.11 " +
+                "CalloutDialog verticalScroll wrapper."
         )
-        assertFalse(
+        assertTrue(
             "import androidx.compose.foundation.verticalScroll" in src,
-            "OpenPolarisApp.kt must not import verticalScroll - its presence indicates a " +
-                "verticalScroll wrapper has been re-added. See issues #40/#42."
+            "OpenPolarisApp.kt must import verticalScroll to wrap the v0.1.11 " +
+                "CalloutDialog body."
         )
     }
 
     @Test
-    fun settingsPaneOwnsExactlyOneVerticalScroll() {
+    fun featureFlagsPaneOwnsZeroVerticalScrolls() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
         assertEquals(
-            1,
+            0,
             countVerticalScrollModifiers(src),
-            "FeatureFlagsPane.kt must own exactly one Modifier.verticalScroll (for the 25 " +
-                "flag rows). The Settings dialog's outer wrapper no longer scrolls (v0.1.6), " +
-                "so this inner scroller is the sole owner of vertical scrolling in the UI."
+            "FeatureFlagsPane.kt must not own any Modifier.verticalScroll (v0.1.11). " +
+                "The sole bounded scroller now lives in CalloutDialog. The Settings dialog's " +
+                "outer wrapper already scrolls, so any inner verticalScroll here would create " +
+                "the same-axis nested-scrollables crash from v0.1.5 (issues #40 / #42). " +
+                "The inner Column still uses Modifier.weight(1f, fill = true) to pin the " +
+                "build-identity footer to the bottom of the dialog."
         )
+        // Also assert the v0.1.10 footer-pinning weight is preserved.
         val noComments = stripComments(src)
-        val scrollableColumnCount = Regex(
-            """Column\s*\(\s*[^)]*modifier\s*=\s*Modifier\.verticalScroll"""
+        val weightOnInnerColumn = Regex(
+            """Column\s*\(\s*[^)]*modifier\s*=\s*[^)]*Modifier\.weight\s*\(\s*1f\s*,\s*fill\s*=\s*true"""
         ).findAll(noComments).count()
         assertTrue(
-            scrollableColumnCount >= 1,
-            "FeatureFlagsPane must wrap its flag list Column in a verticalScroll. None found; " +
-                "the 25 flag rows will not fit in the dialog's clipped body without it."
+            weightOnInnerColumn >= 1,
+            "FeatureFlagsPane.kt must keep Modifier.weight(1f, fill = true) on its inner " +
+                "Column so the build-identity footer is pinned to the bottom of the dialog. " +
+                "Found $weightOnInnerColumn such Column - the footer will be clipped off-screen " +
+                "if this weight is removed."
         )
     }
 
@@ -120,9 +152,11 @@ class CalloutDialogNoScrollWrapperTest {
             1,
             total,
             "commonMain UI tree must contain exactly one Modifier.verticalScroll across " +
-                "all .kt files (currently only FeatureFlagsPane.kt). Found $total. " +
-                "Two same-axis scrollables with no bounded height between them will crash " +
-                "at layout when the dialog is opened. See issues #40 and #42."
+                "all .kt files. Two same-axis scrollables with no bounded height between them " +
+                "will crash at layout when the dialog is opened (v0.1.5 regression, issues " +
+                "#40 / #42). At v0.1.11 the sole scroll lives in OpenPolarisApp.kt (inside " +
+                "CalloutDialog, which is the only level that sees a bounded height from the " +
+                "AlertDialog's `text` slot). Found $total."
         )
     }
 }

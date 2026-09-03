@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
 
@@ -331,7 +332,16 @@ fun FeatureFlagsPane(modifier: Modifier = Modifier) {
  * Owns the destructive-confirm dialog state.
  */
 @Composable
-fun FeatureFlagsPaneContent(modifier: Modifier = Modifier) {
+fun FeatureFlagsPaneContent(
+    modifier: Modifier = Modifier,
+    /**
+     * Build identity to render at the bottom of the dialog (e.g.
+     * "dev.openpolaris.app v0.1.6 (7)"). Set by the Android host from
+     * BuildConfig; pass null on platforms that don't inject one. Helps
+     * users confirm which build is running when triaging a crash report.
+     */
+    versionLabel: String? = null,
+) {
     // Bump this counter whenever a flag flips so the rows re-read isEnabled
     // (isEnabled itself isn't backed by a snapshot, so we bridge through
     // a `mutableStateOf` to force recomposition).
@@ -393,6 +403,18 @@ fun FeatureFlagsPaneContent(modifier: Modifier = Modifier) {
                     HorizontalDivider()
                 }
             }
+        }
+        if (!versionLabel.isNullOrBlank()) {
+            HorizontalDivider()
+            Text(
+                text = versionLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                textAlign = TextAlign.End,
+            )
         }
     }
 

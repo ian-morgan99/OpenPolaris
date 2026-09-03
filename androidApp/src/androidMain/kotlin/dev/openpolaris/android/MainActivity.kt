@@ -30,6 +30,7 @@ import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
 import dev.openpolaris.ui.AppViewModel
 import dev.openpolaris.ui.OpenPolarisApp
+import dev.openpolaris.android.BuildConfig
 import kotlinx.coroutines.launch
 
 /**
@@ -328,6 +329,11 @@ class MainActivity : ComponentActivity() {
                     startActivity(intent)
                 },
                 viewModel = viewModel,
+                // Build-identity footer in the Settings dialog so the user
+                // can confirm at a glance which app is actually running on
+                // the device. Helps distinguish a real dev.openpolaris.app
+                // build from a stale fork / sideloaded APK (issue #43).
+                versionLabel = "v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})",
             )
         }
     }

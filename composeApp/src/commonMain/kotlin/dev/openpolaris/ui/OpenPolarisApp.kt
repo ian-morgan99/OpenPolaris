@@ -91,6 +91,15 @@ fun OpenPolarisApp(
      * "Found polaris_d13e86 (-42 dBm)").
      */
     onMountWifiScan: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    /**
+     * Build identity to display in the Settings dialog footer. Pass the
+     * running app's package id + version (e.g. "dev.openpolaris.app
+     * v0.1.6 (7)") from the host so the user can confirm they are on the
+     * real build and not a third-party fork installed under a similar id
+     * (see issue #43). Defaults to null on platforms where the host
+     * doesn't inject one (e.g. desktop).
+     */
+    versionLabel: String? = null,
 ) {
     val scope = rememberCoroutineScope()
     val vm: AppViewModel = viewModel
@@ -160,7 +169,7 @@ fun OpenPolarisApp(
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
-                    FeatureFlagsPaneContent(Modifier.fillMaxWidth())
+                    FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
                 }
                 null -> {}
             }

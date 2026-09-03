@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -228,7 +226,6 @@ private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Open Polaris", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
             Text(
                 buildString {
@@ -265,7 +262,16 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
 }
 
-/** Call-out dialog wrapper with scrollable body. */
+/**
+ * Call-out dialog wrapper.
+ *
+ * The Benro Connect app renders its detail panes without scroll bars —
+ * everything fits in a compact landscape phone screen. We mirror that:
+ * content is laid out top-to-bottom in a non-scrolling column so panes
+ * never grow a visible scroll bar. If a pane is taller than the dialog,
+ * Material's default `AlertDialog` will clip it, which is preferable to
+ * a scroll bar that doesn't fit the Benro aesthetic.
+ */
 @Composable
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     AlertDialog(
@@ -273,7 +279,7 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         title = { Text(title) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column {
                 content()
             }
         },

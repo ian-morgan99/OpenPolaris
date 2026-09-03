@@ -16,8 +16,10 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * One row of a Polaris mount access point found by [MountWifiScan].
@@ -73,29 +75,35 @@ class MountWifiScan(private val context: Context) {
      * connection status line; the function returns an empty list if
      * the scan failed (e.g. permissions missing, no Wi-Fi adapter,
      * no matching APs found).
+     *
+     * The whole scan runs on [Dispatchers.IO] so the suspending
+     * `await` on `SCAN_RESULTS_AVAILABLE_ACTION` never blocks the
+     * Android main thread (issue #40 — prior `CountDownLatch.await`
+     * caused a 7-second MIUI ANR when the gimbal's AP was asleep).
      */
-    suspend fun scan(progress: suspend (String) -> Unit = {}): List<MountAp> {
-        progress("Pulsing Bluetooth…")
-        btWakePulse()
-        // Give the gimbal a beat to actually bring up the AP after the
-        // wake nudge lands. 2.5s is the empirically-observed
-        // Benro/BenroClone cadence; longer than 4s is more likely to
-        // be the user re-pressing the button than the mount waking.
-        delayMillis(2_500)
+    suspend fun scan(progress: suspend (String) -> Unit = {}): List<MountAp> =
+        withContext(Dispatchers.IO) {
+            progress("Pulsing Bluetooth…")
+            btWakePulse()
+            // Give the gimbal a beat to actually bring up the AP after the
+            // wake nudge lands. 2.5s is the empirically-observed
+            // Benro/BenroClone cadence; longer than 4s is more likely to
+            // be the user re-pressing the button than the mount waking.
+            delayMillis(2_500)
 
-        progress("Scanning Wi-Fi…")
-        val rawResults = runWifiScanWithLatch() ?: return emptyList()
-        val polaris = rawResults
-            .mapNotNull { sr -> sr.toMountApOrNull() }
-            .filter { it.ssid.lowercase().startsWith(POLARIS_PREFIX) }
-            .sortedByDescending { it.rssi }
+            progress("Scanning Wi-Fi…")
+            val rawResults = runWifiScanSuspending() ?: return@withContext emptyList()
+            val polaris = rawResults
+                .mapNotNull { sr -> sr.toMountApOrNull() }
+                .filter { it.ssid.lowercase().startsWith(POLARIS_PREFIX) }
+                .sortedByDescending { it.rssi }
 
-        progress(
-            if (polaris.isEmpty()) "No Polaris networks found"
-            else "Found ${polaris.size} Polaris network(s)"
-        )
-        return polaris
-    }
+            progress(
+                if (polaris.isEmpty()) "No Polaris networks found"
+                else "Found ${polaris.size} Polaris network(s)"
+            )
+            polaris
+        }
 
     /**
      * Build a `WifiNetworkSuggestion` for the given [ap] and ask the
@@ -177,14 +185,20 @@ class MountWifiScan(private val context: Context) {
     }
 
     /**
-     * Run a one-shot Wi-Fi scan and block on the
-     * `SCAN_RESULTS_AVAILABLE_ACTION` broadcast. We use a latch
-     * rather than a coroutine channel because the receiver must be
-     * registered on the main thread, and we already own a 7-second
-     * timeout to keep the user from waiting forever on a buggy
-     * device.
+     * Run a one-shot Wi-Fi scan and suspend on the
+     * `SCAN_RESULTS_AVAILABLE_ACTION` broadcast. The receiver is
+     * registered/unregistered on the main thread (the
+     * `ContextCompat.registerReceiver` contract), but the coroutine
+     * parks on [Dispatchers.IO] (set by [scan]) so the main thread
+     * is never blocked. A 7-second timeout keeps the user from
+     * waiting forever on a buggy device that never fires the
+     * broadcast.
+     *
+     * Replaces the prior `CountDownLatch.await(7_000)` which ran
+     * the whole 7 s on the main dispatcher and caused a Xiaomi
+     * MIUI ANR (issue #40).
      */
-    private fun runWifiScanWithLatch(): List<ScanResult>? {
+    private suspend fun runWifiScanSuspending(): List<ScanResult>? {
         val wm = context.wifiManagerOrNull() ?: run {
             Log.w(tag, "WifiManager unavailable")
             return null
@@ -194,32 +208,53 @@ class MountWifiScan(private val context: Context) {
             Log.w(tag, "scan: missing location permission")
             return null
         }
-        val latch = CountDownLatch(1)
+        val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
+        val mainHandler = Handler(Looper.getMainLooper())
+        // Single receiver reused for the whole flow. Registering it
+        // once up-front (before startScan) is the recommended
+        // pattern; missing that race is what made the old latch
+        // version sometimes time out even on a healthy device.
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
                 if (intent.action == WifiManager.SCAN_RESULTS_AVAILABLE_ACTION) {
-                    latch.countDown()
+                    pendingScanResult?.let { p ->
+                        @SuppressLint("MissingPermission")
+                        p.resumeWith(Result.success(wm.scanResults))
+                        pendingScanResult = null
+                    }
                 }
             }
         }
-        val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-        val mainHandler = Handler(Looper.getMainLooper())
+        pendingScanResult = null
         return try {
             mainHandler.post {
-                ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+                try {
+                    ContextCompat.registerReceiver(
+                        context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED
+                    )
+                } catch (t: Throwable) {
+                    Log.w(tag, "scan: receiver registration failed", t)
+                }
             }
             @SuppressLint("MissingPermission")
             val started = wm.startScan()
             Log.i(tag, "WifiManager.startScan -> $started")
-            // 7s is generous; most devices return within ~3s. If the
-            // platform never fires the broadcast (vendor bug) the
-            // latch returns false and we fall through.
-            latch.await(SCAN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            if (latch.count > 0) {
+            // Park on IO until either the broadcast resumes us or
+            // the timeout fires. withTimeoutOrNull returns null on
+            // timeout, which we coerce to the platform's cached
+            // `scanResults` so a best-effort answer is always
+            // surfaced.
+            val result = withTimeoutOrNull(SCAN_TIMEOUT_MS) {
+                suspendCancellableCoroutine<List<ScanResult>> { cont ->
+                    pendingScanResult = cont
+                    cont.invokeOnCancellation { pendingScanResult = null }
+                }
+            }
+            if (result == null) {
                 Log.w(tag, "scan: timed out after ${SCAN_TIMEOUT_MS}ms")
             }
             @SuppressLint("MissingPermission")
-            wm.scanResults
+            result ?: wm.scanResults
         } catch (se: SecurityException) {
             Log.w(tag, "scan: SecurityException", se)
             null
@@ -229,12 +264,23 @@ class MountWifiScan(private val context: Context) {
         } finally {
             try {
                 mainHandler.post { context.unregisterReceiver(receiver) }
-            } catch (e: Throwable) {
+            } catch (_: Throwable) {
                 // Receiver may already be unregistered; not a fatal
                 // error here.
             }
+            pendingScanResult = null
         }
     }
+
+    /**
+     * One-slot receiver-result holder. The receiver can't capture
+     * the continuation directly because the broadcast is delivered
+     * on the main thread while the suspending `await` parks on
+     * [Dispatchers.IO]. A volatile field is the simplest correct
+     * bridge between the two.
+     */
+    @Volatile
+    private var pendingScanResult: kotlin.coroutines.Continuation<List<ScanResult>>? = null
 
     private fun hasPermission(perm: String): Boolean =
         ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED

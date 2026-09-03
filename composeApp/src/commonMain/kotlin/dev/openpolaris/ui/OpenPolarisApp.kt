@@ -11,11 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -111,7 +115,15 @@ fun OpenPolarisApp(
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
-    val wide = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
+    // Compact *height* (typically 360 dp) which can't host a full 9-item
+    // rail without the items being shrunk to glyph-sized labels — exactly
+    // the "icons oversized" / "text not readable" complaint from #45/#46.
+    // Treat any landscape-short viewport as a phone-portrait layout so the
+    // rail collapses to Operate + a "More…" menu.
+    val widthCompact = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
+    val heightCompact = windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact
+    val wide = !widthCompact && !heightCompact
 
     OpenPolarisTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -134,7 +146,9 @@ fun OpenPolarisApp(
                     StatusStrip(vm, Modifier.fillMaxWidth())
                     PositionReadout(vm, Modifier.fillMaxWidth())
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        JogPane(vm, Modifier.width(220.dp))
+                        // Wider dial on Medium-height viewports so the jog
+                        // pad keeps the buttons at a tappable size.
+                        JogPane(vm, Modifier.width(if (heightCompact) 220.dp else 300.dp))
                     }
                     CalloutRail(vertical = false, Modifier.fillMaxWidth(), onLaunchVr) { dialog = it }
                 }
@@ -195,9 +209,9 @@ fun OpenPolarisApp(
 
 // Each callout's rail label. Full words instead of cryptic acronyms so
 // a first-time user can read the rail without hovering for tooltips.
-// Keep the longest label ("Firmware", "Settings") <= 8 chars so the
-// compact horizontal rail (portrait / phone landscape) does not overflow
-// on a 320 dp wide screen.
+// The 4 most-used entries form the "Operate" group on phones; the
+// remaining 5 live in the "More" overflow menu so the visible rail
+// always fits a 320 dp wide phone in portrait AND landscape.
 private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
     Slew("Slew"),
@@ -210,7 +224,30 @@ private enum class Callout(val glyph: String) {
     Settings("Settings"),
 }
 
-/** Row (portrait) or column (landscape rail) of small call-out buttons. */
+// Operate group: 4 items shown in the always-visible rail. The
+// remaining 5 items (Helpers, Firmware, VR, Readme, Settings) live in
+// the "More" overflow menu.
+private val OperateItems: List<Callout> = listOf(
+    Callout.Connection,
+    Callout.Slew,
+    Callout.Camera,
+    Callout.Preview,
+)
+
+private val MoreItems: List<Callout> = listOf(
+    Callout.Helpers,
+    Callout.Firmware,
+    Callout.VR,
+    Callout.Readme,
+    Callout.Settings,
+)
+
+/**
+ * Phone layout: an Operate row (4 items) + a "More…" button that
+ * drops down the remaining 5 items. Replaces the v0.1.7 9-item
+ * horizontal rail which clipped icons to glyph-sized labels at 320
+ * dp / 568 dp widths.
+ */
 @Composable
 private fun CalloutRail(
     vertical: Boolean,
@@ -218,17 +255,52 @@ private fun CalloutRail(
     onLaunchVr: (() -> Unit)?,
     onSelect: (Callout) -> Unit,
 ) {
-    val items = listOf(Callout.Connection, Callout.Slew, Callout.Camera, Callout.Preview, Callout.Helpers, Callout.Firmware, Callout.VR, Callout.Readme, Callout.Settings)
     val handle: (Callout) -> Unit = { c ->
         if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
     }
     if (vertical) {
-        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            items.forEach { c -> CalloutButton(c, handle) }
+        // Tablet layout: full 9-item vertical rail.
+        Column(
+            modifier,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            (OperateItems + MoreItems).forEach { c -> CalloutButton(c, handle) }
         }
     } else {
-        Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-            items.forEach { c -> CalloutButton(c, handle) }
+        // Phone layout: 4-item Operate row + "More…" overflow button.
+        Row(
+            modifier,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OperateItems.forEach { c -> CalloutButton(c, handle) }
+            MoreMenuButton(handle)
+        }
+    }
+}
+
+@Composable
+private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            Text("More\u2026", style = MaterialTheme.typography.labelMedium)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            MoreItems.forEachIndexed { i, c ->
+                if (i > 0) HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(c.glyph) },
+                    onClick = {
+                        expanded = false
+                        onSelect(c)
+                    },
+                )
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ package dev.openpolaris.ui
 import androidx.compose.foundation.layout.Arrangement
 import dev.openpolaris.core.protocol.Codes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,6 +73,7 @@ import kotlinx.coroutines.launch
  * save battery; nothing answers on Wi-Fi until the pulse has fired).
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun ConnectionPane(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
@@ -135,7 +138,14 @@ fun ConnectionPane(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // v0.1.8: primary action row now wraps to a second line on
+            // narrow phones. Was a single Row that clipped Connect/Wake
+            // off the right edge at 320 dp wide landscape (#46).
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Button(onClick = vm::connect) { Text("Connect") }
                 if (onWake != null) {
                     OutlinedButton(
@@ -448,16 +458,30 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
-            StepperRow("ISO", c.isoIndex, vm::setIso)
-            StepperRow("WB", c.wbIndex, vm::setWb)
-            StepperRow("Aperture", c.fNumIndex, vm::setFNum)
-            StepperRow("EV", c.evIndex, vm::setEv)
-            StepperRow("Focus", c.focusIndex, vm::setFocus)
-            StepperRow("Image size", c.imgSizeIndex, vm::setImgSize)
-            StepperRow("Image format", c.imgFmtIndex, vm::setImgFmt)
-            StepperRow("Color", c.colorIndex, vm::setColor)
-            StepperRow("Shutter", c.shutterIndex, vm::setShutter)
-            StepperRow("Capture mode", c.captureModeIndex, vm::setCaptureMode)
+            // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
+            // phone in landscape. Was a single 10-row Column that clipped
+            // half its controls below the callout dialog fold (#45).
+            val steppers: List<@Composable () -> Unit> = listOf(
+                { StepperRow("ISO", c.isoIndex, vm::setIso) },
+                { StepperRow("WB", c.wbIndex, vm::setWb) },
+                { StepperRow("Aperture", c.fNumIndex, vm::setFNum) },
+                { StepperRow("EV", c.evIndex, vm::setEv) },
+                { StepperRow("Focus", c.focusIndex, vm::setFocus) },
+                { StepperRow("Image size", c.imgSizeIndex, vm::setImgSize) },
+                { StepperRow("Image format", c.imgFmtIndex, vm::setImgFmt) },
+                { StepperRow("Color", c.colorIndex, vm::setColor) },
+                { StepperRow("Shutter", c.shutterIndex, vm::setShutter) },
+                { StepperRow("Capture mode", c.captureModeIndex, vm::setCaptureMode) },
+            )
+            val midpoint = (steppers.size + 1) / 2
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    steppers.take(midpoint).forEach { it() }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    steppers.drop(midpoint).forEach { it() }
+                }
+            }
             val busy = vm.captureState?.state == 1
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = vm::capture, enabled = !busy) { Text("Capture") }
@@ -594,187 +618,266 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
         else -> null
     }
 
+    // v0.1.8: paginate into 3 steps so the callout dialog (which is
+    // intentionally NOT scrollable — see issues #40/#42 and the
+    // CalloutDialog constraint in OpenPolarisApp.kt) can show the
+    // full pane on a 320 dp phone in landscape. 1 = pick, 2 = options,
+    // 3 = run. Steps 2 and 3 are only enabled once a file is picked.
+    var step by remember { mutableStateOf(1) }
+    val picked = vm.pickedFirmwarePath != null
+
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Firmware update", style = MaterialTheme.typography.headlineSmall)
-
-            // Phase 1a banner (docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #1).
-            // The WIRE envelope below is reconstructed from the Benro Connect
-            // decompile and has not been observed in a live traffic capture.
-            // A bad FwPkt.zip bricks the gimbal until you re-flash over USB.
-            // Always verify the bundle with `crcInfo` in the Benro Connect
-            // app before pressing Upload.
             Text(
-                "EXPERIMENTAL — a bad image bricks the gimbal until you re-flash over USB. " +
-                    "Verify the bundle's CRC in the Benro Connect app before uploading. " +
-                    "Use the SSH_PIPE delivery (default) unless you have a reason not to.",
+                "Step $step of 3",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            when (step) {
+                1 -> FirmwareStep1(
+                    vm = vm,
+                    featureEnabled = featureEnabled,
+                )
+                2 -> FirmwareStep2(vm = vm)
+                3 -> FirmwareStep3(
+                    vm = vm,
+                    featureEnabled = featureEnabled,
+                    progress = progress,
+                    status = status,
+                )
+            }
+
+            // ---- Pager buttons (no verticalScroll) ------------------------
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedButton(
+                    onClick = { step = (step - 1).coerceAtLeast(1) },
+                    enabled = step > 1,
+                ) { Text("Back") }
+
+                TextButton(
+                    onClick = { step = 1 },
+                ) { Text("Close") }
+
+                Button(
+                    onClick = { step = (step + 1).coerceAtMost(3) },
+                    enabled = when (step) {
+                        1 -> picked && featureEnabled
+                        2 -> vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE || vm.firmwareSshHost.isNotBlank()
+                        else -> false
+                    },
+                ) { Text(if (step < 3) "Next" else "Done") }
+            }
+        }
+    }
+}
+
+// Step 1 — pick the FwPkt.zip, surface the experimental banner and the
+// local MD5 placeholder. Same content as the v0.1.7 top of the pane.
+@Composable
+private fun FirmwareStep1(
+    vm: AppViewModel,
+    featureEnabled: Boolean,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Phase 1a banner (docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #1).
+        // The WIRE envelope below is reconstructed from the Benro Connect
+        // decompile and has not been observed in a live traffic capture.
+        // A bad FwPkt.zip bricks the gimbal until you re-flash over USB.
+        // Always verify the bundle with `crcInfo` in the Benro Connect
+        // app before pressing Upload.
+        Text(
+            "EXPERIMENTAL — a bad image bricks the gimbal until you re-flash over USB. " +
+                "Verify the bundle's CRC in the Benro Connect app before uploading. " +
+                "Use the SSH_PIPE delivery (default) unless you have a reason not to.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+
+        if (!featureEnabled) {
+            Text(
+                "Firmware upload is disabled. Open the 'Settings' callout and turn " +
+                    "on the 'firmwareUpload' flag to use this pane. Firmware install is " +
+                    "destructive — a bad image bricks the mount until you re-flash over USB.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
 
-            if (!featureEnabled) {
-                Text(
-                    "Firmware upload is disabled. Open the 'Settings' callout and turn " +
-                        "on the 'firmwareUpload' flag to use this pane. Firmware install is " +
-                        "destructive — a bad image bricks the mount until you re-flash over USB.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            // ---- Picked file summary ---------------------------------------
-            val name = vm.pickedFirmwareName
-            val size = vm.pickedFirmwareSize
-            if (name != null) {
-                Text(
-                    text = if (size != null) "Selected: $name (${humanBytes(size)})" else "Selected: $name",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                // Phase 1a #2: surface the locally-computed MD5 so the user
-                // can sanity-check the picked file against an external
-                // source (Benro web console, the original download's
-                // checksum, a side-loaded copy, etc.). Populated at
-                // upload time, not pick time, so it stays "—" until the
-                // first time Upload runs.
-                val localMd5 = vm.pickedFirmwareMd5
-                Text(
-                    text = if (localMd5 != null) "Local MD5:  $localMd5" else "Local MD5:  — (computed at upload time)",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            } else {
-                Text(
-                    "No firmware selected. Tap 'Pick firmware…' to choose a FwPkt.zip.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = vm::pickFirmwareFile,
-                    enabled = !vm.firmwareBusy,
-                ) { Text("Pick firmware…") }
-                if (vm.pickedFirmwarePath != null) {
-                    OutlinedButton(
-                        onClick = vm::clearPickedFirmware,
-                        enabled = !vm.firmwareBusy,
-                    ) { Text("Clear") }
-                }
-            }
-
-            // ---- Options ---------------------------------------------------
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = vm.firmwareRebootAfter,
-                    onCheckedChange = { vm.firmwareRebootAfter = it },
-                    enabled = !vm.firmwareBusy,
-                )
-                Text(
-                    "  Reboot mount after install",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            // Phase 1a #2: expected-MD5 cross-check. The user pastes the
-            // bundle's MD5 (typically from the Benro web console) and the
-            // controller refuses to touch the wire / SD if the local hash
-            // disagrees. Mirrors the Benro Connect flow where the user is
-            // expected to verify the hash before pressing Upload. Leaving
-            // the field blank disables the check (the controller's
-            // expectedMd5=null branch is exercised in the null test).
-            OutlinedTextField(
-                value = vm.firmwareExpectedMd5,
-                onValueChange = { vm.firmwareExpectedMd5 = it.trim() },
-                enabled = !vm.firmwareBusy,
-                singleLine = true,
-                label = { Text("Expected MD5 (from Benro console — optional)") },
-                placeholder = { Text("32-char hex, e.g. d41d8cd98f00b204e9800998ecf8427e") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // ---- Delivery mode (verified vs experimental) -----------------
-            // The default SSH_PIPE path is the verified one — the bytes
-            // are scp'd to /app/sd/FwPkt.zip and the on-board
-            // SP_UpgradeCheckFw watcher takes over after the user
-            // reboots. The WIRE path drives 810/784/794/795/811/812
-            // through the binary control plane; that envelope is a
-            // best-effort reconstruction from the Benro Connect
-            // Android decompile and has not been observed in a live
-            // Benro Connect capture. See FirmwareUpdateController KDoc
-            // for the trust profile of each.
-            Column {
-                Text("Delivery mode", style = MaterialTheme.typography.labelLarge)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE,
-                        onClick = { vm.firmwareDeliveryMode = DeliveryMode.SSH_PIPE },
-                        enabled = !vm.firmwareBusy,
-                    )
-                    Text("SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = vm.firmwareDeliveryMode == DeliveryMode.WIRE,
-                        onClick = { vm.firmwareDeliveryMode = DeliveryMode.WIRE },
-                        enabled = !vm.firmwareBusy,
-                    )
-                    Text("Wire envelope (unverified) — 810/784/794/795/811/812", style = MaterialTheme.typography.bodyMedium)
-                }
-                if (vm.firmwareDeliveryMode == DeliveryMode.WIRE) {
-                    Text(
-                        "WIRE is reconstructed from the Benro Connect decompile and " +
-                            "has not been observed in a live Benro Connect traffic " +
-                            "capture. The chunk payload slot is currently a `len:N;` " +
-                            "placeholder. Use SSH_PIPE for a verified upload.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-
-            // ---- SSH host (only meaningful for SSH_PIPE) -----------------
-            if (vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("SSH host:", style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(
-                        value = vm.firmwareSshHost,
-                        onValueChange = { vm.firmwareSshHost = it },
-                        enabled = !vm.firmwareBusy,
-                        singleLine = true,
-                        modifier = Modifier.width(180.dp),
-                    )
-                }
-            }
-
-            // ---- Action ----------------------------------------------------
-            Button(
-                onClick = vm::uploadPickedFirmware,
-                enabled = featureEnabled && !vm.firmwareBusy && vm.pickedFirmwarePath != null,
-            ) { Text(if (vm.firmwareBusy) "Uploading…" else "Upload") }
-
-            // ---- Progress + status ----------------------------------------
-            if (progress != null) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+        // ---- Picked file summary ---------------------------------------
+        val name = vm.pickedFirmwareName
+        val size = vm.pickedFirmwareSize
+        if (name != null) {
             Text(
-                text = when (val s = status) {
-                    null -> "Idle."
-                    dev.openpolaris.core.domain.FirmwareUpdateController.Status.Idle ->
-                        "Idle."
-                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading ->
-                        "Uploading: ${s.bytesSent} / ${s.bytesTotal} bytes"
-                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Installing ->
-                        "Installing on mount: ${s.percent}%"
-                    dev.openpolaris.core.domain.FirmwareUpdateController.Status.Done ->
-                        "Done."
-                    is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Failed ->
-                        "Failed: ${s.reason}"
-                },
+                text = if (size != null) "Selected: $name (${humanBytes(size)})" else "Selected: $name",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            // Phase 1a #2: surface the locally-computed MD5 so the user
+            // can sanity-check the picked file against an external
+            // source (Benro web console, the original download's
+            // checksum, a side-loaded copy, etc.). Populated at
+            // upload time, not pick time, so it stays "—" until the
+            // first time Upload runs.
+            val localMd5 = vm.pickedFirmwareMd5
+            Text(
+                text = if (localMd5 != null) "Local MD5:  $localMd5" else "Local MD5:  — (computed at upload time)",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            Text(
+                "No firmware selected. Tap 'Pick firmware…' to choose a FwPkt.zip.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = vm::pickFirmwareFile,
+                enabled = !vm.firmwareBusy,
+            ) { Text("Pick firmware…") }
+            if (vm.pickedFirmwarePath != null) {
+                OutlinedButton(
+                    onClick = vm::clearPickedFirmware,
+                    enabled = !vm.firmwareBusy,
+                ) { Text("Clear") }
+            }
+        }
+    }
+}
+
+// Step 2 — delivery mode, expected MD5, SSH host, reboot-after toggle.
+@Composable
+private fun FirmwareStep2(vm: AppViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // ---- Options ---------------------------------------------------
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = vm.firmwareRebootAfter,
+                onCheckedChange = { vm.firmwareRebootAfter = it },
+                enabled = !vm.firmwareBusy,
+            )
+            Text(
+                "  Reboot mount after install",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
+        // Phase 1a #2: expected-MD5 cross-check. The user pastes the
+        // bundle's MD5 (typically from the Benro web console) and the
+        // controller refuses to touch the wire / SD if the local hash
+        // disagrees. Mirrors the Benro Connect flow where the user is
+        // expected to verify the hash before pressing Upload. Leaving
+        // the field blank disables the check (the controller's
+        // expectedMd5=null branch is exercised in the null test).
+        OutlinedTextField(
+            value = vm.firmwareExpectedMd5,
+            onValueChange = { vm.firmwareExpectedMd5 = it.trim() },
+            enabled = !vm.firmwareBusy,
+            singleLine = true,
+            label = { Text("Expected MD5 (from Benro console — optional)") },
+            placeholder = { Text("32-char hex, e.g. d41d8cd98f00b204e9800998ecf8427e") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // ---- Delivery mode (verified vs experimental) -----------------
+        // The default SSH_PIPE path is the verified one — the bytes
+        // are scp'd to /app/sd/FwPkt.zip and the on-board
+        // SP_UpgradeCheckFw watcher takes over after the user
+        // reboots. The WIRE path drives 810/784/794/795/811/812
+        // through the binary control plane; that envelope is a
+        // best-effort reconstruction from the Benro Connect
+        // Android decompile and has not been observed in a live
+        // Benro Connect capture. See FirmwareUpdateController KDoc
+        // for the trust profile of each.
+        Column {
+            Text("Delivery mode", style = MaterialTheme.typography.labelLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE,
+                    onClick = { vm.firmwareDeliveryMode = DeliveryMode.SSH_PIPE },
+                    enabled = !vm.firmwareBusy,
+                )
+                Text("SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = vm.firmwareDeliveryMode == DeliveryMode.WIRE,
+                    onClick = { vm.firmwareDeliveryMode = DeliveryMode.WIRE },
+                    enabled = !vm.firmwareBusy,
+                )
+                Text("Wire envelope (unverified) — 810/784/794/795/811/812", style = MaterialTheme.typography.bodyMedium)
+            }
+            if (vm.firmwareDeliveryMode == DeliveryMode.WIRE) {
+                Text(
+                    "WIRE is reconstructed from the Benro Connect decompile and " +
+                        "has not been observed in a live Benro Connect traffic " +
+                        "capture. The chunk payload slot is currently a `len:N;` " +
+                        "placeholder. Use SSH_PIPE for a verified upload.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        // ---- SSH host (only meaningful for SSH_PIPE) -----------------
+        if (vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("SSH host:", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = vm.firmwareSshHost,
+                    onValueChange = { vm.firmwareSshHost = it },
+                    enabled = !vm.firmwareBusy,
+                    singleLine = true,
+                    modifier = Modifier.width(180.dp),
+                )
+            }
+        }
+    }
+}
+
+// Step 3 — run: Upload button, progress, status line. The "Done" button
+// in the pager is a no-op (we stay on the step so the user can read the
+// result); tapping "Close" resets back to step 1.
+@Composable
+private fun FirmwareStep3(
+    vm: AppViewModel,
+    featureEnabled: Boolean,
+    progress: Float?,
+    status: dev.openpolaris.core.domain.FirmwareUpdateController.Status?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(
+            onClick = vm::uploadPickedFirmware,
+            enabled = featureEnabled && !vm.firmwareBusy && vm.pickedFirmwarePath != null,
+        ) { Text(if (vm.firmwareBusy) "Uploading…" else "Upload") }
+
+        if (progress != null) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Text(
+            text = when (val s = status) {
+                null -> "Idle."
+                dev.openpolaris.core.domain.FirmwareUpdateController.Status.Idle ->
+                    "Idle."
+                is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading ->
+                    "Uploading: ${s.bytesSent} / ${s.bytesTotal} bytes"
+                is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Installing ->
+                    "Installing on mount: ${s.percent}%"
+                dev.openpolaris.core.domain.FirmwareUpdateController.Status.Done ->
+                    "Done."
+                is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Failed ->
+                    "Failed: ${s.reason}"
+            },
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

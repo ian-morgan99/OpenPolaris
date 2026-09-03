@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-03
+
+### Fixed
+- **Reverted `verticalScroll` wrapper on `CalloutDialog`** (regression
+  in v0.1.5). The wrapper was added as a "best of breed" UI/UX polish
+  fix, but it directly undid the `ff0672a` fix for #40 ("android app
+  crashes on open") and made the app fail to start on Android. The
+  dialog body is now a plain `Column` again — matching the Benro
+  Connect aesthetic, restoring the #40 fix, and avoiding a visible
+  scroll bar in a 320×568 dp landscape phone. Tall panes (Firmware,
+  Camera) are redesigned to fit on screen rather than relying on a
+  scroll bar; Settings uses collapsible sections (Day-to-day /
+  Advanced / Admin).
+
 ## [0.1.5] - 2026-09-03
 
 ### Added
@@ -39,11 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first-time user can read the rail without hovering for tooltips.
   Longest label is 8 characters; fits the 320 dp-wide compact rail
   without overflow.
-- **All callout dialogs are now scrollable.** The `CalloutDialog`
-  body wraps its content in `Modifier.verticalScroll(rememberScrollState())`
-  so every settings/connection/camera dialog remains usable on a
-  320×568 dp landscape phone — the documented locked orientation
-  for the Android app.
+- **Callout dialogs deliberately do NOT scroll** (`CalloutDialog`).
+  Content is laid out top-to-bottom in a plain `Column`; if a pane
+  is taller than the dialog, Material's default `AlertDialog`
+  clips it. This mirrors the Benro Connect app (no scroll bars on
+  detail panes) and was specifically required by the locked 320×568
+  dp landscape orientation for the Android app. Tall panes are
+  redesigned to fit on screen (Settings now uses collapsible
+  sections) rather than wrapping in a scroll bar. An earlier
+  `verticalScroll` wrapper was added in this release and then
+  reverted before tagging because it directly undid the
+  `ff0672a` fix for #40 ("android app crashes on open").
 
 ### Removed
 - **Dead code: `StatusPane`** (`Panes.kt`). The function was defined

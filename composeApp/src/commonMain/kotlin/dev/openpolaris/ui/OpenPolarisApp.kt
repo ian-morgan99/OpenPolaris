@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -282,14 +280,18 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
 /**
  * Call-out dialog wrapper.
  *
- * The dialog body scrolls (verticalScroll) so tall panes — Firmware has
- * 8+ rows, Camera has 10 steppers, the Settings pane has 25 flag rows —
- * never clip on a 5" landscape phone. The Benro Connect app side-steps
- * this by being extremely terse; we have more functionality, so the
- * scroll bar is the right trade. Settings is still internally scrollable
- * (FeatureFlagsPane wraps the flag list in its own scroller) — Compose
- * nests vertical scrollers fine because each one consumes pointer events
- * in its own bounds.
+ * The Benro Connect app renders its detail panes without scroll bars —
+ * everything fits in a compact landscape phone screen. We mirror that:
+ * content is laid out top-to-bottom in a non-scrolling column so panes
+ * never grow a visible scroll bar. If a pane is taller than the dialog,
+ * Material's default `AlertDialog` will clip it, which is preferable to
+ * a scroll bar that doesn't fit the Benro aesthetic.
+ *
+ * Important: do NOT wrap `content` in `Modifier.verticalScroll(...)`.
+ * The verticalScroll wrapper was previously added in v0.1.5 and regressed
+ * the #40 ANR on open — see ff0672a (the fix for #40 specifically
+ * removed it). Tall panes must be redesigned to fit on screen instead
+ * (Settings now uses collapsible sections, Firmware paginates, etc.).
  */
 @Composable
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
@@ -298,7 +300,7 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         title = { Text(title) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column {
                 content()
             }
         },

@@ -168,21 +168,30 @@ without reading the doc. Status quo is acceptable.
 
 ### 4.1 Some dialogs scroll, others don't
 
-`CalloutDialog` (OpenPolarisApp.kt:276-287) wraps every callout in a
-non-scrolling `Column` — explicit design choice per the Benro aesthetic.
-`FeatureFlagsPaneContent` (FeatureFlagsPane.kt:250-281) wraps its flag list
-in `Modifier.verticalScroll(rememberScrollState())` — so the Settings
-dialog scrolls while the Firmware dialog clips on small screens.
+`CalloutDialog` (OpenPolarisApp.kt:296-307) wraps every callout in a
+plain (non-scrolling) `Column` — explicit design choice per the
+Benro aesthetic, and the correct choice per the locked 320×568 dp
+landscape orientation.
 
-**Recommendation:** bring them in line. Either:
+`FeatureFlagsPaneContent` (FeatureFlagsPane.kt:~355) wraps its flag
+list in `Modifier.verticalScroll(rememberScrollState())` — so the
+Settings pane has its own internal scroller for its 25 flags, while
+the dialog body itself never grows a visible scroll bar.
 
-* (A) Make all dialogs scroll — consistent, no clipping. The Benro
-  aesthetic is satisfied as long as the scroll bar is hidden / subtle.
-* (B) Make Settings non-scrolling too — but it has 25 rows, so it would
-  clip on a 5" phone.
+**Recommendation:** leave them as they are. The dialog body is
+non-scrolling on purpose (the Benro Connect app does not use scroll
+bars on detail panes), and `FeatureFlagsPane` legitimately needs its
+own scroller because the 25-entry flag list is the tallest pane. The
+section redesign (Day-to-day / Advanced / Admin, with Admin collapsed
+by default) is the real fix for the Settings pane's height — not a
+scroll bar on the dialog body.
 
-Going with (A). Wrap the body in `Modifier.verticalScroll(rememberScrollState())`
-inside `CalloutDialog`.
+**Historical note:** an earlier version of this document recommended
+wrapping the `CalloutDialog` body in `Modifier.verticalScroll` (option
+A above). That recommendation was implemented, immediately broke the
+app (it directly undid the `ff0672a` fix for #40, "android app crashes
+on open"), and was reverted before tagging. The fixed design here is
+the v0.1.5 outcome.
 
 ### 4.2 Card wrapper inconsistency
 
@@ -245,8 +254,12 @@ coordinate-input row already overflows onto a second line. Acceptable.
 
 ### 6.3 CameraPane (Panes.kt:460-491)
 
-10 steppers in a single column. Already scrolls. Add a category header
-"Shutter" / "Aperture" / "ISO" once more camera capabilities land.
+10 steppers in a single column. Does **not** scroll — the
+`CalloutDialog` body is intentionally non-scrolling per the Benro
+aesthetic. If the dialog height is exceeded, `AlertDialog` clips.
+Add a category header "Shutter" / "Aperture" / "ISO" once more
+camera capabilities land (and split the column into a 2- or 3-column
+grid so it fits the 320 dp landscape height).
 
 ### 6.4 PreviewPane (Panes.kt:509-549)
 
@@ -260,7 +273,11 @@ or input + Refresh. Consistent.
 ### 6.6 FirmwarePane (Panes.kt:601-799)
 
 File picker, expected MD5, delivery mode, SSH host, progress. Longest
-pane — must scroll.
+pane — does **not** scroll (the dialog body is non-scrolling on
+purpose). On a 5" landscape phone this will likely clip; the fix
+is to paginate (e.g. "Step 1 of 3: pick file & verify MD5",
+"Step 2: choose delivery mode", "Step 3: progress & log") rather
+than introduce a scroll bar on the dialog body.
 
 ### 6.7 ReadmePane (ReadmePane.kt:20-100)
 
@@ -275,7 +292,7 @@ the Connection dialog). Not in scope for v0.1.5.
 | Fix | File | Effect |
 | --- | --- | --- |
 | Glyphs → full-word labels | `OpenPolarisApp.kt` | `Cam → Camera`, `FW → Firmware`, `VR → 3D view`, `? → Guide`, `Cfg → Settings` |
-| All dialogs scrollable | `OpenPolarisApp.kt` | Wraps `CalloutDialog` body in `Modifier.verticalScroll` |
-| Settings split into Day-to-day / Advanced / Admin | `FeatureFlagsPane.kt` | New `FlagsSection` header; destructive flags grouped under "Admin" |
+| `CalloutDialog` does NOT scroll | `OpenPolarisApp.kt` | Plain `Column` body, no `verticalScroll` wrapper — matches Benro Connect aesthetic and the `ff0672a` fix for #40 |
+| Settings split into Day-to-day / Advanced / Admin | `FeatureFlagsPane.kt` | New `FlagsSection` header; destructive flags grouped under "Admin" (collapsed by default) |
 | Dead-code removal | `Panes.kt` | `StatusPane` deleted |
 | VR two-stage comment | `OpenPolarisApp.kt` | Inline comment explaining the intentional no-op + activity launch |

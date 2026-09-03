@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-03
+
+### Fixed
+- **Critical: first-launch crash on Android 14** (resolves #43).
+  The runtime permission launcher was registered inside
+  `setContent { remember { ... } }`, which fires during the first
+  composition frame — *after* the activity reaches RESUMED. Android's
+  `ActivityResultRegistry.register` enforces "must be called before
+  STARTED" and throws `IllegalStateException` on Android 14 (API 34).
+  Result: the published v0.1.6 APK crashed instantly on launch with
+  no UI. Fix hoists `permissionLauncher` to a member field (matching
+  the working `openDocumentLauncher` pattern) and uses a
+  `pendingPermissionResult` trampoline to hand the grant back into
+  the composable. Verified on an Android 14 x86_64 emulator:
+  install → tap launcher icon → MainActivity is topResumedActivity,
+  no `FATAL EXCEPTION` in logcat, app renders the "Find & wake
+  Polaris…" UI. Closes the regression first reported in #43.
+
+## [0.1.6] - 2026-09-03
+
 ## [0.1.6] - 2026-09-03
 
 ### Fixed

@@ -76,6 +76,24 @@ class MainActivity : ComponentActivity() {
         cb?.invoke(path)
     }
 
+    // Permissions launcher for "Find & wake Polaris…". Same lifecycle rule
+    // as `openDocumentLauncher` above: MUST be a member field so it gets
+    // registered while the activity is in CREATED state. Registering it
+    // inside `setContent { remember { ... } }` (as the v0.1.6 code did)
+    // crashes at first launch on Android 14+ with:
+    //   IllegalStateException: LifecycleOwner ... is attempting to register
+    //   while current state is RESUMED. LifecycleOwners must call register
+    //   before they are STARTED.
+    // The callback is a one-shot trampoline: the composable stashes the
+    // grants map here in onRequest, and the registered callback reads it
+    // and hands it back to the composable via a `mutableStateOf` it owns.
+    private var pendingPermissionResult: Map<String, Boolean>? = null
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        pendingPermissionResult = grants
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,17 +145,27 @@ class MainActivity : ComponentActivity() {
             // wake + scanning for the polaris* AP. Desktop is
             // unaffected (this parameter is only set on Android).
             val wifiScanHelper = remember { MountWifiScan(this) }
-            val permsLauncher = remember {
-                registerForActivityResult(
-                    ActivityResultContracts.RequestMultiplePermissions()
-                ) { grants ->
-                    val allGranted = grants.values.all { it }
-                    if (!allGranted) {
-                        viewModel.notifyStatus(
-                            "Wi-Fi/BT permission denied; cannot find Polaris"
-                        )
-                    } else {
-                        scope.launch {
+
+            // The permission launcher itself is a member field on the
+            // activity (see `permissionLauncher` above) because the
+            // AndroidX contract requires registration before the
+            // activity is STARTED. Here we just poll the trampoline
+            // it writes to (`pendingPermissionResult`) and translate
+            // grants into the same UI flow as the original in-Compose
+            // callback.
+            LaunchedEffect(Unit) {
+                var lastSeen: Map<String, Boolean>? = null
+                while (true) {
+                    val grants = pendingPermissionResult
+                    if (grants != null && grants !== lastSeen) {
+                        lastSeen = grants
+                        pendingPermissionResult = null
+                        val allGranted = grants.values.all { it }
+                        if (!allGranted) {
+                            viewModel.notifyStatus(
+                                "Wi-Fi/BT permission denied; cannot find Polaris"
+                            )
+                        } else {
                             viewModel.setScanning(true)
                             try {
                                 val aps = wifiScanHelper.scan { msg ->
@@ -152,6 +180,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    kotlinx.coroutines.delay(50)
                 }
             }
 
@@ -181,7 +210,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 } else {
-                    permsLauncher.launch(missing.toTypedArray())
+                    permissionLauncher.launch(missing.toTypedArray())
                 }
             }
 

@@ -362,7 +362,13 @@ fun FeatureFlagsPaneContent(
         revision
         Spacer(Modifier.height(4.dp))
         HorizontalDivider()
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        // weight(1f) on the inner scrollable Column makes it consume all
+        // remaining vertical space, so the build-identity footer below is
+        // always pinned to the bottom of the dialog and never clipped by
+        // the AlertDialog's bounded `text` slot. Without the weight, the
+        // footer was rendered off-screen on portrait phones and landscape
+        // phones because the AlertDialog constrains `text` to the viewport.
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = true)) {
             listOf(
                 FlagSection.DayToDay to dayToDayExpanded,
                 FlagSection.Advanced to advancedExpanded,

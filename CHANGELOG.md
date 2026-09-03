@@ -350,3 +350,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - For the firmware-patcher side of the Polaris ecosystem (HDMI geometry,
   Pentax libgphoto2 integration, FwPkt rebuild), see
   [benro-polaris-firmware-patcher](https://github.com/ian-morgan99/benro-polaris-firmware-patcher).
+
+## 0.1.10
+
+Pinned the build-identity footer in the Settings dialog so it is always
+visible (not clipped by the AlertDialog's bounded `text` slot). The
+inner scrollable Column now uses `Modifier.weight(1f)` so the version
+label is always pinned to the bottom of the dialog instead of being
+rendered off-screen on portrait and landscape phones.
+
+This was the reason release APKs were being misread as "0.1.6" — the
+in-app label was being clipped below the dialog viewport, so users
+couldn't visually confirm which build they were running. With this
+fix, `v0.1.10 (dev.openpolaris.app)` is now always visible in the
+Settings dialog footer.
+
+v0.1.10 test baseline: 70 tests pass (`./gradlew :composeApp:jvmTest`).
+The `settingsPaneStillExposesBuildIdentity` test was strengthened to
+pin the `Modifier.weight(1f)` requirement so a future edit cannot
+silently regress to the clipped-footer layout.

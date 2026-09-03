@@ -197,5 +197,21 @@ class MobileResponsiveLayoutContractTest {
     fun settingsPaneStillExposesBuildIdentity() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
         assertTrue("versionLabel" in src, "FeatureFlagsPane must render versionLabel (issue #43 fix)")
+
+        // v0.1.10 fix: the version label was being clipped by the
+        // AlertDialog's bounded `text` slot because the surrounding
+        // Column had no scroll and no weight was applied to the inner
+        // scrollable Column. The label was rendered off-screen on
+        // portrait and landscape phones. Pin the fix: the inner flag
+        // list must use weight(1f) so the footer stays in view.
+        val noComments = Regex("""/\*[\s\S]*?\*/""").replace(src, "")
+            .lines().map { it.substringBefore("//") }.joinToString("\n")
+        assertTrue(
+            "Modifier.weight(1f" in noComments,
+            "FeatureFlagsPane must use Modifier.weight(1f) on the inner " +
+                "scrollable Column so the build-identity footer is pinned " +
+                "at the bottom of the Settings dialog instead of being " +
+                "clipped by the AlertDialog's bounded `text` slot."
+        )
     }
 }

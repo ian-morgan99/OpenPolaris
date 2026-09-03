@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.4] - 2026-09-03
 
+### Added
+- **Windows desktop installer pipeline** (`:desktopApp:createDistributable`,
+  `:desktopApp:packageMsi`, `:desktopApp:createExeInstaller`).
+  - App-image folder (bundled JRE + `OpenPolaris.exe`) via jpackage.
+  - MSI installer via jpackage `--type msi` + WiX 3.0+
+    (`choco install wixtoolset` on the build host).
+  - Single-file EXE installer via Inno Setup 6+ (`:desktopApp:createExeInstaller`,
+    skipped on non-Windows hosts).
+  - Skiko AWT native runtime resolved per host OS via
+    `compose.desktop.currentOs`, so a Windows build pulls windows-x64
+    natives automatically.
+- **Windows CI job** (`.github/workflows/ci.yml::windows-desktop`):
+  builds app-image, MSI, and Inno EXE on `windows-latest`. Explicit
+  WiX install + `candle -?` preflight + non-empty-MSI verification
+  so the job fails fast with a diagnostic instead of uploading a
+  0-byte artifact (#41). App-image build is independent of the MSI
+  step so a broken WiX install does not mask a working app-image.
+- **v1 parity audit** (`docs/OPENPOLARIS-PARITY-2026-09-03.md`,
+  467 lines). Compares OpenPolaris against the Benro Connect v1
+  Polaris surface across all 9 protocol areas. Verdict: feature
+  equivalent on every Benro Connect v1 Polaris capability; exceeds
+  Benro in 12 areas (plate solving, BT-wake+AP-scan bridge, fail-closed
+  MD5 gate, on-board install watcher, unsafe-override confirmation,
+  feature flags pane, protocol trace viewer, embedded catalog, etc.).
+  Scoped to Polaris ONLY — Theta is explicitly out of scope (Ricoh's
+  360° camera product uses a different protocol and is not a Polaris
+  feature). Verdict block lists T1–T6 excluded capabilities.
+
 ### Fixed
 - **Firmware upload verify-before-upload is now fail-closed (#39).**
   In v0.1.3 the MD5 cross-check was opt-in: a blank or null
@@ -52,6 +80,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` §6 #2 progress note
     updated to reflect the v0.1.4 order and the v0.1.x "free-space
     runs first" wording is now marked stale.
+- **Android ANR on open + landscape lock (#40).** The
+  `MountWifiScan` BroadcastReceiver was being parked on the main
+  thread by a `runBlocking` call, producing a ~5 s ANR. Now uses
+  `suspendCancellableCoroutine` + `withTimeoutOrNull` on
+  `Dispatchers.IO` with a single `@Volatile` continuation slot that
+  bridges the main-thread broadcast to the IO-parked coroutine.
+  `MainActivity` is now `screenOrientation="sensorLandscape"`,
+  `configChanges="orientation|screenSize|screenLayout|smallestScreenSize"`,
+  and `resizeableActivity="true"`. Also: 'Open Polaris' header
+  removed from `StatusStrip`; `CalloutDialog` no longer wraps content
+  in `verticalScroll`.
+- **Desktop Wake + Bridge buttons now wired (#41-related).**
+  Previously clicking Wake or Bridge in the Connection pane did
+  nothing (the buttons existed but had no viewmodel handlers).
+  Wired through `AppViewModel` so the desktop mirrors the Android
+  flow: BT-wake on the gimbal MAC if reachable, then AP-scan for
+  `polaris_*` networks, then connect.
+- `ResponseParser`: the live-captured wire body shape
+  `1&<code>&<type>&<payload>#` is now accepted. Previously the
+  parser required the body to start with `&<code>...` which silently
+  rejected every legitimate gimbal frame. All 5 protocol tests that
+  parse such frames are now green.
+- `BurstKt` (`:liveBurst` task) — fixed the gradle wiring so
+  `tools:cli-probe:liveBurst` actually invokes the 9-code burst
+  instead of running the default smoke probe.
+- `FileList::fromFrame` method-reference was inapplicable to the
+  `FileListRequest` request-type parameter of the FILE_LIST
+  descriptor; replaced with an explicit lambda in `CommandTable`.
+  The VM supplies the response-side parser separately so behaviour
+  is unchanged.
+- `CommandTableTest.burstPreCameraParsersCoverAllSteps` now exercises
+  the actual parsers for all 9 burst codes (808, 809, 802, 778, 779,
+  775, 824, 524, 543) instead of silently skipping 5 of 9 via a
+  `?: continue` fallback. A new burst code in `CommandTable` will
+  fail the test rather than pass with reduced coverage.
+- Polkit: `/etc/polkit-1/rules.d/50-openpolaris-wifi-scan.rules`
+  installed and active. Silences the GNOME WiFi-panel auth flood
+  by short-circuiting the 8 relevant NetworkManager actions to
+  `polkit.Result.YES` for user `ian`. Deployed via
+  `scripts/install-wifi-polkit-rule.sh` (idempotent, uses `pkexec`
+  with a graphical agent).
 
 ### Notes
 - No protocol changes. The only signature change on
@@ -60,6 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it is source- and binary-compatible at the call site). Callers
   wishing to preserve the v0.1.x "MD5 is optional" behaviour must
   explicitly pass `unsafeAllowNoChecksum = true`.
+- Android `versionName = "0.1.4"`, `versionCode = 5`.
+- Windows MSI build requires WiX 3.0+ on the build host. The
+  Compose plugin does NOT auto-download WiX; install with
+  `choco install wixtoolset` before running `:desktopApp:packageMsi`.
 
 ## [0.1.3] - 2026-09-02
 
@@ -93,129 +166,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were already in place in v0.1.2 and remain unchanged.
 - v0.1.3 is a bug-fix release. No protocol changes, no API-breaking
   changes for downstream Kotlin/Compose consumers of `shared`.
-
-## [Unreleased]
-
-### Added
-- **Phase 1a §6 #5 (firmware audit):** the seven unverified opcodes
-  used by the experimental wire-delivery channel — `SYS_FW_UPGRADE`
-  (810), `FILE_UPLOAD_FW` (784), `FILE_UPLOAD_CHUNK` (794),
-  `FILE_UPLOAD_END` (795), `SYS_FW_PROGRESS` (811), `SYS_REBOOT` (812),
-  and `SYS_SHUTDOWN` (813) — now carry explicit
-  `@Deprecated(level = DeprecationLevel.WARNING)` annotations in
-  `shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt`.
-  Each annotation cites `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` §2
-  and explains that the verified install path is the on-board SD-card
-  SCP delivery (`scp /app/sd/FwPkt.zip`), not 9090 push. The constants
-  remain usable so the experimental `WIRE` delivery mode (gated behind
-  `FeatureFlags.firmwareUpload` and behind a red brick-warning banner
-  in `FirmwarePane`) keeps working, but the deprecation surfaces the
-  decompile gap to any new caller and forces an explicit
-  `@Suppress("DEPRECATION")` at the call site. Call sites annotated:
-  - `SimulatedProtocol.kt` — `@file:Suppress("DEPRECATION")` (the
-    simulator must keep responding to all six opcodes for testing).
-  - `CommandTable.kt` — `@file:Suppress("DEPRECATION")` (Descriptor
-    entries for all seven).
-  - `FirmwareUpdateController.kt` — `@file:Suppress("DEPRECATION")`
-    (drives the experimental wire delivery path).
-  - `AppViewModel.kt` — narrow `@Suppress("DEPRECATION")` on
-    `reboot()` and `shutdown()` (the only two uses; both are gated by
-    `FeatureFlags.allowReboot` / `FeatureFlags.allowShutdown` and now
-    carry inline comments reiterating the audit warning).
-  All 476 `:shared:jvmTest` and 53 `:composeApp:jvmTest` still pass.
-  Debug APK rebuilds clean (v0.1.3, code 4). Closes Phase 1a item §6
-  #5. See `docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md` "Phase 1a status"
-  table for the full Phase 1a close-out.
-- `tools:cli-probe` `--full` burst mode: pass `--full` as the 3rd arg
-  to send the canonical 9-code pre-camera burst from
-  `CommandTable.BURST_PRE_CAMERA` (808, 809, 802, 778, 779, 775, 824,
-  524, 543) instead of the smoke-test default. Wired up as the new
-  `:tools:cli-probe:liveBurst` gradle task. Use this against a real
-  gimbal once the `Polaris_XXXX` AP is in range; the simulator sees
-  the same traffic.
-- `scripts/live-smoke.sh` (Step 3 of `PLANNING-2026-08.md`): automates
-  the network-state check, the gimbal TCP reachability check, and the
-  post-connect pre-camera burst probe. Refuses to fire the burst
-  unless the host is on a `polaris_*` AP (because from the tplink
-  subnet, `192.168.0.1` is the TP-Link admin page, not the gimbal).
-  Use `nmcli connection up polaris_d13e86` first, then
-  `scripts/live-smoke.sh` (or `scripts/live-smoke.sh --check` to
-  probe reachability without firing the burst). Output is appended
-  to `/tmp/openpolaris-live-smoke.log` and rotated past 1 MB so it
-  can be captured across many runs and pasted into
-  `polaris-re-results.md` §10 to tune the `fromFrame` parsers.
-
-### Changed
-- **License:** GPL-3.0 → **MIT**.  The OpenPolaris codebase has not
-  yet accepted third-party contributions, so the project owner can
-  relicense the original work unilaterally.  NOTICE records the
-  origin from `benro-polaris-firmware-patcher`.
-- **MountSession background reader (issue #6 core):** the session
-  now owns a single `runReaderLoop` coroutine that parses every
-  frame off the socket and dispatches it — 538 push frames go to
-  the new `tilt` `SharedFlow`, everything else goes to the waiter
-  registered by the matching `request(code)`. Previously each
-  request spun up its own read loop, so a 538 push arriving
-  *between* a request and its reply would be silently dropped
-  (the inner reader was torn down when the deferred completed).
-  Push frames now reach `MountSession.tilt` even while a
-  request/response is in flight, and the demux is correct under
-  interleaving (covered by `MountSessionReaderTest`).
-
-### Fixed
-- `CommandTableTest.burstPreCameraParsersCoverAllSteps` now exercises
-  the actual parsers for all 9 burst codes (808, 809, 802, 778, 779,
-  775, 824, 524, 543) instead of silently skipping 5 of 9 via a
-  `?: continue` fallback. A new burst code in `CommandTable` will
-  fail the test rather than pass with reduced coverage.
-- Polkit: `/etc/polkit-1/rules.d/50-openpolaris-wifi-scan.rules`
-  installed and active. Silences the GNOME WiFi-panel auth flood
-  by short-circuiting the 8 relevant NetworkManager actions to
-  `polkit.Result.YES` for user `ian`. Deployed via
-  `scripts/install-wifi-polkit-rule.sh` (idempotent, uses `pkexec`
-  with a graphical agent).
-- `ResponseParser`: the live-captured wire body shape
-  `1&<code>&<type>&<payload>#` is now accepted. Previously the
-  parser required the body to start with `&<code>...` which silently
-  rejected every legitimate gimbal frame. All 5 protocol tests that
-  parse such frames are now green.
-- `BurstKt` (`:liveBurst` task) — fixed the gradle wiring so
-  `tools:cli-probe:liveBurst` actually invokes the 9-code burst
-  instead of running the default smoke probe. Also reworded the
-  license-sensitive comments throughout the protocol layer to
-  "live-captured" / "corpus-derived" vocabulary.
-- `FileList::fromFrame` method-reference was inapplicable to the
-  `FileListRequest` request-type parameter of the FILE_LIST
-  descriptor; replaced with an explicit lambda in `CommandTable`.
-  The VM supplies the response-side parser separately so behaviour
-  is unchanged.
-
-### Added (full control panel)
-- **`FeatureFlags`**: compile-time default values + runtime
-  `FeatureOverrides` for safe modes. `basicControls`,
-  `postConnectBurst`, `experimentalCamera`, `catalog`, `alignment`
-  are ON. `advancedAstro`, `autoLevel`, `systemSettings`, `wifiScan`,
-  `allowReboot`, `allowShutdown`, `demoMode`, `wifiBridge`,
-  `fileManager`, `omsRead` are ON. `timelapse`, `ditherAdvanced`,
-  `fileManagerMutate`, `fileManagerFormat`, `wifiConnect`,
-  `firmwareUpload`, `omsScheduler`, `rawFrameLog`, `verboseLogging`
-  are OFF. The full set is centralised in
-  `shared/.../config/FeatureFlags.kt` and surfaced via
-  `AppViewModel` to the UI.
-- **Helpers callout pane**: dither, settling time, limits
-  (UNVERIFIED), auto-level enable/trigger, go-home, ex-axis state.
-- **System callout pane**: time / timezone / language, buzzer / LED,
-  WiFi scan + connect + disconnect + band select, BLE scan,
-  reboot, shutdown.
-- **Files callout pane**: SD header, file list, file delete,
-  rename, protect, info, SD format (gated by `fileManager` /
-  `fileManagerMutate` / `fileManagerFormat`).
-- New `CommandTable` descriptors for FILE_LIST / FILE_DELETE /
-  FILE_RENAME / FILE_PROTECT / FILE_INFO / FILE_SD_FORMAT /
-  OMS_TASK_LIST / WIFI_LIST / WIFI_SCAN / WIFI_CONNECT /
-  WIFI_DISCONNECT (see commit 6f3649a for the full list).
-- New `MountState` data classes: `FileList`, `FileEntry`,
-  `ExAxisState`.
 
 ## [Initial] - 2026-08-27
 

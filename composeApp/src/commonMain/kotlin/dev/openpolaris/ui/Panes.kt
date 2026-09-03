@@ -269,29 +269,9 @@ fun PasswordDialog(
 }
 
 /** Status pane: mode, battery, tracking, half-speed, AHRS. */
-@Composable
-fun StatusPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    val s = vm.mount
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Status", style = MaterialTheme.typography.titleMedium)
-            Text("Mode: ${s.mode.name.lowercase().replaceFirstChar { it.uppercase() }}")
-            Text("Battery: ${s.batteryPercent?.toString() ?: "—"}%${if (s.charging) " (charging)" else ""}")
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(checked = s.tracking == true, onCheckedChange = { if (it) vm.startTracking() else vm.stopTracking() })
-                Text("Tracking")
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(checked = s.halfSpeed, onCheckedChange = vm::toggleHalfSpeed)
-                Text("Half speed (sidereal ÷2)")
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(checked = s.ahrsEnabled, onCheckedChange = vm::enableAhrs)
-                Text("AHRS")
-            }
-        }
-    }
-}
+// StatusPane was removed in v0.1.5: it was unreachable from the surface tree
+// (grep confirmed zero callers), and the same status info is now always
+// visible via the StatusStrip / PositionReadout chrome in OpenPolarisApp.
 
 /** Position + jog pane. */
 @Composable

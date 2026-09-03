@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-03
+
+### Added
+- **Collapsible Settings sections** (`FeatureFlagsPane`).
+  The 25 runtime feature flags are now grouped into three collapsible
+  sections in the Settings dialog:
+  - **Day-to-day** (expanded by default) — safe flags the user can flip
+    with a plain toggle.
+  - **Advanced** (expanded by default) — read-only knobs whose wire
+    path is not yet verified, surfaced for visibility.
+  - **Admin** (collapsed by default, header rendered in the error
+    colour) — destructive actions (reboot, shutdown, firmware upload,
+    SD format). Every change still requires an explicit confirm
+    dialog, but the section starts collapsed so a casual user is not
+  one tap away from the dangerous toggles.
+  - The section policy is a pure function (`sectionFor`) and is
+    pinned by `FeatureFlagsSectionPolicyTest` so a future edit of
+    the `safe` / `destructive` flags cannot silently move a
+    destructive flag out of the Admin section.
+- **UI/UX review document** (`docs/UI-UX-REVIEW-2026-09.md`).
+  Comprehensive audit of the OpenPolaris surface (6,830 LoC across 14
+  files) covering layout, discoverability, admin vs. day-to-day
+  separation, consistency, dead code, per-pane notes, and the fixes
+  landed in this release.
+
+### Changed
+- **Callout rail labels** (`OpenPolarisApp.kt`). Replaced cryptic
+  glyphs (`Cam`, `FW`, `VR`, `?`, `Cfg`) with full words
+  (`Camera`, `Firmware`, `3D view`, `Guide`, `Settings`) so a
+  first-time user can read the rail without hovering for tooltips.
+  Longest label is 8 characters; fits the 320 dp-wide compact rail
+  without overflow.
+- **All callout dialogs are now scrollable.** The `CalloutDialog`
+  body wraps its content in `Modifier.verticalScroll(rememberScrollState())`
+  so every settings/connection/camera dialog remains usable on a
+  320×568 dp landscape phone — the documented locked orientation
+  for the Android app.
+
+### Removed
+- **Dead code: `StatusPane`** (`Panes.kt`). The function was defined
+  but had zero callers (verified by `grep`). The same status info
+  (mode / battery / tracking / half-speed / AHRS) is already always
+  visible via the `StatusStrip` and `PositionReadout` chrome in
+  `OpenPolarisApp`.
+
 ## [0.1.4] - 2026-09-03
 
 ### Added

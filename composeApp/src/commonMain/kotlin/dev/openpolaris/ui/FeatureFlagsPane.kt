@@ -1,5 +1,6 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,29 @@ internal data class FlagSpec(
     val safe: Boolean,
     val destructive: Boolean = false,
 )
+
+/**
+ * Section in the Settings pane. Drives the visual grouping that separates
+ * "things a user can flip without thinking" (DayToDay) from "advanced knobs
+ * that may not be wired" (Advanced) from "things that can break the
+ * gimbal if you're not careful" (Admin / destructive).
+ */
+internal enum class FlagSection(val title: String, val blurb: String) {
+    DayToDay(
+        "Day-to-day",
+        "Settings a regular user can safely flip. Each row is a plain toggle.",
+    ),
+    Advanced(
+        "Advanced",
+        "Read-only knobs whose wire path is not yet verified. " +
+            "Surfaced for visibility; flip them by editing the source config.",
+    ),
+    Admin(
+        "Admin",
+        "Destructive actions — reboot, shutdown, firmware upload, SD format. " +
+            "Every change here asks for an explicit confirmation.",
+    ),
+}
 
 /**
  * Returns true when the [FlagSpec] is interactive from the Settings pane.
@@ -144,6 +168,23 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Show the BT-wake → NM-up bridge button.", safe = true),
 )
 
+/**
+ * Bucket a [FlagSpec] into the Settings section it belongs in.
+ *
+ *  - `destructive` flags go to [FlagSection.Admin] (reboot / shutdown / firmware / format).
+ *  - `safe` flags (free toggle, no confirm) go to [FlagSection.DayToDay].
+ *  - Everything else (`safe = false`, `destructive = false`) is "advanced
+ *    experimental" — surfaced read-only under [FlagSection.Advanced].
+ *
+ * The policy is `internal` so [isFlagSpecInteractive] tests can also assert
+ * the bucket assignment.
+ */
+internal fun sectionFor(spec: FlagSpec): FlagSection = when {
+    spec.destructive -> FlagSection.Admin
+    spec.safe -> FlagSection.DayToDay
+    else -> FlagSection.Advanced
+}
+
 /** A single row in the flags pane. */
 @Composable
 private fun FlagRow(spec: FlagSpec, isOn: Boolean, onToggle: (Boolean) -> Unit) {
@@ -192,6 +233,49 @@ private fun FlagsHeader() {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Text("Feature flags (runtime overrides)", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         OutlinedButton(onClick = { FeatureFlags.reset() }) { Text("Reset all") }
+    }
+}
+
+/**
+ * Clickable section header for the Settings pane. Renders a small caret, the
+ * section title, and a one-line blurb. The Admin section uses the error
+ * colour so a user who scans down the page sees that the bottom group is
+ * the dangerous one.
+ */
+@Composable
+private fun SectionHeader(
+    section: FlagSection,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    rowCount: Int,
+) {
+    val titleColor = when (section) {
+        FlagSection.Admin -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = 6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                if (expanded) "▾" else "▸",
+                style = MaterialTheme.typography.titleSmall,
+                color = titleColor,
+            )
+            Text(
+                "${section.title} ($rowCount)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = titleColor,
+            )
+        }
+        Text(
+            section.blurb,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
@@ -253,6 +337,14 @@ fun FeatureFlagsPaneContent(modifier: Modifier = Modifier) {
     // a `mutableStateOf` to force recomposition).
     var revision by remember { mutableStateOf(0) }
     var pending by remember { mutableStateOf<Pair<FlagSpec, Boolean>?>(null) }
+    // Admin section starts collapsed so a casual user never sees the
+    // reboot / shutdown / firmware / format toggles unless they
+    // explicitly expand the bottom group.
+    var adminExpanded by remember { mutableStateOf(false) }
+    var advancedExpanded by remember { mutableStateOf(true) }
+    var dayToDayExpanded by remember { mutableStateOf(true) }
+
+    val bySection = remember { flagSpecs.groupBy { sectionFor(it) } }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FlagsHeader()
@@ -261,21 +353,45 @@ fun FeatureFlagsPaneContent(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(4.dp))
         HorizontalDivider()
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            flagSpecs.forEach { spec ->
-                val on = FeatureFlags.isEnabled(spec.name).also { revision.let { _ -> } }
-                FlagRow(
-                    spec = spec,
-                    isOn = on,
-                    onToggle = { desired ->
-                        if (spec.destructive) {
-                            pending = spec to desired
-                        } else if (spec.safe) {
-                            if (desired) FeatureFlags.enable(spec.name) else FeatureFlags.disable(spec.name)
-                            revision++
+            listOf(
+                FlagSection.DayToDay to dayToDayExpanded,
+                FlagSection.Advanced to advancedExpanded,
+                FlagSection.Admin to adminExpanded,
+            ).forEach { (section, expanded) ->
+                val rows = bySection[section].orEmpty()
+                if (rows.isNotEmpty()) {
+                    SectionHeader(
+                        section = section,
+                        expanded = expanded,
+                        onToggle = {
+                            when (section) {
+                                FlagSection.DayToDay -> dayToDayExpanded = !dayToDayExpanded
+                                FlagSection.Advanced -> advancedExpanded = !advancedExpanded
+                                FlagSection.Admin -> adminExpanded = !adminExpanded
+                            }
+                        },
+                        rowCount = rows.size,
+                    )
+                    if (expanded) {
+                        rows.forEach { spec ->
+                            val on = FeatureFlags.isEnabled(spec.name).also { revision.let { _ -> } }
+                            FlagRow(
+                                spec = spec,
+                                isOn = on,
+                                onToggle = { desired ->
+                                    if (spec.destructive) {
+                                        pending = spec to desired
+                                    } else if (spec.safe) {
+                                        if (desired) FeatureFlags.enable(spec.name) else FeatureFlags.disable(spec.name)
+                                        revision++
+                                    }
+                                    // unsafe (safe=false, destructive=false) → no-op
+                                },
+                            )
                         }
-                        // unsafe (safe=false, destructive=false) → no-op
-                    },
-                )
+                    }
+                    HorizontalDivider()
+                }
             }
         }
     }

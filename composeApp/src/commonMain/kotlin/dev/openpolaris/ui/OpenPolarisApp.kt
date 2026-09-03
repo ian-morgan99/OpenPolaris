@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -147,6 +149,16 @@ fun OpenPolarisApp(
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Firmware -> CalloutDialog("Firmware update", { dialog = null }) { FirmwarePane(vm, Modifier.fillMaxWidth()) }
+                // VR is launched in two stages: the rail click handler
+                // (CalloutRail.handle, below) calls `onLaunchVr?.invoke()`
+                // which starts the Android VR activity directly. Here
+                // we just close whatever callout might be open — setting
+                // `dialog = Callout.VR` is a sentinel that survives
+                // recomposition long enough for the activity to take
+                // focus, but in practice the rail handler runs first
+                // and the dialog is never opened for VR. The explicit
+                // no-op here documents the intent and keeps the `when`
+                // exhaustive.
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
@@ -174,16 +186,21 @@ fun OpenPolarisApp(
     }
 }
 
+// Each callout's rail label. Full words instead of cryptic acronyms so
+// a first-time user can read the rail without hovering for tooltips.
+// Keep the longest label ("Firmware", "Settings") <= 8 chars so the
+// compact horizontal rail (portrait / phone landscape) does not overflow
+// on a 320 dp wide screen.
 private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
     Slew("Slew"),
-    Camera("Cam"),
+    Camera("Camera"),
     Preview("Preview"),
     Helpers("Helpers"),
-    Firmware("FW"),
-    VR("VR"),
-    Readme("?"),
-    Settings("Cfg"),
+    Firmware("Firmware"),
+    VR("3D view"),
+    Readme("Guide"),
+    Settings("Settings"),
 }
 
 /** Row (portrait) or column (landscape rail) of small call-out buttons. */
@@ -265,12 +282,14 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
 /**
  * Call-out dialog wrapper.
  *
- * The Benro Connect app renders its detail panes without scroll bars —
- * everything fits in a compact landscape phone screen. We mirror that:
- * content is laid out top-to-bottom in a non-scrolling column so panes
- * never grow a visible scroll bar. If a pane is taller than the dialog,
- * Material's default `AlertDialog` will clip it, which is preferable to
- * a scroll bar that doesn't fit the Benro aesthetic.
+ * The dialog body scrolls (verticalScroll) so tall panes — Firmware has
+ * 8+ rows, Camera has 10 steppers, the Settings pane has 25 flag rows —
+ * never clip on a 5" landscape phone. The Benro Connect app side-steps
+ * this by being extremely terse; we have more functionality, so the
+ * scroll bar is the right trade. Settings is still internally scrollable
+ * (FeatureFlagsPane wraps the flag list in its own scroller) — Compose
+ * nests vertical scrollers fine because each one consumes pointer events
+ * in its own bounds.
  */
 @Composable
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
@@ -279,7 +298,7 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         title = { Text(title) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 content()
             }
         },

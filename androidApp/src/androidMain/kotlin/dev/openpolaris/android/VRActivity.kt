@@ -158,11 +158,17 @@ class VRActivity : ComponentActivity() {
             setEGLContextClientVersion(2)
             setRenderer(renderer)
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-            // GLSurfaceView is not clickable by default; explicit isClickable=false
-            // ensures touches pass through to the FrameLayout's onClickListener
-            // (and not to this view, which has no listener and would otherwise
-            // swallow the event).
-            isClickable = false
+            // Tap anywhere on the VR view to exit. Useful when the screen
+            // is inside a Cardboard-class viewer and the back button is
+            // hard to find. The click listener is attached to the GL
+            // view itself: on Android, a sibling FrameLayout's
+            // OnClickListener does not fire when a full-screen child
+            // view (GLSurfaceView) sits above it in Z order, because
+            // the dispatch path delivers the UP event to the deepest
+            // clickable child. Attaching directly to the GLSurfaceView
+            // makes the tap-to-exit work as the comment promised.
+            isClickable = true
+            setOnClickListener { finish() }
         }
         val root = FrameLayout(this).apply {
             addView(
@@ -172,13 +178,6 @@ class VRActivity : ComponentActivity() {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                 ),
             )
-            // Tap anywhere on the VR view to exit. Useful when the screen
-            // is inside a Cardboard-class viewer and the back button is
-            // hard to find. The GL view is the click target; the overlay
-            // TextViews are not (they would dismiss the hint the moment
-            // the user tried to tap-to-exit).
-            isClickable = true
-            setOnClickListener { finish() }
         }
         val exitHint = TextView(this).apply {
             text = "tap to exit"
@@ -187,6 +186,10 @@ class VRActivity : ComponentActivity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setBackgroundColor(0x66000000.toInt())
             setPadding(32, 16, 32, 16)
+            // Non-interactive: must not consume the tap that is meant
+            // for the GL view underneath. The hint is decorative.
+            isClickable = false
+            isFocusable = false
         }
         root.addView(
             exitHint,

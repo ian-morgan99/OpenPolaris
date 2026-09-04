@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-09-05
+
+### Fixed
+- **VR mode (3D view) tap-to-exit did not work.** VRActivity declared
+  the tap-to-exit `OnClickListener` on a `FrameLayout` that was a
+  sibling of a full-screen `GLSurfaceView`. The `GLSurfaceView` child
+  consumed the touch dispatch, so the `FrameLayout`'s listener never
+  fired and the activity could not be dismissed by tapping. The
+  activity comment even promised "tap anywhere on the VR view to exit"
+  but the implementation did not deliver that. Move the click listener
+  directly to the `GLSurfaceView` with `isClickable=true`; set the
+  "tap to exit" overlay `TextView` to `isClickable=false` /
+  `isFocusable=false` so it cannot intercept the tap. Verified
+  end-to-end on emulator 1080x2340 in landscape: a single tap at
+  screen centre returns the user to the launcher.
+
+### Known limitations
+- **Head-tracking on emulator.** `adb emu sensor set` exposes only
+  `acceleration/gyroscope/magnetic-field/orientation` on this build.
+  `TYPE_ROTATION_VECTOR` is fused in the framework but the fusion
+  is not driven by the orientation console command, so the close-up
+  view as the user moves their head cannot be exercised on
+  emulator. The math (CardboardWarp, VrStereoShaders, RecenterMath)
+  has unit-test coverage; the on-device experience must be
+  confirmed on a real Cardboard-class viewer.
+
 ## [0.1.14] - 2026-09-05
 
 ### Fixed

@@ -30,8 +30,8 @@ android {
         applicationId = "dev.openpolaris.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.1.14"
+        versionCode = 15
+        versionName = "0.1.15"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

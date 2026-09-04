@@ -3,6 +3,10 @@ local.properties
 build/
 .kotlin/
 
+# Copilot / session scaffolding — local-only, not source.
+.agents/
+.copilot/
+
 # Regression-test fixtures injected by .github/workflows/ci-evidence-lint-regression.yml.
 # The workflow creates and deletes this directory in CI; this entry keeps a developer's
 # local run from accidentally staging it.

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Desktop Bluetooth and Wi-Fi bridge errors are now reported accurately.**
+  A Bluetooth wake that cannot discover or connect to the Polaris no longer
+  claims success; bridge activation also stops on saved-profile or policy-route
+  failure rather than reporting the mount Wi-Fi as ready.
 - **Firmware uploads no longer hang indefinitely after SSH progress stops.**
   The upload now fails after 30 seconds without reported byte progress,
   terminates the stalled transfer, explains that the Wi-Fi link should be

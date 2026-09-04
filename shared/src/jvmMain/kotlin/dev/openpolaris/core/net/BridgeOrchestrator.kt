@@ -44,23 +44,40 @@ class BridgeOrchestrator(
         progress: suspend (String) -> Unit = {},
     ): Boolean = withContext(io) {
         runCatching { wakeOverBluetooth(progress) }
-            .onFailure { progress("BT wake skipped: ${it.message ?: it::class.simpleName}") }
+            .onFailure {
+                progress(
+                    "BT wake failed: ${it.message ?: it::class.simpleName}; " +
+                        "trying the saved Wi-Fi profile"
+                )
+            }
 
         progress("Bringing $profile up on $ifname…")
-        runCatching { wifi.connectByProfile(profile, ifname) }
-            .onFailure { progress("nmcli up failed: ${it.message ?: it::class.simpleName}") }
+        try {
+            wifi.connectByProfile(profile, ifname)
+        } catch (e: Exception) {
+            progress("Wi-Fi activation failed: ${e.message ?: e::class.simpleName}")
+            return@withContext false
+        }
 
         progress("Waiting for link on $ifname…")
-        val linkUp = runCatching { wifi.awaitLinkUp(ifname, timeoutMs = 15_000) }
-            .getOrDefault(false)
+        val linkUp = try {
+            wifi.awaitLinkUp(ifname, timeoutMs = 15_000)
+        } catch (e: Exception) {
+            progress("Wi-Fi link check failed: ${e.message ?: e::class.simpleName}")
+            return@withContext false
+        }
         if (!linkUp) {
             progress("Link never came up on $ifname — is the gimbal powered on?")
             return@withContext false
         }
 
         progress("Installing policy route for ${wifi.gimbalCidrForDebug} → $ifname")
-        runCatching { wifi.installPolicyRoute(ifname) }
-            .onFailure { progress("Policy route failed: ${it.message ?: it::class.simpleName}") }
+        try {
+            wifi.installPolicyRoute(ifname)
+        } catch (e: Exception) {
+            progress("Policy route failed: ${e.message ?: e::class.simpleName}")
+            return@withContext false
+        }
 
         progress("Mount Wi-Fi ready on $ifname")
         true
@@ -70,18 +87,21 @@ class BridgeOrchestrator(
      * BT-wake only — fires the GATT-connect pulse and settles, but does
      * NOT bring up the Wi-Fi profile or install a policy route. Used by
      * the desktop "Wake" button when the user wants to pulse the gimbal
-     * awake on a cold start before deciding whether to bridge. Returns
-     * `true` when the pulse completed (whether or not a device was found;
-     * missing-device is treated as "gimbal already awake" and is not a
-     * failure).
+     * awake on a cold start before deciding whether to bridge. Returns true
+     * only when the GATT wake pulse completed. A missing device is reported
+     * as an inconclusive result rather than being incorrectly called a
+     * successful wake.
      */
     suspend fun wakeOnly(
         progress: suspend (String) -> Unit = {},
     ): Boolean = withContext(io) {
-        runCatching { wakeOverBluetooth(progress) }
-            .onFailure { progress("BT wake skipped: ${it.message ?: it::class.simpleName}") }
-            .map { true }
-            .getOrElse { true /* missing device is a no-op, not a failure */ }
+        try {
+            wakeOverBluetooth(progress)
+            true
+        } catch (e: Exception) {
+            progress("BT wake failed: ${e.message ?: e::class.simpleName}")
+            false
+        }
     }
 
     /**
@@ -106,15 +126,11 @@ class BridgeOrchestrator(
         // connect pulses the firmware's Wi-Fi AP. If the gimbal is already
         // awake, the scan and connect will still succeed (no-op).
         progress("Scanning for gimbal over Bluetooth…")
-        val device = try {
-            bt.discover(timeoutMs = 5_000)
-        } catch (e: Exception) {
-            progress("BT scan failed: ${e.message ?: e::class.simpleName}")
-            null
-        }
+        val device = bt.discover(timeoutMs = 5_000)
         if (device == null) {
-            progress("No Polaris device found on Bluetooth — assuming gimbal already awake")
-            return
+            throw IllegalStateException(
+                "no Polaris device discovered; move it closer or use Connect to try the saved Wi-Fi profile"
+            )
         }
         progress("Waking ${device.name} via Bluetooth…")
         bt.wake(device)

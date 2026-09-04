@@ -19,10 +19,9 @@ import kotlin.test.assertTrue
  *    interface. The NM-up phase still issues, the function returns `false`,
  *    and the failure message reaches the progress callback.
  *
- * The BT phase issues a scan against the fake runner (which returns no
- * devices). The orchestrator treats "no device found" as a no-op and
- * proceeds to the Wi-Fi phases, which is the correct behaviour for a
- * gimbal that is already awake.
+ * The bridge proceeds to the saved Wi-Fi profile when Bluetooth wake is
+ * unavailable, but it reports that outcome rather than claiming the wake
+ * pulse succeeded.
  */
 class BridgeOrchestratorTest {
 
@@ -58,8 +57,8 @@ class BridgeOrchestratorTest {
     fun `bridgeToMount happy path runs NM up, awaits link, installs policy route`() = runBlocking {
         val fake = FakeRunner()
         val wifi = StubbedWifiBridge(fake, linkUpResult = true)
-        // Fake scanner returns no devices, so the orchestrator treats the
-        // BT phase as a no-op and proceeds to the Wi-Fi phases.
+        // Fake scanner returns no devices. The orchestrator reports it and
+        // still lets saved-profile activation verify whether Wi-Fi is ready.
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
@@ -74,8 +73,8 @@ class BridgeOrchestratorTest {
 
         // BT phase scans, finds nothing, and the orchestrator proceeds.
         assertTrue(
-            messages.any { it.contains("No Polaris device found") },
-            "expected no-device progress message, got: " + messages.toString(),
+            messages.any { it.contains("BT wake failed") },
+            "expected explicit BT wake failure message, got: " + messages.toString(),
         )
         // A bluetoothctl scan should have been issued.
         assertTrue(
@@ -144,6 +143,41 @@ class BridgeOrchestratorTest {
         assertTrue(
             messages.any { it.contains("Link never came up") },
             "expected link-failure message, got: " + messages.toString(),
+        )
+    }
+
+    @Test
+    fun `bridgeToMount stops when saved profile activation fails`() = runBlocking {
+        val fake = object : ProcessRunner {
+            val calls = mutableListOf<List<String>>()
+
+            override fun run(argv: List<String>): String {
+                calls += argv
+                if (argv.firstOrNull() == "nmcli") {
+                    throw BridgeException("nmcli", 10, "No suitable device found")
+                }
+                return ""
+            }
+        }
+        val wifi = StubbedWifiBridge(fake, linkUpResult = true)
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
+        val messages = mutableListOf<String>()
+
+        val ok = orch.bridgeToMount(
+            profile = "polaris_d13e86",
+            ifname = "wlp8s0",
+            progress = { messages += it },
+        )
+
+        assertFalse(ok, "failed saved-profile activation must be terminal")
+        assertTrue(
+            messages.any { it.startsWith("Wi-Fi activation failed:") },
+            "expected activation failure message, got: $messages",
+        )
+        assertFalse(
+            fake.calls.any { it.firstOrNull() == "ip" && it.getOrNull(1) == "rule" },
+            "a policy route must not be installed after activation fails",
         )
     }
 

@@ -823,12 +823,6 @@ class AppViewModel(
             try {
                 statusMessage = "Connecting to mount Wi-Fi…"
                 connectWifi { msg -> statusMessage = msg }
-                // The bridge orchestrator ends in a "complete" message
-                // that names the gimbal network it just brought up;
-                // do not overwrite it.
-                if (!statusMessage.startsWith("Bridge to mount Wi-Fi complete")) {
-                    statusMessage = "Mount Wi-Fi phase complete — try Connect"
-                }
             } catch (e: Throwable) {
                 statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
             } finally {
@@ -906,7 +900,8 @@ class AppViewModel(
                 // knows the connect took the status line.
                 val connectRanDuringWake = reconnectGeneration != wakeStartGeneration
                 if (!_reconnecting.value && !connectRanDuringWake &&
-                    !statusMessage.startsWith("Woke ")
+                    !statusMessage.startsWith("Woke ") &&
+                    !statusMessage.startsWith("BT wake failed:")
                 ) {
                     statusMessage = "Wake complete — try Connect"
                 }

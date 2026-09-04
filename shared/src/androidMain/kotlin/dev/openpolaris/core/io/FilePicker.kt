@@ -8,26 +8,30 @@ import java.io.FileOutputStream
 
 /**
  * Android actual for [FilePicker]. Wraps
- * `Intent(ACTION_OPEN_DOCUMENT) + ActivityResultContracts.OpenDocument`,
- * which is the modern Storage Access Framework path (works on every
- * supported API level, no runtime permission needed, and survives process
- * death — the launcher is registered on the [ComponentActivity] so the
- * result callback is delivered even if the OS kills the app between the
- * launch and the user's pick).
+ * `Intent(ACTION_GET_CONTENT) + ActivityResultContracts.GetContent`,
+ * which gives a single-tap = select UX on every supported Android
+ * version (the SAF / `OpenDocument` picker uses single-tap = preview
+ * for grid view, which is not discoverable for picking files — see
+ * MainActivity for the full rationale).
+ *
+ * v0.1.14 switched from `OpenDocument` to `GetContent`. We don't need
+ * persistent URI permission because [FilePickerRegistry.handleResult]
+ * copies the picked bytes into `cacheDir` immediately and returns an
+ * absolute filesystem path, which is what every caller wants.
  *
  * The `shared/` module can't construct the launcher itself because it has
  * no reference to the `ComponentActivity` — those are owned by the Android
  * app shell. We bridge through [FilePickerRegistry], which [MainActivity]
  * populates in `onCreate` and clears in `onDestroy`. The
  * `pickFirmwareFile` path then hands the picked `Uri` to
- * [copyPickedToCache] so callers always get a real filesystem path they
- * can read with `PlatformFile.readBytes()` — `Uri` itself is not a path
- * and cannot be opened directly.
+ * [FilePickerRegistry.handleResult] so callers always get a real
+ * filesystem path they can read with `PlatformFile.readBytes()` —
+ * `Uri` itself is not a path and cannot be opened directly.
  */
 actual object FilePicker {
     actual fun pickFile(
         title: String,
-        @Suppress("UNUSED_PARAMETER") mimeType: String?,
+        mimeType: String?,
         onPicked: (absolutePath: String?) -> Unit,
     ) {
         val ctx = FilePickerRegistry.appContext
@@ -45,17 +49,19 @@ actual object FilePicker {
         // concurrent pick is a user error — we just overwrite.)
         FilePickerRegistry.pendingCallback = onPicked
         // The launcher stored in the registry is whatever concrete type
-        // the host registered (typically
-        // `ActivityResultLauncher<Array<String>>` for `OpenDocument`,
-        // not `ActivityResultLauncher<Intent>`). We launch via reflection
-        // so the shared module isn't coupled to a specific contract type.
-        // The OpenDocument contract takes a `String[]` of MIME types;
-        // pass a single-element array with the requested type, or `*/*`
-        // for "all document types" when the caller asked for any.
-        val mimes = arrayOf(mimeType ?: "*/*")
+        // the host registered — currently
+        // `ActivityResultLauncher<String>` for `GetContent`. We launch
+        // via reflection so the shared module isn't coupled to a
+        // specific contract type. Pass the requested MIME type, or
+        // `*/*` for "all document types" when the caller asked for
+        // any. (The `title` parameter is ignored on Android — the
+        // system chooser doesn't show a title bar in modern Android
+        // versions. JVM still uses `title` for the FileDialog window
+        // title.)
+        val mime = mimeType ?: "*/*"
         try {
             val launchMethod = launcher::class.java.getMethod("launch", Any::class.java)
-            launchMethod.invoke(launcher, mimes)
+            launchMethod.invoke(launcher, mime)
         } catch (t: Throwable) {
             onPicked(null)
         }
@@ -72,12 +78,12 @@ object FilePickerRegistry {
     @Volatile var appContext: Context? = null
     /**
      * The launcher must accept the contract the host Activity registers
-     * (typically `ActivityResultContracts.OpenDocument`, which is
-     * `ActivityResultLauncher<Array<String>>` — not `Intent`). We use a
-     * raw `Any?` here because the shared module shouldn't be coupled to a
-     * specific contract; the host in `MainActivity` always assigns a
-     * compatible launcher, and `FilePicker` doesn't touch this field
-     * directly — it invokes via the cast helper below.
+     * (currently `ActivityResultContracts.GetContent`, which is
+     * `ActivityResultLauncher<String>` — a single MIME string). We use
+     * a raw `Any?` here because the shared module shouldn't be coupled
+     * to a specific contract; the host in `MainActivity` always assigns
+     * a compatible launcher, and `FilePicker` doesn't touch this field
+     * directly — it invokes via the reflection helper above.
      */
     @Volatile var launcher: Any? = null
     @Volatile var pendingCallback: ((String?) -> Unit)? = null

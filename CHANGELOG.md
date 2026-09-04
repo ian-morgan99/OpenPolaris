@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-09-05
+
+### Fixed
+- **Firmware file picker broken on Android** (the top user complaint
+  after v0.1.13). The `OpenDocument` contract fires
+  `Intent.ACTION_OPEN_DOCUMENT`, which the system `DocumentsUI`
+  picker renders with single-tap = preview. Tapping a `.zip` file
+  fired `ACTION_VIEW` (no app handles `application/zip` VIEW), got
+  result code `-91` (`ActivityManager.START_CLASS_NOT_FOUND`), and
+  the picker silently stayed open. The only way to actually pick
+  a file was long-pressing it to reveal the "Select" action — a
+  completely undiscoverable gesture. Switched to
+  `ActivityResultContracts.GetContent()` (`ACTION_GET_CONTENT`),
+  which uses single-tap = select on every supported Android
+  version. The picker now closes immediately on tap, and the
+  firmware pane shows `Selected: picked_<ts>_<name>.zip (<size> B)`
+  as expected. The `Back` button cleanly cancels (preserves the
+  previous selection, if any). No persistent URI permission is
+  needed because `FilePickerRegistry.handleResult` already copies
+  the picked bytes into `cacheDir` before returning an absolute
+  filesystem path. Touched files: `MainActivity.kt` (launcher
+  swap) and `FilePicker.kt` (contract signature change
+  `Array<String>` → `String`).
+
 ## [0.1.13] - 2026-09-04
 
 ### Added

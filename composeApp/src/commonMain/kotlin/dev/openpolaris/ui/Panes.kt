@@ -609,8 +609,8 @@ fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Ti
  * and stream the upload/install progress to the user.
  *
  *  - "Pick firmware" opens the native file chooser (JVM: java.awt.FileDialog,
- *    Android: ACTION_OPEN_DOCUMENT via FilePicker). The picked path is held
- *    by the VM so the file survives a recomposition.
+ *    Android: ACTION_GET_CONTENT via FilePicker — single-tap = select UX).
+ *    The picked path is held by the VM so the file survives a recomposition.
  *  - "Upload" reads the bytes on [Dispatchers.IO] and runs the full
  *    [FirmwareUpdateController] flow (arm → start → chunks → end → install
  *    → poll → optional reboot). Disabled until a file is picked and the

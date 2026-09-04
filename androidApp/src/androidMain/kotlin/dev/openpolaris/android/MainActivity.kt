@@ -59,11 +59,23 @@ class MainActivity : ComponentActivity() {
 
     // FilePickerRegistry is populated in onCreate and cleared in onDestroy
     // so `FilePicker` (which lives in the `shared` module and so has no
-    // direct access to this Activity) can hand a picked Uri back to us for
-    // the OpenDocument flow. The launcher must be registered before the
-    // activity reaches STARTED; doing it here in onCreate is the safe spot.
-    private val openDocumentLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
+    // direct access to this Activity) can hand a picked Uri back to us.
+    // The launcher must be registered before the activity reaches STARTED;
+    // doing it here in onCreate is the safe spot.
+    //
+    // v0.1.14: switched from `ActivityResultContracts.OpenDocument()`
+    // (ACTION_OPEN_DOCUMENT / SAF) to `ActivityResultContracts.GetContent()`
+    // (ACTION_GET_CONTENT). The SAF picker uses single-tap = preview
+    // (ACTION_VIEW), so a single tap on a .zip file fired a VIEW intent
+    // that no app could handle, returned result code -91, and the picker
+    // appeared to do nothing. The user had to long-press to discover the
+    // "Select" action — completely undiscoverable. ACTION_GET_CONTENT
+    // shows a single-tap = select UX on every supported Android version.
+    // We don't need persistent URI permission because FilePickerRegistry
+    // already copies the picked bytes into the app's cacheDir before
+    // returning the absolute path.
+    private val getContentLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
     ) { uri ->
         // Hand the Uri to the registry, which copies it into the cache
         // directory and returns a real absolute path the caller can read.
@@ -102,7 +114,7 @@ class MainActivity : ComponentActivity() {
         // module's expect/actual can launch the SAF chooser without taking
         // a hard reference to `ComponentActivity`. Cleared in onDestroy.
         FilePickerRegistry.appContext = applicationContext
-        FilePickerRegistry.launcher = openDocumentLauncher
+        FilePickerRegistry.launcher = getContentLauncher
         // Make bundled `commonMain/resources/*.json` shards visible
         // to the readResourceText() expect/actual so the Tonight pane
         // can load the embedded catalog + comet shards.

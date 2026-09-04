@@ -28,3 +28,12 @@ actual fun readResourceText(path: String): String? {
         null
     }
 }
+
+actual fun readResourceBytes(path: String): ByteArray? {
+    val ctx = ResourceContext.appContext ?: return null
+    return try {
+        ctx.assets.open(path).use { it.readBytes() }
+    } catch (_: Exception) {
+        null
+    }
+}

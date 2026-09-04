@@ -12,6 +12,7 @@ but disabled for v2.
 
 | Doc | Contents |
 |---|---|
+| **[USER-MANUAL.md](docs/USER-MANUAL.md)** | **End-user manual — bundled inside the app (Guide callout) and readable on the web. Start here if you just want to use the app.** |
 | [SPEC.md](docs/SPEC.md) | Functional specification: feature inventory mirroring the stock app, screen map, behavioral rules, v1 acceptance criteria |
 | [PROTOCOL.md](docs/PROTOCOL.md) | Complete protocol reference: transport, framing, all command codes/payloads, session lifecycle, known quirks (inverted halfSpeed, AHRS gating) |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech stack (Kotlin Multiplatform + Compose), module layout, key design decisions, testing strategy |

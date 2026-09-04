@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-09-04
+
+### Added
+- **In-app User Manual** (closes the long-running "add a manual"
+  ask). The `Guide` callout now opens `UserManualPane`, which loads
+  the bundled `docs/USER-MANUAL.md` (`composeApp/src/commonMain/resources/USER-MANUAL.md`,
+  21 KB) and renders it inside `CalloutDialog`'s single bounded
+  `verticalScroll` (so the manual scrolls with the rest of the
+  dialog body and the v0.1.11 no-same-axis-nested-scrollables
+  contract still holds). Sections, paragraphs, bullet lists,
+  fenced code blocks, and the one bundled screenshot
+  (`screenshots/openpolaris-desktop-v1.0.0.png`) all render. The
+  source of truth remains `docs/USER-MANUAL.md` on GitHub — the
+  bundle is a copy so users can read the manual offline / on
+  mount, without needing network access.
+- **Bundled resources for the manual**: `USER-MANUAL.md` and
+  `screenshots/openpolaris-desktop-v1.0.0.png` are now part of
+  the APK under `assets/`, loaded via the existing
+  `readResourceText` / `readResourceBytes` expect/actual. The
+  Android actual uses `ctx.assets.open`; the JVM desktop actual
+  uses `classLoader.getResourceAsStream` and decodes PNGs with
+  `org.jetbrains.skia` (already on the JVM classpath via
+  Compose for Desktop).
+- **README link**: `README.md` now surfaces `docs/USER-MANUAL.md`
+  in its Documentation table as the primary end-user manual,
+  marked as bundled inside the app under the **Guide** callout.
+
+### Tests
+- `CalloutDialogNoScrollWrapperTest` extended with
+  `userManualPaneIsNotAVerticalScroll` — pins that the new
+  `UserManualPane.kt` does not introduce its own
+  `Modifier.verticalScroll` and continues to defer to
+  `CalloutDialog`'s scroll.
+- `UserManualPaneBundledAssetTest` (new) reads
+  `USER-MANUAL.md` via `readResourceText` and asserts the
+  bundle is non-empty, the first heading is
+  `# Open Polaris — User Manual`, and the referenced screenshot
+  asset resolves via `readResourceBytes`.
+
 ## [0.1.12] - 2026-09-04
 
 ### Fixed

@@ -184,7 +184,7 @@ fun OpenPolarisApp(
                 // no-op here documents the intent and keeps the `when`
                 // exhaustive.
                 Callout.VR -> { dialog = null }
-                Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { ReadmePane(Modifier.fillMaxWidth()) }
+                Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { UserManualPane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
                     FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
                 }

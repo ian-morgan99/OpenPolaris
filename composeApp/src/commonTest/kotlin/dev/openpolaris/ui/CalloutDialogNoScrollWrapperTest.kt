@@ -61,6 +61,7 @@ class CalloutDialogNoScrollWrapperTest {
         "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt",
         "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt",
         "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",
+        "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/UserManualPane.kt",
     )
 
     private fun sourceText(relativePath: String): String {

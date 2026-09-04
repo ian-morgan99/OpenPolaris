@@ -11,3 +11,11 @@ package dev.openpolaris.core.domain
  * degrade gracefully (e.g. skip an optional catalog shard).
  */
 expect fun readResourceText(path: String): String?
+
+/**
+ * Read a binary resource (e.g. an embedded PNG) from the module's
+ * resources directory. See [readResourceText] for resolution rules.
+ *
+ * Returns `null` if the resource is not present.
+ */
+expect fun readResourceBytes(path: String): ByteArray?

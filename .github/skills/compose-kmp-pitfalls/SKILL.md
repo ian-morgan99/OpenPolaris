@@ -88,3 +88,46 @@ Stacking two `Modifier.verticalScroll(rememberScrollState())` — one on a paren
 ## 6. APK byte size is not a build-identity signal
 
 Two distinct builds with different source code can produce APKs of identical size. DEX compression, resource alignment, and signing-block padding all conspire to make byte equality a coincidence-prone check. **Don't dismiss a user report of "this APK is the same as the old one"** on byte-size evidence alone — verify the version label inside the running app (Settings → scroll to footer) and the `versionName` in the installed manifest (`adb shell dumpsys package dev.openpolaris.app | grep versionName`).
+
+## 7. Activity-result callbacks drop on configuration change — buffer in `commonMain`, drain on `onCreate`
+
+`rememberLauncherForActivityResult` in Compose **does** survive rotation, but the underlying `ActivityResultLauncher` is registered on the host `Activity`. On `MainActivity.onDestroy`, the registry clears its callback. AndroidX re-delivers the activity result to the new activity's launcher, but if the original callback reference is gone, the URI is **dropped silently** and the UI is left in the "in-flight" state with no error path.
+
+The `FilePickerRegistry.pendingCallback` pattern (callback stored on a `companion object`) **does not survive rotation** because `MainActivity.onDestroy` clears it. The same URI is delivered to a new activity, but there's nothing to call.
+
+**Fix pattern (issue #49, v0.1.16):** a process-scoped `object` in `commonMain` (no Android types) holds the last pick result. The launcher callback writes into it; `MainActivity.onCreate` (via `LaunchedEffect(viewModel)`) drains it into the `ViewModel` once the new view is ready.
+
+```kotlin
+// shared/src/commonMain/kotlin/.../PickerBridge.kt
+object PickerBridge {
+    data class PickResult(val absolutePath: String?, val reason: Reason) {
+        enum class Reason { Picked, Cancelled, Error }
+    }
+    private var lastResult: PickResult? = null
+    private var inFlight: Boolean = false
+
+    fun beginPick() { inFlight = true }
+    fun publishResult(absolutePath: String?, reason: PickResult.Reason) {
+        lastResult = PickResult(absolutePath, reason); inFlight = false
+    }
+    fun consume(): PickResult? { val r = lastResult; lastResult = null; return r }
+    fun reset() { lastResult = null; inFlight = false }
+}
+
+// shared/src/androidMain/kotlin/.../FilePicker.kt
+launcher = registerForActivityResult(GetContent()) { uri ->
+    val path = uri?.let { /* resolve to absolute */ }
+    PickerBridge.publishResult(path, if (uri == null) Cancelled else Picked)
+}
+
+// androidApp/src/androidMain/kotlin/.../MainActivity.kt
+setContent {
+    LaunchedEffect(viewModel) {
+        PickerBridge.consume()?.let { viewModel?.applyPickResult(it) }
+    }
+}
+```
+
+The key insight is that the bridge lives in `commonMain` and is process-scoped, so it survives both rotation (no activity lifecycle tie) and process death would be the only reset path. It also makes the state machine testable from `commonTest` — see [PickerBridgeTest.kt](/home/ian/Documents/VSCodeProjects/OpenPolaris/shared/src/commonTest/kotlin/dev/openpolaris/core/io/PickerBridgeTest.kt) for 13 unit tests pinning the begin/in-flight/result/consume contract.
+
+**Test guard pattern:** any time a `MainActivity`-lifecycle-bound resource is used to bridge into a `ViewModel`, ask "what happens between `onDestroy` and the new `onCreate`?" If the answer is "the resource is recreated empty", you have a rotation-drop bug.

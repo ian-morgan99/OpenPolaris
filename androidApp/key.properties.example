@@ -1,0 +1,13 @@
+# OpenPolaris Android signing properties (template).
+# Copy this file to `key.properties` and fill in the real passwords.
+# `key.properties` is gitignored. Do NOT commit it.
+#
+# Paths are relative to the androidApp/ directory that contains this file.
+# The committed keystore at androidApp/keystore/release.keystore uses the
+# default `changeit` password (see README and release notes for v0.1.16).
+# Override these values if you maintain your own keystore.
+
+storeFile=keystore/release.keystore
+storePassword=changeit
+keyAlias=openpolaris
+keyPassword=changeit

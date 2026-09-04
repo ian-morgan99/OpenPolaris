@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-09-04
+
+### Fixed
+- **Firmware picker dropped result on rotation** (issue #49). The picker
+  callback reference lived on `FilePickerRegistry`, which was cleared
+  in `MainActivity.onDestroy()`. After a configuration change, AndroidX
+  re-delivered the activity result to the new activity's launcher but
+  the callback reference was null, so the URI was dropped silently and
+  the picker never produced a `Selected:` line. Extracted a
+  process-scoped `PickerBridge` into `commonMain` (testable from
+  `commonTest`), so the result survives both rotation and `onDestroy`.
+  `MainActivity.onCreate` now drains the bridge in a
+  `LaunchedEffect(viewModel)` and forwards the result via the new
+  `AppViewModel.applyPickResult(...)` method. 13 new unit tests pin the
+  state machine; full rotation flow is covered.
+- **Firmware picker was silently cancellable.** The `pickFirmwareFile`
+  handler did `if (path == null) return@pickFile` — no UI feedback.
+  Now sets `statusMessage = "Picker cancelled"` so the user sees the
+  cancel on the firmware pane. The `Back` button and the system
+  picker's own cancel UI both surface this message.
+
+### Changed
+- **Release signing identity is now stable** (closes the
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE` / "package is not valid"
+  blocker for sideloaded test builds). Prior releases were signed with
+  a per-machine debug keystore whose fingerprint was different on every
+  developer's laptop, so any user who installed a build from one
+  developer and then tried to install a build from another got a
+  signature-mismatch error. v0.1.16+ is signed with a single
+  deterministic keystore committed at
+  `androidApp/keystore/release.keystore` (alias `openpolaris`,
+  SHA-1 `86:FE:A8:CD:93:D9:31:49:BA:95:84:D2:F3:CE:1A:60:6A:E2:74:8F`,
+  SHA-256
+  `5c72c56e09c9c157fa689df037933eafcbc88e73357ccde6eb8b5a684033a9fd`).
+  A new `release.yml` workflow builds the signed APK on every `v*.*.*`
+  tag push and attaches it to the GitHub Release.
+
+  **Install note — please read before updating:** the new signing
+  identity is different from any prior build, so Android will refuse
+  to update in place. **Uninstall any previous OpenPolaris build
+  before installing v0.1.16.** After this one-time uninstall, future
+  versions signed with the same committed key will install cleanly as
+  updates.
+
+### Added
+- **`androidApp/key.properties.example`** — a committed template for
+  `androidApp/key.properties` (gitignored), so anyone rebuilding locally
+  knows what to fill in.
+
 ## [0.1.15] - 2026-09-04
 
 ### Fixed

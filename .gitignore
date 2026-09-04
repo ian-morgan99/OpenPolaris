@@ -3,8 +3,18 @@ local.properties
 build/
 .kotlin/
 
+# Android release signing — never commit passwords.
+# Commit key.properties.example as a template; copy to key.properties locally.
+androidApp/key.properties
+
 # Copilot / session scaffolding — local-only, not source.
-.agents/
+# Track the durable knowledge artifacts (learnings/, skills/) so the
+# project memory persists across clones; ignore ephemeral scaffolding.
+.agents/**
+!.agents/learnings/
+!.agents/learnings/**
+!.agents/skills/
+!.agents/skills/**
 .copilot/
 
 # Regression-test fixtures injected by .github/workflows/ci-evidence-lint-regression.yml.

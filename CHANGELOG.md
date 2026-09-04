@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-09-04
+
+### Fixed
+- **Several dialog forms still unreachable on landscape phones**
+  (closes #47). v0.1.11 fixed the v0.1.10 Settings-dialog collapse
+  but did not address three other panes where the dialog body was
+  too narrow for the controls.
+  - **Camera pane `StepperRow`**: the label was squeezed to ~0
+    width when the two `OutlinedButton`s took their natural
+    width first, so the integer value was invisible. Switched to
+    a vertical `Column` with the label on top and the buttons
+    side-by-side with `weight(1f)` below. Compact `contentPadding`
+    (8/4 dp) keeps the row height modest.
+  - **Slew / Goto `Lat`/`Lng` fields**: laid out side-by-side
+    inside a 250dp dialog the `OutlinedTextField` label got
+    rotated to vertical text. Stacked the two fields vertically
+    with `fillMaxWidth()`.
+  - **Helpers (Astro) pane**: all four rows (`Dither`, `Settling`,
+    `Limits`, `Auto-level`) overflowed the 250dp-wide dialog by
+    ~28dp, clipping controls and rotating the read-only caption
+    to vertical text. Restructured each row into a two-line
+    layout — read-only label and current value on the first
+    line, interactive controls on the second.
+- **`FeatureFlagsPane` weight regression** (closes #47
+  firmwareUpload reachability). The `Modifier.weight(1f, fill = true)`
+  v0.1.10 added to pin the build-identity footer created a
+  circular measurement inside the AlertDialog's `text` slot and
+  collapsed the dialog to 284px regardless of the outer
+  `CalloutDialog` scroll, clipping all 25 flag rows. The
+  version label is no longer pinned, but it now scrolls with the
+  list so every flag (including `firmwareUpload`) is reachable.
+  `CalloutDialogNoScrollWrapperTest.featureFlagsPaneOwnsZeroVerticalScrolls`
+  is updated to drop the removed-weight assertion.
+- **`PlatformFile.deleteIfExists` (Android) returned `true` for
+  missing files**. The Android actual was
+  `f.delete() || !f.exists()`. When the file does not exist
+  `f.delete()` returns `false`, but `!f.exists()` returns `true`,
+  so the whole expression returned `true`. The JVM actual
+  (`Files.deleteIfExists(p)`) was already correct, so the bug
+  was Android-only. User-visible effect: tapping
+  **Forget saved mount** in the Reconnect dialog with no
+  marker file present reported
+  *Forgot saved mount* (success) instead of
+  *No saved mount to forget*. Caught by
+  `AppViewModelSessionMarkerTest.forgetMarkerWithoutFileIsANoOp`
+  — note that `:composeApp:testDebugUnitTest` resolves
+  `PlatformFile` `expect/actual` to the Android variant even
+  though the test runs on the JVM host.
+
 ## [0.1.11] - 2026-09-04
 
 ### Fixed

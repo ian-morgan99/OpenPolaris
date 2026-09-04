@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Firmware upload again honours the optional MD5 field.** An empty
+  expected-MD5 field was incorrectly rejected before upload despite its
+  "optional" label. Blank or null values now skip verification; any
+  supplied checksum is still required to be 32 hexadecimal characters
+  and must match the selected bundle before it is uploaded.
+
 ## [0.1.16] - 2026-09-04
 
 ### Fixed

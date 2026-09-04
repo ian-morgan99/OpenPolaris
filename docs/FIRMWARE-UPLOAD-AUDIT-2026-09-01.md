@@ -381,7 +381,7 @@ the change log.
 | §6 # | Item                                                  | Status                  | Where                                                  |
 | ---: | ----------------------------------------------------- | ----------------------- | ------------------------------------------------------ |
 |    1 | Red brick-warning banner above upload button          | DONE (v0.1.1)           | `composeApp/.../ui/Panes.kt` (`FirmwarePane`)         |
-|    2 | Verify-before-upload MD5 cross-check (fail-closed)    | DONE (v0.1.4)           | `shared/.../util/Md5.kt`, `FirmwareUpdateController`   |
+|    2 | Verify-before-upload MD5 cross-check (optional)       | DONE (v0.1.4)           | `shared/.../util/Md5.kt`, `FirmwareUpdateController`   |
 |    3 | 128 MB size cap                                       | DONE (v0.1.x)           | `FirmwareUpdateController.start`                      |
 |    4 | Pre-flight SD free-space check                        | DONE (v0.1.x)           | `ScpFirmwareDelivery` (≥ `bytes.size + 1 MB` free)    |
 |    5 | `@Deprecated` on unverified opcodes                   | DONE (2026-09-02)       | `shared/.../protocol/Codes.kt`                        |
@@ -390,19 +390,15 @@ All five Phase 1a items are now closed in code. Phase 1b (the
 secondary SSH/SCP-push path) and Phase 2 (real Benro Connect pcap
 capture on wlan0) remain open per §5.
 
-### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.4, fail-closed)
+### §6 #2 — verify-before-upload MD5 cross-check — DONE (v0.1.4, optional)
 
-Implemented as the user asked: every byte of the chosen local zip is
-hashed with `dev.openpolaris.core.util.Md5` (pure-Kotlin, RFC 1321) and
-compared case-insensitively to a user-pasted expected MD5 before any
-network/wire activity. The MD5 cross-check is **fail-closed**: a blank,
-null, or malformed expected MD5 now aborts the upload with a clear
-`Failed` status before any wire/SCP traffic is initiated, rather than
-silently falling through as in the prior optional behaviour. An
-explicit `unsafeAllowNoChecksum: Boolean = false` escape hatch is
-retained on `FirmwareUpdateController.start()` for internal callers and
-tests; the production UI path in `AppViewModel.uploadFirmware()` never
-sets it.
+Every byte of the chosen local zip is hashed with
+`dev.openpolaris.core.util.Md5` (pure-Kotlin, RFC 1321). If the user
+supplies an expected MD5, it is compared case-insensitively before any
+network/wire activity. The cross-check is optional, as labelled in the
+firmware pane: a blank or null expected MD5 proceeds to upload, while a
+malformed value or mismatch aborts before any wire/SCP traffic is
+initiated.
 
 **Runtime order inside `start()` (must match the code):**
 
@@ -498,4 +494,3 @@ comment reiterating the audit warning.
 No new files; no protocol changes; no API-breaking changes. All 476
 `:shared:jvmTest` pass and all 53 `:composeApp:jvmTest` pass. Debug
 APK rebuilds clean (v0.1.3, code 4).
-

@@ -35,10 +35,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirmwareUpdateControllerTest {
 
-    /** Pre-compute the expected MD5 of the bytes under test, so that the
-     *  fail-closed MD5 gate (#39) doesn't block the legacy happy-path
-     *  tests. New tests for #39 explicitly pass a blank / malformed
-     *  value (or `unsafeAllowNoChecksum = true`) to exercise the gate. */
+    /** Pre-compute expected MD5 values for checksum-verification tests. */
     private fun md5Of(bytes: ByteArray): String = Md5.digest(bytes)
 
 
@@ -271,13 +268,10 @@ class FirmwareUpdateControllerTest {
     }
 
     @Test
-    fun unsafeAllowNoChecksumTrueSkipsMd5Check() = runTest {
-        // Issue #39: the explicit `unsafeAllowNoChecksum = true` escape
-        // hatch is the *only* way to skip the MD5 cross-check. The
-        // production UI never sets it. When set, the controller must
-        // accept any string (or null) and proceed straight to delivery,
-        // matching the legacy "no-MD5" code path that this method
-        // replaced. The behaviour is intentionally loud and limited.
+    fun blankExpectedMd5ProceedsWithoutVerification() = runTest {
+        // The UI advertises MD5 verification as optional. A blank value must
+        // proceed to delivery, while a supplied malformed or mismatched value
+        // remains rejected by the tests below.
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
         conn.queueDefaultAuthOk()
@@ -304,8 +298,7 @@ class FirmwareUpdateControllerTest {
         val final = controller.start(
             bytes = ByteArray(8) { it.toByte() },
             filename = "FwPkt.zip",
-            expectedMd5 = null,
-            unsafeAllowNoChecksum = true,
+            expectedMd5 = "",
             rebootAfter = false,
         )
         pump.cancel()
@@ -314,92 +307,6 @@ class FirmwareUpdateControllerTest {
         val codes = conn.written.mapNotNull { parseCode(it) }
         assertTrue(codes.contains(810), "expected 810 on wire, got $codes")
         assertTrue(codes.contains(795), "expected 795 on wire, got $codes")
-
-        session.disconnect()
-        runCurrent()
-    }
-
-    @Test
-    fun blankExpectedMd5FailsBeforeAnyWireTraffic() = runTest {
-        // Issue #39: a missing expected MD5 is a *user error* in the
-        // normal flow. The controller must reject it before any
-        // 810/784/794/795/811 opcodes go out — the wire must stay
-        // completely quiet.
-        val conn = FakeConnection()
-        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
-        conn.queueDefaultAuthOk()
-        val session = MountSession({ conn }, readerScope = backgroundScope)
-        assertTrue(session.connect())
-
-        val controller = FirmwareUpdateController(
-            session = session,
-            delivery = DeliveryMode.WIRE,
-            chunkSize = 4,
-            progressPollMs = 50,
-            progressDoneRepeats = 2,
-            installTimeoutMs = 2_000,
-        )
-        val final = controller.start(
-            bytes = ByteArray(8) { it.toByte() },
-            filename = "FwPkt.zip",
-            expectedMd5 = "",
-            unsafeAllowNoChecksum = false,
-            rebootAfter = false,
-        )
-
-        assertIs<FirmwareUpdateController.Status.Failed>(final)
-        assertTrue(
-            (final as FirmwareUpdateController.Status.Failed).reason.contains("expected MD5 is required"),
-            "expected the required-MD5 failure reason, got: ${final.reason}",
-        )
-        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
-            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
-        assertEquals(
-            emptyList(), firmwareCodes,
-            "blank MD5 must short-circuit before any wire traffic; got $firmwareCodes",
-        )
-
-        session.disconnect()
-        runCurrent()
-    }
-
-    @Test
-    fun nullExpectedMd5FailsBeforeAnyWireTraffic() = runTest {
-        // Issue #39: null is just another way of saying "no expected
-        // MD5", and the controller must reject it for the same reason.
-        val conn = FakeConnection()
-        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
-        conn.queueDefaultAuthOk()
-        val session = MountSession({ conn }, readerScope = backgroundScope)
-        assertTrue(session.connect())
-
-        val controller = FirmwareUpdateController(
-            session = session,
-            delivery = DeliveryMode.WIRE,
-            chunkSize = 4,
-            progressPollMs = 50,
-            progressDoneRepeats = 2,
-            installTimeoutMs = 2_000,
-        )
-        val final = controller.start(
-            bytes = ByteArray(8) { it.toByte() },
-            filename = "FwPkt.zip",
-            expectedMd5 = null,
-            unsafeAllowNoChecksum = false,
-            rebootAfter = false,
-        )
-
-        assertIs<FirmwareUpdateController.Status.Failed>(final)
-        assertTrue(
-            (final as FirmwareUpdateController.Status.Failed).reason.contains("expected MD5 is required"),
-            "expected the required-MD5 failure reason, got: ${final.reason}",
-        )
-        val firmwareCodes = conn.written.mapNotNull { parseCode(it) }
-            .filter { it in setOf(810, 784, 794, 795, 811, 812) }
-        assertEquals(
-            emptyList(), firmwareCodes,
-            "null MD5 must short-circuit before any wire traffic; got $firmwareCodes",
-        )
 
         session.disconnect()
         runCurrent()
@@ -557,8 +464,7 @@ class FirmwareUpdateControllerTest {
         val final = controller.start(
             bytes = ByteArray(8) { it.toByte() },
             filename = "FwPkt.zip",
-            // Bypass the MD5 gate so this test exercises the NoOp-delivery sentinel.
-            unsafeAllowNoChecksum = true,
+            // Leave MD5 blank so this test exercises the NoOp-delivery sentinel.
         )
         val s = assertIs<FirmwareUpdateController.Status.Failed>(final)
         assertTrue(s.reason.contains("scp delivery failed"),

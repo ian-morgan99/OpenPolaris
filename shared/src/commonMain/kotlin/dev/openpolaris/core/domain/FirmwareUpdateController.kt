@@ -136,35 +136,20 @@ class FirmwareUpdateController(
      * written into the precondition frame for logging (the mount does
      * not currently echo the filename back — the field is advisory).
      *
-     * The expected MD5 of the bundle must be supplied via [expectedMd5]
-     * (32 hex chars, case-insensitive, trim-tolerant). It is compared
+     * When an expected MD5 of the bundle is supplied via [expectedMd5]
+     * (32 hex chars, case-insensitive, trim-tolerant), it is compared
      * against `Md5.digest(bytes)` before any network/SD traffic. A
-     * missing or malformed expected MD5 aborts with [Status.Failed] and
-     * never touches the SD card or the WIRE socket — see issue #39.
-     * This mirrors the Benro Connect flow where the user pastes a
-     * per-piece `crcInfo` hash from the Benro web console and the app
-     * refuses to upload if the local MD5 does not match, preventing
-     * partial / corrupted bundles from wedging `SP_UpgradeCheckFw` or
-     * bricking the mount's recovery partition.
-     *
-     * The `unsafeAllowNoChecksum` escape hatch exists for development
-     * and tests that want to exercise the wire layer without producing
-     * a real FwPkt bundle. It is **off by default** and the production
-     * UI ([dev.openpolaris.ui.AppViewModel.uploadFirmware]) never
-     * enables it, so a blank or missing expected MD5 will always block
-     * a normal firmware upload with zero SSH/WIRE traffic. Any caller
-     * that sets it to `true` accepts responsibility for the integrity
-     * gap (see the test class for the documented regression).
-     *
+     * malformed checksum or a mismatch aborts with [Status.Failed] and
+     * never touches the SD card or the WIRE socket. Leaving it blank
+     * skips this optional verification step.
      * The runtime order of pre-flight checks is:
      *  1. **Empty bytes** — refuse up-front.
      *  2. **Size cap** — 128 MB; matches the on-board SD card's vfat
      *     partition. Anything larger cannot land on the card.
-     *  3. **Expected MD5 present + 32-hex** — required unless
-     *     [unsafeAllowNoChecksum] is true. Surfaces the format error
-     *     *before* we hash the local bytes, so a typo in the paste-in
-     *     box gives a clear message rather than a "mismatch".
-     *  4. **Local-vs-expected MD5 compare** — only if step 3 passed.
+     *  3. **Expected MD5 present + 32-hex** — optional. When supplied,
+     *     malformed values are rejected before the local bytes are hashed.
+     *  4. **Local-vs-expected MD5 compare** — only when a valid checksum
+     *     was supplied.
      *  5. **Remote `/app/sd` free-space probe** (SSH_PIPE only) — must
      *     hold at least `bytes.size + 1 MB`; see [startSshPipe].
      *  6. **Delivery dispatch.**
@@ -177,6 +162,7 @@ class FirmwareUpdateController(
         bytes: ByteArray,
         filename: String = "FwPkt.zip",
         expectedMd5: String? = null,
+        @Suppress("UNUSED_PARAMETER")
         unsafeAllowNoChecksum: Boolean = false,
         rebootAfter: Boolean = false,
         onStatus: (Status) -> Unit = {},
@@ -199,28 +185,9 @@ class FirmwareUpdateController(
             onStatus(s); return s
         }
 
-        // Phase 1a #2 (FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #2) +
-        // issue #39: the expected MD5 is REQUIRED in the normal
-        // upload path. A missing or malformed hash is a *user error*,
-        // not a permission to skip the integrity check, so we surface
-        // it here — before hashing the local bytes — to give a clear,
-        // actionable failure reason.
+        // Verify the bundle only when its published MD5 is available.
         val expected = expectedMd5?.trim().orEmpty()
-        if (expected.isEmpty()) {
-            if (unsafeAllowNoChecksum) {
-                // Documented escape hatch. Log nothing; the test
-                // asserts the upload proceeds without an integrity
-                // check. The caller accepts the integrity gap.
-            } else {
-                val s = Status.Failed(
-                    "expected MD5 is required: paste the bundle's MD5 (32 hex characters) " +
-                        "into the verify-before-upload field, or call start() with " +
-                        "unsafeAllowNoChecksum=true to explicitly bypass the check " +
-                        "(development only — not exposed in the UI)"
-                )
-                onStatus(s); return s
-            }
-        } else if (!isValidMd5Hex(expected)) {
+        if (expected.isNotEmpty() && !isValidMd5Hex(expected)) {
             // Format check: 32 hex chars, no whitespace, no quotes,
             // no leading "0x". A `md5sum` output is exactly this
             // shape, and the Benro web console shows the same form,
@@ -230,7 +197,7 @@ class FirmwareUpdateController(
                     "(got ${expected.length} chars: \"${expected.take(64)}\")"
             )
             onStatus(s); return s
-        } else {
+        } else if (expected.isNotEmpty()) {
             // Real compare — only happens once format is validated.
             val local = dev.openpolaris.core.util.Md5.digest(bytes)
             if (!local.equals(expected, ignoreCase = true)) {

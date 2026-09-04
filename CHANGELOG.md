@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.15] - 2026-09-05
+## [0.1.15] - 2026-09-04
 
 ### Fixed
 - **VR mode (3D view) tap-to-exit did not work.** VRActivity declared
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has unit-test coverage; the on-device experience must be
   confirmed on a real Cardboard-class viewer.
 
-## [0.1.14] - 2026-09-05
+## [0.1.14] - 2026-09-04
 
 ### Fixed
 - **Firmware file picker broken on Android** (the top user complaint

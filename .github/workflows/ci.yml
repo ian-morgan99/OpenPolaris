@@ -126,6 +126,15 @@ jobs:
           find . -name "*.kt" -not -path "*/build/*" -not -path "*/.gradle/*" | wc -l
           echo "Note: this is a placeholder. Add ktlint/detekt later — see docs/PLANNING-2026-08.md §Next steps."
 
+      - name: CHANGELOG/tag date drift check (issue #50)
+        # Every released version's date in CHANGELOG.md must match the
+        # actual git tag creation date. Drift here used to slip through
+        # silently (v0.1.14 shipped with 2026-09-05 in the changelog
+        # while the tag was actually 2026-09-04). The
+        # ci-changelog-date-regression.yml workflow proves this check
+        # catches deliberate drift.
+        run: ./scripts/check-changelog-tag-dates.sh
+
       - name: Evidence-bundle secret/path lint
         # Fails the build if docs/evidence/ contains absolute local paths,
         # session-state links, password-hash formats, or private-key headers.

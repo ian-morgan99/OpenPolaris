@@ -1,0 +1,85 @@
+name: Changelog/tag date regression (issue #50)
+
+# Negative regression for issue #50: prove the changelog-tag date check
+# actually catches drift. This workflow temporarily corrupts one date in
+# CHANGELOG.md, runs scripts/check-changelog-tag-dates.sh, asserts it
+# exits non-zero, then restores the original file. A second run with the
+# file restored must pass.
+#
+# This is the same shape as the evidence-bundle lint regression workflow
+# (ci-evidence-lint-regression.yml). Both exist because a CI step that
+# never sees a violation is no proof it would catch one.
+#
+# Manual trigger only — matches the other CI workflows in this repo.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  changelog-date-regression:
+    name: Inject a date drift, expect failure, then clean up
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage 1 - confirm the check passes on a clean tree
+        run: ./scripts/check-changelog-tag-dates.sh
+
+      - name: Stage 2 - inject a wrong date on the latest released version
+        # The most recent released version header sits at the top of the
+        # file (we keep it newest-first). Drift the date by one day so
+        # the check has something specific to flag.
+        run: |
+          set -e
+          # Pick the last released version header (skip [Unreleased] since
+          # that has no date). Use sed to extract the version so the
+          # injection doesn't hard-code v0.1.15 forever.
+          VER=$(grep -E '^##[[:space:]]+\[[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md \
+                | head -1 \
+                | sed -E 's/^##[[:space:]]+\[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/')
+          echo "Injecting drift into version $VER"
+          # Bump the day by one (works for any date; the assertion is
+          # "exit non-zero" — the exact day drift doesn't matter for
+          # regression coverage).
+          python3 -c "
+          import re, pathlib
+          p = pathlib.Path('CHANGELOG.md')
+          src = p.read_text()
+          pattern = re.compile(r'(## \\[' + re.escape('$VER') + r'\\] - )[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          m = pattern.search(src)
+          if not m: raise SystemExit('Header for $VER not found')
+          old = m.group(0)
+          y, mo, d = m.group(0).split(' - ')[1].split('-')
+          new = f'{m.group(1)}{y}-{mo}-{int(d)+1:02d}'
+          pathlib.Path('CHANGELOG.md').write_text(src.replace(old, new, 1))
+          print(f'Old: {old}')
+          print(f'New: {new}')
+          "
+          grep -E "^##[[:space:]]+\[$VER" CHANGELOG.md
+
+      - name: Stage 3 - run the check, expect it to fail
+        id: expect_fail
+        run: |
+          set +e
+          ./scripts/check-changelog-tag-dates.sh
+          rc=$?
+          set -e
+          echo "rc=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::Check PASSED with a known-bad date in CHANGELOG. The check has regressed and is no longer catching drift."
+            exit 1
+          fi
+          echo "Check correctly exited non-zero ($rc) with drift in place."
+
+      - name: Stage 4 - restore the original date
+        run: |
+          git checkout -- CHANGELOG.md
+          grep -E "^##[[:space:]]+\[[0-9]+\.[0-9]+\.[0-9]+" CHANGELOG.md | head -1
+
+      - name: Stage 5 - re-run the check, expect it to pass
+        run: ./scripts/check-changelog-tag-dates.sh

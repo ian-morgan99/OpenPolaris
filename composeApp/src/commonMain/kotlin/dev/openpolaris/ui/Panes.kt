@@ -898,7 +898,7 @@ private fun FirmwareStep3(
                 dev.openpolaris.core.domain.FirmwareUpdateController.Status.Done ->
                     "Done."
                 is dev.openpolaris.core.domain.FirmwareUpdateController.Status.Failed ->
-                    "Failed: ${s.reason}"
+                    "Failed: ${s.reason} The selected file is retained so you can retry."
             },
             style = MaterialTheme.typography.bodySmall,
         )

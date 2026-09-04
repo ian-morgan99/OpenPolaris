@@ -7,9 +7,13 @@ import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -97,6 +101,10 @@ class FirmwareUpdateController(
      *  only. A 30 MB firmware takes 60–120 s end-to-end on the gimbal
      *  (MD5 verify + NAND write), so 5 minutes is generous. */
     private val onBoardInstallTimeoutMs: Long = 5 * 60_000L,
+    /** Maximum period with no reported SSH_PIPE byte progress. This avoids
+     *  leaving the UI indefinitely on "Uploading" when the Wi-Fi/SSH
+     *  stream stops accepting data. */
+    private val uploadProgressTimeoutMs: Long = 30_000L,
     /** Max bytes per `FILE_UPLOAD_CHUNK` frame. The default 1024 is the
      *  size the Benro Connect app uses for firmware chunks; anything
      *  larger risks the mount's UART ring. WIRE mode only. */
@@ -115,6 +123,12 @@ class FirmwareUpdateController(
      *  WIRE mode only. */
     private val armTimeoutMs: Long = 2_000,
 ) {
+    init {
+        require(uploadProgressTimeoutMs > 0) {
+            "uploadProgressTimeoutMs must be greater than zero"
+        }
+    }
+
 
     /** Sealed status reported back to the UI. */
     sealed interface Status {
@@ -257,15 +271,10 @@ class FirmwareUpdateController(
                 onStatus(s); return s
             }
         }
-        try {
-            sshDelivery.deliver(bytes, filename, onProgress = { sent ->
-                onStatus(Status.Uploading(bytesSent = sent, bytesTotal = bytes.size))
-            })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            val s = Status.Failed("scp delivery failed: ${e.message ?: e::class.simpleName}")
-            onStatus(s); return s
+        val deliveryFailure = deliverWithProgressWatchdog(bytes, filename, onStatus)
+        if (deliveryFailure != null) {
+            onStatus(deliveryFailure)
+            return deliveryFailure
         }
         onStatus(Status.Uploading(bytesSent = bytes.size, bytesTotal = bytes.size))
 
@@ -332,6 +341,43 @@ class FirmwareUpdateController(
                 val s = Status.Failed("on-board install timed out after ${onBoardInstallTimeoutMs}ms")
                 onStatus(s); s
             }
+        }
+
+    }
+
+    private suspend fun deliverWithProgressWatchdog(
+        bytes: ByteArray,
+        filename: String,
+        onStatus: (Status) -> Unit,
+    ): Status.Failed? = supervisorScope {
+        val progress = Channel<Int>(capacity = Channel.CONFLATED)
+        val transfer = async {
+            sshDelivery.deliver(bytes, filename, onProgress = progress::trySend)
+        }
+        try {
+            while (!transfer.isCompleted) {
+                val advanced = withTimeoutOrNull(uploadProgressTimeoutMs) {
+                    progress.receive()
+                }
+                if (advanced == null && !transfer.isCompleted) {
+                    transfer.cancel()
+                    return@supervisorScope Status.Failed(
+                        "firmware transfer stalled: no byte progress for " +
+                            "${uploadProgressTimeoutMs / 1_000}s; check the Wi-Fi link and retry"
+                    )
+                }
+                if (advanced != null) {
+                    onStatus(Status.Uploading(bytesSent = advanced, bytesTotal = bytes.size))
+                }
+            }
+            transfer.await()
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Status.Failed("scp delivery failed: ${e.message ?: e::class.simpleName}")
+        } finally {
+            progress.close()
         }
     }
 

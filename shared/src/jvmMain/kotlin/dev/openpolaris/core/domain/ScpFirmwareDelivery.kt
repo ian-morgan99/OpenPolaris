@@ -155,6 +155,9 @@ class ScpFirmwareDelivery(
                     throw e
                 }
             }
+        } catch (e: CancellationException) {
+            proc.destroyForcibly()
+            throw e
         } catch (e: Throwable) {
             // Wrap so the controller's `scp delivery failed: ...` reason
             // is meaningful.

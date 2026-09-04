@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Firmware uploads no longer hang indefinitely after SSH progress stops.**
+  The upload now fails after 30 seconds without reported byte progress,
+  terminates the stalled transfer, explains that the Wi-Fi link should be
+  checked, and retains the selected bundle for retry.
 - **Firmware upload again honours the optional MD5 field.** An empty
   expected-MD5 field was incorrectly rejected before upload despite its
   "optional" label. Blank or null values now skip verification; any

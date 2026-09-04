@@ -5,6 +5,7 @@ import dev.openpolaris.core.net.SshCommandRunner
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.util.Md5
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
@@ -162,6 +163,34 @@ class FirmwareUpdateControllerTest {
             onProgress(bytes.size / 2)
             onProgress(bytes.size)
         }
+
+    }
+
+    @Test
+    fun stalledSshTransferFailsWithRetryableStatus() = runTest {
+        val delivery = object : FirmwareDelivery {
+            override suspend fun deliver(
+                bytes: ByteArray,
+                filename: String,
+                onProgress: (bytesSent: Int) -> Unit,
+            ) {
+                awaitCancellation()
+            }
+        }
+        val controller = FirmwareUpdateController(
+            session = MountSession({ FakeConnection() }, readerScope = backgroundScope),
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = delivery,
+            uploadProgressTimeoutMs = 1_000,
+        )
+
+        val final = controller.start(bytes = ByteArray(16), filename = "FwPkt.zip")
+
+        val failure = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(
+            failure.reason.startsWith("firmware transfer stalled:"),
+            "expected a stalled-transfer error, got: ${failure.reason}",
+        )
     }
 
     @Test

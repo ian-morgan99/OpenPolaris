@@ -360,23 +360,21 @@ fun FeatureFlagsPaneContent(
         revision
         Spacer(Modifier.height(4.dp))
         HorizontalDivider()
-        // weight(1f, fill = true) on the inner Column makes it consume
-        // all remaining vertical space, so the build-identity footer
-        // below is always pinned to the bottom of the dialog and never
-        // clipped by the AlertDialog's bounded `text` slot. The actual
-        // vertical scrolling happens one level up in `CalloutDialog`,
-        // which wraps every callout body in
-        // `Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = true)`.
-        // The total Modifier.verticalScroll count across the commonMain
-        // UI tree is exactly one, enforced by
-        // CalloutDialogNoScrollWrapperTest — it lives in CalloutDialog
-        // because that is the only level that sees a bounded height
-        // (the AlertDialog's `text` slot), so per-pane `verticalScroll`
-        // modifiers would crash with "infinity maximum height
-        // constraints" (the v0.1.5 / v0.1.6 regression that this
-        // design avoids).
-        Column(modifier = Modifier.weight(1f, fill = true)) {
-            listOf(
+        // No weight(1f, fill = true) here — it created a circular
+        // measurement constraint that made the AlertDialog's `text`
+        // slot measure at 284px regardless of the outer scroll
+        // (v0.1.11 regression: all 25 flag rows were clipped to
+        // invisible). The outer CalloutDialog owns the single
+        // Modifier.verticalScroll — adding any weight inside it makes
+        // the AlertDialog collapse the text slot to a tiny strip. Now
+        // the flags + version label all live in a plain Column that
+        // grows with its content; the outer scroll takes care of
+        // overflow. The version label is no longer pinned, but it
+        // scrolls with the list which is fine — the user can see it
+        // when they reach the end, and it no longer blocks access to
+        // any flag (notably firmwareUpload, which was unreachable
+        // before this fix).
+        listOf(
                 FlagSection.DayToDay to dayToDayExpanded,
                 FlagSection.Advanced to advancedExpanded,
                 FlagSection.Admin to adminExpanded,
@@ -416,7 +414,6 @@ fun FeatureFlagsPaneContent(
                     HorizontalDivider()
                 }
             }
-        }
         if (!versionLabel.isNullOrBlank()) {
             HorizontalDivider()
             Text(

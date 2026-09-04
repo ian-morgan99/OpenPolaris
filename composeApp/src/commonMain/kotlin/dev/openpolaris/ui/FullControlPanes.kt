@@ -63,15 +63,26 @@ fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 private fun DitherRow(vm: AppViewModel) {
+    // v0.1.12: split into two rows so the controls fit inside the
+    // 250dp-wide Helpers dialog. The previous single-row layout
+    // (label 110dp + value 48dp + Switch + spacer + Button) overflowed
+    // by ~28dp, clipping the controls and rotating the "read-only"
+    // caption to vertical text (#47). See
+    // .copilot/agent-state/.../v0111-ui-audit/22_helpers_pane.png.
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Dither", modifier = Modifier.width(110.dp))
-        Text(vm.ditherEnabled?.let { if (it) "ON" else "OFF" } ?: "—", modifier = Modifier.width(48.dp))
+        Text("Dither", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(
+            vm.ditherEnabled?.let { if (it) "ON" else "OFF" } ?: "—",
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Switch(
             enabled = FeatureFlags.isEnabled("advancedAstro"),
             checked = vm.ditherEnabled == true,
             onCheckedChange = vm::setDither,
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.weight(1f))
         OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
     }
 }
@@ -79,14 +90,14 @@ private fun DitherRow(vm: AppViewModel) {
 @Composable
 private fun SettlingRow(vm: AppViewModel) {
     var draft by remember(vm.settlingTime) { mutableStateOf(vm.settlingTime?.toString() ?: "") }
+    Text("Settling (s)", style = MaterialTheme.typography.bodyMedium)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Settling (s)", modifier = Modifier.width(110.dp))
         OutlinedTextField(
             value = draft,
             onValueChange = { draft = it.filter { c -> c.isDigit() }.take(5) },
             singleLine = true,
             label = { Text("seconds") },
-            modifier = Modifier.width(110.dp),
+            modifier = Modifier.weight(1f),
         )
         Button(
             enabled = FeatureFlags.isEnabled("advancedAstro"),
@@ -95,7 +106,6 @@ private fun SettlingRow(vm: AppViewModel) {
                 if (v != null && v >= 0) vm.setSettlingTimeMs(v * 1000) else vm.refreshSettling()
             },
         ) { Text("Apply") }
-        Spacer(Modifier.width(8.dp))
         OutlinedButton(onClick = vm::refreshSettling) { Text("Refresh") }
     }
 }
@@ -103,60 +113,66 @@ private fun SettlingRow(vm: AppViewModel) {
 @Composable
 private fun LimitsRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Limits", modifier = Modifier.width(110.dp))
+        Text("Limits", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
             vm.limitsEnabled?.let { if (it) "ON" else "OFF" } ?: "—",
-            modifier = Modifier.width(48.dp),
             fontWeight = FontWeight.SemiBold,
         )
-        if (FeatureFlags.isEnabled("limitsWrite")) {
+    }
+    if (FeatureFlags.isEnabled("limitsWrite")) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Switch(
                 checked = vm.limitsEnabled == true,
                 onCheckedChange = vm::setLimits,
             )
-            Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        } else {
-            // Read-only: the write path is gated off, so we surface the value
-            // the mount reports but offer no toggle. The user can still see
-            // the current state and hit Refresh to re-read.
-            Text(
-                "read-only (set limitsWrite=true in config to toggle)",
-                style = MaterialTheme.typography.labelSmall,
-            )
+            Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
         }
-        Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+    } else {
+        // Read-only: the write path is gated off, so we surface the value
+        // the mount reports but offer no toggle. The user can still see
+        // the current state and hit Refresh to re-read.
+        Text(
+            "read-only (set limitsWrite=true in config to toggle)",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+        }
     }
 }
 
 @Composable
 private fun AutoLevelRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Auto-level", modifier = Modifier.width(110.dp))
+        Text("Auto-level", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
             vm.autoLevelEnabled?.let { if (it) "ENABLED" else "DISABLED" } ?: "—",
-            modifier = Modifier.width(80.dp),
             fontWeight = FontWeight.SemiBold,
         )
-        if (FeatureFlags.isEnabled("autoLevel")) {
+    }
+    if (FeatureFlags.isEnabled("autoLevel")) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Switch(
                 checked = vm.autoLevelEnabled == true,
                 onCheckedChange = vm::setAutoLevelEnabled,
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.weight(1f))
             OutlinedButton(onClick = vm::runAutoLevel) { Text("Run now") }
-            Spacer(Modifier.width(8.dp))
             OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
-        } else {
-            // Read-only: kiosk/test rigs may set autoLevel=false to hide
-            // the toggle and Run-now button. 547/548/549 are live-confirmed
-            // (Functions Report §2.3) so this is a UI-level hide, not a
-            // safety gate.
-            Text(
-                "read-only (set autoLevel=true in config to enable)",
-                style = MaterialTheme.typography.labelSmall,
-            )
-            Spacer(Modifier.width(8.dp))
+        }
+    } else {
+        // Read-only: kiosk/test rigs may set autoLevel=false to hide
+        // the toggle and Run-now button. 547/548/549 are live-confirmed
+        // (Functions Report §2.3) so this is a UI-level hide, not a
+        // safety gate.
+        Text(
+            "read-only (set autoLevel=true in config to enable)",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
         }
     }

@@ -321,23 +321,25 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Slew", style = MaterialTheme.typography.titleMedium)
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Observer location:", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(
-                    value = vm.latDeg,
-                    onValueChange = vm::updateLat,
-                    label = { Text("Lat ° (N+)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = vm.lngEastDeg,
-                    onValueChange = vm::updateLng,
-                    label = { Text("Lng ° (E+)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            // v0.1.12: stack the Lat/Lng fields vertically so the
+            // OutlinedTextField label doesn't get rotated to vertical
+            // text when the column is too narrow for the label string
+            // (#47). See .copilot/agent-state/.../v0111-ui-audit/21_slew_pane.png.
+            Text("Observer location", style = MaterialTheme.typography.bodyMedium)
+            OutlinedTextField(
+                value = vm.latDeg,
+                onValueChange = vm::updateLat,
+                label = { Text("Lat ° (N+)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = vm.lngEastDeg,
+                onValueChange = vm::updateLng,
+                label = { Text("Lng ° (E+)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = !vm.raDecMode, onClick = { vm.setRaDecMode(false) }, label = { Text("Az/Alt") })
@@ -496,10 +498,32 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("$label: ${value?.toString() ?: "—"}", modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { if (value != null && value > 0) onChange(value - 1) else onChange(0) }) { Text("−") }
-        OutlinedButton(onClick = { onChange((value ?: -1) + 1) }) { Text("+") }
+    // v0.1.12: vertical layout to keep the label readable inside the
+    // narrow 2-column Camera pane. The previous Row-with-weight-Text
+    // got squeezed to ~0 width when the two OutlinedButtons took
+    // their natural width first (#47). See
+    // .copilot/agent-state/.../v0111-ui-audit/20_camera_pane.png.
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            "$label: ${value?.toString() ?: "—"}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            OutlinedButton(
+                onClick = { if (value != null && value > 0) onChange(value - 1) else onChange(0) },
+                modifier = Modifier.weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) { Text("−", style = MaterialTheme.typography.labelLarge) }
+            OutlinedButton(
+                onClick = { onChange((value ?: -1) + 1) },
+                modifier = Modifier.weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) { Text("+", style = MaterialTheme.typography.labelLarge) }
+        }
     }
 }
 

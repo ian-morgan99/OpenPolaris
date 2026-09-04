@@ -128,20 +128,10 @@ class CalloutDialogNoScrollWrapperTest {
                 "The sole bounded scroller now lives in CalloutDialog. The Settings dialog's " +
                 "outer wrapper already scrolls, so any inner verticalScroll here would create " +
                 "the same-axis nested-scrollables crash from v0.1.5 (issues #40 / #42). " +
-                "The inner Column still uses Modifier.weight(1f, fill = true) to pin the " +
-                "build-identity footer to the bottom of the dialog."
-        )
-        // Also assert the v0.1.10 footer-pinning weight is preserved.
-        val noComments = stripComments(src)
-        val weightOnInnerColumn = Regex(
-            """Column\s*\(\s*[^)]*modifier\s*=\s*[^)]*Modifier\.weight\s*\(\s*1f\s*,\s*fill\s*=\s*true"""
-        ).findAll(noComments).count()
-        assertTrue(
-            weightOnInnerColumn >= 1,
-            "FeatureFlagsPane.kt must keep Modifier.weight(1f, fill = true) on its inner " +
-                "Column so the build-identity footer is pinned to the bottom of the dialog. " +
-                "Found $weightOnInnerColumn such Column - the footer will be clipped off-screen " +
-                "if this weight is removed."
+                "In v0.1.11 we also removed Modifier.weight(1f, fill = true) on the inner " +
+                "Column: that weight created a circular measurement constraint that made the " +
+                "AlertDialog's `text` slot measure at 284px and clip all 25 flag rows. The " +
+                "version-label footer now scrolls with the list instead of being pinned."
         )
     }
 

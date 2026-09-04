@@ -289,14 +289,14 @@ jobs:
       - name: Zip app-image
         # Self-contained folder (bundled JRE + OpenPolaris.exe) as a single
         # artifact; users unzip and run the .exe — no Java install required.
-        run: Compress-Archive -Path desktopApp\build\compose\distributions\OpenPolaris\* -DestinationPath desktopApp\build\compose\distributions\OpenPolaris-windows-x64.zip
+        run: Compress-Archive -Path desktopApp\build\compose\binaries\main\app\OpenPolaris\* -DestinationPath desktopApp\build\compose\binaries\main\app\OpenPolaris-windows-x64.zip
 
       - name: Verify MSI is non-empty
         # Sanity check the MSI artifact before uploading so an empty/broken
         # installer doesn't ship. WiX/jpackage failure modes include
         # producing a 0-byte file or no file at all.
         run: |
-          $msi = Get-Item desktopApp\build\compose\packages\*.msi -ErrorAction SilentlyContinue
+          $msi = Get-Item desktopApp\build\compose\binaries\main\msi\*.msi -ErrorAction SilentlyContinue
           if (-not $msi) { throw "No MSI artifact produced" }
           foreach ($f in $msi) {
             if ($f.Length -le 0) { throw "MSI $($f.Name) is 0 bytes" }
@@ -308,7 +308,7 @@ jobs:
         with:
           name: openpolaris-windows-x64
           path: |
-            desktopApp/build/compose/distributions/OpenPolaris-windows-x64.zip
-            desktopApp/build/compose/packages/*.msi
+            desktopApp/build/compose/binaries/main/app/OpenPolaris-windows-x64.zip
+            desktopApp/build/compose/binaries/main/msi/*.msi
             desktopApp/build/inno/output/*-Setup-*.exe
           retention-days: 30

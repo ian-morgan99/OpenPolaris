@@ -451,8 +451,8 @@ Open Polaris ships two runnable targets from one codebase:
 | Target | Gradle task | Output | How to run |
 |--------|-------------|--------|------------|
 | **Desktop (JVM / Compose Multiplatform)** | `./gradlew :desktopApp:run` | AWT window on the dev box | Needs a display (`$DISPLAY` on Linux, Aqua on macOS, the desktop session on Windows) |
-| **Windows distribution** | `.\gradlew.bat :desktopApp:createDistributable` (on Windows) | Self-contained folder at `desktopApp/build/compose/distributions/OpenPolaris/` with bundled JRE + `OpenPolaris.exe` | Unzip/copy the folder, run the `.exe` — no Java install needed |
-| **Windows MSI installer** | `.\gradlew.bat :desktopApp:packageMsi` (on Windows) | `desktopApp/build/compose/packages/OpenPolaris-1.0.0.msi` | Double-click to install |
+| **Windows distribution** | `.\gradlew.bat :desktopApp:createDistributable` (on Windows) | Self-contained folder at `desktopApp/build/compose/binaries/main/app/OpenPolaris/` with bundled JRE + `OpenPolaris.exe` | Unzip/copy the folder, run the `.exe` — no Java install needed |
+| **Windows MSI installer** | `.\gradlew.bat :desktopApp:packageMsi` (on Windows) | `desktopApp/build/compose/binaries/main/msi/OpenPolaris-1.0.0.msi` | Double-click to install |
 | **Windows EXE installer (Inno Setup)** | `.\gradlew.bat :desktopApp:createExeInstaller` (on Windows; skipped elsewhere) | `OpenPolaris-Setup-1.0.0.exe` at `desktopApp/build/inno/output/` | Double-click to install; needs [Inno Setup 6+](https://jrsoftware.org/isinfo.php) on the build host (`choco install innosetup`) or `INNO_SETUP_HOME` set |
 | **Android APK (debug)** | `./gradlew :androidApp:assembleDebug` | `androidApp/build/outputs/apk/debug/androidApp-debug.apk` | `adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk` |
 

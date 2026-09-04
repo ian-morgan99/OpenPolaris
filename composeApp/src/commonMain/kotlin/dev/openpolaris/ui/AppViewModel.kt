@@ -30,6 +30,7 @@ import dev.openpolaris.core.domain.NoOpFirmwareDelivery
 import dev.openpolaris.core.domain.platformFirmwareDelivery
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.io.FilePicker
+import dev.openpolaris.core.io.PickerBridge
 import dev.openpolaris.core.session.PlatformFile
 import dev.openpolaris.core.domain.GoToController
 import dev.openpolaris.core.domain.HelpersController
@@ -2257,7 +2258,16 @@ class AppViewModel(
             title = "Pick FwPkt.zip",
             mimeType = "application/zip",
         ) { path ->
-            if (path == null) return@pickFile
+            if (path == null) {
+                // Native chooser closed without selecting. We can't tell
+                // cancel from error here, so surface a neutral "cancelled"
+                // message — better than the previous silent no-op that
+                // confused users (issue #49 "no cancel option"). The
+                // tagged [PickerBridge] path is the one that can
+                // distinguish Cancelled vs Error; see [applyPickResult].
+                statusMessage = "Picker cancelled"
+                return@pickFile
+            }
             val f = PlatformFile(path)
             if (!f.exists() || !f.isReadable()) {
                 statusMessage = "Picked file is not readable: $path"
@@ -2274,6 +2284,52 @@ class AppViewModel(
                 null
             }
             statusMessage = "Firmware ready: ${pickedFirmwareName} (${pickedFirmwareSize ?: "?"} bytes)"
+        }
+    }
+
+    /**
+     * Apply a [PickerBridge.PickResult] to this VM. Called from
+     * `MainActivity.onCreate` after the new VM is built, to drain
+     * any result that was published by the previous activity's
+     * launcher callback (the rotation / recreate case — issue #49).
+     *
+     * This is the tagged-path equivalent of the inline callback in
+     * [pickFirmwareFile]: the inline callback can only distinguish
+     * "got a path" vs "got null" (the AndroidX callback is just
+     * `Uri?`), so it has to say "cancelled" for both Cancel and
+     * Error. The bridge path tags the result with a [PickerBridge.PickResult.Reason]
+     * so we can give a more honest "Picker failed" for the error case.
+     */
+    fun applyPickResult(result: PickerBridge.PickResult) {
+        when (result.reason) {
+            PickerBridge.PickResult.Reason.Picked -> {
+                val path = result.absolutePath ?: run {
+                    // A Picked result with a null path is a malformed
+                    // publish (handleResult returned null but the
+                    // launcher said Picked). Treat as error.
+                    statusMessage = "Picker failed: empty path"
+                    return
+                }
+                val f = PlatformFile(path)
+                if (!f.exists() || !f.isReadable()) {
+                    statusMessage = "Picked file is not readable: $path"
+                    return
+                }
+                pickedFirmwarePath = path
+                pickedFirmwareName = basename(path)
+                pickedFirmwareSize = try {
+                    java.io.File(path).length()
+                } catch (t: Throwable) {
+                    null
+                }
+                statusMessage = "Firmware ready: ${pickedFirmwareName} (${pickedFirmwareSize ?: "?"} bytes)"
+            }
+            PickerBridge.PickResult.Reason.Cancelled -> {
+                statusMessage = "Picker cancelled"
+            }
+            PickerBridge.PickResult.Reason.Error -> {
+                statusMessage = "Picker failed"
+            }
         }
     }
 

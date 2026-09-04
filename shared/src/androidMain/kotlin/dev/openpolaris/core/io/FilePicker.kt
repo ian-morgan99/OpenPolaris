@@ -2,7 +2,6 @@ package dev.openpolaris.core.io
 
 import android.content.Context
 import android.net.Uri
-import androidx.activity.ComponentActivity
 import java.io.File
 import java.io.FileOutputStream
 
@@ -27,6 +26,18 @@ import java.io.FileOutputStream
  * [FilePickerRegistry.handleResult] so callers always get a real
  * filesystem path they can read with `PlatformFile.readBytes()` —
  * `Uri` itself is not a path and cannot be opened directly.
+ *
+ * **Rotation / Activity recreate (issue #49)**: when the device
+ * rotates mid-pick, the old `MainActivity` is destroyed and a new
+ * instance is created. The new activity re-registers the
+ * `ActivityResultLauncher`, and AndroidX re-delivers the pending
+ * `Uri` to the new launcher. But the per-call callback
+ * ([FilePickerRegistry.pendingCallback]) was set on the old
+ * instance's VM and is now stale. The fix is the process-scoped
+ * [PickerBridge] buffer the launcher callback always writes to; the
+ * new activity's `onCreate` reads and drains it, then re-applies the
+ * result to the freshly-built `AppViewModel`. [FilePickerRegistry.clear]
+ * deliberately preserves this buffer.
  */
 actual object FilePicker {
     actual fun pickFile(
@@ -48,6 +59,11 @@ actual object FilePicker {
         // holder. (The firmware flow is one-pick-at-a-time anyway, so a
         // concurrent pick is a user error — we just overwrite.)
         FilePickerRegistry.pendingCallback = onPicked
+        // Mark a new pick as in-flight on the bridge so the launcher's
+        // later callback knows to overwrite the buffer (vs. leaving an
+        // old pre-rotation result in place that the new VM would then
+        // mis-apply as fresh).
+        PickerBridge.beginPick()
         // The launcher stored in the registry is whatever concrete type
         // the host registered — currently
         // `ActivityResultLauncher<String>` for `GetContent`. We launch
@@ -63,6 +79,13 @@ actual object FilePicker {
             val launchMethod = launcher::class.java.getMethod("launch", Any::class.java)
             launchMethod.invoke(launcher, mime)
         } catch (t: Throwable) {
+            // The reflection call failed (e.g. contract was changed to a
+            // non-`launch(Any)` shape). Surface a cancel-style null to
+            // the caller so they don't hang waiting for a result that
+            // will never arrive, and clear the in-flight flag so the
+            // stale callback is not mistaken for a fresh result later.
+            FilePickerRegistry.pendingCallback = null
+            PickerBridge.publishResult(null, PickerBridge.PickResult.Reason.Error)
             onPicked(null)
         }
     }
@@ -73,6 +96,15 @@ actual object FilePicker {
  * the Activity result launcher and a single-slot pending callback for
  * the next pick. Cleared by `MainActivity` in `onDestroy` so we don't
  * leak the activity reference.
+ *
+ * **Last-pick-result buffer (issue #49)**: the cross-process buffer
+ * lives in [PickerBridge] (commonMain) so it's unit-testable. The
+ * `MainActivity` launcher callback always writes there, and
+ * `MainActivity.onCreate` drains it after the new VM has been
+ * built. This is what lets a result delivered after rotation reach
+ * the new VM. The buffer survives [clear] because
+ * rotation's `onDestroy`/`onCreate` pair is the exact case we need
+ * to bridge.
  */
 object FilePickerRegistry {
     @Volatile var appContext: Context? = null
@@ -89,26 +121,16 @@ object FilePickerRegistry {
     @Volatile var pendingCallback: ((String?) -> Unit)? = null
 
     /**
-     * Drop all references the registry holds. Called by `MainActivity` in
-     * `onDestroy` so we don't leak the Activity across configuration
-     * changes. The picker is single-slot; any in-flight callback is
-     * dropped on rotation, which is acceptable for v1.
-     */
-    fun clear() {
-        appContext = null
-        launcher = null
-        pendingCallback = null
-    }
-
-    /**
-     * Read the picked SAF `Uri` into a file under the app's cacheDir and
-     * return the absolute path. Called from the result callback in
-     * `MainActivity`. Returns `null` if the user cancelled (no Uri) or
-     * the copy failed (e.g. revoked permission).
+     * Read the picked SAF `Uri` into a file under the app's cacheDir
+     * and return the absolute path. Called from the result callback
+     * in `MainActivity`. Returns `null` if the user cancelled (no
+     * Uri), the bytes could not be read, or no app context is
+     * available yet.
      */
     fun handleResult(uri: Uri?): String? {
-        val ctx = appContext ?: return null
+        val ctx = appContext
         if (uri == null) return null
+        if (ctx == null) return null
         return try {
             val name = queryDisplayName(ctx, uri) ?: "picked.bin"
             val cacheFile = File(ctx.cacheDir, "picked_${System.currentTimeMillis()}_$name")
@@ -121,6 +143,22 @@ object FilePickerRegistry {
         } catch (t: Throwable) {
             null
         }
+    }
+
+    /**
+     * Drop the activity-scoped references the registry holds. Called by
+     * `MainActivity` in `onDestroy` so we don't leak the Activity
+     * across configuration changes. We deliberately do NOT clear
+     * [PickerBridge.pickInFlight] or [PickerBridge.lastPickResult]
+     * here — that buffer is the rotation bridge and must survive
+     * `onDestroy`/`onCreate`.
+     */
+    fun clear() {
+        appContext = null
+        launcher = null
+        pendingCallback = null
+        // PickerBridge.pickInFlight and PickerBridge.lastPickResult
+        // intentionally preserved.
     }
 
     private fun queryDisplayName(ctx: Context, uri: Uri): String? {

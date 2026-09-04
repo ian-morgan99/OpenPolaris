@@ -26,6 +26,7 @@ import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.domain.installResourceContext
 import dev.openpolaris.core.io.FilePicker
 import dev.openpolaris.core.io.FilePickerRegistry
+import dev.openpolaris.core.io.PickerBridge
 import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
 import dev.openpolaris.ui.AppViewModel
@@ -79,10 +80,34 @@ class MainActivity : ComponentActivity() {
     ) { uri ->
         // Hand the Uri to the registry, which copies it into the cache
         // directory and returns a real absolute path the caller can read.
-        val path = FilePickerRegistry.handleResult(uri)
+        // Tag the result with the right reason so the VM can surface a
+        // useful status message ("Picker cancelled") instead of a
+        // silent null.
+        val reason: PickerBridge.PickResult.Reason
+        val path: String?
+        if (uri == null) {
+            reason = PickerBridge.PickResult.Reason.Cancelled
+            path = null
+        } else {
+            val resolved = FilePickerRegistry.handleResult(uri)
+            if (resolved == null) {
+                reason = PickerBridge.PickResult.Reason.Error
+                path = null
+            } else {
+                reason = PickerBridge.PickResult.Reason.Picked
+                path = resolved
+            }
+        }
+        // Always publish to the buffer FIRST so the new activity (after
+        // a rotation) can drain it. The one-shot callback below may
+        // have already fired into a dead VM, in which case the new VM
+        // is the only consumer.
+        PickerBridge.publishResult(path, reason)
         // Fire the one-shot callback the picker was launched with. Always
         // clear it, even on cancel / error, so a leaked callback can't
-        // fire twice.
+        // fire twice. The callback captures the *old* VM; if we've
+        // already rotated, that VM is dead and the write is wasted
+        // but harmless — the new VM will read `lastPickResult` below.
         val cb = FilePickerRegistry.pendingCallback
         FilePickerRegistry.pendingCallback = null
         cb?.invoke(path)
@@ -136,6 +161,18 @@ class MainActivity : ComponentActivity() {
                 connectionFactory = { JvmConnection() },
                 sessionStore = sessionStore,
             )
+
+            // Drain the picker bridge: if a result was published (in this
+            // activity instance OR the previous one before rotation), apply
+            // it to the freshly-built VM. `LaunchedEffect(Unit)` runs once
+            // per onCreate — not on every recomposition — and is anchored
+            // to the VM so the apply happens after the VM is wired up.
+            // issue #49.
+            LaunchedEffect(viewModel) {
+                PickerBridge.consume()?.let { result ->
+                    viewModel?.applyPickResult(result)
+                }
+            }
 
             // The dialog that lists Polaris APs the latest scan found.
             // Hoisted to the activity so it persists across recomposition

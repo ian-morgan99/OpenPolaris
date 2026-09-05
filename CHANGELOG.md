@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Wi-Fi bridge policy route no longer fails with "Operation not permitted".**
+  `ip rule add/del` and `ip route add/del` need `CAP_NET_ADMIN`, which the
+  desktop app does not run with, so the "Installing policy route" step of the
+  one-tap bridge always failed. `SystemProcessRunner` now escalates exactly
+  those mutating `ip` subcommands via non-interactive `sudo -n`; a scoped,
+  passwordless sudoers drop-in (`scripts/sudoers/openpolaris-network`,
+  installed by `scripts/install-network-sudoers-rule.sh`) covers only the
+  bridge's own `192.168.0.0/24` rule/route invocations. Read-only `ip … show`
+  calls and all other commands (`nmcli`, `bluetoothctl`) stay unprivileged,
+  and a permission failure registering the cosmetic `polaris-wifi` table name
+  in `/etc/iproute2/rt_tables` no longer aborts the bridge (the numeric table
+  id is used for every real `ip` call).
 - **Desktop Bluetooth and Wi-Fi bridge errors are now reported accurately.**
   A Bluetooth wake that cannot discover or connect to the Polaris no longer
   claims success; bridge activation also stops on saved-profile or policy-route

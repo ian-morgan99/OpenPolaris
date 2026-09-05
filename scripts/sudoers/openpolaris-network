@@ -1,0 +1,14 @@
+# OpenPolaris: allow user 'ian' to manage the segregated policy route for
+# the Benro Polaris Wi-Fi bridge (see shared/.../net/WifiBridge.kt) without a
+# password prompt. Scoped to exactly the `ip rule`/`ip route` add/del
+# invocations the bridge issues for the 192.168.0.0/24 gimbal subnet — no
+# other command is escalated.
+#
+# Install with scripts/install-network-sudoers-rule.sh (prompts once for the
+# sudo password). Validate with `sudo visudo -c -f /etc/sudoers.d/openpolaris-network`.
+ian ALL=(root) NOPASSWD: /usr/sbin/ip rule add to 192.168.0.0/24 table * priority *
+ian ALL=(root) NOPASSWD: /usr/sbin/ip rule del to 192.168.0.0/24 table * priority *
+ian ALL=(root) NOPASSWD: /usr/sbin/ip route add 192.168.0.0/24 dev * table *
+ian ALL=(root) NOPASSWD: /usr/sbin/ip route add default dev * metric 10000 table *
+ian ALL=(root) NOPASSWD: /usr/sbin/ip route del 192.168.0.0/24 dev * table *
+ian ALL=(root) NOPASSWD: /usr/sbin/ip route del default dev * metric 10000 table *

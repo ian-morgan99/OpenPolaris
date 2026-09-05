@@ -25,7 +25,8 @@ object SystemProcessRunner : ProcessRunner {
     override fun run(args: List<String>): String {
         require(args.isNotEmpty()) { "ProcessRunner.run requires at least the executable name" }
         val cmd = args[0]
-        val pb = ProcessBuilder(args).redirectErrorStream(false)
+        val escalated = escalateIfNeeded(args)
+        val pb = ProcessBuilder(escalated).redirectErrorStream(false)
         val proc = try {
             pb.start()
         } catch (t: Throwable) {
@@ -39,5 +40,20 @@ object SystemProcessRunner : ProcessRunner {
             throw BridgeException(cmd, code, err.ifBlank { out })
         }
         return out
+    }
+
+    /**
+     * `ip rule add/del` and `ip route add/del` need `CAP_NET_ADMIN`, which the
+     * desktop app does not run with. Escalate only those two mutating
+     * subcommands via non-interactive `sudo -n`; a passwordless-sudo rule for
+     * exactly these `ip` invocations is installed by
+     * `scripts/install-network-sudoers-rule.sh`. Read-only `show` calls and
+     * every other binary (`nmcli`, `bluetoothctl`) run unprivileged as before.
+     */
+    private fun escalateIfNeeded(args: List<String>): List<String> {
+        val needsRoot = args.getOrNull(0) == "ip" &&
+            args.getOrNull(1) in setOf("rule", "route") &&
+            args.getOrNull(2) in setOf("add", "del")
+        return if (needsRoot) listOf("sudo", "-n") + args else args
     }
 }

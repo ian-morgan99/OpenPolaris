@@ -87,9 +87,16 @@ open class WifiBridge(
 
     private fun ensureRoutingTable(): String {
         val alias = tableIdFor(policyTableName)
-        val current = rtTables.readLines()
-        if (current.any { it.trim().endsWith(" $policyTableName") || it.trim() == alias }) return alias
-        rtTables.appendLine("$alias $policyTableName")
+        // Registering the name in rt_tables is purely cosmetic (so `ip route
+        // show table polaris-wifi` works); every `ip rule`/`ip route` call
+        // below uses the numeric id directly, so a permission failure here
+        // (rt_tables is root-owned) must not abort the bridge.
+        runCatching {
+            val current = rtTables.readLines()
+            if (current.none { it.trim().endsWith(" $policyTableName") || it.trim() == alias }) {
+                rtTables.appendLine("$alias $policyTableName")
+            }
+        }
         return alias
     }
 

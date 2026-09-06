@@ -1,10 +1,17 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.runTest
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
+import java.nio.file.Files
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -107,5 +114,44 @@ class ScpFirmwareDeliveryTest {
         // success, just that the contract doesn't crash the JVM.
         // A test that *would* pass against a working server would
         // assert `lastSeen == 32`.
+    }
+
+    @Test
+    fun cancellationKillsAChildBlockedWithoutReadingStdin() = runBlocking {
+        val dir = Files.createTempDirectory("openpolaris-blocking-ssh").toFile()
+        val pidFile = File(dir, "pid")
+        val fakeSsh = File(dir, "fake-ssh")
+        fakeSsh.writeText(
+            "#!/bin/sh\n" +
+                "echo $$ > '${pidFile.absolutePath}'\n" +
+                "trap 'exit 0' TERM INT\n" +
+                "while :; do sleep 1; done\n"
+        )
+        assertTrue(fakeSsh.setExecutable(true))
+
+        try {
+            val delivery = ScpFirmwareDelivery(
+                host = "irrelevant",
+                binary = fakeSsh.absolutePath,
+            )
+            val job = launch(Dispatchers.IO) {
+                delivery.deliver(ByteArray(8 * 1024 * 1024), "FwPkt.zip")
+            }
+            withTimeout(3_000) {
+                while (!pidFile.isFile) delay(10)
+            }
+            val pid = pidFile.readText().trim().toLong()
+
+            job.cancel()
+            withTimeout(3_000) { job.join() }
+            withTimeout(3_000) {
+                while (ProcessHandle.of(pid).map { it.isAlive }.orElse(false)) delay(10)
+            }
+            assertFalse(ProcessHandle.of(pid).map { it.isAlive }.orElse(false))
+        } finally {
+            fakeSsh.delete()
+            pidFile.delete()
+            dir.delete()
+        }
     }
 }

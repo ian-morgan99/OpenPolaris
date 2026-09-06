@@ -3,12 +3,16 @@ package dev.openpolaris.core.domain
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.TimeUnit
 
 /**
  * JVM-side [FirmwareDelivery] that pushes the FwPkt.zip onto the
@@ -101,22 +105,29 @@ class ScpFirmwareDelivery(
         // on a worker thread so the IO is non-blocking.
         val writeJob = launch(Dispatchers.IO) {
             try {
-                proc.outputStream.use { os: OutputStream ->
-                    var offset = 0
-                    while (offset < bytes.size) {
-                        val end = minOf(offset + COPY_CHUNK, bytes.size)
-                        os.write(bytes, offset, end - offset)
-                        offset = end
-                        val now = System.currentTimeMillis()
-                        if (now - lastReport >= progressIntervalMs) {
-                            lastReport = now
-                            onProgress(offset)
+                runInterruptible {
+                    proc.outputStream.use { os: OutputStream ->
+                        var offset = 0
+                        while (offset < bytes.size) {
+                            val end = minOf(offset + COPY_CHUNK, bytes.size)
+                            os.write(bytes, offset, end - offset)
+                            offset = end
+                            val now = System.currentTimeMillis()
+                            if (now - lastReport >= progressIntervalMs) {
+                                lastReport = now
+                                onProgress(offset)
+                            }
                         }
+                        os.flush()
                     }
-                    os.flush()
                 }
             } catch (e: IOException) {
                 proc.destroyForcibly()
+                if (!currentCoroutineContext().isActive) {
+                    throw CancellationException("firmware upload cancelled").also {
+                        it.initCause(e)
+                    }
+                }
                 throw e
             }
         }
@@ -126,12 +137,14 @@ class ScpFirmwareDelivery(
         // any error message in the exception.
         val output = StringBuilder()
         val readJob = launch(Dispatchers.IO) {
-            proc.inputStream.use { ins: InputStream ->
-                val buf = ByteArray(4096)
-                while (true) {
-                    val n = ins.read(buf)
-                    if (n <= 0) break
-                    output.append(String(buf, 0, n, Charsets.UTF_8))
+            runInterruptible {
+                proc.inputStream.use { ins: InputStream ->
+                    val buf = ByteArray(4096)
+                    while (true) {
+                        val n = ins.read(buf)
+                        if (n <= 0) break
+                        output.append(String(buf, 0, n, Charsets.UTF_8))
+                    }
                 }
             }
         }
@@ -142,7 +155,7 @@ class ScpFirmwareDelivery(
             coroutineScope {
                 try {
                     writeJob.join()
-                    val exit = proc.waitFor()
+                    val exit = runInterruptible { proc.waitFor() }
                     readJob.join()
                     if (exit != 0) {
                         throw IOException(
@@ -163,6 +176,23 @@ class ScpFirmwareDelivery(
             // is meaningful.
             if (e is IOException) throw e
             throw IOException(e.message ?: e::class.simpleName ?: "scp failed", e)
+        } finally {
+            // Blocking stream reads/writes and Process.waitFor must not pin the
+            // watchdog's supervisorScope after cancellation (#51). Closing the
+            // pipes wakes blocked jobs; TERM/KILL guarantees the subprocess
+            // cannot outlive a cancelled upload.
+            writeJob.cancel()
+            readJob.cancel()
+            runCatching { proc.outputStream.close() }
+            runCatching { proc.inputStream.close() }
+            runCatching { proc.errorStream.close() }
+            if (proc.isAlive) {
+                proc.destroy()
+                if (!proc.waitFor(1, TimeUnit.SECONDS)) {
+                    proc.destroyForcibly()
+                    proc.waitFor(1, TimeUnit.SECONDS)
+                }
+            }
         }
     }
 

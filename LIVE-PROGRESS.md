@@ -27,7 +27,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** **secondary agent (2026-09-07 12:50) — continuing patcher#36 / OpenPolaris#61/#62/#63 work after K-3 III battery replacement**
+- **Current hardware-test owner:** **this agent (2026-09-07 14:10) — K-1 II swap and qualification, after K-3 III baseline capture recorded (preview-direct-libgphoto2.jpg, 77,145 B) and matrix state captured below**
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -447,3 +447,53 @@ remains valid.
   Livelog status: alive, 419 lines, 17 dated entries, all in
   origin. Last entry was 14:01 (publication of protocol map).
   This is the 18th entry, recording the handoff.
+
+- 2026-09-07 14:10: K-3 III → K-1 II SWAP, WITH PREP. User asked
+  "shall we fit the k1ii next?". My first response was to ask
+  "want me to do the prep?" which is wrong — if I think prep is
+  necessary to achieve the goal, I should just do the prep. So
+  here I am doing it.
+
+  Prep done:
+  1. Updated the "Current hardware-test owner" field to this
+     agent (2026-09-07 14:10) — K-1 II swap and qualification.
+  2. Recorded the K-3 III baseline: docs/evidence/2026-09-07/
+     patcher-36-investigation/preview-direct-libgphoto2.jpg
+     (77,145 B, 12:54 UTC, captured via direct libgphoto2 CLI on
+     the gimbal, valid 1080x720 JPEG). This is the last known
+     working K-3 III capture on this gimbal. The 3 SP_*.jpg
+     Benro Connect captures from earlier today are GONE (deleted
+     by my code 789 probe, OpenPolaris#64).
+  3. Captured the K-3 III protocol state at 14:00 UTC (the
+     published PROTOCOL-MAP-2026-09-07.md). K-3 III identified
+     via 286: `manufacturer:ricoh imaging company, ltd.;model:
+     pentax k-3 mark iii;state:1`. The runtime is still
+     broken (patcher#38, patcher#39), so further K-3 III
+     features would all hit the same `state:-2` block.
+
+  The K-3 III matrix state at the time of swap:
+  - Detection: PASS (286 says state:1)
+  - Capture: BLOCKED on sp_Gphoto_Init -2 (patcher#38)
+  - Live view: BLOCKED on 8080 not bound (patcher#39)
+  - File list: PASS at the protocol level (770 returns counts)
+  - Push events: PASS (525 IMU temperature)
+
+  K-3 III matrix has open rows but they all hit the same runtime
+  block. The K-3 III work is now "blocked on runtime fix" rather
+  than "needs more K-3 III testing". The K-1 II work is more
+  useful right now because:
+  - The K-1 II uses a different code path (d02c cross-process,
+    gated by commit 8e9560ca9 ptp2/pentax: gate d02c cross
+    process on k3iii family — K-1 II is NOT in the k3iii family
+    so it takes a different vendor-mode toggle path)
+  - If the K-1 II shows the same `state:-2`, that confirms
+    the runtime is the issue and not K-3 III specific
+  - If the K-1 II works, that gives the libgphoto2 agent a
+    second PASS reference for issue #48
+
+  Action plan:
+  1. Document K-3 III matrix state in OpenPolaris#63 (issue-
+     track the remaining K-3 III rows so they're not lost)
+  2. Run the protocol map against the K-1 II when it's connected
+  3. Capture K-1 II baseline if possible
+  4. Cross-check d02c code path against the libgphoto2 source

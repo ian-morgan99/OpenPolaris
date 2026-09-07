@@ -1,0 +1,44 @@
+### pgphoto state ###
+  428 root       0:01 /app/lib/stage2/pgphoto.stage2ondisk
+
+### system codes ###
+=== exAxis (code 524) ===
+524@state:0;#
+=== settling (code 543) ===
+543@time:2;#
+=== SD (code 775) ===
+775@status:1;totalspace:121866;freespace:121795;usespace:71;#
+=== battery (code 778) ===
+778@capacity:100;charge:2;#
+=== device info (code 780) ===
+780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#
+=== wifi band (code 802) ===
+802@band:0;#
+=== OMS (code 824) ===
+824@state:0;#
+
+### camera GETs ###
+=== ISO (code 258) ===
+258@ret:-1;#
+=== GET_ISO_INFO (code 265) ===
+525@Tempa509ca361f0000285a ;#
+=== GET_WB_INFO (code 266) ===
+
+=== GET_EV_INFO (code 267) ===
+
+=== GET_SHUTTER_INFO (code 268) ===
+
+=== GET_FNUM_INFO (code 275) ===
+
+=== liveview get (code 292) ===
+292@state:1;#
+
+### capture 264 ###
+=== MAKE_PHOTO (code 264) ===
+264@state:1#264@state:-1#
+### MJPG 8080 snapshot bytes ###
+0
+### normal dir ###
+total 0
+
+### Mlog PTP lines (fresh boot) ###

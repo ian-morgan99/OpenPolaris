@@ -1,0 +1,81 @@
+[m[18:11:52:705 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[274],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 274  data: state:0;   --_isInit 1 
+[m[18:11:52:737 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[274],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 274  data: state:0;   --_isInit 1 
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[18:12:32:067 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[18:12:32:074 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[18:12:32:075 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231670480
+[m[18:12:32:085 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[18:12:32:085 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[18:12:32:230 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[18:12:32:230 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.060178 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ax203  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/canon  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/digigr8  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/dimagev  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/directory  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005a  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005c  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/kodak_dc240  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/mars  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ptp2  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ricoh_g3  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sierra  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sonix  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sq905  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/st2205  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/topfield  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/tp6801  value: (null) 
+--- list count = 0 
+0.243126 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-1 Mark II (PTP mode)')...
+The port you specified ('usb:001,003') can not be found. Please specify one of the ports found by 'gphoto2 --list-ports' and make sure the spelling is correct (i.e. with prefix 'serial:' or 'usb:').
+0.243939 gp_port_info_list_get_info [gphoto2-port-info-list.c:506](0): Invalid parameters: '(n >= 0) && (unsigned int)n < list->count' is NULL/FALSE.
+
+*** Error ***              
+You have to set the port prior to initialization of the camera.
+[m[18:12:33:058 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -5 
+[m[18:12:33:058 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[18:12:33:070 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[18:12:35:659 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[279],val[state:1;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 279  data: state:1;   --_isInit 1 

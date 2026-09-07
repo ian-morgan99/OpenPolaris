@@ -1,0 +1,23 @@
+### Mlog.txt tail ###
+[m[17:41:20:072 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361f0000285a ;
+[m[17:41:20:072 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361f0000285a ;]
+Pentax init stage vendor enable succeeded; function flags 0x00000003.
+[stage2] compatibility shims: bypassed for non-R5-II camera
+2.129606 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+
+### latest Mlog in sd/system/log ###
+file: /app/sd/system/log/Mlog_000044.log
+[m[m[17:36:25:850 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:36:25:851 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:36:25:851 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[282],val[urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:37:31:375 [1;31mERROR[m-]:checkGphotoTask[3315]:[0;32;31mpgphoto is exit,reboot it
+0.131471 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-1 Mark II (PTP mode)')...
+[m[m[17:38:30:506 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:38:30:507 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:38:30:507 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[282],val[urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[17:41:17:413 [1;31mERROR[m-]:checkGphotoTask[3315]:[0;32;31mpgphoto is exit,reboot it
+0.121516 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-1 Mark II (PTP mode)')...
+Pentax session already open from a previous connection; observing camera state.
+
+### camera state via 266/292 + pgphoto uptime ###
+  560 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk

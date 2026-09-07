@@ -1,0 +1,10 @@
+### pgphoto + watchdog procs ###
+  327 root       0:00 [dhd_watchdog_th]
+ 2494 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+ 2542 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+
+### restart pgphoto ###
+ 2494 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+ 2542 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+ 2494 root       0:01 /app/lib/stage2/pgphoto.stage2ondisk
+ 2542 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk

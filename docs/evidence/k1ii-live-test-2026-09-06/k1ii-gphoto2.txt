@@ -1,0 +1,20 @@
+### pgphoto state ###
+  575 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+  583 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+
+### gphoto2 direct capture (clean session) ###
+If you intend to send any error or debug messages to the gphoto
+developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+gphoto2 as follows:
+
+    env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --capture-image
+
+Please make sure there is sufficient quoting around the arguments.
+
+
+### normal dir after ###
+total 0
+
+### try enabling liveview via 291 then snapshot ###
+291@state:1;ret:0;#
+0

@@ -1,0 +1,24 @@
+### pgphoto state now ###
+ 2542 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+
+=== ISO (code 258) ===
+258@ret:-1;#
+=== GET_ISO_INFO (code 265) ===
+
+=== GET_WB_INFO (code 266) ===
+525@Tempa509ca361f0000285a ;#
+=== GET_EV_INFO (code 267) ===
+
+=== GET_SHUTTER_INFO (code 268) ===
+
+=== GET_FNUM_INFO (code 275) ===
+
+=== liveview get (code 292) ===
+292@state:1;#
+### capture 264 ###
+=== MAKE_PHOTO (code 264) ===
+264@state:1#264@state:-1#
+### MJPG 8080 snapshot (byte count) ###
+0
+### normal dir ###
+total 0

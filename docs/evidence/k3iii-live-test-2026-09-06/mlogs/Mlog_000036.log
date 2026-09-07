@@ -1,0 +1,296 @@
+umount: can't unmount /app/sd: Invalid argument
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+[m[15:01:02:257 [1;32mINFO[m-Init]:main[94]:[0;35mFwVer v4.0.0.32 20250509
+[m[15:01:02:257 [1;32mINFO[m-Init]:main[95]:+++++++++++++++++++++
+[m[15:01:02:267 [1;32mINFO[m-Init]:main[97]:+++++++++++++++++++++
+[m[15:01:02:267 [1;32mINFO[m-]:HI_SYSTEM_GetStartupWakeupSource[75]:[0;35mHI_SYSTEM_STARTUP_SRC_STARTUP
+[m[15:01:02:268 [1;32mINFO[m-]:SP_GpioInit[37]:[0;32;32mHAL_GPIO_Init OK
+[m[m[15:01:02:269 [1;31mERROR[m-]:SP_GpioUnexport[226]:Failed to unexport gpio![m[15:01:02:271 [1;31mERROR[m-]:SP_GpioUnexport[226]:Failed to unexport gpio![m[15:01:02:275 [1;32mINFO[m-]:CameraGpioTask[116]:camera gpio value = 1
+[m[15:01:02:278 [1;32mINFO[m-]:SP_UserParamInit[198]:SP_UserParamInit success,s8ParamFd = 1;
+[m[15:01:02:278 [1;32mINFO[m-]:SP_UserParamInit[207]:SettlingTime[2];
+[m[15:01:02:278 [1;32mINFO[m-]:SP_SetAutoOffSw[329]:SP_SetAutoOffSw:0;
+[m[15:01:02:279 [1;32mINFO[m-]:SP_UserParamInit[214]:s32AutoOffSw[0];
+[m[15:01:02:279 [1;32mINFO[m-]:SP_UserParamInit[219]:s32AutoLevelEn[1];
+[m[15:01:02:279 [1;32mINFO[m-]:SP_UserParamInit[225]:s32TimeIntervalType[0];
+[m[15:01:02:281 [1;32mINFO[m-]:WakeUpGpioTask[247]:dTimeMs:1914067144
+[m[15:01:02:285 [1;32mINFO[m-]:SP_GetFactoryParam[56]:[0;32;34mfactoryParam:hw:1.1;date:2021.11.29;pcb:1.20;modif:usb;
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+[m[15:01:02:286 [1;32mINFO[m-]:SP_GetFactoryParam[63]:hw:1.1
+[m[15:01:02:286 [1;32mINFO[m-]:SP_GetFactoryParam[67]:date:2021.11.29
+[m[15:01:02:286 [1;32mINFO[m-]:SP_GetFactoryParam[71]:pcb:1.20
+[m[15:01:02:286 [1;33mWARN[m-]:SP_StringPickUpVal[73]:CellHwVer: not found in hw:1.1;date:2021.11.29;pcb:1.20;modif:usb;
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+[m[15:01:02:286 [1;32mINFO[m-]:SP_GetFactoryParam[75]:CellHwVer:0
+[m[15:01:02:286 [1;32mINFO[m-]:SP_GetWifiBtId[67]:wifiBtId[d13e86]
+[m[15:01:02:288 [1;32mINFO[m-]:SP_GetFwVer[286]:fwVerinfo[FwVer:4.0.0.32;date:2025.05.09;
+(];len:[32];
+[m[15:01:02:288 [1;32mINFO[m-]:SP_GetFwVer[293]:FwVer[4.0.0.32];
+[m[15:01:02:360 [1;32mINFO[m-]:SP_SetSysInitTime[134]:RTC DateTime: 2026/09/05-15:01:02
+[m[15:01:02:360 [1;32mINFO[m-]:SP_SetSysInitTime[142]:[0;35mBuild DateTime: 2025/05/09-14:37:27
+[m[15:01:02:102 [1;32mINFO[m-SYSTEM]:HI_SYSTEM_SetDateTime[402]:Sat Sep  5 15:01:02 2026
+
+[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1001],id[131076]
+[m[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1002],id[98307]
+[m[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1003],id[65538]
+[m[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1004],id[163845]
+[m[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1006],id[32769]
+[m[m[15:01:02:103 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1005],id[0]
+[m[m[15:01:02:105 [1;32mINFO[m-]:SP_CreateBtRcvMsgProcTask[186]:SP_CreateBtRcvMsgProcTask success
+[m[15:01:02:105 [1;32mINFO[m-]:SP_CreateBtSendMsgProcTask[244]:SP_CreateBtSendMsgProcTask success
+[m[15:01:02:335 [1;32mINFO[m-]:SP_NetInit[217]:INIT WEB SERVER OK 
+[m[15:01:02:339 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=1] start
+[m[15:01:02:341 [1;32mINFO[m-]:Uart3Open[52]:open uart3 success,fd[11]
+[m[15:01:02:365 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0/mmcblk0p1
+[m[15:01:02:365 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0
+[m[15:01:02:399 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/virtual/bdi/179:0
+[m[15:01:02:400 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa
+[m[15:01:02:400 [1;32mINFO[m-]:NetlinkUeventumount: can't unmount /app/sd: Invalid argument
+Configuration file: /app/wifi/hostapd.conf
+rfkill: Cannot open RFKILL control device
+Using interface wlan0 with hwaddr 48:e7:da:d4:b5:73 and ssid "polaris_d13e86"
+wlan0: interface state UNINITIALIZED->ENABLED
+wlan0: AP-ENABLED 
+Task[73]:remove sd card
+[m[15:01:02:408 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1025],val[1]
+[m[m[15:01:02:408 [1;32mINFO[m-]:EventMsgProc[2603]:SP_EVENT_SD_UNPLUGED
+[m[15:01:02:408 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[279],val[state:0;]
+[m[m[15:01:02:409 [1;31mERROR[m-]:SP_FileListFree[195]:list no init
+[m[15:01:02:409 [1;32mINFO[m-]:SP_NomalFileListFree[33]:SP_NomalFileListFree
+[m[15:01:02:410 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:410 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:410 [1;32mINFO[m-]:SP_FocusStackFileListFree[33]:SP_FocusStackFileListFree
+[m[15:01:02:411 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:411 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:411 [1;32mINFO[m-]:SP_PanFileListFree[36]:SP_PanFileListFree
+[m[15:01:02:412 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:412 [1;32mINFO[m-]:SP_LapseFileListFree[65]:SP_LapseFileListFree
+[m[15:01:02:412 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:412 [1;32mINFO[m-]:SP_SunFileListFree[30]:SP_SunFileListFree
+[m[15:01:02:413 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:413 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:413 [1;32mINFO[m-]:SP_HdrFileListFree[33]:SP_HdrFileListFree
+[m[15:01:02:413 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:413 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[15:01:02:413 [1;32mINFO[m-]:SP_StarskyStackFileListFree[31]:SP_StarskyStackFileListFree
+[m[15:01:02:429 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:change@/devices/platform/regulatory.0
+[m[15:01:02:460 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001
+[m[15:01:02:461 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:1
+[m[15:01:02:461 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2
+[m[15:01:02:461 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:3
+[m[15:01:02:477 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/bus/sdio/drivers/dummy_sdmmc
+[m[15:01:02:481 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/ieee80211/phy0
+[m[15:01:02:687 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0
+[m[15:01:02:687 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0/queues/rx-0
+[m[15:01:02:688 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0/queues/tx-0
+[m[15:01:02:688 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/bus/sdio/drivers/bcmsdh_sdmmc
+[m[15:01:02:695 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/bus/platform/drivers/bcmdhd_wlan
+[m[15:01:03:025 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:0;]
+[m[m[15:01:03:114 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;]
+[m[m[15:01:03:345 [1;32mINFO[m-]:SP_CreateSensorMngTask[276]:SP_CreateSensorMngTask success
+[m[15:01:03:349 [1;32mINFO[m-]:SP_MpuInit[133]:SP_MpuInit success
+[m[15:01:03:349 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:0;sta:1;Use:1;
+[m[15:01:03:354 [1;31mERROR[m-]:SP_I2cRead[78]:SP_I2cRead error
+[m[15:01:03:355 [1;32mINFO[m-]:SP_MpiSysInit[59]:SP_MpiSysInit success
+[m[15:01:03:355 [1;32mINFO[m-]:MagIdentityChipID[49]:QMC6310U_STA
+[m[15:01:03:355 [1;32mINFO[m-]:SP_CreateCheckPhotoTimeOutTask[901]:SP_CreateCheckPhotoTimeOutTask success
+[m[15:01:03:355 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:1;sta:1;Use:1;
+[m[15:01:03:356 [1;32mINFO[m-]:SP_GetGyroCalInfo[186]:[0;35mNO Gyro calibrate info
+[m[15:01:03:356 [1;32mINFO[m-]:SP_GetGyroCalInfo[189]:GyroOffset x[0.0];y[0.0];z[0.0];
+[m[15:01:03:356 [1;32mINFO[m-]:SP_CreateCableReleaseTask[1009]:SP_CreateCableReleaseTask success
+
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetAcceCalInfo[628]:[0;35mNO Acce calibrate info
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetAcceCalInfo[634]:AcceOffset x[0.0];y[0.0];z[0.0];
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetMagCalinfo[573]:[0;35mNO Mag calibrate info
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetMagCalinfo[576]:mag Offset x[0];y[0];z[0];
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetMagCalinfo[579]:mag Bias x[0.0];y[0.0];z[0.0];
+[m[15:01:03:358 [1;32mINFO[m-]:SP_GetMagCalinfo[582]:mag scale x[1.0];y[1.0];z[1.0];
+[m[15:01:03:360 [1;31mERROR[m-]:SP_CheckHdmiId[643]:HDMI Hw no Support
+[m[15:01:03:360 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:2;sta:0;Use:1;
+[m[15:01:03:360 [1;32mINFO[m-]:SendHwToGimbalTask[82]:SendHwToGimbal hw[11],ubootVer[0]
+[m[15:01:03:361 [1;32mINFO[m-]:SensorMngTask[115]:SP_SENSOR_STA_GIMBAL_ANGLE_INIT Box0Yaw:0.2623;Box0Pitch:-0.8727;
+[m[15:01:03:362 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[433]:bSendHwAck
+[m[15:01:03:911 [1;32mINFO[m-]:AcceAttitudeInit[596]:xMean[0.79],yMean[0.02],zMean[0.62]
+[m[15:01:03:912 [1;32mINFO[m-]:AcceAttitudeInit[619]:[0;35mxVar[0.000853],yVar[0.000812],zVar[0.000843]
+[m[15:01:03:912 [1;32mINFO[m-]:SP_BoxAhraInit[890]:[0;35maAcce:x[0.7892],y[0.0168],z[0.6202]
+[m[15:01:03:914 [1;32mINFO[m-]:SP_BoxAhraInit[896]:++++++acce init ok +++++++++++
+[m[15:01:03:914 [1;32mINFO[m-]:SP_BoxAhraInit[898]:aAcce:x[1.5551],y[-51.8283],z[0.0000]
+[m[15:01:03:915 [1;32mINFO[m-]:SensorMngTask[85]:SP_SENSOR_STA_BOX_AHRS_INIT SUCCESS
+[m[15:01:04:156 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=2 192.168.0.2:54976] from [1] s_u32ClientNum[1]
+[m[15:01:04:156 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[15:01:04:156 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=2] start
+[m[15:01:04:156 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+[m[15:01:04:228 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:296;val:-1
+[m[15:01:04:229 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[296],val[mode:0;]
+[m[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:303;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:300;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:775;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:778;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:823;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:826;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:802;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:804;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:824;val:-1
+[m[15:01:04:234 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:3;code:524;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:296;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:303;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:300;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:775;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:778;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:823;val:-1
+[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:826;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[826],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:802;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[802],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:804;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[804],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:824;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[824],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:3;code:524;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[3],code[524],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:780;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[780],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:818;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[818],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:284;val:-1
+[m[15:01:04:235 [1;31mERROR[m-sp_msgComm]:SP_sendMsg[81]:[0;32;31mSP_sendMsg Fail; key[1001],type[2],code[284],val[-1]
+[m[m[15:01:04:235 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[303],val[state:0;]
+[m[m[15:01:04:236 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[300],val[hdmi:0;]
+[m[m[15:01:04:236 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[775],val[status:0;totalspace:0;freespace:0;usespace:0;]
+[m[m[15:01:04:236 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[778],val[capacity:0;charge:0;]
+[m[m[15:01:04:236 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[826],val[state:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[802],val[band:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_GetWarningToneState[971]:SP_GetWarningToneState
+[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[824],val[state:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[524],val[state:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[296],val[mode:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[303],val[state:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[300],val[hdmi:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[775],val[status:0;totalspace:0;freespace:0;usespace:0;]
+[m[m[15:01:04:237 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[778],val[capacity:0;charge:0;]
+[m[m[15:01:04:238 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[804],val[state:0;]
+[m[m[15:01:04:249 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa
+[m[15:01:04:250 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:775;val:-1
+[m[15:01:04:250 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[775],val[status:0;totalspace:0;freespace:0;usespace:0;]
+[m[m[15:01:04:251 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/virtual/bdi/179:0
+[m[15:01:04:254 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:778;val:-1
+[m[15:01:04:254 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:823;val:-1
+[m[15:01:04:254 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:775;val:-1
+[m[15:01:04:254 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:778;val:-1
+[m[15:01:04:254 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:823;val:-1
+[m[15:01:04:254 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[778],val[capacity:0;charge:0;]
+[m[m[15:01:04:254 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[775],val[status:0;totalspace:0;freespace:0;usespace:0;]
+[m[m[15:01:04:254 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[778],val[capacity:0;charge:0;]
+[m[m[15:01:04:257 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0
+[m[15:01:04:257 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0/mmcblk0p1
+[m[15:01:04:257 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1026],val[1]
+[m[m[15:01:04:257 [1;32mINFO[m-]:EventMsgProc[2615]:SP_EVENT_SD_PLUGED
+[m[15:01:04:274 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1027],val[1]
+[m[m[15:01:04:274 [1;32mINFO[m-]:EventMsgProc[2641]:SP_EVENT_SD_MOUNTED
+[m[15:01:04:361 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:5;sta:0;Use:0;
+[m[15:01:04:361 [1;31mERROR[m-]:SP_CheckTtyUsbOk[2319]:SP_CheckTtyUsbOk
+[m[15:01:04:362 [1;32mINFO[m-]:SP_CreateOmsTask[218]:SP_CreateOmsTask success
+[m[15:01:04:362 [1;32mINFO[m-]:OmsTask[171]:_____OMS_STEP_NONE
+[m[15:01:04:363 [1;32mINFO[m-]:SP_GimbalGetExAxsiSate[913]:uart send:SP_GimbalGetExAxsiSate
+[m[15:01:04:363 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:0;]
+[m[m[15:01:04:363 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1005],type[6],code[1282],val[]
+[m[m[15:01:04:364 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[358]:UART_GIMBAL_FW_VER 2.0.0.22
+[m[15:01:04:369 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[364]:UART_GIMBAL_HW_VER 1.2
+[m[15:01:04:370 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[370]:UART_GIMBAL_IAP_VER 1.3
+[m[15:01:04:370 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[378]:Voltage:8.77;capacity:1;ChargeState:1;
+[m[15:01:04:370 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[778],val[capacity:1;charge:1;]
+[m[m[15:01:04:375 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[319]:[0;35mExAxsiOn = 0
+[m[15:01:04:375 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[524],val[state:0;]
+[m[m[15:01:04:377 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[448]:ExAngle:0.000
+[m[15:01:04:617 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/soc:amba/120a1000.uart/tty/ttyAMA1/hci0
+[m[15:01:04:724 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[2]:type:2;code:808;val:type:0;
+[m[15:01:04:724 [1;32mINFO[m-]:SP_MsgSysFromAppProc[897]:[0;35mclient type[0];id[2];
+[m[15:01:04:724 [1;32mINFO[m-]:SP_ClientCtxAdd[376]:[0;35mSP_ClientCtxAdd:id[2];type[wifi];WifiCount[1],CellCount[0];
+[m[15:01:04:724 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[808],val[ret:0;]
+[m[m[15:01:04:956 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:1;]
+[m[m[15:01:04:957 [1;32mINFO[m-]:SP_BlueInit[2986]:[0;35mSP_BlueInit start
+[m[15:01:04:961 [1;32mINFO[m-]:SP_BlueInit[3009]:[0;35mg_main_loop_new
+[m[15:01:05:018 [1;32mINFO[m-]:SP_BlueInit[3046]:-------------main loop running -------
+[m[15:01:05:046 [1;32mINFO[m-]:connect_handler[121]:connect_handler
+[m[15:01:05:084 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.AgentManager1]
+[m[15:01:05:088 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.ProfileManager1]
+[m[15:01:05:124 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.Adapter1]
+[[0;92mNEW[0m] Controller 48:E7:DA:D4:B5:72 polaris_d13e86 [default]
+[m[15:01:05:128 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.GattManager1]
+[m[15:01:05:130 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.Media1]
+[m[15:01:05:132 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.NetworkServer1]
+[m[15:01:05:134 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.LEAdvertisingManager1]
+[m[15:01:05:135 [1;32mINFO[m-]:client_ready[2875]:client_ready
+Agent registered
+[m[15:01:05:162 [1;32mINFO[m-]:CheckTtyUsbTask[2303]:checking ttyUSB2 state count:45
+[m[15:01:05:234 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001801-0000-1000-8000-00805f9b34fb
+[m[15:01:05:234 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 0000110e-0000-1000-8000-00805f9b34fb
+[m[15:01:05:234 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001200-0000-1000-8000-00805f9b34fb
+[m[15:01:05:234 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001800-0000-1000-8000-00805f9b34fb
+[m[15:01:05:235 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 0000110c-0000-1000-8000-00805f9b34fb
+[m[15:01:05:245 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Alias: polaris_d13e86
+[m[15:01:05:245 [1;32mINFO[m-]:parse_iter[288]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Pairable: yes
+[m[15:01:05:251 [1;32mINFO[m-]:parse_iter[288]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Discoverable: yes
+[m[15:01:05:363 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1005],type[6],code[1282],val[]
+[m[m[15:01:05:363 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:4;sta:1;Use:1;
+[m[15:01:05:363 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:3;sta:1;Use:1;
+[m[15:01:05:629 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:change@/devices/platform/regulatory.0
+[m[15:01:05:844 [1;32mINFO[m-]:SP_GetSdInfo[2483]:u64TotalSize:121866;u64FreeSize::121732;u64UsedSize:133
+[m[15:01:05:844 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1029],val[1]
+[m[m[15:01:05:845 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[279],val[state:1;]
+[m[m[15:01:05:845 [1;32mINFO[m-]:EventMsgProc[2657]:SP_EVENT_SD_SCAN
+[m[15:01:05:846 [1;32mINFO[m-]:SP_GetNomalFileList[90]: PhotoMaxNum 0;FileCount 0
+[m[15:01:05:848 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/focusStack/],ClassCount[0],maxCalss[0]
+[m[15:01:05:848 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/focusStack/],IspClassCount[0]
+[m[15:01:05:850 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/panorama/],ClassCount[0],maxCalss[0]
+[m[15:01:05:850 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/panorama/],IspClassCount[0]
+[m[15:01:05:850 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[15:01:05:852 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/Lapse/],ClassCount[0],maxCalss[0]
+[m[15:01:05:852 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[15:01:05:853 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/sun/],ClassCount[0],maxCalss[0]
+[m[15:01:05:854 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/HDR/],ClassCount[0],maxCalss[0]
+[m[15:01:05:854 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/HDR/],IspClassCount[0]
+[m[15:01:05:854 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[15:01:05:856 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/starskyStack/],ClassCount[0],maxCalss[0]
+[m[15:01:05:856 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[777],val[hintId:3;]
+[m[m[15:01:05:856 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[775],val[status:1;totalspace:121866;freespace:121732;usespace:133;]
+                                                                                                                                                                                                                                                                                   (>¯ßy(~/ Û(~½Ýdxœ#~Ë#\I)~ nq8b(¾0ò{„Þ)m'Ü Ou  ] 0Ý	J_i{	'=8B´Û(}<->L)Ä×(>ð'7¸ 'þª’0¯ýÌd[8Þjœð	'¾P^Ä
+'~ ˜^%Ô'>×‘XØ7üÞhdT|Þ ))>ªý^5'þ  ,>
+Œ?¨oœ‡}U-~ §Ä ”S(¾¹ÛtÞƒ¼\}€Þút@wDÞ-°Ü)½]Ä]XÝp->âÏÈ_	œ~Ä6
+°©	œ~d]]BPÝ±B£!(>¡vìÜ(þìõ^'¾}²xq	,ÞjVœpÞq7àW'>WÔÀc	œ;~Uâ˜z'}ÚC›à'~$O^‰1œ=  7$^››œ}u  ØÓ(~–'¥½#!^#ož+	'¾â\­\¡þ¶m<`	 Ý÷_	lï'}«B{Þ(þÞö\ÝŠ^¯ £\Þ¢)ÀÚ(¾ œ]kUÞ¸èð~(Þ$I'=è_‘ü'> àÂ,6÷@Þ””,~ÓÜaxÝœC/ð»
+'½b]4)¾«&ìŸ'¾§òäõœ}8^ÁÀQðý¢^»R'þÇ^|0˜ÝB›”¹w„ý)
+^+çœ}:^ßÞ(¾
+Ë¯lp(¾cØÔ¨ ÞÖ']_Ú(¾ D]inOäÝ5B¼”½Û_­#	œ7}O^e uÜÞÖ 
+JýÓªäš'þû—äîœ1~þrì[(¾
+È{¤q'~	’¤24Ý"\)=ÕCÝ¸`	œ©~-CÐr'¾ùÃ‹'þ'(u'ý»]=\=ý±üCml'þ€í(ü'~]áX)þÂÏxG½±¡^eÝ(>
+‡k\3)~ ãtœy~³n^ñ’'þEÝtµ(>
+$}w(¾/7ª$¼ ~zÆ8’'~	,?Ã ŒuFN—;øÍ(þš/|‰'¾Ëý]1–	HÞß/B'>-¼]Ÿ-(~$.A]'÷(>Óê^Oø'¾04R'> :“h~(~é;\Q; XÞIP)¾ì^ù‚'=BP”ë pÞ,I]ïk(}	mBg<(½!CÂü'}É!þ$œÇ(þ$à[P1'þÛG^wA'¾	(µ¬"(ÿÅØ+>[8È¬	œ/}²]c)þO½^%0'þº¦€d'}'§-þ%­Ž]O¾¼{~Pœ¼?(=,WB[ôÕ(¾‰l!}#X(þ%†cK<G(=ëJ}é(>”oÈi(¾ bÓ]¿b(½¦]±8\±þ=Žw]‡ÏK°Ý!ý!)þ!ÀšüÝ'¾j!ý*{O¸Þ-^ÙÜ =  $Ûœ×}‘^Q¬Ð(} -^ÉÌ¤(>—ˆB$½'¾W (½?_	¼œ	~!)eTC'=-D-=«]‹)‚L°(>*¶ß,>ì¬ o'¾ß¿„(>Þs]oÄG ÞŸ^H'>"ø[ôPV&}0€]qÜ]'Ýëw_í œm}§_c€'¾¡!>*+'þ'à,~·^¡B'=#i]O`)þ	•z„a'~ÂÖ$s'>c7+¨»'~b)Ø¡ÌÝ_ó]ëÄ)~â¾^;÷'¾Î^[^'>6dn!}!T(>ã\#)},R-?{~ \(þ#|9!½!¥¾‹!},ŒÞ°´^™:	'½ ½C'½·!9¨£
+'~%¤Ð^ÛìÜ¯ “© ´™ ¼ý½]Ÿ_(~)Ú¸t'¾G~^=æ
+'>Ø]#I(~¥^/Y'þýÛ!¾9ÀÜ¡ FûLH)þå©]k(>$š,>"ž´ï(~ˆ„#Lj'¾ ÷p(>!Þ@^‰'þ^9ñœ#}aB <K%=0³^sTx;ÌÞ#Uª\dÝTBŸ@¶ØÝ¾-~ð½]Ýí#L\	  ÿÿÿÿÿÿÿ1Ýœp¨
+      É	     ½                    !"  (C üã    |I ØÜ \
+   âÝ ß¾ì…(ÞêöéÙ(~ Ó8@à €  ^èglMÜÝµ`Á N ÊÛ ã L!  úI @2
+ H ¾f² XÞ$nÐíœ~Üpèa4Þ¸›,~~Þ(~1|¤`~	‚7`ª	'þ !HAÝÐ@Àg TÞ0R0ÿ(þ@k$ª+<ÞáiÐbLÞ©ó´Ù(>Ò‡ ª+0ß¬	'¼ ñÿt Dt(½ÜBäÖÞÚ*©Ú(>Ä7ˆÚ[„ÞÚ´\t'~½–\éU+¾?e^%
+œ~	fÐ7lGŸ¡ #†
+$‘œ~p?øœ ÞÉ Y \Þ'½7,¾¹rìntÞÌ
+,~@¬ Þ	Œ0¾Åt‰'þ™Ä	g8ý3kd)¾2½È€(¿ÞD+>éü2PÞ`ôÛ(>^¸ýœ_~!3Þ(~ )þ­'8¢üÞ¼Íœ(¾»ž^Dœ,~‰$äœS|Þ–ØÀ¬àÝ%^-Àq€Þƒ–tñ'þ¾xÜisÔÞ!ÓŽ„£'~x´ø!Ë\Ý7K?läœ~ÅT÷PÞÐß0 (~KS6€=œq~V
+AÜ(þÜÆà(½NB3ÔÛŸèÞšy^clœ)~S‰„±,Þ`^Qî'¾Ûø$)>œÿŒÛ(½_7ô-'~à¬ìêÜ?]ž +	'¾Tß|
+œs}_A)þî^'~:;¹Œ¾«Ô4dCxÞ	C_]u÷]‹¾l'ð¤½!^ËHàú@Þ…^¼œq~Ñï\)þøZ¤&œ=~	•:FL%'Þ1œÈí
+'ÞØ^uf	œ~½Â¨¾Ô,~š^·þ'~C˜ÔØ'}Ñ[c˜Ùœ“~	+]ëðÞ´:	œ;~Ië(_½®^/æê¼3~/¢˜O\:ÞöðG'>í)üØ(¾¯¶]	%WŒÞüm,}Ù_,>'þq.Ø'=X^»H(~G;xê'~óã(‡	'¾¡N^Y:œg~	^‰'>¦^32	'þ–'Ì'>­^i‡'>‘ôü'> `$+Ü)þ
+±d(›
+'þ¿ù )O”Þ+¦Ú|±'~	Ã^}‰'þÔ³H '>|Ÿ8][Ý¾])¬)>ùN)¾~ã^ç¾'¾8£^•'~¿\)~Ê3´)~!'PÚ(~ Y)} ÎCDÀxÉžÅ{^	Ú
+œgs"Ð°;Ø¾IÎÌ]£@ýwàHz(þQDx'>!}¬^_'þ
+“ì(¾	%—´†3øÞ;ë]q¯GdÞ9á!½ ª(=Ç]û”\ûþ}`r]Cc´ßö³+þ	ÓJ!>$êœÍÑ,~
+½(< nl¬ö(ý]¿\¿þMÉK+ð5œ}õ]EM)þµv°^'}…Bðô$Þ	¹+!~$'¾—Ì,[(=þ^Xs(½ó^`E(> å©'L'ý[][0][DÞîÈt;'~Œ†h\[þsVé°±	'¾·°èp(~p0&!)Þ?¡F3<13lý5\×)þÓ¼Ý(~	‹T`hÞ²~\ñ\mþ­@(>øm^ŸT'~÷¨,™(}|^Q(Ù£TýQE(~	-ÂøL	œã~ÿ^«W	œË~RúD,Þ/ÆË g*¼Þ›E!>&ò'~ØY!} D(¾Ã÷^a'}xBxÛ¼Ï~±¼z^ßœ~ê,~	­]O¨(=!" Þ(þ¸@,÷(> û3¸&#Þ0¿]92(þ2Ý\¥)¾Ï3¼'þëq¼b(¾%Î,~µŒ\p'>„2]é!°Ý3C/4Œ~4^süL(¾,}œ†'ýE!ý*È)~ö\½)=!"!´©(=.Ê_Ï¸'þëý^Ç8'½BAb)þŒv^3¶LÜçB;€Ú¼¥~%kXE'>Ë¤^ñ1	œ}ã!=!$)=!œ^™4®œÞ™Vö^«'>f¥\Þ/{Xo'þ!¥D.OtÝrCkº'½ÿ!>(ÜðÞè»]Ñ<(¾¦;´à!¼&ÞØ^«œ)~7·=^'<'>q‚]ù¿4Þ—]Ëí(þ#]mŠ(}	î]»!)}aA%´)¾(—–]½é(½i]Ï)þá
+pœœe}	¥!=8)~^W
+'>+cjä§'ôÞ%çÌ•	 TÞõPöCÝâ!~0è‘_äÞ¤É¨˜'¾V]!>(þÉv^wf'þ+Ïåˆ|'> i]©D/d%þ%¶]Œ
+(=í°<Ý‘Aé\]wÞGU ª'þSñ]møÞÆA^±œ·~ê4)¾ @^I'œ)~’½!>&âœ}0!‚<Øt(> úV]™«(½¦^uˆb(¾;íjœP(~:X	„_#èÞ®]¿(þ¥‡^U’œ]  ÿÿÿÿÿÿÿ1ç<#©
+      ó	     ½                    ."  ã ˆÝ      j{  p t]^]ãÐ†	 @Ü<Ù |t¼~¨rÜcÞÓØ)>ØøfÞÍ}„ä
+ Ý‘]„)¼ Þ2 Ô´ TÞNuHf8ÞqýüÚ(¾ ›ì\ÞVï”Ù(~ ¨)„Øœ
+!  èR LE ÞôÈ3 J
+à½™  $î $Þ	²t\ÞÈ¶:	œ	}^xÝ+œ~9gÄh¾þêhœ~ÿ;”U#ŒÞ5']-¤Zù'Þ7¯8'>ßÕ3üZ ¡_Ë ' "N é'ÜÒPÞ¼ç
+¤èh¾¹ðÝ¼~%‰Ç(8¾øU4(þQüä)þ"í#t ¾hwð]5hÞ.!)~…~¨‡Þ¯–¼…øÞ¡a]G‡4ÞFð´ý`Ýð^4Ôé/xÞªÌÐhˆÞïTCXÞú™ÌÜ'¾	dêÐÞ1ûã¾è¾rC^='~œ\'ðÞþ{4d'>[8QHÞDQPÛœ}A€_ È	œY~|#$ý(~ Å¨(Þ”lÜ(~rœk\XÝPC|äœ~	a€Äˆ˜ý;ñ]i¬ÞÙF 	œK~)3/àùkÞÝ<µ'>
+ÕŠŒTÞ=^qFœ¡  ·Bmä´(~‰ádªKÈÞT,pœ}0~o×œ=~oß°ôp'ý"B´Õ(~‘(ü
+Kq ’¾^“‚œiuÕlk]¾>ŽÌ½„ÞžÛ^)³'>¡;„O;Œß"6+~^x]Ðƒ°ýÏd¡'þú“^-ßœ8~x‘”{'~	p	ÔÜ(~~ ð§(¾.\ÜŒ
+'þöh/ÐP'>	½dTH”ÞcS+ÀÞy¢@Q\(ÞvÑ^]œ³~ÇŸäF(~ô¬džœ±~×¶´%'>@£¼Sœ~•ð‰.pÞR*àœ~óƒ˜œ«}0_	0$'>4@¶KØÝbBOÈm\ÂÞcy ƒ¼Þ:œD£¬ÞF^#j'¾Í#Xo#<Þ5à?H ÞeÊ^-˜'>oˆ »œ~£àP¡'¼Ý%ïÌ‡'þ"„ô]Dý‰ž^½+	'>´ÜJÀ¼¯~9¯$`'ý _{œ?}P^Ý(>¨&`]·Ý·_'8Œ'¾MÑ/£œ›~éEœ1}_AxQÑ¸Þg&H,Þ?ãè´7œÞ:“à¸ÜÞ(#)¾½²\)¾UÂ&L'¾ù “œµ}CCh¾œG}Ç^s¼Ö(þ(\ŒpÞDˆ€'~¡²^'ÿ|œL8(ý©]-)¾@gXK8Þ	É`]£6(>Ù%$)¾]+Àf#´Þ¦^£'>½Zˆ&(>"§B ÖXÝ]3P)}d!b"XÔ(þƒéD'~Õ^d	'¾C«Àl(þ9XF	'}gú ¨ò(~Ól‡[Þ¿,}A_õÈY	'~¾Û^‹u'>OËp= $Þâv¬¶¼~! )áÚ(¾êš]¹>(=àBÇ€h¾ƒ*$Ù#Ä'½Ry'þyÌôZ(>!q]5b(>M3]{Þ(¾dš(Ý'=‡]%È]%ÝÎCw4'>*h)½_í¸q'¾³ü^»2'¾Û‹]{˜(ýÞB5ÜÒ(¾V´”s(=^‰ (þbŸ'} A	\)þÑ†èvÞ3!#„š'~Æó!½$[(¾­å€7LÝÉ_O¤œO~c‚¼_'¾¶)WÈÕ'ý"Cü&œ¸©'½CÍÀÞœ!}
+]H)¾2.A	²(ý*_; f'þ,n!=,4+ÜÞm%^w'>%¤=!>(úœÅ~/þÀZ(þ)WtèÀ(~.¿]ë¾&^%'>F^Õæ'>ö?^Ÿ)Ýuã]¥”]·(Þ#²´T"'~<"øsœëœ«_¼ì'¾$¨¥^_'¾æH/ø2(ü%Xá ˜Ù'>ÕG!¾"ç'>G³.œr(½!2_-Hõß+ ÿ!?-¤'¾÷\Í)>2‘ý€3o8Ý7š^%Z(=ôAåP)ý/¥]D)þ c2@ œ#~Í›?(>Q¾^m@	'~!½,Û(~šB!~*'}‡_/îœá~v

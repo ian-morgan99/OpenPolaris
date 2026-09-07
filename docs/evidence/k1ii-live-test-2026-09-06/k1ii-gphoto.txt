@@ -1,0 +1,26 @@
+### gphoto2 --list-cameras ###
+Number of supported cameras: 2797
+Supported cameras:
+	" JL2005B/C/D camera" (EXPERIMENTAL)
+	"A&K AK120II"
+	"A&K SE180"
+	"A&K SE300"
+	"A&K SP4000"
+	"A&K SR15"
+
+### gphoto2 --capture-image ###
+*** Error (-53: 'Could not claim the USB device') ***       
+
+For debugging messages, please use the --debug option.
+Debugging messages may help finding a solution to your problem.
+If you intend to send any error or debug messages to the gphoto
+developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+gphoto2 as follows:
+
+    env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --capture-image
+
+Please make sure there is sufficient quoting around the arguments.
+
+
+### normal dir after capture ###
+total 0

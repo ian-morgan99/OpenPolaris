@@ -1,0 +1,49 @@
+# K-1 II re-test round — 2026-09-06 ~20:00 UTC (post-resume)
+
+**Setup:** Polaris fresh boot ~19:53 (Clog_000055), K-1 II attached at 19:57,
+Android Benro Connect holding the gimbal awake. Host on polaris_d13e86 (192.168.0.4).
+
+## Timeline
+- 19:58:16 `sp_Gphoto_Init ret 0` — clean init, camera = PENTAX K-1 Mark II (PTP mode)
+- ~20:00 probe round 1: camera state -53 (not found), MJPG 8080 open but 0 bytes
+- 20:09 `/app/restart_gphoto` → confirmed #33 live: pkill misses
+  `pgphoto.stage2ondisk` (comm truncation), old PID 248 survived; then double
+  instance (800+809); killed both, started single fresh PID 832
+- ~20:12 probe round 2: camera state -2 (still not connected), MJPG 8080 open, 0 bytes
+
+## Pre-camera matrix (all OK)
+| code | response |
+|---|---|
+| 808 fw | 284@mode:1;state:0 (echo) |
+| 809 serial | ret:-1 |
+| 802 wifi-band | band:0 |
+| 778 battery | capacity:100;charge:0 |
+| 779 battery2 | 284 echo |
+| 775 sd | status:1;totalspace:121866;freespace:121858 |
+| 824 oms | state:0 |
+| 524 ex-axis | state:0 |
+| 543 settling | time:2 |
+
+## Camera cluster (degraded — observe-only)
+| code | response | note |
+|---|---|---|
+| 286 cam-info | manufacturer:none;model:none;state:-2 | was -53 in round 1, healthy state:1 at 19:58 |
+| 258 ISO get | ret:-1 | |
+| 260 WB get | ret:-1 | |
+| 264 EV get | state:-1 | |
+| 292 liveview get | state:1 | |
+| MJPG 8080 | open, 0 bytes | observe-only signature (#34) |
+
+## Findings
+1. **#33 reproduced exactly as documented** — `/app/restart_gphoto` pkill path
+   mismatch leaves the old stage2 pgphoto running; manual kill+relaunch needed.
+2. **Camera PTP session dropped between 19:58 (init ok) and 20:00** despite the
+   camera staying on the USB bus (`/sys/bus/usb/devices/1-1.2` = PENTAX K-1 Mark II).
+   pgphoto restart did NOT recover it (state -53 → -2). Consistent with #34:
+   stale session forces observe-only; full gimbal reboot is the known clear.
+3. `live-smoke.sh --full` burst still hangs after code 809 (#55) — used
+   single-code probes instead (each with 25s timeout).
+
+## Next
+Full Polaris power cycle, re-verify 286 state:1, then run capture (267) +
+shutter loop + settings sweep while the session is fresh.

@@ -1,0 +1,1320 @@
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[00:00:03:980 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[00:00:03:982 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[00:00:03:983 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1232231632
+[m[00:00:03:988 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[00:00:03:988 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[00:00:03:988 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/003      idVendor: 25fb  idProduct: 0189 
+[m[00:00:03:988 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[00:00:03:988 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+[m[14:37:27:387 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[279],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 279  data: state:0;   --_isInit 1 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.052004 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ax203  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/canon  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/digigr8  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/dimagev  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/directory  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005a  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005c  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/kodak_dc240  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/mars  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ptp2  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ricoh_g3  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sierra  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sonix  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sq905  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/st2205  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/topfield  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/tp6801  value: (null) 
+--- list count = 1 
+0.274687 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-3 Mark III (MTP mode)')...
+0.276676 gp_camera_set_port_info [gphoto2-camera.c:420](0): Setting port info for port 'Universal Serial Bus' at 'usb:001,003'...
+Pentax session already open from a previous connection; observing camera state.
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+[stage2] compatibility shims: bypassed for non-R5-II camera
+----- gp_camera_init ret 0
+2.656727 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+Model                          Port            
+----------------------------------------------------------
+Pentax K-3 Mark III (MTP mode) usb:001,003     
+[m[14:37:30:362 [1;32mINFO[m-]:cameraInit[2675]:[0;32;31m-------------------------------------------------------------
+Camera summary: 
+[m[14:37:30:696 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[279],val[state:1;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 279  data: state:1;   --_isInit 1 
+[m[14:37:31:005 [1;32mINFO[m-]:cameraInit[2679]:[m-----------------------------------------------------------
+/main/actions/manualfocusdrivenear
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax focus near (minimum)
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/manualfocusdrivefar
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax focus far (minimum)
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/opcode
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Opcode
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1712]:Current: 0x1001,0xparam1,0xparam2
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/settings/datetime
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Date and Time
+[m[14:37:32:753 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1761]:Type: DATE
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1762]:Current: 1788718875
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1763]:Printable: Sun Sep  6 18:21:15 2026
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1764]:Help: Use 'now' as the current time when setting.
+
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/serialnumber
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1702]:Label: Serial Number
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1712]:Current: 8093033
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/manufacturer
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Manufacturer
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1712]:Current: RICOH IMAGING COMPANY, LTD.
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/cameramodel
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Model
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1712]:Current: PENTAX K-3 Mark III
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/deviceversion
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1702]:Label: Device Version
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1712]:Current: 2.20
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/vendorextension
+[m[14:37:32:754 [1;32mINFO[m-]:print_widget[1702]:Label: Vendor Extension
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: microsoft.com/DeviceServices: 1.0; 
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxconditions
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Conditions
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: state=0; astro-phase=inactive/other; exposure-mode-raw=20; user-mode-raw=0; drive-mode-raw=0; ISO=3200; exposure-step=1; open-av-num=28; shooting=no; processing=no; task-changing=no; Tv-changeable=yes; bulb-timer=yes; bulb-seconds=300/1; aperture=40/10; exposure-comp=0/10; astrotracer3=yes; astro-shift=no; astro-movement-failed=no; astro-time-too-long=no; astro-limit=0; gps-state=0
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewcontrols
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View Controls
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: area=1080x720; active=1080x720; caf-active=734x432; caf-spot=96x96; af-position=540,360; af-response-bytes=8; zoom-raw=1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd00f
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Shutter/Bulb Descriptor
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd00f; datatype=0x0008; getset=1; form=2; enum-count=46; value-bytes=8; value-hex=2c01000001000000
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5007
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Aperture Descriptor
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5007; datatype=0x0004; getset=1; form=2; enum-count=19; value-bytes=2; value-hex=9001
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd01e
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax ISO Descriptor
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:755 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd01e; datatype=0x0006; getset=1; form=2; enum-count=15; value-bytes=4; value-hex=800c0000
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5010
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Exposure Compensation Descriptor
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5010; datatype=0x0003; getset=1; form=2; enum-count=0; value-bytes=2; value-hex=0000
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5005
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax White Balance Descriptor
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5005; datatype=0x0004; getset=1; form=2; enum-count=17; value-bytes=2; value-hex=0f80
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd013
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Drive Mode Descriptor
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd013; datatype=0x0002; getset=1; form=2; enum-count=3; value-bytes=1; value-hex=00
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd02b
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Focus Peaking Descriptor
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd02b; datatype=0x0002; getset=1; form=2; enum-count=3; value-bytes=2; value-hex=0000
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd035
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax PC Live View Descriptor
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd035; datatype=0x0002; getset=1; form=2; enum-count=2; value-bytes=1; value-hex=00
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxfocuspeaking
+[m[14:37:32:756 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Focus Peaking
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 on
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 on+outline
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpclvmode
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax PC Live View Mode
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 on
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxbracketmode
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Exposure Bracketing Mode
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 3
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 5
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 +2
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 -2
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxbracketstep
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Exposure Bracketing Step
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:757 [1;32mINFO[m-]:print_widget[1783]:Current: 2.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 6.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 4.7
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 19.6
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 22.4
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 19.2
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 23.2
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 5.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 2.3
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 0.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 16.8
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 4.9
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 0.3
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 2.0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcimode
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Custom Image Mode
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1783]:Current: natural
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 autoselect
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 vivid
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 natural
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 portrait
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 landscape
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 miyabi
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 satobi
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 poptune
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 honoka
+[m[14:37:32:758 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 flat
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 bleach bypass
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 reversal film
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 monotone
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 cross process
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcompositionadjust
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Composition Adjustment
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 on
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcrossprocess
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Cross Process Type
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1783]:Current: 255
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 3
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 255
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxmoviemode
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Movie Mode
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:759 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 on
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpclvkeep
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Keep Live View
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcardwritingmode
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Card Writing Mode
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 SD1
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 SD2
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 both
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectshutter
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Shutter Speed
+[m[14:37:32:760 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1783]:Current: 300/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 1/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 3/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 5/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 6/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 7/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 8/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 9/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 10/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 15/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 20/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 25/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 30/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 40/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 50/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 60/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 70/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 80/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 90/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 100/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 110/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 120/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 130/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 140/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 150/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 160/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 170/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 180/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 190/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 200/1
+[m[14:37:32:761 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 210/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 220/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 230/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 240/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 250/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 260/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 270/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 280/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 290/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 300/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 360/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 420/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 480/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 540/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 600/1
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectiso
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct ISO Speed
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1783]:Current: 3200
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 100
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 200
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 400
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 800
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 1600
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 3200
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6400
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 12800
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 25600
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 51200
+[m[14:37:32:762 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 102400
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 204800
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 409600
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 819200
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 1600000
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectaperture
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Aperture
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1783]:Current: f/4
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 f/22
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 f/20
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 f/18
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 f/16
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 f/14
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 f/13
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 f/11
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 f/10
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 f/9
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 f/8
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 f/7.1
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 f/6.3
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 f/5.6
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 f/5
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 f/4.5
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 f/4
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 f/3.5
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 f/3.2
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 f/2.8
+[m[14:37:32:763 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectev
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Exposure Compensation
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1712]:Current: 0
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewafposition
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View AF Position
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1712]:Current: 540,360
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewzoom
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View Zoom
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2x
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 4x
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 8x
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 10x
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 16x
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdrivemode
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Drive Mode
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1783]:Current: single
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 single
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 mirror-up
+[m[14:37:32:764 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 unknown-14
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectwb
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax White Balance
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1783]:Current: auto-800f
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 auto
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 daylight
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 shade
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 cloudy
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 fluorescent-d
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 fluorescent-n
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 fluorescent-w
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 tungsten
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 flash
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 manual-1
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 manual-2
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 manual-3
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 color-temp-1
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 color-temp-2
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 color-temp-3
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 auto-800f
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewafposition
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View AF Position
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1712]:Current: 540,360
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/batterylevel
+[m[14:37:32:765 [1;32mINFO[m-]:print_widget[1702]:Label: Battery Level
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1712]:Current: 100%
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/imgsettings/iso
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1702]:Label: ISO Speed
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1783]:Current: 3200
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 100
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 200
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 400
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 800
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 1600
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 3200
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6400
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 12800
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 25600
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 51200
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 102400
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 204800
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 409600
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 819200
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 1600000
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/imgsettings/whitebalance
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1702]:Label: WhiteBalance
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:766 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1783]:Current: Unknown value 800f
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 Automatic
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 Unknown value 800f
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 Daylight
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 Cloudy
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 Fluorescent- Daylight
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 Fluorescent- Day White
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 Fluorescent- White
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 Fluorescent- Tungsten
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 Unknown value 800d
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 Tungsten
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 Unknown value 800e
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 Unknown value 8007
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 Unknown value 8008
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 Unknown value 8009
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 Unknown value 800a
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 Unknown value 800b
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 Unknown value 800c
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/capturesettings/exposurecompensation
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1702]:Label: Exposure Compensation
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/capturesettings/f-number
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1702]:Label: F-Number
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:767 [1;32mINFO[m-]:print_widget[1783]:Current: f/4
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 f/22
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 f/20
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 f/18
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 f/16
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 f/14
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 f/13
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 f/11
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 f/10
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 f/9
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 f/8
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 f/7.1
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 f/6.3
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 f/5.6
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 f/5
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 f/4.5
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 f/4
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 f/3.5
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 f/3.2
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 f/2.8
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/capturesettings/sharpness
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1702]:Label: Sharpness
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1783]:Current: 50%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 12%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 25%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 37%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 50%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 62%
+[m[14:37:32:768 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 75%
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 87%
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 100%
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/capturesettings/shutterspeed
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1702]:Label: Shutter Speed
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1783]:Current: 300/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 1/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 3/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 5/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 6/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 7/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 8/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 9/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 10/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 15/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 20/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 25/1
+[m[14:37:32:769 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 30/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 40/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 50/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 60/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 70/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 80/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 90/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 100/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 110/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 120/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 130/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 140/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 150/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 160/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 170/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 180/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 190/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 200/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 210/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 220/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 230/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 240/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 250/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 260/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 270/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 280/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 290/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 300/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 360/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 420/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 480/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 540/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 600/1
+[m[14:37:32:770 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5001
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1702]:Label: Battery Level
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1783]:Current: 100
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 3
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 4
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 5
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 7
+[m[14:37:32:771 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 8
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 9
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 10
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 11
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 12
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 13
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 14
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 15
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 16
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 17
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 18
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 19
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 20
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 21
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 22
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 23
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 24
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 25
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 26
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 27
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 28
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 29
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 30
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 31
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 32
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 33
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 34
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 35
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 36
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 37
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 38
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 39
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 40
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 41
+[m[14:37:32:772 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 42
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 43
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 44
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 45
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 46 46
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 47 47
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 48 48
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 49 49
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 50 50
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 51 51
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 52 52
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 53 53
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 54 54
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 55 55
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 56 56
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 57 57
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 58 58
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 59 59
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 60 60
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 61 61
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 62 62
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 63 63
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 64 64
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 65 65
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 66 66
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 67 67
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 68 68
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 69 69
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 70 70
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 71 71
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 72 72
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 73 73
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 74 74
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 75 75
+[m[14:37:32:773 [1;32mINFO[m-]:print_widget[1787]:Choice: 76 76
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 77 77
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 78 78
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 79 79
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 80 80
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 81 81
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 82 82
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 83 83
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 84 84
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 85 85
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 86 86
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 87 87
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 88 88
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 89 89
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 90 90
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 91 91
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 92 92
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 93 93
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 94 94
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 95 95
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 96 96
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 97 97
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 98 98
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 99 99
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1787]:Choice: 100 100
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5005
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1702]:Label: White Balance
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:774 [1;32mINFO[m-]:print_widget[1783]:Current: 32783
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 2
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 32783
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 4
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 32770
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 32771
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 32772
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 32773
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 32774
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 32781
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 6
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 32782
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 32775
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 32776
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 32777
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 32778
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 32779
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 32780
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5007
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1702]:Label: F-Number
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1783]:Current: 400
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 2200
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2000
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 1800
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 1600
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 1400
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1300
+[m[14:37:32:775 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 1100
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 1000
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 900
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 800
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 710
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 630
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 560
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 500
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 450
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 400
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 350
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 320
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 280
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5010
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1702]:Label: Exposure Bias Compensation
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5011
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1702]:Label: Date & Time
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1712]:Current: 20260906T182117
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5014
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1702]:Label: Contrast
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1783]:Current: 4
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:776 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 3
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 4
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 5
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 7
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 8
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5015
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1702]:Label: Sharpness
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1783]:Current: 4
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 3
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 4
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 5
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 7
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 8
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d406
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1702]:Label: Session Initiator Info
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1712]:Current: 
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d407
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1702]:Label: Perceived Device Type
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:777 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1712]:Current: 1
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d303
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd303
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1712]:Current: 1
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d009
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd009
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1712]:Current: (null)
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d00f
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd00f
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1783]:Current: 300
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 1
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 3
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 5
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 6
+[m[14:37:32:778 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 7
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 8
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 9
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 10
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 15
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 20
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 25
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 30
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 40
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 50
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 60
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 70
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 80
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 90
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 100
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 110
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 120
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 130
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 140
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 150
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 160
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 170
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 180
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 190
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 200
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 210
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 220
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 230
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 240
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 250
+[m[14:37:32:779 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 260
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 270
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 280
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 290
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 300
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 360
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 420
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 480
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 540
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 600
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d013
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd013
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 12
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 14
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d014
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd014
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d015
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd015
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:780 [1;32mINFO[m-]:print_widget[1783]:Current: 20
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 50
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 47
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 43
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 40
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 37
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 33
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 30
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 27
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 23
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 20
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 17
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 13
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 10
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 7
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 3
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d01b
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd01b
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1712]:Current: (null)
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d01e
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd01e
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1783]:Current: 3200
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 100
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 200
+[m[14:37:32:781 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 400
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 800
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 1600
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 3200
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6400
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 12800
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 25600
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 51200
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 102400
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 204800
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 409600
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 819200
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 1600000
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d020
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd020
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 255
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 0
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 2
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 3
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 4
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 12
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 9
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 6
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 11
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 8
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 7
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 17
+[m[14:37:32:782 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 5
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 10
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d021
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd021
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 -4
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 -3
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 -2
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 -1
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 2
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 3
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 4
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d022
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd022
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 -4
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 -3
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 -2
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 -1
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 0
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 2
+[m[14:37:32:783 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 3
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 4
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d023
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd023
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 -4
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 -3
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 -2
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 -1
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 2
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 3
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 4
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d024
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd024
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d025
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd025
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d026
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd026
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:784 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d027
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd027
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1783]:Current: 1
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d028
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd028
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 -4
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 -3
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 -2
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 -1
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 2
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 3
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 4
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d029
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd029
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:785 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 -4
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 -3
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 -2
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 -1
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 1
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 2
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 3
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 4
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d02a
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd02a
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d02b
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd02b
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d02c
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd02c
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:786 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d02d
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd02d
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1712]:Current: (null)
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d035
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd035
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d036
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd036
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1712]:Current: (null)
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d037
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd037
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1712]:Current: (null)
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d039
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd039
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[14:37:32:787 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[14:37:32:838 [1;32mINFO[m-]:cameraInit[2688]:[m----------------------------------------------------------
+[m[14:37:32:838 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Manufacturer
+[m[14:37:32:839 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:839 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:839 [1;32mINFO[m-]:print_widget[1712]:Current: RICOH IMAGING COMPANY, LTD.
+[m[14:37:32:839 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[14:37:32:849 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Model
+[m[14:37:32:849 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[14:37:32:849 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[14:37:32:849 [1;32mINFO[m-]:print_widget[1712]:Current: PENTAX K-3 Mark III
+[m[14:37:32:849 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[14:37:32:859 [1;32mINFO[m-]:cameraInit[2703]:[m----------------------------------------------------------
+---- size 768   type 5 
+5.276723 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:33:736 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- manualfocusdrive not found in configuration tree. 
+6.153000 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:34:373 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- autofocusdrive not found in configuration tree. 
+6.789846 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:34:746 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- aperture not found in configuration tree. 
+7.162264 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:35:606 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- imageformat not found in configuration tree. 
+[m[14:37:35:616 [1;32mINFO[m-]:cameraInit[2708]:[m----------------------------------------------------------
+[m[14:37:35:627 [1;32mINFO[m-]:cameraInit[2713]:[m-----------------------------------------------------------
+[m[14:37:35:627 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret 0 
+[m[14:37:35:727 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+8.143668 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:36:820 [1;32mINFO[m-]:updateCameraViewFinder[3625]:----updateViewFinder enable:1  ret:-1 
+[m[14:37:37:021 [1;32mINFO[m-]:sp_Gphoto_Init[156]:[0;32;31m----enableViewFinder ret -1 
+[m[14:37:37:021 [1;32mINFO[m-]:updateCameraAutoFocus[3633]:[0;32;31m----updateCameraAutoFocus 0
+9.437750 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:37:498 [1;32mINFO[m-]:updateCameraAutoFocus[3703]:----updateCameraAutoFocus enable:0  ret:-1 
+[m[14:37:37:599 [1;32mINFO[m-]:camera_autoFocus_enable[797]:[0;32;31m----camera_autoFocus_enable  0
+[m[14:37:37:599 [1;32mINFO[m-]:sp_Gphoto_Init[164]:[0;32;31m----updateCameraAutoFocus ret -1 
+10.015794 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:37:972 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info manualfocus ret -1 
+[m[14:37:37:972 [1;32mINFO[m-]:getCameraStorageStatus[1898]:[0;32;31m----getCameraStorageStatus 2
+10.389062 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:39:007 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 30  info capturetarget=1 ret -1 
+11.523892 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:39:407 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[14:37:39:407 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[14:37:39:407 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231854800
+[m[14:37:39:408 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[14:37:39:408 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[14:37:39:408 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/003      idVendor: 25fb  idProduct: 0189 
+[m[14:37:39:409 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[14:37:39:409 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+[m[14:37:40:007 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info capturetarget ret -1 
+[m[14:37:40:007 [1;32mINFO[m-]:enableCaptureTarget[114]:[0;32;31m----enableCaptureTarget  new target:  status: -1
+[m[14:37:40:007 [1;32mINFO[m-]:enableCaptureTarget[126]:[0;32;31m----enableCaptureTarget  cInfo:capturetarget=1  ret:-1  onlyJpg:0 
+[m[14:37:40:017 [1;32mINFO[m-]:current_shutter[1719]:[0;32;31m----get_current_shutter 111  0 
+[m[14:37:40:029 [1;32mINFO[m-]:print_widget[1702]:Label: Shutter Speed
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1783]:Current: 300/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 1/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 3/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 5/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 6/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 7/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 8/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 9/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 10/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 15/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 20/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 25/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 30/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 40/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 50/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 60/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 70/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 80/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 90/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 100/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 110/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 120/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 130/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 140/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 150/1
+[m[14:37:40:030 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 160/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 170/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 180/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 190/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 200/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 210/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 220/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 230/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 240/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 250/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 260/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 270/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 280/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 290/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 300/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 360/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 420/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 480/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 540/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 600/1
+[m[14:37:40:031 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[14:37:40:031 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info shutterspeed ret 0 
+[m[14:37:40:031 [1;32mINFO[m-]:updateCaptureInfo[622]:[0;32;31m----shutter speed  300.000000  
+[m[14:37:40:031 [1;32mINFO[m-]:current_shutter[1724]:[0;32;31m----get_current_shutter 22 0
+[m[14:37:40:031 [1;32mINFO[m-]:current_shutter[1735]:[0;32;31m----current_shutter  configInfo:s:300/1;  ret:0  sValue 300/1 
+[m[14:37:40:031 [1;32mINFO[m-]:get_current_shutter[1704]:[0;32;31m----get_current_shutter  configInfo:s:300/1;  ret:0 
+[m[14:37:40:233 [1;32mINFO[m-]:getCameraStorageStatus[1898]:[0;32;31m----getCameraStorageStatus 2
+[m[14:37:40:233 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-3 mark iii;state:1;storage:2;photoFormat:2;]
+[m[m[14:37:40:233 [1;32mINFO[m-]:sp_Gphoto_Init[190]:----sp_Gphoto_Init_finish 
+ 
+ 
+ 
+ 
+ 
+ 
+[m[14:37:40:236 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[urer:ricoh imaging company, ltd.;model:pentax k-3 mark iii;state:1;storage:2;photoFormat:2;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: urer:ricoh imaging company, ltd.;model:pentax k-3 mark iii;state:1;storage:2;photoFormat:2;   --_isInit 1 
+12.652336 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+ o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[14:37:40:238 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ax203  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/canon  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/digigr8  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/dimagev  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/directory  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005a  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005c  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/kodak_dc240  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/mars  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ptp2  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ricoh_g3  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sierra  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sonix  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sq905  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/st2205  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/topfield  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/tp6801  value: (null) 
+--- list count = 1 
+----- gp_camera_init ret -53
+[m[14:37:40:549 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -53 
+[m[14:37:40:549 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-53;storage:0;photoFormat:0;]
+[m[m[14:37:40:551 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[14:37:40:837 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info imagequality ret -1 
+[m[14:37:40:837 [1;32mINFO[m-]:getCameraImageFormat[1770]:[0;32;31m----getImageFormat   type 0
+[m[14:37:40:837 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[282],val[format:0;]
+[m[m[14:37:45:335 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+17.751723 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:37:46:482 [1;32mINFO[m-]:updateCameraViewFinder[3625]:----updateViewFinder enable:0  ret:-1 
+[m[14:37:52:367 [1;32mINFO[m-]:updateCameraInfos[305]:[0;32;31m----updateCameraInfos configType 0  ret 0 
+[m[14:37:52:367 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[265],val[RD:0;V:5;R:100,200,400,800,1600,3200,6400,12800,25600,51200,102400,204800,409600,819200,1600000,;]
+[m[m[14:37:52:414 [1;32mINFO[m-]:updateCameraInfos[305]:[0;32;31m----updateCameraInfos configType 2  ret 0 
+[m[14:37:52:415 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[267],val[RD:0;V:0;R:0,;]
+[m[m[14:37:52:430 [1;32mINFO[m-]:updateCameraInfos[305]:[0;32;31m----updateCameraInfos configType 8  ret 0 
+[m[14:37:52:430 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[275],val[RD:0;V:15;R:f/22,f/20,f/18,f/16,f/14,f/13,f/11,f/10,f/9,f/8,f/7.1,f/6.3,f/5.6,f/5,f/4.5,f/4,f/3.5,f/3.2,f/2.8,;]
+[m142.718906 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+274.804915 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[14:43:41:432 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[274],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 274  data: state:0;   --_isInit 1 
+[m[14:43:42:438 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:0;storage:0;photoFormat:0;]
+[m[m[14:43:42:539 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[274],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 274  data: state:0;   --_isInit 1 

@@ -1,0 +1,75 @@
+### gimbal motion / status ###
+gimbal pos(517)              [] 517@yaw:-0.267454;pitch:0.872998;roll:0.000000;#
+rotate vector(518)           [] (no reply)
+hadj speed(513)              [] (no reply)
+vadj speed(514)              [] (no reply)
+hadj angle(515)              [] (no reply)
+vadj angle(516)              [] (no reply)
+radj speed(521)              [] (no reply)
+radj angle(522)              [] (no reply)
+goto au state(519)           [] (no reply)
+ahrs state(520)              [] 520@ret:0;#
+pos reset(523)               [] (no reply)
+cam video/yaw(527)           [] 525@Tempa509ca361f0000285a ;#
+
+### calibration / tilt / dither / limit ###
+calibrate start(530)         [] (no reply)
+track au state(531)          [state:1;speed:0;] 531@ret:0;#
+yaw key(532)                 [] (no reply)
+pitch key(533)               [] (no reply)
+roll key(534)                [] (no reply)
+set gimbal pos(535)          [] 535@ret:1;#
+track half speed(536)        [halfSpeed:0;] 536@ret:0;#
+get tilt state(537)          [] 537@state:0;#
+get dither state(539)        [] 539@state:0;#
+get limit state(541)         [] 541@state:0;#
+set settling time(544)       [] 544@ret:0;#535@ret:0;#
+get auto level en(547)       [] 547@en:1;#
+set auto level en(548)       [] 548@ret:0;#
+set auto level state(549)    [] 549@ret:0;#
+
+### device-info extras ###
+push mode state(284)         [] 284@mode:1;state:0;#525@Tempa509ca361f0000285a ;#
+push mode state 2(285)       [] 285@mode:0;ret:0;#
+cam info(286)                [] 286@manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;#
+state dump(287)              [] (no reply)
+sys format(282)              [] 282@format:0;#
+hdmi output(300)             [] 300@hdmi:0;#
+hdmi mode(301)               [] 301@ret:0;#
+cam focus(311)               [mode:;adj:;] 311@ret:-1;#
+
+### file / SD ###
+file list(770)               [type:0;] 770@normal:0;lapse:0;focus:0;pan:0;sun:0;hdr:0;starskyStack:0#
+sd format (query)(776)       [] (no reply)
+set type(777)                [] (no reply)
+battery detail(779)          [] (no reply)
+file thumb(781)              [] 781@date:2026-09-06;time:17:52;#
+file thumb list(782)         [] (no reply)
+file info(783)               [] 783@ret:0;#
+
+### wifi / system ###
+cellular state(799)          [] 799@ret:-1;#525@Tempa509ca361f0000285a ;#
+wifi scan(800)               [] 800@ret:-1;#
+wifi list(801)               [] (no reply)
+set wifi band(803)           [] 803@ret:0;#
+wifi connect(804)            [] 804@state:0;#
+wifi disconnect(805)         [] 805@state:0;#
+wifi status(806)             [] (no reply)
+wifi rssi(807)               [] (no reply)
+sys version(808)             [] (no reply)
+sys serial(809)              [] 809@ret:-1;#
+sys time(814)                [] 814@cellular:0;cellhwver:0;usbmode:0;#
+sys timezone(815)            [] 815@sw:0;#
+sys language(816)            [] 816@ret:0;#
+
+### OMS ###
+buzzer/oms add(817)          [] 817@ret:0;#
+led/oms version(818)         [] 525@Tempa509ca361f0000285a ;#
+log/oms upgrade start(819)   [] 819@ret:1;#
+app password info(820)       [] 820@ret:-1;#
+app token(821)               [] (no reply)
+app ping(822)                [] (no reply)
+app hello(823)               [] (no reply)
+oms task list(825)           [] (no reply)
+sp 826(826)                  [] 826@state:-1;#
+### FULL SWEEP DONE ###

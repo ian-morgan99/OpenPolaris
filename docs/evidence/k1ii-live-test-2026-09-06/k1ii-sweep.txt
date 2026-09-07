@@ -1,0 +1,53 @@
+### processes ###
+ 1081 root       0:40 /app/lib/stage2/pgphoto.stage2ondisk
+ 1466 root       0:00 busybox nc -w 5 127.0.0.1 8080
+
+### gimbal/system codes ###
+=== exAxis state (code 524, payload '') ===
+524@state:0;#
+=== temperature (code 525, payload '') ===
+
+=== settling time (code 543, payload '') ===
+543@time:2;#
+=== SD status (code 775, payload '') ===
+775@status:1;totalspace:121866;freespace:121798;usespace:68;#
+=== battery (code 778, payload '') ===
+778@capacity:100;charge:2;#
+=== battery detail (code 779, payload '') ===
+
+=== device info (code 780, payload '') ===
+780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#
+=== wifi band (code 802, payload '') ===
+802@band:0;#525@Tempa509ca361f0000285a ;#
+=== sys version (code 808, payload '') ===
+
+=== OMS state (code 824, payload '') ===
+824@state:0;#
+
+### camera GET codes (K1II attached) ###
+=== ISO get/set (code 258, payload '') ===
+258@ret:-1;#
+=== GET_ISO_INFO (code 265, payload '') ===
+
+=== GET_WB_INFO (code 266, payload '') ===
+
+=== GET_EV_INFO (code 267, payload '') ===
+
+=== GET_SHUTTER_INFO (code 268, payload '') ===
+
+=== GET_FNUM_INFO (code 275, payload '') ===
+
+=== liveview get (code 292, payload '') ===
+292@state:1;#
+
+### capture via 264 ###
+=== MAKE_PHOTO (code 264, payload 'state:1;bulb:0;c:-1;') ===
+264@state:1#264@state:-1#
+
+### MJPG streamer 8080 ###
+
+
+### gphoto2 on-device capture ###
+gphoto2 at: 
+gphoto2 not in PATH
+### DONE ###

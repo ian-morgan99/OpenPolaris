@@ -1,0 +1,46 @@
+### find recent logs ###
+/app/sd/system/log/Mlog_000043.log
+/app/sd/system/log/Clog_000043.log
+/app/access.log
+/app/error.log
+/app/Mlog.txt
+
+### grep PTP/gphoto lines in likely logs ###
+--- /app/sd/system/log/Mlog_000043.log
+[m[17:34:45:267 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[258],val[]
+[m[17:34:47:272 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:47:272 [1;32mINFO[m-]:EventMsgProc[2679]:[m[17:34:47:272 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[265],val[]
+[m[17:34:49:281 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:49:282 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[]
+[m[17:34:51:289 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:51:290 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[267],val[]
+[m[17:34:53:295 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:53:296 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[268],val[]
+[m[17:34:55:307 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:55:307 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[275],val[]
+[m[17:34:57:312 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:59:322 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[17:34:59:322 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[264],val[state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0003.jpg;c:-1]
+[m[17:35:14:963 [1;31mERROR[m-]:checkGphotoTask[3315]:[0;32;31mpgphoto is exit,reboot it
+--- /app/sd/system/log/Clog_000043.log
+[m[17:33:33:022 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View AF Position
+[m[17:33:33:027 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd406
+[m[17:33:33:027 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd407
+[m[17:33:33:027 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd303
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+[m[17:33:55:132 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -53 
+[m[17:34:00:671 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret 0 
+[m[17:34:06:406 [1;32mINFO[m-]:sp_Gphoto_Init[156]:[0;32;31m----enableViewFinder ret -1 
+[m[17:34:12:303 [1;32mINFO[m-]:sp_Gphoto_Init[164]:[0;32;31m----updateCameraAutoFocus ret -1 
+[m[17:34:34:329 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[17:34:34:329 [1;32mINFO[m-]:sp_Gphoto_Init[190]:----sp_Gphoto_Init_finish 
+[m[17:34:34:330 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;   --_isInit 1 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+--- /app/access.log
+--- /app/error.log
+--- /app/Mlog.txt
+0.120984 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-1 Mark II (PTP mode)')...
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000003.

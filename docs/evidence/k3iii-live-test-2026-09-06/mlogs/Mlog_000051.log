@@ -1,0 +1,208 @@
+[m[m[14:48:56:909 [1;31mERROR[m-]:GimbalUartRxTask[221]:len[50]>readNum[17] - offset[10]
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0xa5 0xa 0x0 0x45 0x5 0x1 0x1 0x1 0x57 0x5a 0x2e 0x32 0x32 0x0 0x2 0x5a 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+[m[14:48:56:910 [1;31mERROR[m-]:GimbalUartRxTask[214]:[0;32;31mUART_PREFIX error
+[m[14:48:56:910 [1;32mINFO[m-]:GimbalUartRxTask[260]:CRC fail:0x0 0x0 
+[m[14:48:56:919 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[507]:gimbal in place:pitch[1] yaw[1] ex[1]
+[m[14:48:56:919 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[611]:[0;35mGimbal sleep state[0]
+[m[14:48:57:666 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[416]:[0;35mUART_GIMBAL_TEST_INFO
+[m[14:48:57:666 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[417]:[0;35m+++++++++++++++++++++
+0xa5 0xf 0xca 0x3a 0x1 0xcf 0xf3 0xbf 0xff 0x0 0x0 0x0 0x0 0x94 0x5a 
+[m[14:48:57:666 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[422]:[0;35m---------------------
+[m[14:48:57:668 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[378]:Voltage:12.48;capacity:100;ChargeState:2;
+umount: can't unmount /app/sd: Invalid argument
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+umount: can't unmount /app/sd: Invalid argument
+[m[14:49:17:255 [1;32mINFO[m-Init]:main[94]:[0;35mFwVer v4.0.0.32 20250509
+[m[14:49:17:255 [1;32mINFO[m-Init]:main[95]:+++++++++++++++++++++
+[m[14:49:17:265 [1;32mINFO[m-Init]:main[97]:+++++++++++++++++++++
+[m[14:49:17:265 [1;32mINFO[m-]:HI_SYSTEM_GetStartupWakeupSource[75]:[0;35mHI_SYSTEM_STARTUP_SRC_STARTUP
+[m[14:49:17:266 [1;32mINFO[m-]:SP_GpioInit[37]:[0;32;32mHAL_GPIO_Init OK
+[m[m[14:49:17:267 [1;31mERROR[m-]:SP_GpioUnexport[226]:Failed to unexport gpio![m[14:49:17:269 [1;31mERROR[m-]:SP_GpioUnexport[226]:Failed to unexport gpio![m[14:49:17:273 [1;32mINFO[m-]:CameraGpioTask[116]:camera gpio value = 1
+[m[14:49:17:280 [1;32mINFO[m-]:SP_UserParamInit[198]:SP_UserParamInit success,s8ParamFd = 1;
+[m[14:49:17:280 [1;32mINFO[m-]:SP_UserParamInit[207]:SettlingTime[2];
+[m[14:49:17:280 [1;32mINFO[m-]:SP_SetAutoOffSw[329]:SP_SetAutoOffSw:0;
+[m[14:49:17:280 [1;32mINFO[m-]:SP_UserParamInit[214]:s32AutoOffSw[0];
+[m[14:49:17:280 [1;32mINFO[m-]:SP_UserParamInit[219]:s32AutoLevelEn[1];
+[m[14:49:17:280 [1;32mINFO[m-]:SP_UserParamInit[225]:s32TimeIntervalType[0];
+[m[14:49:17:282 [1;32mINFO[m-]:SP_GetFactoryParam[56]:[0;32;34mfactoryParam:hw:1.1;date:2021.11.29;pcb:1.20;modif:usb;
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+[m[14:49:17:282 [1;32mINFO[m-]:SP_GetFactoryParam[63]:hw:1.1
+[m[14:49:17:282 [1;32mINFO[m-]:SP_GetFactoryParam[67]:date:2021.11.29
+[m[14:49:17:282 [1;32mINFO[m-]:SP_GetFactoryParam[71]:pcb:1.20
+[m[14:49:17:282 [1;33mWARN[m-]:SP_StringPickUpVal[73]:CellHwVer: not found in hw:1.1;date:2021.11.29;pcb:1.20;modif:usb;
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+[m[14:49:17:282 [1;32mINFO[m-]:SP_GetFactoryParam[75]:CellHwVer:0
+[m[14:49:17:283 [1;32mINFO[m-]:SP_GetWifiBtId[67]:wifiBtId[d13e86]
+[m[14:49:17:284 [1;32mINFO[m-]:SP_GetFwVer[286]:fwVerinfo[FwVer:4.0.0.32;date:2025.05.09;
+(];len:[32];
+[m[14:49:17:285 [1;32mINFO[m-]:SP_GetFwVer[293]:FwVer[4.0.0.32];
+[m[14:49:17:370 [1;32mINFO[m-]:SP_SetSysInitTime[134]:RTC DateTime: 2025/05/09-14:49:16
+[m[14:49:17:370 [1;32mINFO[m-]:SP_SetSysInitTime[142]:[0;35mBuild DateTime: 2025/05/09-14:37:27
+[m[14:49:16:090 [1;32mINFO[m-SYSTEM]:HI_SYSTEM_SetDateTime[402]:Fri May  9 14:49:16 2025
+
+[m[14:49:16:090 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1001],id[131076]
+[m[m[14:49:16:091 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1002],id[98307]
+[m[m[14:49:16:091 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1003],id[65538]
+[m[m[14:49:16:091 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1004],id[163845]
+[m[m[14:49:16:091 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1006],id[32769]
+[m[m[14:49:16:091 [1;32mINFO[m-sp_msgComm]:SP_MsgQueueCreate[39]:[0;32;32mcreate msg queue success,key[1005],id[0]
+[m[m[14:49:16:093 [1;32mINFO[m-]:SP_CreateBtRcvMsgProcTask[186]:SP_CreateBtRcvMsgProcTask success
+[m[14:49:16:093 [1;32mINFO[m-]:SP_CreateBtSendMsgProcTask[244]:SP_CreateBtSendMsgProcTask success
+[m[14:49:16:332 [1;32mINFO[m-]:SP_NetInit[217]:INIT WEB SERVER OK 
+[m[14:49:16:337 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=1] start
+[m[14:49:16:340 [1;32mINFO[m-]:Uart3Open[52]:open uart3 success,fd[13]
+[m[14:49:16:410 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/virtual/bdi/179:0
+[m[14:49:16:410 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa
+[m[14:49:16:410 [1;32mINFO[m-]:NetlinkUeventTask[73]:remove sd card
+[m[14:49:16:421 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1025],val[1]
+[m[m[14:49:16:421 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:change@/devices/platform/regulatory.0
+[m[14:49:16:421 [1;32mINFO[m-]:EventMsgProc[2603]:SP_EVENT_SD_UNPLUGED
+[m[14:49:16:421 [1;32mINFO[m-sp_msgComm]:SP_sendMsConfiguration file: /app/wifi/hostapd.conf
+rfkill: Cannot open RFKILL control device
+Using interface wlan0 with hwaddr 48:e7:da:d4:b5:73 and ssid "polaris_d13e86"
+wlan0: interface state UNINITIALIZED->ENABLED
+wlan0: AP-ENABLED 
+g[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[279],val[state:0;]
+[m[m[14:49:16:422 [1;31mERROR[m-]:SP_FileListFree[195]:list no init
+[m[14:49:16:422 [1;32mINFO[m-]:SP_NomalFileListFree[33]:SP_NomalFileListFree
+[m[14:49:16:423 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:423 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:423 [1;32mINFO[m-]:SP_FocusStackFileListFree[33]:SP_FocusStackFileListFree
+[m[14:49:16:423 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:424 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:424 [1;32mINFO[m-]:SP_PanFileListFree[36]:SP_PanFileListFree
+[m[14:49:16:424 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:424 [1;32mINFO[m-]:SP_LapseFileListFree[65]:SP_LapseFileListFree
+[m[14:49:16:425 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:425 [1;32mINFO[m-]:SP_SunFileListFree[30]:SP_SunFileListFree
+[m[14:49:16:425 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:425 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:425 [1;32mINFO[m-]:SP_HdrFileListFree[33]:SP_HdrFileListFree
+[m[14:49:16:426 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:426 [1;31mERROR[m-]:SP_NestFileListFree[384]:list no init
+[m[14:49:16:426 [1;32mINFO[m-]:SP_StarskyStackFileListFree[31]:SP_StarskyStackFileListFree
+[m[14:49:16:470 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001
+[m[14:49:16:471 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:1
+[m[14:49:16:471 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2
+[m[14:49:16:471 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:3
+[m[14:49:16:487 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:remove@/bus/sdio/drivers/dummy_sdmmc
+[m[14:49:16:492 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/ieee80211/phy0
+[m[14:49:16:697 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0
+[m[14:49:16:697 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0/queues/rx-0
+[m[14:49:16:697 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/10020000.himci.SD/mmc_host/mmc1/mmc1:0001/mmc1:0001:2/net/wlan0/queues/tx-0
+[m[14:49:16:697 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/bus/sdio/drivers/bcmsdh_sdmmc
+[m[14:49:16:697 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/bus/platform/drivers/bcmdhd_wlan
+[m[14:49:17:005 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;]
+[m[m[14:49:17:046 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:0;]
+[m[m[14:49:17:338 [1;32mINFO[m-]:SP_CreateSensorMngTask[276]:SP_CreateSensorMngTask success
+[m[14:49:17:342 [1;32mINFO[m-]:SP_MpuInit[133]:SP_MpuInit success
+[m[14:49:17:342 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:0;sta:1;Use:1;
+[m[14:49:17:348 [1;31mERROR[m-]:SP_I2cRead[78]:SP_I2cRead error
+[m[14:49:17:348 [1;32mINFO[m-]:MagIdentityChipID[49]:QMC6310U_STA
+[m[14:49:17:349 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:1;sta:1;Use:1;
+[m[14:49:17:349 [1;32mINFO[m-]:SP_MpiSysInit[59]:SP_MpiSysInit success
+[m[14:49:17:349 [1;32mINFO[m-]:SP_GetGyroCalInfo[186]:[0;35mNO Gyro calibrate info
+[m[14:49:17:350 [1;32mINFO[m-]:SP_GetGyroCalInfo[189]:GyroOffset x[0.0];y[0.0];z[0.0];
+[m[14:49:17:350 [1;32mINFO[m-]:SP_CreateCheckPhotoTimeOutTask[901]:SP_CreateCheckPhotoTimeOutTask success
+[m[14:49:17:351 [1;32mINFO[m-]:SP_GetAcceCalInfo[628]:[0;35mNO Acce calibrate info
+[m[14:49:17:352 [1;32mINFO[m-]:SP_GetAcceCalInfo[634]:AcceOffset x[0.0];y[0.0];z[0.0];
+[m[14:49:17:351 [1;32mINFO[m-]:SP_CreateCableReleaseTask[1009]:SP_CreateCableReleaseTask success
+
+[m[14:49:17:352 [1;32mINFO[m-]:SP_GetMagCalinfo[573]:[0;35mNO Mag calibrate info
+[m[14:49:17:352 [1;32mINFO[m-]:SP_GetMagCalinfo[576]:mag Offset x[0];y[0];z[0];
+[m[14:49:17:352 [1;32mINFO[m-]:SP_GetMagCalinfo[579]:mag Bias x[0.0];y[0.0];z[0.0];
+[m[14:49:17:352 [1;32mINFO[m-]:SP_GetMagCalinfo[582]:mag scale x[1.0];y[1.0];z[1.0];
+[m[14:49:17:354 [1;31mERROR[m-]:SP_CheckHdmiId[643]:HDMI Hw no Support
+[m[14:49:17:354 [1;32mINFO[m-]:SendHwToGimbalTask[82]:[m[14:49:17:354 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:2;sta:0;Use:1;
+SendHwToGimbal hw[11],ubootVer[0]
+[m[14:49:17:357 [1;32mINFO[m-]:SensorMngTask[115]:SP_SENSOR_STA_GIMBAL_ANGLE_INIT Box0Yaw:-0.0239;Box0Pitch:-1.0941;
+[m[14:49:17:358 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[433]:bSendHwAck
+[m[14:49:17:900 [1;32mINFO[m-]:AcceAttitudeInit[596]:xMean[0.91],yMean[0.02],zMean[0.42]
+[m[14:49:17:901 [1;32mINFO[m-]:AcceAttitudeInit[619]:[0;35mxVar[0.003678],yVar[0.005094],zVar[0.007419]
+[m[14:49:17:902 [1;32mINFO[m-]:SP_BoxAhraInit[890]:[0;35maAcce:x[0.9108],y[0.0170],z[0.4226]
+[m[14:49:17:903 [1;32mINFO[m-]:SP_BoxAhraInit[896]:++++++acce init ok +++++++++++
+[m[14:49:17:903 [1;32mINFO[m-]:SP_BoxAhraInit[898]:aAcce:x[2.3088],y[-65.0911],z[0.0000]
+[m[14:49:17:904 [1;32mINFO[m-]:SensorMngTask[85]:SP_SENSOR_STA_BOX_AHRS_INIT SUCCESS
+[m[14:49:18:239 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa
+[m[14:49:18:243 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/virtual/bdi/179:0
+[m[14:49:18:246 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0
+[m[14:49:18:246 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/100f0000.himci.SD/mmc_host/mmc0/mmc0:aaaa/block/mmcblk0/mmcblk0p1
+[m[14:49:18:246 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1026],val[1]
+[m[m[14:49:18:246 [1;32mINFO[m-]:EventMsgProc[2615]:SP_EVENT_SD_PLUGED
+[m[14:49:18:264 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1027],val[1]
+[m[m[14:49:18:264 [1;32mINFO[m-]:EventMsgProc[2641]:SP_EVENT_SD_MOUNTED
+[m[14:49:18:355 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:5;sta:0;Use:0;
+[m[14:49:18:355 [1;31mERROR[m-]:SP_CheckTtyUsbOk[2319]:SP_CheckTtyUsbOk
+[m[14:49:18:355 [1;32mINFO[m-]:SP_GimbalGetExAxsiSate[913]:uart send:SP_GimbalGetExAxsiSate
+[m[14:49:18:356 [1;32mINFO[m-]:SP_CreateOmsTask[218]:SP_CreateOmsTask success
+[m[14:49:18:356 [1;32mINFO[m-]:OmsTask[171]:_____OMS_STEP_NONE
+[m[14:49:18:358 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1005],type[6],code[1282],val[]
+[m[m[14:49:18:359 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:0;]
+[m[m[14:49:18:359 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[358]:UART_GIMBAL_FW_VER 2.0.0.22
+[m[14:49:18:360 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[364]:UART_GIMBAL_HW_VER 1.2
+[m[14:49:18:363 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[370]:UART_GIMBAL_IAP_VER 1.3
+[m[14:49:18:365 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[378]:Voltage:12.48;capacity:100;ChargeState:2;
+[m[14:49:18:367 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[319]:[0;35mExAxsiOn = 0
+[m[14:49:18:371 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[448]:ExAngle:0.000
+[m[14:49:18:594 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:add@/devices/platform/soc/soc:amba/120a1000.uart/tty/ttyAMA1/hci0
+[m[14:49:18:961 [1;32mINFO[m-]:SP_MsgFromWifiBtProc[1540]:[0;35mMsgFromWifiBt-->type[6],code[1282],val[wifi:1;bt:1;]
+[m[m[14:49:18:962 [1;32mINFO[m-]:SP_BlueInit[2986]:[0;35mSP_BlueInit start
+[m[14:49:18:969 [1;32mINFO[m-]:SP_BlueInit[3009]:[0;35mg_main_loop_new
+[m[14:49:19:048 [1;32mINFO[m-]:SP_BlueInit[3046]:-------------main loop running -------
+[m[14:49:19:057 [1;32mINFO[m-]:connect_handler[121]:connect_handler
+[m[14:49:19:064 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.AgentManager1]
+[m[14:49:19:072 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.ProfileManager1]
+[m[14:49:19:094 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.Adapter1]
+[[0;92mNEW[0m] Controller 48:E7:DA:D4:B5:72 polaris_d13e86 [default]
+[m[14:49:19:097 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.GattManager1]
+[m[14:49:19:100 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.Media1]
+[m[14:49:19:102 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.NetworkServer1]
+[m[14:49:19:104 [1;32mINFO[m-]:proxy_added[553]:[0;35minterface[org.bluez.LEAdvertisingManager1]
+[m[14:49:19:106 [1;32mINFO[m-]:client_ready[2875]:client_ready
+Agent registered
+[m[14:49:19:156 [1;32mINFO[m-]:CheckTtyUsbTask[2303]:checking ttyUSB2 state count:45
+[m[14:49:19:205 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001801-0000-1000-8000-00805f9b34fb
+[m[14:49:19:205 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 0000110e-0000-1000-8000-00805f9b34fb
+[m[14:49:19:205 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001200-0000-1000-8000-00805f9b34fb
+[m[14:49:19:206 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 00001800-0000-1000-8000-00805f9b34fb
+[m[14:49:19:206 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 UUIDs: 0000110c-0000-1000-8000-00805f9b34fb
+[m[14:49:19:217 [1;32mINFO[m-]:parse_iter[283]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Alias: polaris_d13e86
+[m[14:49:19:218 [1;32mINFO[m-]:parse_iter[288]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Pairable: yes
+[m[14:49:19:224 [1;32mINFO[m-]:parse_iter[288]:[[0;93mCHG[0m] Controller 48:E7:DA:D4:B5:72 Discoverable: yes
+[m[14:49:19:359 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1005],type[6],code[1282],val[]
+[m[m[14:49:19:359 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:4;sta:1;Use:1;
+[m[14:49:19:359 [1;32mINFO[m-]:SP_SetHwCode[3258]:[0;35mHwCode:3;sta:1;Use:1;
+[m[14:49:19:619 [1;32mINFO[m-]:NetlinkUeventTask[65]:info:change@/devices/platform/regulatory.0
+[m[14:49:19:713 [1;32mINFO[m-]:SP_GetSdInfo[2483]:u64TotalSize:121866;u64FreeSize::121859;u64UsedSize:6
+[m[14:49:19:713 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1029],val[1]
+[m[m[14:49:19:713 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[4],code[279],val[state:1;]
+[m[m[14:49:19:713 [1;32mINFO[m-]:EventMsgProc[2657]:SP_EVENT_SD_SCAN
+[m[14:49:19:715 [1;32mINFO[m-]:SP_GetNomalFileList[90]: PhotoMaxNum 0;FileCount 0
+[m[14:49:19:717 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/focusStack/],ClassCount[0],maxCalss[0]
+[m[14:49:19:717 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/focusStack/],IspClassCount[0]
+[m[14:49:19:718 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/panorama/],ClassCount[0],maxCalss[0]
+[m[14:49:19:719 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/panorama/],IspClassCount[0]
+[m[14:49:19:719 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[14:49:19:720 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/Lapse/],ClassCount[0],maxCalss[0]
+[m[14:49:19:720 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[14:49:19:721 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/sun/],ClassCount[0],maxCalss[0]
+[m[14:49:19:723 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/HDR/],ClassCount[0],maxCalss[0]
+[m[14:49:19:723 [1;32mINFO[m-]:SP_GetNestFileList[781]:DirPath[/app/sd/HDR/],IspClassCount[0]
+[m[14:49:19:723 [1;32mINFO[m-]:SP_GetNestFileList[662]:bIspListUse=HI_FALSE
+[m[14:49:19:724 [1;32mINFO[m-]:SP_GetNestFileList[760]:DirPath[/app/sd/starskyStack/],ClassCount[0],maxCalss[0]

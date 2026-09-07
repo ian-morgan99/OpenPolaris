@@ -1,0 +1,1102 @@
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[18:44:45:967 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[18:44:45:972 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[18:44:45:974 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231879376
+[m[18:44:45:983 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[18:44:45:983 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[18:44:45:983 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/003      idVendor: 25fb  idProduct: 0183 
+[m[18:44:45:983 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[18:44:45:983 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+[m[18:44:45:456 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[279],val[state:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 279  data: state:0;   --_isInit 1 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.077123 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ax203  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/canon  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/digigr8  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/dimagev  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/directory  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005a  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005c  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/kodak_dc240  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/mars  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ptp2  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ricoh_g3  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sierra  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sonix  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sq905  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/st2205  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/topfield  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/tp6801  value: (null) 
+--- list count = 1 
+0.268177 gp_camera_set_abilities [gphoto2-camera.c:358](0): Setting abilities ('Pentax K-1 Mark II (PTP mode)')...
+0.269279 gp_camera_set_port_info [gphoto2-camera.c:420](0): Setting port info for port 'Universal Serial Bus' at 'usb:001,003'...
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000003.
+[stage2] compatibility shims: bypassed for non-R5-II camera
+----- gp_camera_init ret 0
+1.850661 gp_port_info_list_count [gphoto2-port-info-list.c:357](0): ---- 4 regular entries available.
+Model                          Port            
+----------------------------------------------------------
+Pentax K-1 Mark II (PTP mode)  usb:001,003     
+[m[18:44:47:541 [1;32mINFO[m-]:cameraInit[2675]:[0;32;31m-------------------------------------------------------------
+Camera summary: 
+[m[18:44:48:144 [1;32mINFO[m-]:cameraInit[2679]:[m-----------------------------------------------------------
+[m[18:44:48:693 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[279],val[state:1;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 279  data: state:1;   --_isInit 1 
+/main/actions/oldfocusdrivenear
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax old-focus near (K-1 II)
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/oldfocusdrivefar
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax old-focus far (K-1 II)
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/manualfocusdrivenear
+[m[18:44:53:608 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax focus near
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/manualfocusdrivefar
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1702]:Label: Drive Pentax focus far
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/actions/opcode
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Opcode
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1712]:Current: 0x1001,0xparam1,0xparam2
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/settings/datetime
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Date and Time
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1761]:Type: DATE
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1762]:Current: 1788716828
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1763]:Printable: Sun Sep  6 17:47:08 2026
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1764]:Help: Use 'now' as the current time when setting.
+
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/serialnumber
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1702]:Label: Serial Number
+[m[18:44:53:609 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: 7371227
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/manufacturer
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Manufacturer
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: RICOH IMAGING COMPANY, LTD.
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/cameramodel
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Model
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: PENTAX K-1 Mark II
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/deviceversion
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1702]:Label: Device Version
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: 1.02
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/vendorextension
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1702]:Label: Vendor Extension
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: ????????????????
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxconditions
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Conditions
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1712]:Current: state=3; astro-phase=inactive/other; exposure-mode-raw=8; user-mode-raw=0; drive-mode-raw=4; ISO=200; exposure-step=1; open-av-num=14; shooting=no; processing=no; task-changing=no; Tv-changeable=yes; bulb-timer=no; bulb-seconds=1/500; aperture=20/10; exposure-comp=0/10; astrotracer3=no; astro-shift=no; astro-movement-failed=no; astro-time-too-long=no; astro-limit=0; gps-state=0
+[m[18:44:53:610 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewcontrols
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View Controls
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: area=720x480; active=720x480; caf-active=576x320; caf-spot=48x48; af-position=360,240; af-response-bytes=8; zoom-raw=1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd00f
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Shutter/Bulb Descriptor
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd00f; datatype=0x0008; getset=1; form=2; enum-count=56; value-bytes=8; value-hex=01000000f4010000
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5007
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Aperture Descriptor
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5007; datatype=0x0004; getset=1; form=2; enum-count=22; value-bytes=2; value-hex=c800
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd01e
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax ISO Descriptor
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd01e; datatype=0x0006; getset=1; form=2; enum-count=12; value-bytes=4; value-hex=c8000000
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5010
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Exposure Compensation Descriptor
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5010; datatype=0x0003; getset=1; form=2; enum-count=31; value-bytes=2; value-hex=0000
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5008
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Focal Length Descriptor
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5008; datatype=0x0006; getset=0; form=0; enum-count=0; value-bytes=4; value-hex=88130000
+[m[18:44:53:611 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxprop5005
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax White Balance Descriptor
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1712]:Current: code=0x5005; datatype=0x0004; getset=1; form=2; enum-count=18; value-bytes=2; value-hex=0200
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd013
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Drive Mode Descriptor
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd013; datatype=0x0006; getset=1; form=2; enum-count=23; value-bytes=4; value-hex=01000000
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd02b
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Focus Peaking Descriptor
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd02b; descriptor-parse=failed; descriptor-bytes=16; descriptor-hex=2bd00440010000020200000040024001; value-bytes=4; value-hex=00d00440
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpropd035
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax PC Live View Descriptor
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1712]:Current: code=0xd035; descriptor-parse=failed; descriptor-bytes=6; descriptor-hex=35d000000000; value-bytes=0; value-hex=
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxfocuspeaking
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Focus Peaking
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 on
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 on+outline
+[m[18:44:53:612 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcimode
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Custom Image Mode
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1783]:Current: autoselect
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 autoselect
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 vivid
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 natural
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 portrait
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 landscape
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 miyabi
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 satobi
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 poptune
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 honoka
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 flat
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 bleach bypass
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 reversal film
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 monotone
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 cross process
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxpclvkeep
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Keep Live View
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1740]:Type: TOGGLE
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1741]:Current: 0
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxcardwritingmode
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Card Writing Mode
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:613 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 SD1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 SD2
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 both
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectshutter
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Shutter Speed
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1783]:Current: 1/500
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 30/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 25/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 20/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 15/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 13/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 10/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 8/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 6/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 5/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 4/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 3/1
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 25/10
+[m[18:44:53:614 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 2/1
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 16/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 13/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 1/1
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 8/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 6/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 5/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 4/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 3/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 1/4
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 1/5
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 1/6
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 1/8
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 1/10
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 1/13
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 1/15
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 1/20
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 1/25
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 1/30
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 1/40
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 1/50
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 1/60
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 1/80
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 1/100
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 1/125
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 1/160
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 1/200
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 1/250
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 1/320
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 1/400
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 1/500
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 1/640
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 1/800
+[m[18:44:53:615 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 1/1000
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 46 1/1250
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 47 1/1600
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 48 1/2000
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 49 1/2500
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 50 1/3200
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 51 1/4000
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 52 1/5000
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 53 1/6400
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 54 1/8000
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 55 0/1
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectiso
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct ISO Speed
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1783]:Current: 200
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 100
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 200
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 400
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 800
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 1600
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 3200
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6400
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 12800
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 25600
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 51200
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 102400
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 204800
+[m[18:44:53:616 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectaperture
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Aperture
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1783]:Current: f/2
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 f/1.4
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 f/1.6
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 f/1.8
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 f/2
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 f/2.2
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 f/2.5
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 f/2.8
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 f/3.2
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 f/3.5
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 f/4
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 f/4.5
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 f/5
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 f/5.6
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 f/6.3
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 f/7.1
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 f/8
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 f/9
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 f/10
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 f/11
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 f/13
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 f/14
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 f/16
+[m[18:44:53:617 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectev
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Direct Exposure Compensation
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1783]:Current: 0
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 5
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 4.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 4.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 4
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 3.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 3.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 2.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 2.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 2
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 1.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 1.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 1
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 0.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 0.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 0
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 -0.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 -0.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 -1
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 -1.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 -1.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 -2
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 -2.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 -2.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 -3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 -3.3
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 -3.7
+[m[18:44:53:618 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 -4
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 -4.3
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 -4.7
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 -5
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewafposition
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View AF Position
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1712]:Current: 360,240
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewzoom
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View Zoom
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1783]:Current: off
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 off
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 2x
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 4x
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 8x
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 10x
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 16x
+[m[18:44:53:619 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdrivemode
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Drive Mode
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1783]:Current: continuous-hi
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 single
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 interval
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 interval-movie
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 unknown-3
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 continuous-hi
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 continuous-mid
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 continuous-lo
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 self-timer-12s
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 self-timer-2s
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 remote
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 remote-3s
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 remote-cont
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 mirror-up
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 mirror-up-remote
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 unknown-14
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 multi-exposure
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 unknown-16
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 unknown-17
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 unknown-18
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 unknown-19
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 unknown-20
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 unknown-21
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 self-timer-cont
+[m[18:44:53:620 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxdirectwb
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax White Balance
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1781]:Type: RADIO
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1783]:Current: auto
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 auto
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 daylight
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 shade
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 cloudy
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 fluorescent-d
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 fluorescent-n
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 fluorescent-w
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 tungsten
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 flash
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 manual-1
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 manual-2
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 manual-3
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 color-temp-1
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 color-temp-2
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 color-temp-3
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 auto-800f
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/pentaxliveviewafposition
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1702]:Label: Pentax Live View AF Position
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1712]:Current: 360,240
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/status/batterylevel
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1702]:Label: Battery Level
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:621 [1;32mINFO[m-]:print_widget[1712]:Current: 67%
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5001
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1702]:Label: Battery Level
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1777]:Type: MENU
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1783]:Current: 67
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 0 0
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 1 1
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 2 2
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 3 3
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 4 4
+[m[18:44:53:622 [1;32mINFO[m-]:print_widget[1787]:Choice: 5 5
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 6 6
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 7 7
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 8 8
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 9 9
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 10 10
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 11 11
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 12 12
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 13 13
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 14 14
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 15 15
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 16 16
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 17 17
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 18 18
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 19 19
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 20 20
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 21 21
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 22 22
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 23 23
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 24 24
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 25 25
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 26 26
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 27 27
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 28 28
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 29 29
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 30 30
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 31 31
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 32 32
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 33 33
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 34 34
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 35 35
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 36 36
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 37 37
+[m[18:44:53:623 [1;32mINFO[m-]:print_widget[1787]:Choice: 38 38
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 39 39
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 40 40
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 41 41
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 42 42
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 43 43
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 44 44
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 45 45
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 46 46
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 47 47
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 48 48
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 49 49
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 50 50
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 51 51
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 52 52
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 53 53
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 54 54
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 55 55
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 56 56
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 57 57
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 58 58
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 59 59
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 60 60
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 61 61
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 62 62
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 63 63
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 64 64
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 65 65
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 66 66
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 67 67
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 68 68
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 69 69
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 70 70
+[m[18:44:53:624 [1;32mINFO[m-]:print_widget[1787]:Choice: 71 71
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 72 72
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 73 73
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 74 74
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 75 75
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 76 76
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 77 77
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 78 78
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 79 79
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 80 80
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 81 81
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 82 82
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 83 83
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 84 84
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 85 85
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 86 86
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 87 87
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 88 88
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 89 89
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 90 90
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 91 91
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 92 92
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 93 93
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 94 94
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 95 95
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 96 96
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 97 97
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 98 98
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 99 99
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1787]:Choice: 100 100
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/5011
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1702]:Label: Date & Time
+[m[18:44:53:625 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1712]:Current: 20260906T174714
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d406
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd406
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1703]:Readonly: 0
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1712]:Current: 
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d407
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd407
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1712]:Current: 1
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+/main/other/d303
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1702]:Label: PTP Property 0xd303
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1712]:Current: 1
+[m[18:44:53:626 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[18:44:53:676 [1;32mINFO[m-]:cameraInit[2688]:[m----------------------------------------------------------
+[m[18:44:53:677 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Manufacturer
+[m[18:44:53:677 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:677 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:677 [1;32mINFO[m-]:print_widget[1712]:Current: RICOH IMAGING COMPANY, LTD.
+[m[18:44:53:677 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[18:44:53:688 [1;32mINFO[m-]:print_widget[1702]:Label: Camera Model
+[m[18:44:53:688 [1;32mINFO[m-]:print_widget[1703]:Readonly: 1
+[m[18:44:53:688 [1;32mINFO[m-]:print_widget[1711]:Type: TEXT
+[m[18:44:53:688 [1;32mINFO[m-]:print_widget[1712]:Current: PENTAX K-1 Mark II
+[m[18:44:53:688 [1;32mINFO[m-]:print_widget[1802]:-----------------END
+[m[18:44:53:698 [1;32mINFO[m-]:cameraInit[2703]:[m----------------------------------------------------------
+---- size 768   type 5 
+8.126046 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:44:57:403 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[18:44:57:404 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[18:44:57:404 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1232219344
+[m[18:44:57:405 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[18:44:57:405 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[18:44:57:405 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/003      idVendor: 25fb  idProduct: 0183 
+[m[18:44:57:405 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[18:44:57:405 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ax203  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/canon  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/digigr8  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/dimagev  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/directory  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005a  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/jl2005c  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/kodak_dc240  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/mars  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/pentax  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ptp2  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/ricoh_g3  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sierra  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sonix  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/sq905  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/st2205  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/topfield  value: (null) 
+--- camera list name: ../lib/libgphoto2/2.5.27.1/tp6801  value: (null) 
+--- list count = 1 
+----- gp_camera_init ret -53
+[m[18:44:58:545 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -53 
+[m[18:44:58:545 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-53;storage:0;photoFormat:0;]
+[m[m[18:44:58:549 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[18:44:59:255 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- shutterspeed not found in configuration tree. 
+13.683446 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:04:641 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- manualfocusdrive not found in configuration tree. 
+19.069316 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:10:524 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- autofocusdrive not found in configuration tree. 
+24.951652 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:16:495 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- aperture not found in configuration tree. 
+30.922787 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:21:888 [1;32mINFO[m-]:checkWidgetForName[2783]:[0;32;31m---- imageformat not found in configuration tree. 
+[m[18:45:21:898 [1;32mINFO[m-]:cameraInit[2708]:[m----------------------------------------------------------
+[m[18:45:21:908 [1;32mINFO[m-]:cameraInit[2713]:[m-----------------------------------------------------------
+[m[18:45:21:908 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret 0 
+[m[18:45:22:008 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+36.436337 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:23:147 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+on client close..........1 
+[m[18:45:23:148 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[18:45:28:043 [1;32mINFO[m-]:updateCameraViewFinder[3625]:----updateViewFinder enable:1  ret:-1 
+[m[18:45:28:244 [1;32mINFO[m-]:sp_Gphoto_Init[156]:[0;32;31m----enableViewFinder ret -1 
+[m[18:45:28:244 [1;32mINFO[m-]:updateCameraAutoFocus[3633]:[0;32;31m----updateCameraAutoFocus 0
+42.672050 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:28:989 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:45:28:991 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:45:28:992 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:45:28:992 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:45:28:993 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:45:33:813 [1;32mINFO[m-]:updateCameraAutoFocus[3703]:----updateCameraAutoFocus enable:0  ret:-1 
+[m[18:45:33:913 [1;32mINFO[m-]:camera_autoFocus_enable[797]:[0;32;31m----camera_autoFocus_enable  0
+[m[18:45:33:913 [1;32mINFO[m-]:sp_Gphoto_Init[164]:[0;32;31m----updateCameraAutoFocus ret -1 
+48.340945 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:39:544 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info manualfocus ret -1 
+[m[18:45:39:545 [1;32mINFO[m-]:getCameraStorageStatus[1898]:[0;32;31m----getCameraStorageStatus 2
+53.972476 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+59.903264 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:51:144 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info capturetarget ret -1 
+[m[18:45:51:144 [1;32mINFO[m-]:enableCaptureTarget[114]:[0;32;31m----enableCaptureTarget  new target:  status: -1
+[m[18:45:51:144 [1;32mINFO[m-]:enableCaptureTarget[126]:[0;32;31m----enableCaptureTarget  cInfo:capturetarget=1  ret:-1  onlyJpg:0 
+[m[18:45:51:154 [1;32mINFO[m-]:current_shutter[1719]:[0;32;31m----get_current_shutter 111  0 
+65.582372 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+[m[18:45:56:342 [1;32mINFO[m-]:deal_camera_control_handler[2856]:[0;32;31m----camera_control_handler command 29  info shutterspeed ret -1 
+[m[18:45:56:342 [1;32mINFO[m-]:current_shutter[1724]:[0;32;31m----get_current_shutter 22 -1
+[m[18:45:56:342 [1;32mINFO[m-]:current_shutter[1735]:[0;32;31m----current_shutter  configInfo:s:-1;  ret:-1  sValue  
+[m[18:45:56:342 [1;32mINFO[m-]:get_current_shutter[1704]:[0;32;31m----get_current_shutter  configInfo:s:-1;  ret:-1 
+[m[18:45:56:544 [1;32mINFO[m-]:getCameraStorageStatus[1898]:[0;32;31m----getCameraStorageStatus 2
+[m[18:45:56:544 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[m[18:45:56:544 [1;32mINFO[m-]:sp_Gphoto_Init[190]:----sp_Gphoto_Init_finish 
+ 
+ 
+ 
+ 
+ 
+ 
+[m[18:45:56:545 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: urer:ricoh imaging company, ltd.;model:pentax k-1 mark ii;state:1;storage:2;photoFormat:2;   --_isInit 1 
+70.973041 gp_camera_get_single_config [gphoto2-camera.c:925](0): 'camera->functions->get_single_config ( camera, name, widget, context)' failed: -2
+ o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[18:45:56:547 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+bind: Address already in use
+ o: server_thread(): bind(8080) failed
+[m[18:45:56:562 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+[m[18:45:56:603 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:45:56:604 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:45:56:605 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:45:56:606 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:45:56:607 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:45:56:709 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[1;para:0/0.0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: 1;para:0/0.0;   --_isInit 1 
+[m[18:45:56:709 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[282],val[format:0;]
+[m[m[18:46:04:110 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:04:111 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:04:113 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:04:114 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:04:115 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:07:052 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:07:053 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:07:054 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:07:056 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:07:057 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:09:628 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[264],val[state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0001.jpg;c:-1]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 264  data: state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0001.jpg;c:-1   --_isInit 1 
+[m[18:46:09:628 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:1;/app/sd/normal/SP_0001.jpg]
+[m[m[18:46:09:629 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:-1;/app/sd/normal/SP_0001.jpg]
+[m[m[18:46:10:929 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:10:931 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:10:932 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:10:933 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:10:934 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:14:410 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[264],val[state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0002.jpg;c:-1]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 264  data: state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0002.jpg;c:-1   --_isInit 1 
+[m[18:46:14:410 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:1;/app/sd/normal/SP_0002.jpg]
+[m[m[18:46:14:411 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:-1;/app/sd/normal/SP_0002.jpg]
+[m[m[18:46:16:009 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[264],val[state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0003.jpg;c:-1]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 264  data: state:1;focus:-1000;leve:1;b:0;path:/app/sd/normal/SP_0003.jpg;c:-1   --_isInit 1 
+[m[18:46:16:010 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:1;/app/sd/normal/SP_0003.jpg]
+[m[m[18:46:16:010 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:-1;/app/sd/normal/SP_0003.jpg]
+[m[m[18:46:20:906 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:20:908 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:20:909 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:20:910 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:20:911 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:27:411 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+[m[18:46:27:521 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:27:523 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:27:525 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:27:525 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+[m[18:46:27:527 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:27:528 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:27:629 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[1;para:0/0.0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: 1;para:0/0.0;   --_isInit 1 
+[m[18:46:27:629 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[282],val[format:0;]
+[m[m[18:46:57:455 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+on client close..........4 
+[m[18:46:57:671 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[265],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 265  data: -100   --_isInit 1 
+[m[18:46:57:672 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 266  data: -100   --_isInit 1 
+[m[18:46:57:673 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 267  data: -100   --_isInit 1 
+[m[18:46:57:674 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+[m[18:46:57:675 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 268  data: -100   --_isInit 1 
+[m[18:46:57:676 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[1],code[275],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 1 command: 275  data: -100   --_isInit 1 
+[m[18:46:57:777 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[282],val[1;para:0/0.0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 282  data: 1;para:0/0.0;   --_isInit 1 
+[m[18:46:57:777 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[282],val[format:0;]
+[m[m[18:48:23:236 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:27:241 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:31:239 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:35:239 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:39:239 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:43:241 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:47:242 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:51:243 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:55:243 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:48:59:246 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:03:246 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:05:799 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:07:349 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:11:366 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:15:368 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:19:373 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:23:536 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:27:542 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:30:275 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:34:279 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:38:281 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:42:291 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:44:557 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:45:904 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[275],val[color:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 275  data: color:0;   --_isInit 1 
+[m[18:49:46:370 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:47:033 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:49:411 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:50:313 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:51:457 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:54:344 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:55:093 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[269],val[focus:4;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 269  data: focus:4;   --_isInit 1 
+[m[18:49:55:788 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[265],val[ev:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 265  data: ev:0;   --_isInit 1 
+[m[18:49:56:204 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[263],val[fNum:2;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 263  data: fNum:2;   --_isInit 1 
+[m[18:49:56:204 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+--- waitCameraIdle busy  
+--- waitCameraIdle busy  
+[m[18:49:57:005 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[263],val[state:-1;]
+[m[m[18:49:57:006 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[261],val[wb:2;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 261  data: wb:2;   --_isInit 1 
+[m[18:49:57:006 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[261],val[wb:2;ret:-1;]
+[m[m[18:49:57:446 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[259],val[iso:4;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 259  data: iso:4;   --_isInit 1 
+[m[18:49:57:447 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[259],val[iso:4;ret:-1;]
+[m[m[18:49:58:217 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:58:358 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:49:58:684 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:58:910 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[267],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 267  data: -100   --_isInit 1 
+[m[18:49:59:518 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[258],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 258  data: -100   --_isInit 1 
+[m[18:49:59:518 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[258],val[-100ret:-1;]
+[m[m[18:49:59:530 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[260],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 260  data: -100   --_isInit 1 
+[m[18:49:59:530 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[260],val[-100ret:-1;]
+[m[m[18:49:59:562 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[262],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 262  data: -100   --_isInit 1 
+[m[18:50:01:567 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[264],val[state:0;focus:-1000;leve:1;b:0;path:;c:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 264  data: state:0;focus:-1000;leve:1;b:0;path:;c:0;   --_isInit 1 
+[m[18:50:01:568 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:-1;]
+[m[m[18:50:01:572 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 268  data: -100   --_isInit 1 
+[m[18:50:02:437 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:06:242 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[263],val[fNum:3;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 263  data: fNum:3;   --_isInit 1 
+[m[18:50:06:243 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+--- waitCameraIdle busy  
+--- waitCameraIdle busy  
+[m[18:50:07:043 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[263],val[state:-1;]
+[m[m[18:50:07:044 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[263],val[fNum:4;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 263  data: fNum:4;   --_isInit 1 
+[m[18:50:07:044 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+--- waitCameraIdle busy  
+--- waitCameraIdle busy  
+[m[18:50:07:845 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[263],val[state:-1;]
+[m[m[18:50:07:846 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:07:847 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[263],val[fNum:5;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 263  data: fNum:5;   --_isInit 1 
+[m[18:50:07:848 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+--- waitCameraIdle busy  
+--- waitCameraIdle busy  
+[m[18:50:08:648 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[263],val[state:-1;]
+[m[m[18:50:08:650 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[263],val[fNum:6;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 263  data: fNum:6;   --_isInit 1 
+[m[18:50:08:650 [1;32mINFO[m-]:updateCameraViewFinder[3564]:[0;32;31m----updateViewFinder 
+--- waitCameraIdle busy  
+--- waitCameraIdle busy  
+[m[18:50:09:450 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[263],val[state:-1;]
+[m[m[18:50:09:452 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[258],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 258  data: -100   --_isInit 1 
+[m[18:50:09:452 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[258],val[-100ret:-1;]
+[m[m[18:50:09:477 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[260],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 260  data: -100   --_isInit 1 
+[m[18:50:09:477 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[260],val[-100ret:-1;]
+[m[m[18:50:09:480 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[262],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 262  data: -100   --_isInit 1 
+[m[18:50:09:603 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[276],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 276  data: -100   --_isInit 1 
+[m[18:50:09:613 [1;32mINFO[m-]:camera_set_aperture[790]:[0;32;31m----camera_set_aperture configType 8  value:  ret -1 
+[m[18:50:09:613 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[276],val[-100ret:-1;]
+[m[m[18:50:10:459 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:11:486 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[4],code[264],val[state:0;focus:-1000;leve:1;b:0;path:;c:0;]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 4 command: 264  data: state:0;focus:-1000;leve:1;b:0;path:;c:0;   --_isInit 1 
+[m[18:50:11:486 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[264],val[state:-1;]
+[m[m[18:50:11:491 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[268],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 268  data: -100   --_isInit 1 
+[m[18:50:14:464 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:18:465 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:19:496 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[276],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 276  data: -100   --_isInit 1 
+[m[18:50:19:506 [1;32mINFO[m-]:camera_set_aperture[790]:[0;32;31m----camera_set_aperture configType 8  value:  ret -1 
+[m[18:50:19:506 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[276],val[-100ret:-1;]
+[m[m[18:50:22:461 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:26:462 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:30:467 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:34:469 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:38:466 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:42:468 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:46:503 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:50:474 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:54:480 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:50:58:476 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:02:476 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:06:478 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:10:479 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:14:479 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:18:481 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:22:481 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:26:485 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:30:484 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:34:489 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:38:486 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:42:483 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:46:511 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:50:490 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:54:491 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:51:58:492 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:02:494 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:06:494 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:10:495 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:14:501 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:18:496 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:22:495 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:26:500 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:30:501 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:34:502 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:38:500 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:42:501 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:46:528 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:50:507 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:54:508 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:52:58:509 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:02:510 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:06:511 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:10:512 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:14:513 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:18:514 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:22:516 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:26:516 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:30:518 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:34:515 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:38:516 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[18:53:42:517 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [65538] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 

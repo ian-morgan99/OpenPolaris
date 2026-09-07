@@ -89,3 +89,27 @@ resume from the K-1 II matrix in LIVE-PROGRESS.md and re-run
 (5 PASS, 2 FAIL, 17 NOT TESTED); the only thing that would
 change with a working runtime is the NOT TESTED rows
 becoming PASS/FAIL.
+
+## Second scan at 15:47 (60s later)
+
+After 60s wait and `nmcli dev wifi list --rescan yes`:
+- `polaris_d13e86` is **still not in the scan results**
+- All visible SSIDs are home-network APs (tplink, AT975793993, AL7002222061784, etc.)
+- No hidden SSIDs with `polaris` in the name either
+
+The gimbal is **not broadcasting its AP**. The most likely
+state is one of:
+- Powered off
+- Booting (longer than 60s)
+- Has a different SSID than the user reported
+- Hardware fault (unlikely if it was fine at 15:35)
+
+## Status: cannot proceed autonomously
+
+The K-1 II matrix at 15:35 was complete. There is no
+additional work I can do from this terminal until the
+gimbal's AP is reachable again. The next agent should:
+1. Verify the gimbal is powered on and broadcasting
+   `polaris_d13e86` (or whatever SSID it now uses)
+2. Re-associate wlp8s0 with the gimbal's AP
+3. Re-run §6 of K1II-SWAP-PLAN.md if needed

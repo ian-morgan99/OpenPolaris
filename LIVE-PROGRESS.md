@@ -816,3 +816,17 @@ dead" — exactly the same state as the K-3 III matrix.
        NOT TESTED rows
   This primary agent is done with the K-1 II swap. All
   work committed and pushed to origin/main.
+
+- 2026-09-07 15:47: NETWORK LOST. User asked to retry. The
+  PC's wlp8s0 wifi is now DOWN, the route to 192.168.0.1
+  goes via enp11s0 (Hitron home network, 192.168.68.89),
+  and the gimbal's polaris_d13e86 SSID is NOT in any wifi
+  scan. SSH to gimbal refused. After 60s wait, no change.
+  Possible causes: gimbal powered off, rebooting, or AP
+  changed. Documented in
+  docs/evidence/2026-09-07/network-state-2026-09-07-1545/NETWORK-LOST.md
+  No code or PC state changes (this is purely a network
+  observation). The K-1 II matrix from 15:35 is still
+  valid and complete; the only thing that would change with
+  a working runtime is the NOT TESTED rows becoming
+  PASS/FAIL. Hardware owner remains UNCLAIMED.

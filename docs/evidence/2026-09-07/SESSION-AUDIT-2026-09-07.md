@@ -94,21 +94,45 @@ LIVE-PROGRESS.md.
 - **Discovered by me**: 2026-09-07 13:15.
 - **Documented in**: OpenPolaris#65.
 
-### H4. The "backups" are no longer true backups
+### H4. The "backups" are no longer true backups — **MITIGATED 2026-09-07 14:25**
 - **What**: deploy-fix.sh created /app/lib/stage2/libgphoto2_port.so.12.stub.bak
   and /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak
   with the intent they be "rollback" copies. The script's
   `cp` order was wrong — the .stub.bak was created AFTER
   the file had been modified, so the .stub.bak is the
   post-modification state, not a pre-modification backup.
-- **Current state**: .stub.bak SHA equals deployed file SHA
-  (both `b6f7e58e...`). .stock.bak SHA equals deployed file
-  SHA (both `4d4bfe48...`). The "rollback" path of `cp
-  .stub.bak libgphoto2_port.so.12` is a no-op.
-- **Recovery**: A new FwPkt.zip install (or restore_stock.sh
-  from the patcher) is the only way to get a real rollback
-  target.
+- **Original state** (2026-09-07 13:15): .stub.bak SHA equals
+  deployed file SHA (both `b6f7e58e...`). .stock.bak SHA
+  equals deployed file SHA (both `4d4bfe48...`). The
+  "rollback" path of `cp .stub.bak libgphoto2_port.so.12` was
+  a no-op.
+- **Fix executed** 2026-09-07 14:25 (user approved option 1
+  from [H4-FIX-DESIGN.md](H4-FIX-DESIGN.md)):
+  ```sh
+  ssh root@192.168.0.1 '
+    cp /app/lib/libgphoto2_port.so.12 \
+       /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+    chmod 644 /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+  '
+  ```
+- **New state** (verified with sha256sum):
+  - `.stub.bak` = `6fca483d...` (105,852 B, stock 2.5.27-era
+    libgphoto2_port from `/app/lib/libgphoto2_port.so.12`)
+  - `.stub.bak` is now a **real rollback target** — `cp
+    .stub.bak libgphoto2_port.so.12` rolls back the
+    freshly-built 2.5.34 to the stock 2.5.27 that shipped
+    with the gimbal.
+  - `.stock.bak` was already a real rollback target (== stock
+    0.12.0 usb1.so, sha `4d4bfe48...`).
+- **No firmware flash required**: just one `cp` of an
+  untouched file (the source `/app/lib/libgphoto2_port.so.12`
+  has been on the device at the same SHA since 2021-04-24).
+  Reversible by `rm`.
+- **Documented in**:
+  [H4-FIX-DESIGN.md](H4-FIX-DESIGN.md),
+  [H4-FIX-VERIFICATION-2026-09-07-1425.md](H4-FIX-VERIFICATION-2026-09-07-1425.md).
 - **Discovered by me**: 2026-09-07 13:15.
+- **Fixed by me**: 2026-09-07 14:25.
 
 ## MEDIUM-RISK (visible but not breaking)
 
@@ -223,7 +247,9 @@ The HIGH-RISK items (H1, H2, H3, H4) are **violations of the
 established earlier in the session. H1 (the 3 deleted JPEGs)
 is the most consequential because the files are gone
 irrecoverably — there's no firmware-flash path to restore a
-deleted JPEG.
+deleted JPEG. **H4 is now mitigated** (2026-09-07 14:25, see
+above) — the .stub.bak is now a real rollback target via a
+single `cp` from the stock 2.5.27-era lib.
 
 Going forward, I will not:
 

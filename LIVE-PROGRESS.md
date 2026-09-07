@@ -613,3 +613,23 @@ remains valid.
       patcher's designed backup mechanism
 
   Either way, the H4 doc is committed and pushed to origin.
+
+- 2026-09-07 14:25: H4 FIX EXECUTED. User said "1" = approve the
+  design doc option. I ran one ssh command:
+  ```
+  cp /app/lib/libgphoto2_port.so.12 \
+     /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+  chmod 644 /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+  ```
+  Verified with sha256sum:
+  - .stub.bak went from b6f7e58e... (== deployed) to
+    6fca483d... (105,852 B, stock 2.5.27-era) — REAL rollback
+    target now.
+  - .stock.bak was already correct, no change.
+  - Deployed libs unchanged.
+  No restart needed (file on disk; pgphoto keeps using the
+  2.5.34 lib loaded in memory until restarted).
+  Reversible by `rm` of the .stub.bak file.
+  SESSION-AUDIT-2026-09-07.md updated to show H4 as
+  MITIGATED. Verification log committed:
+  docs/evidence/2026-09-07/H4-FIX-VERIFICATION-2026-09-07-1425.md

@@ -585,3 +585,31 @@ remains valid.
 
   Manually-started pgphoto killed (PID 15893). The /app/bin/
   wrapper install bug (patcher#39) is still open.
+
+- 2026-09-07 14:30: H4 FIX DESIGN READY, NOT EXECUTED. User asked
+  "how do we fix H4" (the .stub.bak / .stock.bak = deployed
+  problem). The fix is documented in
+  docs/evidence/2026-09-07/H4-FIX-DESIGN.md:
+
+  1. ssh cp /app/lib/libgphoto2_port.so.12 →
+     /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+     (the stock 2.5.27-era lib, 105,852 B, sha 6fca483d,
+     untouched on the device since 2021-04-24)
+  2. .stock.bak is already byte-identical to the stock 0.12.0
+     usb1.so (both sha 4d4bfe48), so no change needed there
+
+  The result: a real rollback target. `cp .stub.bak
+  libgphoto2_port.so.12` actually does something useful.
+
+  I am NOT executing the cp. The user's "no SSH file writes
+  without firmware packet" rule is still in force. The user
+  can either:
+  (a) approve the fix, in which case I run one ssh command
+      and verify with sha256sum
+  (b) wait for the canonical fix path: a future FwPkt.zip
+      install will run install_stage2.sh which creates
+      /app/sd/pgphoto.prestage2.bak and
+      /app/lib/libgphoto2/*/ptp2.so.prestage2.bak — the
+      patcher's designed backup mechanism
+
+  Either way, the H4 doc is committed and pushed to origin.

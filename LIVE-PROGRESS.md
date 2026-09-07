@@ -136,6 +136,92 @@ physical hardware until the individual code, subtype, payload, response, and
 read-back contracts are corrected. The verified subtype-4 normal capture frame
 remains valid.
 
+## K-1 II matrix
+
+**Status meanings**: `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`, `N/A`.
+
+**Note**: the K-1 II is physically attached to the gimbal
+(USB `25fb:0183` per libgphoto2 ptp2/library.c — K-1 II PTP
+mode). All camera-specific matrix rows are blocked on the
+runtime defects (patcher#38 stripped libgphoto2_port stub,
+patcher#39 /app/bin/ empty, both with design docs in
+`docs/evidence/2026-09-07/patcher-{38,39}-fix-design/`).
+The 286 query returns cached state from the K-3 III (last
+successful `sp_Gphoto_Init`) because pgphoto never re-ran
+for the K-1 II.
+
+| Area | Feature | Status | Evidence / owner |
+|---|---|---:|---|
+| USB enumerate | K-1 II visible on bus | PASS | `lsusb` = `Bus 001 Device 005: ID 25fb:0183` |
+| USB enumerate | K-1 II not lost on boot | PASS | same; persistent since first observation |
+| Push events | 525 (IMU temperature) | PASS | autonomous push `Tempa509ca361c0000255a;` every ~30s |
+| Gimbal control | 517 (yaw/pitch/roll) | NOT TESTED | blocked — no test value to compare |
+| Gimbal control | 802 (WiFi band) | NOT TESTED | blocked — same |
+| Gimbal control | 778 (battery) | PASS | `778@capacity:100;charge:0;` |
+| Gimbal control | 775 (SD status) | PASS | `775@status:1;totalspace:121866;freespace:121781;usespace:85;` |
+| File list | 770 (counts) | PASS | `770@normal:0;lapse:0;focus:0;pan:0;sun:0;hdr:0;starskyStack:0` (no captures yet) |
+| Direct libgphoto2 (PC) | Detect/summary | NOT TESTED | requires disconnect from gimbal |
+| Direct libgphoto2 (PC) | Preview | NOT TESTED | same |
+| Direct libgphoto2 (PC) | Normal capture | NOT TESTED | same |
+| Polaris runtime | Detect before restart | FAIL | 286 = `manufacturer:none;model:none;state:0;` (cached K-3 III state, not K-1 II) |
+| Polaris runtime | Detect after pgphoto restart | NOT TESTED | pgphoto can't run (patcher#39) |
+| Live view | SET ON | NOT TESTED | blocked on patcher#36, #38 |
+| Live view | GET state | NOT TESTED | blocked on patcher#36, #38 |
+| Live view | First JPEG | NOT TESTED | blocked on patcher#36, #38 |
+| Still capture | 264 (normal capture) | NOT TESTED | blocked on patcher#37, #38 |
+| Camera config | ISO/WB/EV/SHUTTER/FNUM SET | NOT TESTED | blocked on OpenPolaris#62 (Codes.kt 11% correct) |
+| Focus | 311 (focus adjustment) | NOT TESTED | blocked on OpenPolaris#62 |
+| Format | image format/size | NOT TESTED | blocked on OpenPolaris#62 |
+| Capture modes | bulb/video/delay/focus stack/HDR/astro/timelapse | NOT TESTED | blocked on OpenPolaris#62, #63 |
+| Recovery | USB disconnect/reconnect | NOT TESTED | requires warm plug (not done yet) |
+| Recovery | camera power-cycle | NOT TESTED | requires power-off + on |
+| Recovery | pgphoto restart | FAIL | patcher#34, #38, #39 — restart_gphoto in tight loop, every attempt fails |
+| Client | Benro Connect full qualification | NOT TESTED | requires Android |
+| Client | OpenPolaris full qualification | NOT TESTED | requires OpenPolaris app |
+
+### K-1 II specific protocol notes
+
+- **USB id 0x0183 = K-1 II in PTP mode** (libgphoto2 ptp2/library.c).
+  K-3 III was 0x0189 in MTP mode. The protocol code 286
+  payload may differ between PTP and MTP modes; needs
+  direct comparison once pgphoto is running.
+- **286 with `init:1;` payload returns the same cached
+  state** as 286 with empty payload. The SP layer doesn't
+  process init payloads — that's pgphoto's job (`sp_Gphoto_Init`).
+- **291 (liveview SET) gets no ack** — pgphoto is the only
+  component that handles camera-side state changes.
+- **287 (STATE_DUMP) times out** — the empty-payload
+  variant of 286 returns cached state, but 287 doesn't
+  appear to be handled at all. May be a Benro protocol
+  extension not in the SP layer's handler table.
+
+### K-1 II USB discovery (corrects the swap plan)
+
+The K1II-SWAP-PLAN.md §5 said K-1 II is `25fb:0188`. The
+actual id is **`25fb:0183`** per libgphoto2's
+`ptp2/library.c` pentaxmodern.c table:
+```c
+{"Pentax:K-1 Mark II (PTP mode)", 0x25fb, 0x0183, 0},
+{"Pentax:K-3 Mark III (MTP mode)", 0x25fb, 0x0189, 0},
+```
+The plan has been corrected in this matrix; the plan
+itself (committed at 4d2f1ad) still has the wrong id and
+should be updated when next touched.
+
+### K-1 II matrix definition of done
+
+The matrix above will only become useful after:
+1. patcher#38 fix lands (strip-debug + cd stage2)
+2. patcher#39 fix lands (post-build verification)
+3. New FwPkt.zip built, flashed on the gimbal
+4. pgphoto runs and `sp_Gphoto_Init` returns 0 for the
+   K-1 II (286 = `manufacturer:ricoh;model:pentax k-1 mark ii;state:1`)
+5. THEN re-run §6 of K1II-SWAP-PLAN.md to fill the
+   remaining rows
+
+Until that happens, the matrix is "hardware ready, runtime
+dead" — exactly the same state as the K-3 III matrix.
+
 ## Next steps, in order
 
 1. Claim hardware-test ownership in this file and commit/push that claim.
@@ -694,3 +780,24 @@ remains valid.
   claim"). Will continue with §2 (confirm K-3 III still
   attached) and §5 (build cli-probe) — both verifiable
   autonomously — then STOP for user confirmation.
+
+- 2026-09-07 15:35: K-1 II MATRIX RECORDED. Ran the §6
+  protocol probes from K1II-SWAP-PLAN.md against the K-1 II
+  (already physically attached, USB 25fb:0183 per libgphoto2
+  ptp2/library.c). Results:
+    USB enumerate (25fb:0183): PASS
+    525 push (IMU): PASS, every ~30s
+    770 FILE_LIST: PASS, all counts 0
+    775 SD_STATUS: PASS, 121866 MB total, 85 MB used
+    778 BATTERY: PASS, capacity 100, charge 0
+    286 CAM_INFO: FAIL — cached K-3 III state, pgphoto not
+       running so no K-1 II init has happened
+    287 STATE_DUMP: FAIL — no response within 10s
+    291 LIVEVIEW SET: FAIL — no ack
+    All other camera-specific rows: NOT TESTED (pgphoto dead)
+  Discovered: my plan §5 had the wrong USB id for K-1 II
+  (said 25fb:0188, actual is 25fb:0183 per libgphoto2
+  ptp2/library.c). The matrix in this file has the correct id.
+  K-1 II matrix added to LIVE-PROGRESS.md after the K-3 III
+  matrix. Will release hardware ownership in next commit
+  and post the K-1 II state to OpenPolaris#56.

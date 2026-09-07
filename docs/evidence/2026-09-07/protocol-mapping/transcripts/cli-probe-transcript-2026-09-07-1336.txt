@@ -1,0 +1,22 @@
+=== 2026-09-07 13:36-13:45 cli-probe transcript ===
+  test rig: host 192.168.0.4 -> gimbal 192.168.0.1:9090
+  firmware: 2026-09-07-k1ii-k3iii-candidate (sw:6.0.0.54)
+  K-3 III connected (lsusb 25fb:0189)
+
+  284: ← 284@mode:1;state:0;#
+  286: ← 286@manufacturer:ricoh imaging company, ltd.;model:pentax k-3 mark iii;state:1;storage:2;photoFormat:2;#
+  300: ← 300@hdmi:0;#
+  524: ← 524@state:0;#
+  540: ← 540@ret:0;#
+  541: ← 541@state:0;#
+  542: ← 541@state:0;#
+  543: ← 543@time:2;#
+  547: ← 547@en:0;#
+  549: ← 549@ret:0;#
+  770: ← 770@normal:0;lapse:0;focus:0;pan:0;sun:0;hdr:0;starskyStack:0#
+  775: ← 775@status:1;totalspace:121866;freespace:121781;usespace:85;#
+  778: ← 778@capacity:100;charge:0;#
+  780: ← 780@hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;#
+  802: ← 802@band:1;#
+  803: ← 803@ret:0;#
+  809: ← 809@ret:-1;#

@@ -256,3 +256,20 @@ remains valid.
   gphoto2 call. The real libgphoto2_port that matches
   libgphoto2.so.6 (133KB) is not deployed. patcher#36 ownership:
   PATCHER DEPLOY (not libgphoto2, not runtime USB, not Pentax driver).
+- 2026-09-07 13:12: K-3 III MTP state got stuck after repeated CLI calls. Even
+  with pgphoto killed (verified: no process holds /dev/bus/usb/001/004),
+  the camera still returns "Could not claim interface 0 (Device or
+  resource busy)" on `--capture-image-and-download`. The camlib
+  internal state is "Pentax session already open from a previous
+  connection; observing camera state." This is the K-3 III MTP
+  firmware refusing a new MTP session while the previous one is
+  considered alive. A previous segfault inside the embedded
+  gphoto2 (during the second CLI call) may have left the camera in
+  this state. Camera-side power-cycle required to recover the MTP
+  session — this is a hardware-level MTP session cleanup, not a
+  runtime bug. Documenting here so the next agent doesn't repeat
+  the same loop. K-3 III now needs physical attention (battery
+  pull or USB reseat) before any further MTP capture / preview
+  tests can run. Direct CLI on the gimbal worked once and confirmed
+  the direct libgphoto2 path is fine; further work needs the
+  patcher#38 fix to land first.

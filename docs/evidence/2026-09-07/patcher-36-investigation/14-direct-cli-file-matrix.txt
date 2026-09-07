@@ -1,0 +1,86 @@
+# Full K-3 III direct-CLI matrix with broken pgphoto held off
+# 2026-09-07T13:10:53+01:00 - hardware-test owner: secondary agent
+
+## Stop pgphoto (which can't use the device anyway due to the broken stub)
+
+## --list-files (should now succeed)
+Pentax session already open from a previous connection; observing camera state.
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+There is no file in folder '/'.
+There is no file in folder '/store_00010001'.
+
+## --list-folders
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+There is 1 folder in folder '/'.
+ - store_00010001
+There are 0 folders in folder '/store_00010001'.
+
+## --summary (full)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+Camera summary:
+Manufacturer: RICOH IMAGING COMPANY, LTD.
+Model: PENTAX K-3 Mark III
+  Version: 2.20
+  Serial Number: 8093033
+Vendor Extension ID: 0x6 (1.10)
+Vendor Extension Description: microsoft.com/DeviceServices: 1.0; 
+
+Capture Formats: Association/Directory Apple Quicktime Defined Type JPEG TIFF
+Display Formats: Undefined Type, Association/Directory, Apple Quicktime, Defined Type, JPEG, TIFF
+
+Device Capabilities:
+	File Download, File Deletion, No File Upload
+	No Image Capture, No Open Capture, No vendor specific capture
+
+Storage Devices Summary:
+store_00010001:
+	StorageDescription: SD1
+	VolumeLabel: 
+	Storage Type: Removable RAM (memory card)
+	Filesystemtype: Digital Camera Layout (DCIM)
+	Access Capability: Read-Write
+	Maximum Capability: 63831015424 (60874 MB)
+	Free Space (Bytes): 22523281408 (21479 MB)
+	Free Space (Images): 306
+
+Device Property Summary:
+Battery Level             (5001 ro u8 ): Range [0 - 100, step 1] value: 100% (100)
+White Balance             (5005 rw u16): Enumeration [2,32783,4,32770,32771,32772,32773,32774,32781,6,32782,32775,32776,32777,32778,32779,32780] value: 32783
+F-Number                  (5007 rw u16): Enumeration [2200,2000,1800,1600,1400,1300,1100,1000,900,800,710,630,560,500,450,400,350,320,280] value: f/4 (400)
+Exposure Bias Compensation (5010 rw i16): Enumeration [5000,4700,4300,4000,3700,3300,3000,2700,2300,2000,1700,1300,1000,700,300,0,-300,-700,-1000,-1300,-1700,-2000,-2300,-2700,-3000,-3300,-3700,-4000,-4300,-4700,-5000] value: 0.0 stops (0)
+Date & Time               (5011 rw str): '20260907T130155'
+Contrast                  (5014 rw u8 ): Enumeration [0,1,2,3,4,5,6,7,8] value: 4
+Sharpness                 (5015 rw u8 ): Enumeration [0,1,2,3,4,5,6,7,8] value: 4
+Session Initiator Info    (d406 rw str): ''
+Perceived Device Type     (d407 ro u32): 1
+[Unknown Property]        (d303 ro u8 ): 1
+[Unknown Property]        (d009 rw [u16]): a[8] 720,480,720,480,489,288,64,64
+[Unknown Property]        (d00f rw u64): Enumeration [8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,10,10,10,10,10,1,10,10,1,10,1,1,1,1,1,1,1,1,1,1,1] value: 160
+[Unknown Property]        (d013 rw u8 ): Enumeration [0,4,5,6,1,12,14,15,18,19,20,21] value: 0
+[Unknown Property]        (d014 rw u8 ): Enumeration [0,0,0,0,0] value: 0
+[Unknown Property]        (d015 rw u8 ): Enumeration [50,47,43,40,37,33,30,27,23,20,17,13,10,7,3] value: 20
+[Unknown Property]        (d018 -- ---): PTP error 200a on query
+[Unknown Property]        (d01b rw [u8 ]): a[7] 2,6,0,2,1,1,1
+[Unknown Property]        (d01e rw u32): Enumeration [100,200,400,800,1600,3200,6400,12800,25600,51200,102400,204800,409600,819200,1600000] value: 3200
+[Unknown Property]        (d020 rw u8 ): Enumeration [255,1,0,2,3,4,12,9,6,11,8,7,17,5,10] value: 0
+[Unknown Property]        (d021 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d022 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d023 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d024 rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d025 rw i8 ): Enumeration [] value: 0
+[Unknown Property]        (d026 rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d027 rw u8 ): Enumeration [0,1] value: 1
+[Unknown Property]        (d028 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d029 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d02a rw u8 ): Enumeration [0,1] value: 1
+[Unknown Property]        (d02b rw u8 ): Enumeration [0,1,2] value: 0
+[Unknown Property]        (d02c rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d02d rw [u8 ]): a[4] 0,0,0,0
+[Unknown Property]        (d035 rw u8 ): Enumeration [0,1] value: 0
+[Unknown Property]        (d036 rw [u16]): a[2] 540,360
+[Unknown Property]        (d037 rw [u16]): a[4] 540,360,1,0
+[Unknown Property]        (d039 rw u8 ): Enumeration [0,1] value: 0
+

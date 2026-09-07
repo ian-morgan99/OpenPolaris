@@ -1,0 +1,57 @@
+# K-3 III capture sequence (one CLI call per session, USB busy between)
+# 2026-09-07T13:11:28+01:00
+
+## Verify pgphoto is still off
+5105
+5204
+
+## Take a fresh photo with a known filename
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (Device or resource busy). Make sure no other program (gvfs-gphoto2-volume-monitor) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+ERROR: Could not capture image.
+ERROR: Could not capture.
+*** Error (-53: 'Could not claim the USB device') ***       
+
+For debugging messages, please use the --debug option.
+Debugging messages may help finding a solution to your problem.
+If you intend to send any error or debug messages to the gphoto
+developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+gphoto2 as follows:
+
+    env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --capture-image-and-download --filename /tmp/k3iii-direct-131129.jpg --force-overwrite
+
+Please make sure there is sufficient quoting around the arguments.
+
+rc=1
+
+## Wait 4s for the camera to settle, then list files
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (Device or resource busy). Make sure no other program (gvfs-gphoto2-volume-monitor) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+*** Error (-53: 'Could not claim the USB device') ***       
+
+For debugging messages, please use the --debug option.
+Debugging messages may help finding a solution to your problem.
+If you intend to send any error or debug messages to the gphoto
+developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+gphoto2 as follows:
+
+    env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --list-files /store_00010001/DCIM
+
+Please make sure there is sufficient quoting around the arguments.
+
+
+## List the SD card directly
+total 42496
+drwxr-xr-x    2 root     root         16384 Sep  7 12:26 .
+drwxr-xr-x   10 root     root         16384 Jan  1  1970 ..
+-rwxr-xr-x    1 root     root      12186149 Sep  7 09:09 SP_0003.jpg
+-rwxr-xr-x    1 root     root      15395082 Sep  7 09:37 SP_0004.jpg
+-rwxr-xr-x    1 root     root      15885032 Sep  7 12:26 SP_0005.jpg
+
+## Pull the new image off
+ls: /tmp/k3iii-direct-*.jpg: No such file or directory
+
+## Hash of new file
+sha256sum: can't open '/tmp/k3iii-direct-*.jpg': No such file or directory

@@ -1,0 +1,21 @@
+# Baseline SD card state at 2026-09-07T13:10:31+01:00
+# Used for matrix ordering and to detect what the test added
+
+## /app/sd/normal/ file count and total size
+3
+41.5M	/app/sd/normal/
+
+## sha256sums of existing files in normal/
+sha256sum: can't open '*.JPG': No such file or directory
+
+## All capture subdirs
+subdir_=0
+subdir_=0
+subdir_=0
+SP_0003.jpg
+SP_0004.jpg
+SP_0005.jpg
+subdir_=3
+subdir_=0
+subdir_=0
+subdir_=0

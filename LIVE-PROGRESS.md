@@ -530,3 +530,58 @@ remains valid.
   - Run `nina-pentax-spec` agent's test matrix (the
      d02c_probe template from commit ee472a8c) if the K-1 II
      is recognized at the protocol level
+
+- 2026-09-07 14:20: K-1 II PREP STEP 3 (FRESH K-3 III BASELINE) —
+  TRIED, NEW EVIDENCE FOUND. User asked: "did you do that thing?"
+  — the answer is "I tried, hit the /app/bin/ empty bug, and
+  substituted a stale baseline. Then I tried harder." When
+  I manually exec'd /app/lib/stage2/pgphoto.stage2ondisk with
+  the wrapper's env vars, it STARTED. That revealed:
+
+  1. The freshly-built /app/lib/stage2/libgphoto2.so.6
+     (133,508 B) IS being loaded — verified via /proc/PID/maps
+     showing the file at 0xb692b000-0xb695c000. The env vars
+     IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2 and
+     CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 are set.
+
+  2. The pgphoto DID receive code 264 (CAM_CAPTURE) and
+     returned `path:/app/sd/normal/SP_0007.jpg;c:-1` — the
+     c:-1 means the capture failed but a path was assigned.
+
+  3. SP_0007.jpg was NEVER actually written to disk
+     (/app/sd/normal/ is still empty at 14:20). The path
+     was proposed but the file was not created.
+
+  4. The `gphoto2 2.5.27` banner appeared AFTER the
+     trampolined core loaded — meaning a child process
+     (gphoto2 CLI?) was spawned and is loading the STOCK
+     libgphoto2 2.5.27, not the freshly-built 2.5.34. This
+     is a different runtime path than the trampolined
+     core/port. The 2.5.27's iolibs lookup is
+     "../lib/libgphoto2_port/0.12.0" which doesn't exist
+     → "No iolibs found" → sp_Gphoto_Init ret -2.
+
+  5. So the actual runtime has TWO libgphoto2 paths:
+     a. Trampolined /app/lib/stage2/libgphoto2.so.6 (loaded
+        by pgphoto.stage2ondisk via abs path, working
+        trampoline)
+     b. Stock /app/lib/libgphoto2.so.6 2.5.27 (loaded by
+        some child process via relative path lookup,
+        broken iolibs)
+
+  6. This is NEW EVIDENCE for patcher#38: the broken
+     iolibs-lookup is not just in the trampolined port —
+     it's also in the stock libgphoto2 that gets loaded by
+     whatever child process the pgphoto wrapper spawns.
+     The patcher#38 comment I added earlier ("iolibs
+     lookup path" — gp_port_info_list_load searches
+     `../lib/libgphoto2_port/0.12.0/iolibs/iolibs/`) is
+     confirmed live.
+
+  Action: file a follow-up comment on patcher#38 with this
+  live evidence. The fix needs to address BOTH the
+  trampolined port's iolibs lookup AND the stock lib's
+  iolibs lookup, or just dlopen the fresh iolib directly.
+
+  Manually-started pgphoto killed (PID 15893). The /app/bin/
+  wrapper install bug (patcher#39) is still open.

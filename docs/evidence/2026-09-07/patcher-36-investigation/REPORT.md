@@ -214,3 +214,24 @@ the fix"):
 - No camera-side interaction. The K-3 III is currently not even
   attached to the gimbal — the snapshot at 12:43:09 shows only the
   HUB in the USB tree.
+
+## Cross-reference
+
+While this investigation was being recorded, the user filed
+[`KEEPALIVE-WAKE-INVESTIGATION-2026-09-07.md`](../../KEEPALIVE-WAKE-INVESTIGATION-2026-09-07.md)
+which independently confirms a separate but related finding: **the
+Polaris 5 GHz AP disappears about 90 s after the last Benro Connect
+client leaves, even with a healthy OpenPolaris TCP session open**.
+This is firmware-side AP-shutdown watchdog, not a wake problem.
+
+The 90-second AP drop is the cause of the "gimbal is silent" symptom
+we saw from the host earlier today — the gimbal wasn't refusing to
+talk on TCP, the wifi association had been torn down and there was no
+route to the gimbal. The keep-alive investigation owns the root
+cause; this patcher#36 investigation owns the K-3 III's
+`function flags 0x00000000` once the AP is up.
+
+The keep-alive doc also records the BT identity of the gimbal as
+`48:E7:DA:D4:B5:72` (wifi MAC `48:E7:DA:D4:B5:73` minus 1). Anyone
+re-running the BT scan on 2.4 GHz should target that address, not
+the wifi BSSID.

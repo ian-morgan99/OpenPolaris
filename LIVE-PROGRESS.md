@@ -27,7 +27,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** **this agent (2026-09-07 14:10) — K-1 II swap and qualification, after K-3 III baseline capture recorded (preview-direct-libgphoto2.jpg, 77,145 B) and matrix state captured below**
+- **Current hardware-test owner:** **this agent (2026-09-07 15:25) — K-1 II swap, step 1 of K1II-SWAP-PLAN.md (claiming ownership, pre-conditions verified, K-3 III still attached, NEEDS USER to confirm K-1 II body + cable on bench before step 2-4 physical swap)**
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -668,3 +668,29 @@ remains valid.
      docs and 3 agent handoff docs.
   All four docs committed and pushed to origin. Handoffs
   are real this time, not bureaucratic.
+
+- 2026-09-07 15:25: K-1 II SWAP — STEP 1 (CLAIM OWNERSHIP).
+  All 6 of 8 pre-conditions from
+  docs/evidence/2026-09-07/K1II-SWAP-PLAN.md §0 verified
+  PASS:
+    0.1 pwd = OpenPolaris repo ✓
+    0.2 git status: 3 untracked benign items, no dirty tracked files ✓
+    0.3 git log -1 = 4d2f1ad (matches plan) ✓
+    0.4 FwVer = 4.0.0.32;date:2025.05.09; ✓
+    0.5 libgphoto2 SHA = 6aa3e4e66240d4b4d68a65b75631e0f6aadf308a ✓
+    0.6 route = 192.168.0.1 dev wlp8s0 src 192.168.0.4 ✓
+  0.7 (K-1 II body on bench) — UNVERIFIABLE from this terminal;
+       requires user physical confirmation
+  0.8 (K-1 II USB cable) — UNVERIFIABLE from this terminal;
+       requires user physical confirmation
+  This is a CONTROLLED STOP: I will not begin the physical
+  swap (§3-§4) without the user confirming the body and cable
+  are on the bench, per plan §0 and §3 ("if any
+  pre-condition fails, STOP and write a follow-up comment on
+  OpenPolaris#56").
+
+  Hardware-test owner field updated. Pushing this commit
+  before any further work per plan §1 ("the push IS the
+  claim"). Will continue with §2 (confirm K-3 III still
+  attached) and §5 (build cli-probe) — both verifiable
+  autonomously — then STOP for user confirmation.

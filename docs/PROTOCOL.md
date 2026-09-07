@@ -193,3 +193,30 @@ enables AHRS, and tracks works indefinitely without any keepalive.
 
 - Firmware analysis: `../../docs/FIRMWARE-ANALYSIS-ALPACA.md`
 - Independent implementation: https://github.com/ogecko/alpaca-benro-polaris
+- Third-party wiki cross-reference (vyskocil/Polaris): see
+  [`VYSKOCIL-WIKI-REVIEW-2026-09-07.md`](VYSKOCIL-WIKI-REVIEW-2026-09-07.md). That doc compares our
+  live-captured payloads against a second team's wiki. **Most of their wire shapes agree with ours
+  and can be used as second-source confirmation. A handful of codes disagree — see §3 of that doc
+  for the divergence list.** Until we hardware-confirm the wiki's claims on those divergent codes,
+  PROTOCOL.md stays on our evidence and does not import the wiki's framing for them.
+
+## 7. Where another team's notes disagree with ours
+
+This section is the human-readable summary of the divergences in
+[`VYSKOCIL-WIKI-REVIEW-2026-09-07.md` §3](VYSKOCIL-WIKI-REVIEW-2026-09-07.md). Until a live capture
+on our gimbal confirms the alternative framing, **we keep our existing table entries and treat
+the wiki as a question to investigate, not a fact to import.**
+
+| Code | Our framing (live-captured) | Wiki framing (vyskocil/Polaris) | Status |
+|---|---|---|---|
+| 271 | `CAM_SET_IMG_SIZE` — image size set, payload `imgSize:N;` | "Camera Panorama Msg" — `step:11;` | Conflicting. Different firmware version, different mode, or different code. **Open question.** |
+| 272 | `CAM_GET_IMG_FMT` — image format read, payload `imgFmt:N;#` | "Camera Lapse Msg" — `step:10;` | Same as 271. **Open question.** |
+| 305 | Catalogue entry exists; payload format not yet wire-confirmed | "Camera HG message" — `step:2;` | **Open question.** |
+| 797 | `FILE_SCAN_COMPLETE` (ack), payload `797@..;#` | "Physical-limits error frame" — `797@errorCode:-1203;#` | Conflicting. Both could be true on different firmware versions, or one of us is wrong. **Open question — do not import `errorCode:` parsing until hardware-confirmed.** |
+| 799 | `GET_CELLULAR_STATE` — live `ret:-1;`, asymmetric with 802 | "Password Msg Process" — `799@ret:-1;` | Same `ret:-1;` observed by both, but our decompile names it `SP_GET_CELLULAR_STATE`. The wiki's "Password" framing contradicts our reading and is **not** what the stock app's connect-burst does on our gimbal. **We keep `GET_CELLULAR_STATE`.** |
+| 808 | `SYS_VERSION` (corpus) — **live doesn't reply on real hw** ([POLARIS-FUNCTIONS-REPORT.md §4 quirk 1](POLARIS-FUNCTIONS-REPORT.md)) | "Create Connect Context Request" — `808@type:0;` → `808@ret:0;` (claimed critical to keep socket open) | Conflicting. Our live evidence: 808 doesn't reply on our gimbal (sw 6.0.0.54). The wiki's framing may describe a newer firmware build, or a different role entirely. **We keep `SYS_VERSION` and note the open question about connection-drop behaviour.** |
+
+The wiki also includes claims we **cannot yet evaluate** because we have no matching live capture
+on our gimbal: `797@errorCode:-1203;` (physical-limit error), the "couple of minutes" socket-close
+time when 808 is omitted, and the 0.1 s/0.05 s timing window for the 513/514/521 quick-move
+family. These are recorded as **open questions in the review doc** rather than imported as facts.

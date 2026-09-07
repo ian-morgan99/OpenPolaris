@@ -65,6 +65,42 @@ reports `0xa008` (`NoUpdateImage`) for 30 attempts over roughly 1.24 seconds,
 followed by a successful restore (`0x2001`). Do not infer preview failure from
 the transient capture messages, or capture failure from the preview result.
 
+### K-3 III qualification decision
+
+K-3 III testing is **not complete**, and neither client is currently qualified
+as 100% functional with it.
+
+| Capability | Direct PC/libgphoto2 | Polaris + Benro Connect | OpenPolaris |
+|---|---|---|---|
+| Detect/config/read-write | Passed for the exercised controls | Camera identified; full matrix not complete | Protocol support exists; physical UI matrix incomplete |
+| Still capture | Two captures passed | Photograph arrives after 3–4 s, but UI reports Error then Camera busy first | Correct frame exists; completion/file-delivery workflow is not yet implemented or hardware-qualified |
+| Live preview | Passed | Embedded runtime repeatedly returns `0xa008`; not qualified | Transport exists, but cannot be functional while Polaris produces no frame |
+| Focus/AF | Not completely qualified | Not completely qualified | Not completely qualified |
+| Repeated capture soak | Not completed | Not completed | Not completed |
+| Preview stop/restart | Direct preview passed; cycle matrix incomplete | Not completed because first frame fails | Not completed because first frame fails |
+| USB/process/power-cycle recovery | Basic direct reconnect passed | Full recovery matrix incomplete | Full recovery matrix incomplete |
+
+The failed embedded preview with a direct-host pass at the same libgphoto2 SHA
+assigns the current defect to the Polaris integration/runtime until contrary
+lower-level evidence exists. It does not justify another base-libgphoto2 change.
+The intermediate capture state needs fixes in both the runtime contract and the
+OpenPolaris client workflow, followed by a physical retest.
+
+Owning issues:
+
+- `ian-morgan99/benro-polaris-firmware-patcher#36` — embedded K-3 III preview
+  returns `0xa008` while the same libgphoto2 SHA passes directly;
+- `ian-morgan99/benro-polaris-firmware-patcher#37` — capture emits transient
+  `-1005` before successful delayed image delivery;
+- `ian-morgan99/OpenPolaris#60` — model the asynchronous capture lifecycle and
+  await the final image/file event;
+- `ian-morgan99/OpenPolaris#56` — incomplete physical qualification rows,
+  including focus, soak, preview cycling and recovery;
+- `ian-morgan99/benro-polaris-firmware-patcher#35` — broader K-3 III embedded
+  runtime isolation, corrected by the 2026-09-07 capture evidence;
+- `ian-morgan99/libgphoto2#44` — direct hardware qualification matrix. No new
+  base-libgphoto2 defect is supported by the current A/B evidence.
+
 K-1 II enumerated on the flashed Polaris and configuration reads worked,
 including the corrected White Balance choice table. It subsequently physically
 disconnected (`usb 1-1.2: USB disconnect`). The Polaris currently exposes only
@@ -77,6 +113,12 @@ returned success. Exactly one daemon/listener remained after settling.
 
 ## Next hardware gate
 
+Before declaring K-3 III complete, resolve or explicitly defer the preview and
+asynchronous capture-state defects, then complete the missing focus, soak,
+preview-cycle and recovery rows above. After those defects are recorded, the
+physical camera can be swapped back to K-1 II without losing the K-3 III
+handover state.
+
 Power/reseat the K-1 II so its Pentax USB VID/PID appears below the Polaris hub,
 then run, in order:
 
@@ -85,7 +127,8 @@ then run, in order:
 3. exact capture frame `1&264&4&state:1;bulb:0;c:-1;#`;
 4. verify a new full-size file under `/app/sd/normal/` and hash it;
 5. restart `pgphoto` once with the camera attached and repeat preview/capture;
-6. swap the K-3 III onto Polaris and repeat the same E2E matrix.
+6. after K-1 II qualification, swap the K-3 III back only for targeted
+   regression confirmation of the fixes and incomplete matrix rows.
 
 The Polaris network is now 5 GHz: SSID `polaris_d13e86`, 5180 MHz, 80 MHz VHT.
 Always require `ip route get 192.168.0.1` to report `dev wlp8s0`; otherwise the

@@ -41,6 +41,30 @@ K-3 III directly attached to the PC passed detection, summary, settings
 read/write verification, preview, and two full-resolution capture downloads at
 libgphoto2 `6aa3e4e6`.
 
+### K-3 III capture timing observed through Polaris
+
+The exact capture frame `1&264&4&state:1;bulb:0;c:-1;#` **does take a
+photograph**. Do not classify the intermediate `264@state:-1005#` response as a
+terminal capture failure:
+
+- the initial `264@state:1#` acknowledgement arrived after about 12 ms;
+- `264@state:-1005#` arrived about 2.38 seconds after the request;
+- the camera returned to idle at about 3.17 seconds;
+- the completed image appeared in the client about 3–4 seconds after shutter;
+- the visible client sequence was **Error**, then **Camera busy**, then the
+  captured image appeared.
+
+This behavior has been seen repeatedly during physical testing. It establishes
+that capture and eventual image delivery work, while status/UI handling during
+the asynchronous capture is wrong or misleading. Tests must wait for the final
+image/file event before deciding success or failure, and should record the
+intermediate states rather than collapsing `-1005` into a terminal error.
+
+Preview remains a separate problem: the embedded Pentax path repeatedly
+reports `0xa008` (`NoUpdateImage`) for 30 attempts over roughly 1.24 seconds,
+followed by a successful restore (`0x2001`). Do not infer preview failure from
+the transient capture messages, or capture failure from the preview result.
+
 K-1 II enumerated on the flashed Polaris and configuration reads worked,
 including the corrected White Balance choice table. It subsequently physically
 disconnected (`usb 1-1.2: USB disconnect`). The Polaris currently exposes only

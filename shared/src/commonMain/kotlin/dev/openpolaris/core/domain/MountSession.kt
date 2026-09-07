@@ -1,7 +1,9 @@
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.protocol.CommandBuilder
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
+import dev.openpolaris.core.protocol.REQUEST_TYPE
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.TiltCodec
 import dev.openpolaris.core.protocol.command
@@ -729,7 +731,7 @@ class MountSession(
     }
 
     /** Fire-and-forget send (e.g., jog commands); no response awaited. */
-    suspend fun send(code: Int, payload: String = EMPTY_CONTENT) {
+    suspend fun send(code: Int, payload: String = EMPTY_CONTENT, subtype: Int = REQUEST_TYPE) {
         val conn = connection
         if (conn == null) {
             recordError(CmdResult.ProtocolError("not connected"))
@@ -737,7 +739,7 @@ class MountSession(
         }
         sendMutex.withLock {
             try {
-                conn.write(command(code) { putRaw(payload) })
+                conn.write(CommandBuilder(code, subtype).apply { putRaw(payload) }.build())
             } catch (e: Exception) {
                 handleDisconnect(e)
                 recordError(CmdResult.ProtocolError(e.message ?: "connection lost"))

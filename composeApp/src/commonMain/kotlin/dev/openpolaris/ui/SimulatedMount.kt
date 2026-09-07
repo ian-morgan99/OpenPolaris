@@ -71,10 +71,11 @@ class SimulatedMount {
         override suspend fun write(data: ByteArray) {
             val text = String(data, Charsets.US_ASCII)
             val f = ResponseParser().parseFrame(text.trimEnd('#')) ?: return
-            handle(f.code, f.fields)
+            val subtype = text.split('&').getOrNull(2)?.toIntOrNull() ?: 2
+            handle(f.code, f.fields, subtype)
         }
 
-        private fun handle(code: Int, fields: Map<String, String>) {
+        private fun handle(code: Int, fields: Map<String, String>, subtype: Int) {
             when (code) {
                 284 -> queue(
                     "1&284&2&mode:${if (tracking) 2 else 0};battery:76;charge:0;" +
@@ -99,10 +100,13 @@ class SimulatedMount {
                 261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
                 262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
                 263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
-                264 -> queue("1&264&2&ev:$evIndex;ret:0;#")
+                264 -> if (subtype == 4) {
+                    queue("1&264&2&state:1;bulb:0;c:-1;#")
+                } else {
+                    queue("1&264&2&ev:$evIndex;ret:0;#")
+                }
                 265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
                 266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")
-                267 -> queue("1&267&2&state:1;bulb:0;c:1;#")
                 // 3b.5: auto-level primitives. 547/548/549 are live-confirmed
                 // (docs/POLARIS-FUNCTIONS-REPORT.md §2.3); FeatureFlags.autoLevel
                 // is now ON by default. The simulator still emits converging

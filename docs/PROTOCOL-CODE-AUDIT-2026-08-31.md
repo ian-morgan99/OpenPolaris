@@ -59,7 +59,7 @@ Gimbal-control block (513–549) is entirely verified — every code matches the
 | 264 | `CAM_GET_EV` | (gap) | `ev:` | — |
 | 265 | `CAM_SET_EV` | `SP_GET_ISO_INFO` (resp) | `ev:` | `iso:val1,val2,...;cur:val;` ⚠ |
 | 266 | `CAM_GET_STATE` | `SP_GET_WB_INFO` (resp) | (none) | `wb:..;cur:..;` ⚠ |
-| 267 | `CAM_CAPTURE` | `SP_GET_EV_INFO` (resp) | (none) | `ev:..;cur:..;` ⚠ |
+| 267 | (not capture) | `SP_GET_EV_INFO` (resp) | (none) | `ev:..;cur:..;` ⚠ |
 | 268 | `CAM_GET_FOCUS` | `SP_GET_SHUTTER_INFO` (resp) | `focus:` | `shutter:..;cur:..;` ⚠ |
 | 269 | `CAM_SET_FOCUS` | (gap) | `focus:` | — |
 | 270–274 | various IMGSIZE/IMG_FMT/COLOR | (gap — reserved) | `imgSize:` etc. | — |
@@ -84,7 +84,7 @@ key name would be safer than the current `Codes.<GETTER_OR_SETTER>` constants.
 
 | Code | Our constant | Decompile constant |
 |---|---|---|
-| 267 | `CAM_CAPTURE` | `SP_GET_EV_INFO` (resp) ⚠ |
+| 267 | (not capture) | `SP_GET_EV_INFO` (resp) ⚠ |
 | 270 | `CAM_GET_IMG_SIZE` | `SP_FOCUS_STACK` (10-step) ⚠ |
 | 271 | `CAM_SET_IMG_SIZE` | `SP_PANORAMIC` (12-step) ⚠ |
 | 272 | `CAM_GET_IMG_FMT` | `SP_DELAY_SHOT` (11-step) ⚠ |

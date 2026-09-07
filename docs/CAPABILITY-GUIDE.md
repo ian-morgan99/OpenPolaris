@@ -59,7 +59,7 @@ against the in-process simulator).
 | **Jog / slew** | Continuous, stepping, goto RA/Dec, tracking, half-speed, pos-reset | ✅ |
 | **Astro helpers** | Plate solve (518), dither (539/540), settling (543/544), go-to-zero, autolevel (547–549) | ✅ except autolevel |
 | **Camera** | 10-param block 258–311 (read + write), live status | partial — §3.3 |
-| **Preview** | Live viewfinder (818), capture (267) | capture only — preview not yet round-tripped |
+| **Preview** | Live viewfinder (818), capture (264 subtype 4) | capture only — preview not yet round-tripped |
 | **Alignment** | 530 record-position, retrieve last, replay | ✅ |
 | **Tonight** | NGC/IC/stars/comets catalog, search, goto | ✅ (read-only data) |
 | **File manager** | Browse SD (702/703/704), format, delete, rename (798 — see §3.5) | browse ✅, mutate stubbed |

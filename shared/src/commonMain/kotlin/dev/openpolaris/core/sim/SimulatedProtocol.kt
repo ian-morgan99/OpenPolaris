@@ -6,6 +6,7 @@ import dev.openpolaris.core.io.Utf8
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.protocol.REQUEST_TYPE
 
 /**
  * Pure protocol-level simulator for the Polaris gimbal.
@@ -110,7 +111,7 @@ class SimulatedProtocol {
      * does not acknowledge. Each returned byte array is one complete on-wire
      * response, including the trailing `#`, ready to write to the socket as-is.
      */
-    fun handle(code: Int, fields: Map<String, String>): List<ByteArray> {
+    fun handle(code: Int, fields: Map<String, String>, subtype: Int = REQUEST_TYPE): List<ByteArray> {
         val out = ArrayList<ByteArray>(1)
         when (code) {
             // ---- gimbal push / poll ----------------------------------------
@@ -260,7 +261,11 @@ class SimulatedProtocol {
             Codes.CAM_SET_WB -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex }
             Codes.CAM_GET_FNUM -> out += response("1&${Codes.CAM_GET_FNUM}&2&fNum:$fNumIndex;ret:0;#")
             Codes.CAM_SET_FNUM -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex }
-            Codes.CAM_GET_EV -> out += response("1&${Codes.CAM_GET_EV}&2&ev:$evIndex;ret:0;#")
+            Codes.CAM_GET_EV -> if (subtype == Codes.CAM_CAPTURE_SUBTYPE) {
+                out += response("1&${Codes.CAM_CAPTURE}&2&state:1;bulb:0;c:-1;#")
+            } else {
+                out += response("1&${Codes.CAM_GET_EV}&2&ev:$evIndex;ret:0;#")
+            }
             Codes.CAM_SET_EV -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex }
             Codes.CAM_GET_FOCUS -> out += response("1&${Codes.CAM_GET_FOCUS}&2&focus:$focusIndex;ret:0;#")
             Codes.CAM_SET_FOCUS -> { focusIndex = fields["focus"]?.toIntOrNull() ?: focusIndex }
@@ -277,9 +282,6 @@ class SimulatedProtocol {
             Codes.CAM_GET_STATE -> out += response(
                 "1&${Codes.CAM_GET_STATE}&2&state:${if (tracking) 1 else 0};" +
                     "bulb:0;c:0;#"
-            )
-            Codes.CAM_CAPTURE -> out += response(
-                "1&${Codes.CAM_CAPTURE}&2&state:1;bulb:0;c:1;#"
             )
             Codes.CAM_LIVEVIEW_SET -> {
                 // `state:1;` to start, `state:0;` to stop.

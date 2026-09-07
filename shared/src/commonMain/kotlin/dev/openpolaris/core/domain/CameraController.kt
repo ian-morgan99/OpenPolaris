@@ -50,7 +50,11 @@ class CameraController(private val session: MountSession) {
     suspend fun setCaptureMode(index: Int) = session.send(Codes.CAM_SET_CAPTURE_MODE, "captureMode:$index;")
 
     /** Trigger a single exposure. */
-    suspend fun capture() = session.send(Codes.CAM_CAPTURE)
+    suspend fun capture() = session.send(
+        Codes.CAM_CAPTURE,
+        Codes.CAM_CAPTURE_PAYLOAD,
+        Codes.CAM_CAPTURE_SUBTYPE,
+    )
 
     /** Query one parameter index by code. Returns null on timeout/absent key. */
     private suspend fun queryIndex(code: Int, key: String): Int? =

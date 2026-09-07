@@ -58,6 +58,16 @@ class SimulatedProtocolTest {
     }
 
     @Test
+    fun cameraCaptureIsDistinctFromEvReadBySubtype() {
+        val response = sim.handle(
+            Codes.CAM_CAPTURE,
+            StringMap("state" to 1, "bulb" to 0, "c" to -1),
+            Codes.CAM_CAPTURE_SUBTYPE,
+        )
+        assertEquals("1&264&2&state:1;bulb:0;c:-1;#", String(response.single()))
+    }
+
+    @Test
     fun cameraFocusGetAndSet() {
         assertNotNull(sim.handle(Codes.CAM_SET_FOCUS, StringMap("focus" to 0)))
         assertNotNull(sim.handle(Codes.CAM_GET_FOCUS, emptyMap()))

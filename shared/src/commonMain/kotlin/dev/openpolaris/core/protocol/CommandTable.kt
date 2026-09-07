@@ -33,6 +33,7 @@ object CommandTable {
     data class Descriptor<T>(
         val code: Int,
         val name: String,
+        val subtype: Int = REQUEST_TYPE,
         val payload: (T) -> String = { EMPTY_CONTENT },
         val parse: ((ResponseParser.Frame) -> T?)? = null,
     )
@@ -286,8 +287,13 @@ object CommandTable {
             val s = f.int("state"); if (s != null) CaptureState(s, f.int("bulb") ?: 0, f.int("c") ?: 0) else null
         })
 
-    /** Trigger a single exposure via the CableRelease task path (SP_CableReleaseMakePhoto). */
-    val CAM_CAPTURE = Descriptor<Unit>(Codes.CAM_CAPTURE, "capture photo")
+    /** Trigger a single exposure via the live-verified SP_MakeNormalPhoto path. */
+    val CAM_CAPTURE = Descriptor<Unit>(
+        Codes.CAM_CAPTURE,
+        "capture photo",
+        subtype = Codes.CAM_CAPTURE_SUBTYPE,
+        payload = { Codes.CAM_CAPTURE_PAYLOAD },
+    )
 
     // ---- post-connect burst ---------------------------------------------------
     //
@@ -331,8 +337,8 @@ object CommandTable {
 
     /**
      * Camera info GETs (10 codes). Each response merges one field into a
-     * running [CameraInfo] snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
-     * NOT part of this — they feed the CaptureState pipeline / capture button.
+     * running [CameraInfo] snapshot. Code 266 (STATE) is not part of this.
+     * Capture shares 264 with the EV query but uses subtype 4 and a payload.
      */
     val BURST_CAMERA_CODES: List<Int> = listOf(258, 260, 262, 264, 268, 270, 272, 274, 276, 278)
 

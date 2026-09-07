@@ -130,7 +130,11 @@ object Codes {
     const val CAM_GET_EV = 264
     const val CAM_SET_EV = 265
     const val CAM_GET_STATE = 266
-    const val CAM_CAPTURE = 267
+    /** Live-verified shutter release. Shares code 264 with EV reads, but is
+     * distinguished by subtype 4 and the capture payload. */
+    const val CAM_CAPTURE = 264
+    const val CAM_CAPTURE_SUBTYPE = 4
+    const val CAM_CAPTURE_PAYLOAD = "state:1;bulb:0;c:-1;"
     const val CAM_GET_FOCUS = 268
     const val CAM_SET_FOCUS = 269
     const val CAM_GET_IMG_SIZE = 270

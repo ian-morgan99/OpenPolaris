@@ -1,6 +1,7 @@
 package dev.openpolaris.probe
 
 import dev.openpolaris.core.protocol.CommandTable
+import dev.openpolaris.core.protocol.CommandBuilder
 import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
 import dev.openpolaris.core.protocol.commandWithSubtype
@@ -94,10 +95,13 @@ fun main(args: Array<String>) {
             Codes.BATTERY_STATUS,
             Codes.BATTERY_DETAIL,
             Codes.CAM_GET_STATE,
-            Codes.CAM_CAPTURE,
         )) {
             runOne("push.$code", code)
         }
+        val capture = CommandBuilder(Codes.CAM_CAPTURE, Codes.CAM_CAPTURE_SUBTYPE)
+            .putRaw(Codes.CAM_CAPTURE_PAYLOAD)
+            .build()
+        out.write(capture); out.flush()
 
         // 4. File/SD reads
         log("\n== 4. File/SD reads ==")

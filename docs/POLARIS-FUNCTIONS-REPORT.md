@@ -113,7 +113,7 @@ string scanning. Wire-level confirmation pending.
 | **264** | CAM_GET_EV | U | EV read (quirk: missing trailing `;` in live capture; see §4) | `264@ev:D#` |
 | **265** | CAM_SET_EV | U | EV set | `265@ev:D;` |
 | **266** | CAM_GET_STATE | L (push-only) | Capture state push (state, bulb, c) — SKIP'd on real hw | `266@state:N;bulb:N;c:N;#` |
-| **267** | CAM_CAPTURE | L (push-only) | Single exposure trigger — push-mode on real hw | `267@ret:0;#` (after capture completes) |
+| **264 subtype 4** | CAM_CAPTURE | L | Single exposure trigger | `state:1;bulb:0;c:-1;` request |
 | **268** | CAM_GET_FOCUS | U | Focus read | `268@focus:N;#` |
 | **269** | CAM_SET_FOCUS | U | Focus set | `269@focus:N;` |
 | **270** | CAM_GET_IMG_SIZE | U | Image size read | `270@imgSize:N;#` |
@@ -233,10 +233,10 @@ This maps codes to the actual app features a user sees in Benro Connect (per SPE
 | Connect / status bar | 284, 780, 778 | **Live-tested ✅** |
 | Camera preview (MJPEG) | :8080/?action=stream (HTTP) | Out of protocol scope |
 | Mode selector strip (7 modes) | 284 (mode field) | **Live-tested ✅** |
-| Normal photo / video | 267 (capture), 527 (video) | **Live-tested ✅** |
+| Normal photo / video | 264 subtype 4 (capture), 527 (video) | **Live-tested ✅** |
 | Timelapse | 531 + capture loop | Code verified live; app UX not yet built |
 | Dynamic lapse | 517 (pos read) + 535 (pos set) | Code verified live; app UX not yet built |
-| Panorama | 267 loop + yaw jog 513-516 | Code verified live; stitching out of scope (v1) |
+| Panorama | capture loop + yaw jog 513-516 | Code verified live; stitching out of scope (v1) |
 | Sun / Moon tracking | 519 (goto) + 531 (track) | Code verified live; rise/set math in client |
 | **Star tracking (astro core)** | 530 (align) + 519 (goto) + 531 (track) + 536 (half-speed) + 520 (AHRS) | **All live-confirmed ✅** |
 | **AHRS / live pointing** | 520 (gate) + 518 (quaternion push) | **Live-tested ✅** |
@@ -313,7 +313,7 @@ work in commit `736f35b`:
 - Wi-Fi band read (802)
 - Battery / SD (778, 775)
 - OMS run-state + task list push (824, 825)
-- Camera capture trigger (267, push-mode)
+- Camera capture trigger (264 subtype 4)
 - Camera focus adjust (311)
 
 **v1 features with corpus-only payload formats** (no live capture, but stock-app string
@@ -341,7 +341,7 @@ scan backs them):
 - **536/540/541 family convenience** — if `538` payload is also `state:0;`, promote the
   family-level toggle to a single helper.
 - **808 in connect-burst** — consider waiting for unsolicited push instead of GETting.
-- **266/267 push handling** — capture state UI must subscribe to push events, not poll.
+- **266 push handling** — capture state UI must subscribe to push events, not poll.
 - **Camera parameter live verification** — would need a camera physically attached to
   the gimbal to live-capture 258-279. Until then, UNVERIFIED.
 - **Re-test after firmware update** — first action in resume plan is `nc -zv 192.168.0.1

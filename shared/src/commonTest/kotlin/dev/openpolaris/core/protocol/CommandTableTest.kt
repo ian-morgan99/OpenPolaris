@@ -9,7 +9,7 @@ class CommandTableTest {
 
     private fun wire(d: CommandTable.Descriptor<*>, arg: Any? = Unit): String {
         val payload = (d.payload as (Any?) -> String)(arg)
-        val b = CommandBuilder(d.code)
+        val b = CommandBuilder(d.code, d.subtype)
         if (payload != EMPTY_CONTENT) b.putRaw(payload)
         return decodeAscii(b.build())
     }
@@ -96,6 +96,11 @@ class CommandTableTest {
         assertEquals(null, parse(f3))
     }
 
+    @Test
+    fun captureUsesLiveVerifiedCommandContract() {
+        assertEquals("1&264&4&state:1;bulb:0;c:-1;#", wire(CommandTable.CAM_CAPTURE))
+    }
+
     // ---- post-connect burst ----
 
     @Test
@@ -146,10 +151,9 @@ class CommandTableTest {
                 "camera burst code $c outside camera range",
             )
         }
-        // 266 (STATE) and 267 (CAPTURE) are explicitly NOT in the burst — they
-        // feed the CaptureState pipeline / capture button.
+        // 266 (STATE) is not a camera parameter query. Capture shares 264 with
+        // EV reads, but uses a distinct subtype and payload.
         assertTrue(266 !in CommandTable.BURST_CAMERA_CODES)
-        assertTrue(267 !in CommandTable.BURST_CAMERA_CODES)
     }
 
     @Test

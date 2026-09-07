@@ -97,7 +97,7 @@ no in-progress capture, and user has confirmed they want to run camera tests.
 | 5.2  | SET ISO (round-trip)          | 259   | Follow with 258; value changed             | ☐    |
 | 5.3  | WB get/set                    | 260/261 |                                           | ☐    |
 | 5.4  | Aperture get/set              | 262/263 |                                           | ☐    |
-| 5.5  | Capture trigger               | 267   | Camera fires ONCE                          | ☐    |
+| 5.5  | Capture trigger               | 264 subtype 4 | Camera fires ONCE                   | ☐    |
 
 For any unparsed response: copy the raw frame into notes; it is a remapping signal,
 not a plan failure.

@@ -123,7 +123,7 @@ Picking up tomorrow? Read this first.
 | Stub server (mobile-app → PC) | ✅ built | `tools/stub-server` runs the simulator as a TCP service |
 | `MountSession` host (was `AppViewModel.connect()`) | ✅ defaults to `192.168.0.1:9090` | [MountSession.kt:21](shared/src/commonMain/kotlin/dev/openpolaris/core/domain/MountSession.kt); `Burst.kt:13` also defaults to `192.168.0.1` |
 | Post-connect burst (808/809/802/778/779/775/824/524/543) | ✅ implemented | [`AppViewModel.postConnectBurst()`](composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt) runs 808→809→802→778→779→775→824→524→543 after `MountSession.connect()`. The earlier "TBD-time-set" placeholder is **resolved**: `515` was mistakenly tagged as a time-setter in a prior draft but is actually `GIMBAL_HADJ_ANGLE` (jog yaw). The real setter is `544` (`SET_SETTLING_TIME`); the burst only fires its GET (`543`) plus a separate `setSettlingTimeMs(ms)` call. See [PROTOCOL.md §Control plane](PROTOCOL.md) and [Codes.kt:43](shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/Codes.kt). |
-| Camera info burst (CAM_GET_* = 258/260/262/264/266/268/270/272/274/276/278) | ⚠ partial — 6/11 in CommandTable, 10/11 in `AppViewModel.postConnectBurst()`, 10/10 steppers rendered in `CameraPane` | 6 new GET/SET pairs (focus/imgSize/imgFmt/color/shutter/captureMode, codes 268-279) added to `CommandTable` in commit `5dab031`; `CameraInfo.fromFrame` parser handles all 10 burst codes; `SimulatedProtocol` generates valid responses for the 6 new pairs; 11 new unit tests in `786d006` (jvmTest now 86/86 green). 10 of 11 camera GETs (all except 266=`CAM_GET_STATE` and 267=`CAPTURE`, which feed separate pipelines) are in `AppViewModel.postConnectBurst()` and were stub-verified this session. **In commit `ae241bb`**: all 6 new fields now have `StepperRow` entries in `CameraPane` (Focus / Image size / Image format / Color / Shutter / Capture mode), matching the existing `setFocus` / `setImgSize` / `setImgFmt` / `setColor` / `setShutter` / `setCaptureMode` API on `AppViewModel`. `compileKotlinJvm` still builds clean. Remaining: live verify against the real gimbal at `192.168.0.1:9090` (still blocked on B1 sudo + B2 gimbal power). |
+| Camera info burst (CAM_GET_* = 258/260/262/264/266/268/270/272/274/276/278) | ⚠ partial — 6/11 in CommandTable, 10/11 in `AppViewModel.postConnectBurst()`, 10/10 steppers rendered in `CameraPane` | 6 new GET/SET pairs (focus/imgSize/imgFmt/color/shutter/captureMode, codes 268-279) added to `CommandTable` in commit `5dab031`; `CameraInfo.fromFrame` parser handles all 10 burst codes; `SimulatedProtocol` generates valid responses for the 6 new pairs; 11 new unit tests in `786d006` (jvmTest now 86/86 green). 10 of 11 camera GETs (all except 266=`CAM_GET_STATE`) are in `AppViewModel.postConnectBurst()` and were stub-verified this session. Capture now shares code 264 with EV reads but uses subtype 4 and a distinct payload. **In commit `ae241bb`**: all 6 new fields now have `StepperRow` entries in `CameraPane` (Focus / Image size / Image format / Color / Shutter / Capture mode), matching the existing `setFocus` / `setImgSize` / `setImgFmt` / `setColor` / `setShutter` / `setCaptureMode` API on `AppViewModel`. `compileKotlinJvm` still builds clean. Remaining: live verify against the real gimbal at `192.168.0.1:9090` (still blocked on B1 sudo + B2 gimbal power). |
 | BT-side codes (1-5, 257-263, 513-524) | ❌ not in repo | likely a new `BtCodes.kt` + frame helpers |
 | Linux BlueZ BLE wake pulse | ❌ not implemented | optional, see "Bluetooth" below |
 | `ResponseParser` handling of literal `h` pulse ack | ⚠️ not visible | needs review |
@@ -381,7 +381,7 @@ Each step lists **what**, **how long** (rough), **how to verify**, and
 
   **Note:** the earlier draft of this step listed `265, 266, 267, 268,
   275` and called them "ISO/WB/EV/Shutter/FNum" — that is wrong on
-  every count (`265` is `CAM_SET_EV`, not ISO; `267` is `CAM_CAPTURE`;
+  every count (`265` is `CAM_SET_EV`, not ISO; capture is 264 subtype 4;
   etc.). The original app's `getCanmeraInfo()` does fire this full
   GET set; capture the exact list from the live probe (Step 3) and
   pin it down in a `CAMERA_INFO_BURST` constant.
@@ -559,7 +559,7 @@ is above in "Next steps in priority order".)
    shutter / capture mode, codes 268-279) and `786d006` (11
    new unit tests) are in. `AppViewModel.postConnectBurst()`
    already fires all 10 of the 11 camera GETs (266/267
-   excluded: 266 feeds `CaptureState`, 267 is the capture
+   excluded: 266 feeds `CaptureState`; capture is 264 subtype 4 and is not a GET
    button). Commit `ae241bb` added `StepperRow` entries for
    all 6 new fields in `CameraPane`. The only remaining
    piece is the **live verify** against the real gimbal

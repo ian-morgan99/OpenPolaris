@@ -1,6 +1,23 @@
-# Live camera qualification progress
+# LIVE HANDOVER — Pentax camera qualification
 
-Last updated: 2026-09-07 12:46 Europe/London
+Last updated: 2026-09-07 12:49 Europe/London
+
+## Handover status
+
+**ACTIVE WORK IS BEING HANDED OVER. K-3 III QUALIFICATION IS INCOMPLETE.**
+
+- Hardware-test ownership is now **UNCLAIMED**. The next agent must put its
+  name/task and timestamp in the owner field before sending any command.
+- Do not swap to K-1 II yet. Finish or explicitly issue-track every remaining
+  K-3 III row first.
+- Immediate blocker: after `/app/restart_gphoto`, the still-connected K-3 III
+  remains `manufacturer:none;model:none;state:-2`. It needs a physical camera
+  power-cycle or USB reseat before valid camera testing can resume.
+- The user has asked for **every camera feature** to be tested, with an issue
+  raised for every distinct failure. A green direct-libgphoto2 result does not
+  substitute for Benro Connect or OpenPolaris end-to-end testing.
+- Start by reading this entire file, then #56, #62 and #63. Do not rely on an
+  earlier conversational summary instead of the ledger.
 
 This is the authoritative coordination ledger for the K-3 III / K-1 II
 qualification across OpenPolaris, `benro-polaris-firmware-patcher`, and
@@ -9,8 +26,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** primary Codex agent in the OpenPolaris
-  checkout.
+- **Current hardware-test owner:** **UNCLAIMED — HANDOVER READY**
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -119,15 +135,43 @@ remains valid.
 
 ## Next steps, in order
 
-1. Physically power-cycle or reseat the K-3 III and confirm USB `25fb:0189` plus
-   camera-info 286 recovery.
-2. Correct/disable unsafe OpenPolaris parameter mappings under #62 before any
+1. Claim hardware-test ownership in this file and commit/push that claim.
+2. Ask for/confirm a physical K-3 III power-cycle or USB reseat.
+3. Prove the route before any probe:
+   `ip route get 192.168.0.1` must report `dev wlp8s0`.
+4. Confirm recovery both on-device and over protocol:
+   `lsusb` over SSH must show `25fb:0189`, then camera-info 286 must identify
+   `pentax k-3 mark iii`. If either fails, update patcher #34 and do not run the
+   feature matrix.
+5. Record baseline file count/hashes under `/app/sd/normal/` before capture or
+   media tests.
+6. Correct/disable unsafe OpenPolaris parameter mappings under #62 before any
    setting-write matrix.
-3. Finish K-3 III safe reads, verified write/read-back/restore, focus, capture
+7. Finish K-3 III safe reads, verified write/read-back/restore, focus, capture
    soak, storage/download and recovery rows.
-4. Mark unsupported body features `N/A` only with evidence; open an owning
+8. Mark unsupported body features `N/A` only with evidence; open an owning
    issue for every `FAIL` or unresolved `BLOCKED` row.
-5. Only then record a K-3 III handover and swap to K-1 II.
+9. Update this file immediately after each row so another agent never repeats
+   or overlaps a physical operation.
+10. Only after every row is PASS, evidenced N/A, or linked to an owning issue,
+    record K-3 III handover completion and swap to K-1 II.
+
+## Safe parallel work while hardware is blocked
+
+- #62: correct the camera command registry from individually evidenced Benro
+  request builders/parsers; do not copy application source.
+- #61: add first-frame and stale-frame deadlines plus JPEG validation to both
+  platform preview transports, with deterministic tests.
+- #60: implement an asynchronous capture state machine without automatically
+  retrying shutter release.
+- #63: expand the matrix with exact payload/subtype/parser evidence for every
+  Benro shooting/media feature.
+- Any agent taking one of these must add its issue number and task name below
+  before editing, and must not modify files owned by another claimed task.
+
+## Parallel task claims
+
+- None at handover time.
 
 ## Activity log
 
@@ -137,4 +181,5 @@ remains valid.
 - 2026-09-07 12:44: opened OpenPolaris #61; updated patcher #34/#36.
 - 2026-09-07 12:46: full surface audit found the sequential camera command map
   conflicts with Benro `PolarisCMD`; opened OpenPolaris #62 and #63.
-
+- 2026-09-07 12:49: primary agent released hardware ownership and marked this
+  document as the explicit continuation handover.

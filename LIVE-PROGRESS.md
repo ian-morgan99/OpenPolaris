@@ -27,7 +27,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** **this agent (2026-09-07 15:25) — K-1 II swap, step 1 of K1II-SWAP-PLAN.md (claiming ownership, pre-conditions verified, K-3 III still attached, NEEDS USER to confirm K-1 II body + cable on bench before step 2-4 physical swap)**
+- **Current hardware-test owner:** **UNCLAIMED** — K-1 II swap and matrix recording complete; K-1 II attached (25fb:0183), matrix recorded in LIVE-PROGRESS.md; runtime dead (patcher#38/#39 blockers remain), see [docs/evidence/2026-09-07/K1II-SWAP-PLAN.md](docs/evidence/2026-09-07/K1II-SWAP-PLAN.md) for the plan and [docs/evidence/2026-09-07/k1ii-swap-execution/K1II-SWAP-STATE-2026-09-07-1530.md](docs/evidence/2026-09-07/k1ii-swap-execution/K1II-SWAP-STATE-2026-09-07-1530.md) for execution state
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -801,3 +801,18 @@ dead" — exactly the same state as the K-3 III matrix.
   K-1 II matrix added to LIVE-PROGRESS.md after the K-3 III
   matrix. Will release hardware ownership in next commit
   and post the K-1 II state to OpenPolaris#56.
+
+- 2026-09-07 15:40: K-1 II HARDWARE OWNERSHIP RELEASED.
+  Hardware-test owner field set to UNCLAIMED. The K-1 II
+  matrix is complete (all rows have a status), the K-1 II
+  is physically attached (25fb:0183), the protocol probes
+  have been run, and the runtime-dead state is documented.
+  Next agent should:
+    1. Land the patcher#38 fix (strip-debug + cd stage2)
+    2. Land the patcher#39 fix (post-build verification)
+    3. Rebuild FwPkt.zip with both fixes
+    4. Flash the gimbal (user action)
+    5. Re-run K1II-SWAP-PLAN.md §6 to fill in the
+       NOT TESTED rows
+  This primary agent is done with the K-1 II swap. All
+  work committed and pushed to origin/main.

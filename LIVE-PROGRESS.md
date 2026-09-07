@@ -273,3 +273,43 @@ remains valid.
   tests can run. Direct CLI on the gimbal worked once and confirmed
   the direct libgphoto2 path is fine; further work needs the
   patcher#38 fix to land first.
+- 2026-09-07 13:15: HARDWARE FIX DEPLOYED. After the K-3 III power-cycle
+  (user taking action now), testing the libgphoto2_port fix:
+  - Built libgphoto2_port.so.12.2.0 (133,480 bytes) from libgphoto2
+    commit 6aa3e4e66 in /home/ian/Documents/VSCodeProjects/LibGphoto2
+  - SHA-256: da0370339953d28b6011a30de71189ef1b59c5f6a3b9c31d0320575fc8646ab6
+  - Replaces the 38,620-byte stub at /app/lib/stage2/libgphoto2_port.so.12
+  - Also deployed matching usb1.so iolib (119,928 bytes):
+    e361eee913d1e0a4fc89d82fb9901cdb97bdcdb67fc5cbd63bbc624cea538968
+  - Stub backed up to /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+  - usb1.so backed up to /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak
+  - Rollback: cp /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+    /app/lib/stage2/libgphoto2_port.so.12 && /app/restart_gphoto
+  - Auto-rollback logic in deploy-fix.sh checks for state:1; on
+    failure restores stub and reports.
+
+- 2026-09-07 13:35: FwPkt(1).zip PROVENANCE CONFIRMED. The user's pushed zip
+  is the STOCK 4.0.0.32 baseline (2025-05-09), byte-identical to
+  builds/2026-08-30_test-cards/FwPkt_TEST_A_STOCK_BASELINE_2026-08-30.zip
+  (md5 90bdad511f556f25a2904ae9d2980102). This is the BASE that any new
+  patcher build must take as input — NOT the workspace FwPkt.zip
+  (md5 e6fe0c9c, appfs b3e608a0 = 2026-09-05-combined-pentax256-hdmi720p60).
+
+  Current installed firmware on the gimbal IS the 2026-09-07-k1ii-k3iii-
+  candidate build (appfs MD5 d745fe16...), proven by per-partition MTD
+  block MD5s matching the firmwareInfo for rootfs/uImage/config/polaris403/
+  polaris413. The 2026-09-07 build was constructed from the stock baseline
+  (47f2ae68) + libgphoto2 commit 6aa3e4e66 Pentax patches (proven by
+  deployed openpolaris-libgphoto2-provenance.txt).
+
+  Rule of engagement going forward: any new patcher build must use
+  FwPkt(1).zip (md5 90bdad51..., appfs 47f2ae68...) as the input.
+  The "2026-09-07-k1ii-k3iii-candidate" build is what is currently running;
+  the patcher#36 stub defect (issue #38) is independent of this zip and
+  the K-3 III single-MTP-session trap (issue #35) is also independent.
+
+  Pre-flight for any new build:
+    md5sum /home/ian/Downloads/FwPkt\(1\).zip
+      -> must be 90bdad511f556f25a2904ae9d2980102
+    unzip -p FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
+      -> must be appfs MD5:47f2ae680be3a5f5d69aa20e20a2397b

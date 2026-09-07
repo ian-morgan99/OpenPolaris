@@ -388,3 +388,32 @@ remains valid.
   docs/evidence/2026-09-07/protocol-mapping/FEATURE-TEST-INVENTORY.md
   — comprehensive menu of what we can still test without zip
   builds or direct file edits.
+
+- 2026-09-07 13:55: PROTOCOL MAP PUBLISHED. The live protocol code map and
+  its supporting evidence are now reachable from the public OpenPolaris
+  repo and discoverable via the GitHub issue tracker:
+
+  **In the repo (committed to main, pushed to origin)**:
+  - docs/PROTOCOL.md §5.1 — new section "Live hardware verification
+    (2026-09-07)" that points at the protocol map from the canonical
+    protocol doc. (commit a1deb76)
+  - docs/evidence/2026-09-07/protocol-mapping/PROTOCOL-MAP-2026-09-07.md
+  - docs/evidence/2026-09-07/protocol-mapping/FEATURE-TEST-INVENTORY.md
+  - docs/evidence/2026-09-07/protocol-mapping/transcripts/cli-probe-transcript-2026-09-07-1336.txt
+  - docs/evidence/2026-09-07/protocol-mapping/push-listener-logs/2026-09-07-1355.log
+
+  **In the issue tracker (OpenPolaris)**:
+  - #66 TRACKING: live protocol code map (2026-09-07) — please
+    validate and extend. The single issue that consolidates
+    per-code findings and asks for community validation. Linked
+    from the protocol map.
+
+  **Cross-link comments added on**:
+  - benro-polaris-firmware-patcher#36 (797 FILE_SCAN_COMPLETE)
+  - benro-polaris-firmware-patcher#39 (/app/bin/ empty)
+  - benro-polaris-firmware-patcher#38 (libgphoto2_port iolibs lookup)
+  - (the #38 comment was added earlier in the session)
+
+  5 commits ahead of origin pushed: ad0b35f..7800543, then a1deb76.
+  Clean working tree except for /tmp/QUARANTINED x86_64 binaries
+  (intentionally kept as evidence of the SSH deploy violation).

@@ -1,6 +1,7 @@
 package dev.openpolaris.core.net
 
 import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -43,17 +44,26 @@ class BridgeOrchestrator(
         ifname: String,
         progress: suspend (String) -> Unit = {},
     ): Boolean = withContext(io) {
-        runCatching { wakeOverBluetooth(progress) }
-            .onFailure {
-                progress(
-                    "BT wake failed: ${it.message ?: it::class.simpleName}; " +
-                        "trying the saved Wi-Fi profile"
-                )
-            }
+        // Best-effort BT wake. A CancellationException must propagate (the
+        // owning scope was cancelled), so it is rethrown rather than folded
+        // into the "try the saved Wi-Fi profile" path like an operational
+        // failure. See #52.
+        try {
+            wakeOverBluetooth(progress)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            progress(
+                "BT wake failed: ${e.message ?: e::class.simpleName}; " +
+                    "trying the saved Wi-Fi profile"
+            )
+        }
 
         progress("Bringing $profile up on $ifname…")
         try {
             wifi.connectByProfile(profile, ifname)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             progress("Wi-Fi activation failed: ${e.message ?: e::class.simpleName}")
             return@withContext false
@@ -62,6 +72,8 @@ class BridgeOrchestrator(
         progress("Waiting for link on $ifname…")
         val linkUp = try {
             wifi.awaitLinkUp(ifname, timeoutMs = 15_000)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             progress("Wi-Fi link check failed: ${e.message ?: e::class.simpleName}")
             return@withContext false
@@ -74,6 +86,8 @@ class BridgeOrchestrator(
         progress("Installing policy route for ${wifi.gimbalCidrForDebug} → $ifname")
         try {
             wifi.installPolicyRoute(ifname)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             progress("Policy route failed: ${e.message ?: e::class.simpleName}")
             return@withContext false
@@ -98,6 +112,10 @@ class BridgeOrchestrator(
         try {
             wakeOverBluetooth(progress)
             true
+        } catch (e: CancellationException) {
+            // Propagate cancellation so the caller's scope is not left to
+            // continue UI/state work after a cancelled wake. See #52.
+            throw e
         } catch (e: Exception) {
             progress("BT wake failed: ${e.message ?: e::class.simpleName}")
             false

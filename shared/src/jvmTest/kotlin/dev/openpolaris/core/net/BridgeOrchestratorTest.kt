@@ -1,5 +1,6 @@
 package dev.openpolaris.core.net
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -209,5 +210,54 @@ class BridgeOrchestratorTest {
         val nmDownIdx = fake.calls.indexOfFirst { it == nmDown.first() }
         assertTrue(ruleDelIdx < nmDownIdx, "policy route should be removed before nmcli down")
         assertTrue(messages.any { it.contains("torn down") })
+    }
+
+    /**
+     * #52 — cancellation must propagate out of [BridgeOrchestrator.bridgeToMount]
+     * and [BridgeOrchestrator.wakeOnly] rather than being folded into a normal
+     * `false` result. The injected [ProcessRunner] throws the same
+     * [CancellationException] produced when its owning coroutine is cancelled;
+     * the exception must escape instead of being converted to `false`.
+     */
+
+    private class CancellingRunner : ProcessRunner {
+        val calls = mutableListOf<List<String>>()
+        override fun run(argv: List<String>): String {
+            calls += argv
+            throw CancellationException("test cancellation")
+        }
+    }
+
+    @Test
+    fun `bridgeToMount propagates cancellation instead of returning false`() = runBlocking {
+        val runner = CancellingRunner()
+        val wifi = StubbedWifiBridge(runner, linkUpResult = true)
+        val bt = BluetoothProbe(runner = runner, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
+
+        val result = runCatching {
+            orch.bridgeToMount("polaris_d13e86", "wlp8s0")
+        }
+        assertTrue(
+            result.exceptionOrNull() is CancellationException,
+            "cancelling during a bridge phase must propagate CancellationException, got: " +
+                result.exceptionOrNull(),
+        )
+    }
+
+    @Test
+    fun `wakeOnly propagates cancellation instead of returning false`() = runBlocking {
+        val runner = CancellingRunner()
+        val bt = BluetoothProbe(runner = runner, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(bt = bt)
+
+        val result = runCatching {
+            orch.wakeOnly()
+        }
+        assertTrue(
+            result.exceptionOrNull() is CancellationException,
+            "cancelling during BT wake must propagate CancellationException, got: " +
+                result.exceptionOrNull(),
+        )
     }
 }

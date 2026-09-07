@@ -65,6 +65,28 @@ reports `0xa008` (`NoUpdateImage`) for 30 attempts over roughly 1.24 seconds,
 followed by a successful restore (`0x2001`). Do not infer preview failure from
 the transient capture messages, or capture failure from the preview result.
 
+Controlled live-view cycling proves this is not merely a log warning:
+
+- OFF was acknowledged by 291 and read back as `292@state:0`;
+- HTTP 8080 returned `200 OK` but only the 22-byte opening delimiter
+  `--boundarydonotcross\r\n`, with no JPEG;
+- ON was acknowledged by 291 and read back as `292@state:1`;
+- HTTP 8080 still returned only the same 22-byte delimiter over a 10-second
+  observation, with no part headers, body or JPEG;
+- a second OFF/ON/fetch cycle failed identically;
+- a clean `pgphoto` restart left exactly one replacement process owning 8080,
+  but a third live-view attempt again produced only 22 bytes.
+
+The control plane and HTTP status therefore falsely look healthy while the
+preview data plane is dead. OpenPolaris additionally has no first-frame
+deadline (`JvmPreviewTransport.readTimeout = 0`), so this server behavior can
+leave the client in `Connecting` indefinitely; that is tracked in #61.
+
+The same `pgphoto` restart caused camera-info to regress to
+`manufacturer:none;model:none;state:-2` and it did not recover over six polls
+spanning roughly 25 seconds. Process/listener replacement passed, but camera
+session re-discovery did not; patcher #34 owns that recovery failure.
+
 ### K-3 III qualification decision
 
 K-3 III testing is **not complete**, and neither client is currently qualified
@@ -94,6 +116,8 @@ Owning issues:
   `-1005` before successful delayed image delivery;
 - `ian-morgan99/OpenPolaris#60` — model the asynchronous capture lifecycle and
   await the final image/file event;
+- `ian-morgan99/OpenPolaris#61` — detect an HTTP-200 multipart stream that
+  never produces its first valid JPEG instead of remaining Connecting forever;
 - `ian-morgan99/OpenPolaris#56` — incomplete physical qualification rows,
   including focus, soak, preview cycling and recovery;
 - `ian-morgan99/benro-polaris-firmware-patcher#35` — broader K-3 III embedded

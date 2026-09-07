@@ -843,3 +843,17 @@ dead" — exactly the same state as the K-3 III matrix.
   #38/#39. All six open libgphoto2 issues remain correctly
   located behind direct-reproduction or upstream-work gates.
   No hardware commands were sent; owner remains UNCLAIMED.
+
+- 2026-09-07 15:50: K-01 TEST PLAN PUBLISHED. User asked
+  "can we try a test with the K-01?" — the K-01 is a 2011
+  legacy Pentax that uses pure PTP (no MTP) and has USB id
+  0x25fb:0x0131. Per libgphoto2's ptp2/library.c it's
+  supported by the modern PTP camlib. The K-01 test is a
+  body-agnostic check: if K-01 also fails the 286
+  identify, the runtime defect is not specific to modern
+  Pentax quirks. Plan committed at
+  docs/evidence/2026-09-07/K01-TEST-PLAN.md.
+
+  Cannot execute the plan now: gimbal still not reachable
+  (network state same as 15:47). Plan is ready for the next
+  agent when the gimbal is back.

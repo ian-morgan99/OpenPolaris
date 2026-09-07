@@ -82,10 +82,12 @@ preview data plane is dead. OpenPolaris additionally has no first-frame
 deadline (`JvmPreviewTransport.readTimeout = 0`), so this server behavior can
 leave the client in `Connecting` indefinitely; that is tracked in #61.
 
-The same `pgphoto` restart caused camera-info to regress to
-`manufacturer:none;model:none;state:-2` and it did not recover over six polls
-spanning roughly 25 seconds. Process/listener replacement passed, but camera
-session re-discovery did not; patcher #34 owns that recovery failure.
+After the same `pgphoto` restart, camera-info returned
+`manufacturer:none;model:none;state:-2` over six polls. The user subsequently
+confirmed that the K-3 III battery was flat. This result is therefore invalid
+as evidence of a runtime rediscovery failure: process/listener replacement
+passed, but camera recovery remains untested and must be repeated with a
+powered camera. Do not use this run to support patcher #34.
 
 ### K-3 III qualification decision
 

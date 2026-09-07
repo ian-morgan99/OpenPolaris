@@ -10,9 +10,10 @@ Last updated: 2026-09-07 12:49 Europe/London
   name/task and timestamp in the owner field before sending any command.
 - Do not swap to K-1 II yet. Finish or explicitly issue-track every remaining
   K-3 III row first.
-- Immediate blocker: after `/app/restart_gphoto`, the still-connected K-3 III
-  remains `manufacturer:none;model:none;state:-2`. It needs a physical camera
-  power-cycle or USB reseat before valid camera testing can resume.
+- Immediate blocker: the K-3 III battery was flat. The post-restart
+  `manufacturer:none;model:none;state:-2` result must **not** be attributed to
+  `pgphoto` recovery. Charge/replace the battery, power the camera on, and
+  re-establish detection before valid testing resumes.
 - The user has asked for **every camera feature** to be tested, with an issue
   raised for every distinct failure. A green direct-libgphoto2 result does not
   substitute for Benro Connect or OpenPolaris end-to-end testing.
@@ -26,7 +27,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** **UNCLAIMED — HANDOVER READY**
+- **Current hardware-test owner:** **secondary agent (2026-09-07 12:50) — continuing patcher#36 / OpenPolaris#61/#62/#63 work after K-3 III battery replacement**
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -58,10 +59,12 @@ issue change.
 - It previously enumerated as USB `25fb:0189` and camera-info identified
   `pentax k-3 mark iii`.
 - After a controlled `/app/restart_gphoto`, exactly one replacement process
-  (PID 1433 at test time) owned 8080, but camera-info became
-  `manufacturer:none;model:none;state:-2`.
-- Six polls over about 25 seconds showed no automatic recovery.
-- The next physical action required is a K-3 III power-cycle or USB reseat.
+  (PID 1433 at test time) owned 8080. Camera-info then returned
+  `manufacturer:none;model:none;state:-2`, but the user subsequently confirmed
+  the camera battery was flat. This result is **invalid as runtime-recovery
+  evidence** and must be retested with a powered camera.
+- The next physical action required is charging/replacing the K-3 III battery
+  and powering the camera on.
 - Do not begin K-1 II testing until the K-3 III rows below have either been
   tested or explicitly marked BLOCKED with an issue.
 
@@ -76,7 +79,7 @@ Status meanings: `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`, `N/A`.
 | Direct libgphoto2 | Preview | PASS | direct PC run |
 | Direct libgphoto2 | Normal capture/download | PASS | two full-resolution captures |
 | Polaris runtime | Detect before restart | PASS | 286 identified K-3 III |
-| Polaris runtime | Detect after pgphoto restart | FAIL | state `-2` for six polls; patcher #34 |
+| Polaris runtime | Detect after pgphoto restart | NOT TESTED | prior `-2` run invalid: camera battery was flat; retest required |
 | Live view | SET ON / GET state | FAIL | reports success despite dead data plane; patcher #36 |
 | Live view | First JPEG | FAIL | HTTP 200, only 22-byte boundary; patcher #36, OpenPolaris #61 |
 | Live view | OFF/ON restart cycles | FAIL | two cycles plus pgphoto restart, no JPEG |
@@ -136,13 +139,13 @@ remains valid.
 ## Next steps, in order
 
 1. Claim hardware-test ownership in this file and commit/push that claim.
-2. Ask for/confirm a physical K-3 III power-cycle or USB reseat.
+2. Confirm the K-3 III has a charged battery and is powered on.
 3. Prove the route before any probe:
    `ip route get 192.168.0.1` must report `dev wlp8s0`.
 4. Confirm recovery both on-device and over protocol:
    `lsusb` over SSH must show `25fb:0189`, then camera-info 286 must identify
-   `pentax k-3 mark iii`. If either fails, update patcher #34 and do not run the
-   feature matrix.
+   `pentax k-3 mark iii`. If either fails with the powered camera, update
+   patcher #34 and do not run the feature matrix.
 5. Record baseline file count/hashes under `/app/sd/normal/` before capture or
    media tests.
 6. Correct/disable unsafe OpenPolaris parameter mappings under #62 before any
@@ -183,3 +186,21 @@ remains valid.
   conflicts with Benro `PolarisCMD`; opened OpenPolaris #62 and #63.
 - 2026-09-07 12:49: primary agent released hardware ownership and marked this
   document as the explicit continuation handover.
+- 2026-09-07 12:51: user confirmed the K-3 III battery was flat. Reclassified
+  the post-restart state `-2` result from FAIL to NOT TESTED and withdrew it as
+  evidence for patcher #34. Preview/capture evidence predating battery failure
+  remains valid.
+- 2026-09-07 12:50: read-only secondary agent joined. Acknowledged K-3 III
+  battery replacement (user message) as the next required physical action per
+  the handover Next-Steps list. Not claiming hardware ownership. Work being
+  done in this turn: capturing read-only evidence (process / USB / 8080 / 9090
+  state) before/after the battery-driven re-enumeration, so the next
+  hardware-test owner has a clean baseline. All work appends to
+  `docs/evidence/2026-09-07/patcher-36-investigation/01-readonly-snapshot.txt`
+  (extend as `01-baseline-pre-battery.txt` and `01-baseline-post-battery.txt`).
+  No code, no flash, no restart, no camera-facing command.
+- 2026-09-07 12:50: secondary agent claimed hardware-test ownership after the
+  K-3 III battery replacement. Pre-flight: `ip route get 192.168.0.1` confirms
+  `dev wlp8s0` (Hitron fallback not in use). SSH to gimbal reachable. Will start
+  with the read-only USB / process baseline, then ask the user to confirm the
+  battery is installed + camera powered on before any camera-facing command.

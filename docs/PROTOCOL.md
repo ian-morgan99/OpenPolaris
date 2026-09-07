@@ -189,6 +189,55 @@ enables AHRS, and tracks works indefinitely without any keepalive.
 6. **No error taxonomy observed** — failures surface as `ret:` values or silence. The client needs
    timeout-based error handling (recommend 2 s command timeout, 10 s for slews).
 
+## 5.1 Live hardware verification (2026-09-07)
+
+A live protocol sweep of **all 30 codes most relevant to the desktop app's
+core features** (codes 254, 256, 282, 284, 286, 290, 295, 300, 305, 519,
+524, 525, 526, 528, 540, 541, 542, 543, 547, 549, 770, 775, 778, 779,
+780, 802, 803, 805, 808, 809) was run against the **2026-09-07-k1ii-
+k3iii-candidate** firmware on the live gimbal (sw:6.0.0.54, FwVer 4.0.0.32,
+K-3 III connected at lsusb 25fb:0189). The full map is at:
+
+**[`docs/evidence/2026-09-07/protocol-mapping/PROTOCOL-MAP-2026-09-07.md`](evidence/2026-09-07/protocol-mapping/PROTOCOL-MAP-2026-09-07.md)**
+
+with the raw transcript at
+[`docs/evidence/2026-09-07/protocol-mapping/transcripts/cli-probe-transcript-2026-09-07-1336.txt`](evidence/2026-09-07/protocol-mapping/transcripts/cli-probe-transcript-2026-09-07-1336.txt).
+
+Highlights that **change the picture above**:
+
+- **286 (`CAM_GET_STATE`)** — `manufacturer:ricoh imaging company, ltd.;model:pentax k-3 mark iii;state:1;storage:2;photoFormat:2;#`
+  — the K-3 III **is** fully identified by the firmware. The `state:-2` reported
+  by `sp_Gphoto_Init` is the pgphoto runtime, not the protocol. See
+  [patcher#38](https://github.com/ian-morgan99/benro-polaris-firmware-patcher/issues/38)
+  for the runtime/iolibs-lookup split.
+- **770 (`FILE_LIST`)** — returns per-category counts (`normal:3;lapse:0;…`)
+  cross-checked against `ls /app/sd/normal` (3 SP_*.jpg files before, 0 after a
+  destructive probe — see [OpenPolaris#64](https://github.com/ian-morgan99/OpenPolaris/issues/64)).
+- **775 (`FILE_SD_STATUS`)** — `totalspace:121866;freespace:121781;usespace:85;`
+  matches `df -h` exactly.
+- **780 (`DEVICE_INFO`)** — `hw:1.1.1.2;sw:6.0.0.54;exAxis:;sv:1;ov: ;` — the
+  `sw:6.0.0.54` is the **patcher's own version stamp** on top of FwVer 4.0.0.32.
+- **802 (`GET_WIFI_BAND`)** — `band:1` (2.4 GHz). The gimbal's AP does not
+  advertise 5 GHz; 802 is the canonical band probe.
+- **808 (`SYS_VERSION`)** — does **not** reply on the live gimbal, confirming
+  the [POLARIS-FUNCTIONS-REPORT.md §4 quirk 1](POLARIS-FUNCTIONS-REPORT.md)
+  note. (The vyskocil wiki's "Create Connect Context Request" framing is
+  recorded as an [open question](#7-where-another-teams-notes-disagree-with-ours)
+  in §7 below.)
+- **Codes 258–278** (the camera info burst) — **do not** reply. Pentax-specific
+  camlib reads; reach here only through the embedded gphoto2 path which the
+  currently-broken `sp_Gphoto_Init` blocks. The direct CLI on the gimbal's
+  stock `gphoto2` binary does work for these (see the K-3 III -1005/-1203
+  investigations).
+- **525 (`GET_TEMPERATURE`)** — pushed (not pulled), `Tempa<hex16>;` every
+  ~30 s. Use `liveListen` to capture.
+
+Cross-verification rule used throughout: every protocol-level claim is
+backed by a direct shell inspection (`ls`, `df`, `cat /app/FwVer`,
+`cat /app/openpolaris-libgphoto2-provenance.txt`, `cat /proc/net/tcp`)
+on the live device. If a protocol response disagrees with a shell
+inspection, the protocol response is the suspect — not the shell.
+
 ## 6. References
 
 - Firmware analysis: `../../docs/FIRMWARE-ANALYSIS-ALPACA.md`

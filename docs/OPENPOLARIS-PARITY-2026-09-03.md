@@ -185,19 +185,19 @@ task.
 | # | Feature                       | Benro Connect | OpenPolaris              | Codes                       | Status            |
 |---|-------------------------------|---------------|--------------------------|-----------------------------|-------------------|
 |31 | Camera info (state/storage)   | ✅ Live       | ✅ `CAM_INFO`             | 286                         | ✅ Live            |
-|32 | Capture (shutter release)     | ✅ Live       | ✅ `CAM_CAPTURE`          | 287 (`state:0` ack pattern) | ✅ Live            |
-|33 | Capture mode get/set          | ✅ Live       | ✅ `CAM_GET/SET_CAPTURE_MODE` | 268 / 269               | 🟡 Corpus         |
+|32 | Capture (shutter release)     | ✅ Live       | ✅ `CAM_CAPTURE`          | 264 subtype 4             | ✅ Live            |
+|33 | Capture mode get/set          | ✅ Live       | ✅ `CAM_GET/SET_CAPTURE_MODE` | 278 / 279               | 🟡 Corpus         |
 |34 | Focus step nudge              | ✅ Live       | ✅ `CAM_FOCUS`            | 311                         | ✅ Live            |
 |35 | ISO get/set                   | ✅ Live       | ✅ `CAM_GET/SET_ISO`      | 258 / 259                   | 🟡 Corpus         |
 |36 | White balance get/set         | ✅ Live       | ✅ `CAM_GET/SET_WB`       | 260 / 261                   | 🟡 Corpus         |
 |37 | Aperture (f-number) get/set   | ✅ Live       | ✅ `CAM_GET/SET_FNUM`     | 262 / 263                   | 🟡 Corpus         |
 |38 | EV get/set                    | ✅ Live       | ✅ `CAM_GET/SET_EV`       | 264 / 265 (echo -1002)      | 🟡 Corpus (quirk) |
-|39 | Focus mode get/set            | ✅ Live       | ✅ `CAM_GET/SET_FOCUS`    | 266 / 267 (push-only)       | 🟡 Corpus (quirk) |
+|39 | Focus mode get/set            | ✅ Live       | ✅ `CAM_GET/SET_FOCUS`    | 268 / 269                   | 🟡 Corpus         |
 |40 | Image size get/set            | ✅ Live       | ✅ `CAM_GET/SET_IMG_SIZE` | 270 / 271                   | 🟡 Corpus         |
 |41 | Image format (jpg/raw)        | ✅ Live       | ✅ `CAM_GET/SET_IMG_FMT`  | 272 / 273                   | 🟡 Corpus         |
 |42 | Color get/set                 | ✅ Live       | ✅ `CAM_GET/SET_COLOR`    | 274 / 275                   | 🟡 Corpus         |
 |43 | Shutter speed get/set         | ✅ Live       | ✅ `CAM_GET/SET_SHUTTER`  | 276 / 277                   | 🟡 Corpus         |
-|44 | Camera state push             | ✅ Live       | ✅ `CAM_GET_STATE`        | 278                         | 🟡 Corpus         |
+|44 | Camera state push             | ✅ Live       | ✅ `CAM_GET_STATE`        | 266                         | 🟡 Corpus         |
 |45 | Preview transport (RTSP/HTTP) | ✅ Live       | ✅ `PreviewController`    | n/a (out-of-band)           | 🟢 OpenPolaris+   |
 |46 | Camera profile abstractions    | ⚪ Hidden     | ✅ `CameraProfile`        | n/a                         | 🟢 OpenPolaris+   |
 
@@ -340,7 +340,7 @@ the 13 quirks documented in POLARIS-FUNCTIONS-REPORT.md §4:
 | 524 piggy-backs on 517                             | `GIMBAL_POS` parser extracts both                |
 | 802/799 asymmetric                                 | `WIFI_LIST`/`WIFI_SCAN` paired                   |
 | 825 push-only                                      | `OMS_TASK_LIST` documented as push               |
-| 266/267 push-only                                  | `CAM_GET/SET_FOCUS` documented                   |
+| 266 capture-state push; 264 subtype 4 capture      | Separate state and shutter paths                 |
 | 536 half-speed INVERTED                            | `TRACK_HALF_SPEED` payload builder inverts       |
 | 513-516 jog divergence                             | Payload uses `time:` (verified), `speed:` deprec |
 | 258-100 echo quirk                                 | `CAM_GET_ISO` parse tolerates                    |

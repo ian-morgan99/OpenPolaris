@@ -1188,8 +1188,8 @@ class AppViewModel(
         }
 
         // Camera parameter burst (10 GETs). Each merges one field into the
-        // running CameraInfo snapshot. Codes 266 (STATE) and 267 (CAPTURE) are
-        // NOT part of this — they feed the CaptureState pipeline / capture button.
+        // running CameraInfo snapshot. Code 266 (STATE) is not part of this;
+        // capture shares code 264 but uses subtype 4 and its own action path.
         runCatching {
             var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
             for (c in CommandTable.BURST_CAMERA_CODES) {

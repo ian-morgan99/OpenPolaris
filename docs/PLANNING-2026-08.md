@@ -558,8 +558,8 @@ is above in "Next steps in priority order".)
    GET/SET pairs: focus / image size / image format / color /
    shutter / capture mode, codes 268-279) and `786d006` (11
    new unit tests) are in. `AppViewModel.postConnectBurst()`
-   already fires all 10 of the 11 camera GETs (266/267
-   excluded: 266 feeds `CaptureState`; capture is 264 subtype 4 and is not a GET
+   already fires all 10 camera parameter GETs (266 is
+   excluded because it feeds `CaptureState`; capture is 264 subtype 4 and is not a GET
    button). Commit `ae241bb` added `StepperRow` entries for
    all 6 new fields in `CameraPane`. The only remaining
    piece is the **live verify** against the real gimbal

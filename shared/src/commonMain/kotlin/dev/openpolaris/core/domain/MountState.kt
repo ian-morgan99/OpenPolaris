@@ -310,7 +310,7 @@ data class CameraInfo(
         /**
          * Merge one parameter from a single response frame into a [CameraInfo].
          * Unknown codes produce an unchanged copy. Note: 266 (CAM_GET_STATE)
-         * and 267 (CAM_CAPTURE) are NOT merged here — those produce a
+         * and capture responses (264 subtype 4) are NOT merged here — those produce a
          * [CommandTable.CaptureState] instead and have their own pipeline.
          */
         fun fromFrame(code: Int, f: ResponseParser.Frame, current: CameraInfo = CameraInfo()): CameraInfo {
@@ -331,7 +331,6 @@ data class CameraInfo(
         }
     }
 }
-
 // ---------------------------------------------------------------------
 // Live-captured state (2026-08-30, gimbal at 192.168.0.1).
 // VERIFIED wire formats — see PROTOCOL.md §3.2 and live-capture notes.
@@ -427,4 +426,3 @@ data class CameraAttachment(
         }
     }
 }
-

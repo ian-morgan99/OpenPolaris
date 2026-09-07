@@ -279,8 +279,8 @@ work in commit `736f35b`:
    returns `ret=-1`** — the 802/799 pair is *asymmetric* on real hardware. Control panel
    should use only 802, not 799.
 5. **825 (OMS_TASK_LIST) is push-only on real gimbal** — the smoke harness SKIPs.
-6. **Push-mode 266/267 (CAPTURE_STATE/CAPTURE) never returns an immediate frame** on real
-   gimbal — capture state is fully push-driven.
+6. **Capture-state code 266 is push-driven.** Shutter release is the distinct
+   `264` subtype-4 frame `state:1;bulb:0;c:-1;`.
 7. **Half-speed toggle 536 is INVERTED** in payload — `halfSpeed:0` ENABLES half-speed,
    `halfSpeed:1` disables. Third-party implementations have tripped on this; we got it right.
 8. **JOG wire-format divergence (513-516):** stock app uses `time:Nms;` for duration-style
@@ -319,7 +319,7 @@ work in commit `736f35b`:
 **v1 features with corpus-only payload formats** (no live capture, but stock-app string
 scan backs them):
 
-- All camera parameter getters/setters (258-279 except 266, 267 which are live-confirmed push)
+- All camera parameter getters/setters (258-279 except capture-state 266)
 - File management (770-798)
 - Wi-Fi connect/disconnect (800-807)
 - Direct position set (535)

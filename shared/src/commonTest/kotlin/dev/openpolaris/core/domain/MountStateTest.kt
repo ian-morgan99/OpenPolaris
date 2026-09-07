@@ -103,12 +103,12 @@ class MountStateTest {
     @Test
     fun cameraInfoSkipsStateAndCaptureCodes() {
         // 266 = CAM_GET_STATE (goes to CaptureState pipeline, not CameraInfo)
-        // 267 = CAM_CAPTURE (action, not a parameter)
+        // A capture response is an action result, not a parameter.
         val seed = CameraInfo(iso = 5)
         val fState = ResponseParser().parseFrame("1&266&2&state:2;ret:0;")!!
-        val fCap = ResponseParser().parseFrame("1&267&2&ret:0;")!!
+        val fCap = ResponseParser().parseFrame("1&264&2&state:1;bulb:0;c:-1;")!!
         val afterState = CameraInfo.fromFrame(266, fState, seed)
-        val afterCap = CameraInfo.fromFrame(267, fCap, afterState)
+        val afterCap = CameraInfo.fromFrame(264, fCap, afterState)
         assertEquals(seed, afterState)
         assertEquals(seed, afterCap)
     }

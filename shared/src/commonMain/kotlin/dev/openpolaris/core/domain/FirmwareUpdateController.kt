@@ -334,17 +334,41 @@ class FirmwareUpdateController(
         }
 
         // A reboot is mandatory for the stock boot-time SP_EVENT_SD_SCAN to
-        // flash the verified tree. The SSH connection commonly drops before
-        // reboot returns an exit status, so dispatch is the success boundary.
-        try {
+        // flash the verified tree. OpenSSH reports 255 when dropbear disappears
+        // during a successful reboot, but an ordinary non-zero remote-shell
+        // result must not be mistaken for that expected disconnect.
+        val rebootResult = try {
             runner.run("sync; reboot")
-        } catch (_: Exception) {
-            // Expected when reboot tears down dropbear first.
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val s = Status.Failed(
+                "could not dispatch mandatory reboot: ${e.message ?: e::class.simpleName}"
+            )
+            onStatus(s); return s
+        }
+        if (!rebootResult.isSuccess && !isExpectedRebootDisconnect(rebootResult)) {
+            val detail = rebootResult.stderr.trim().ifEmpty {
+                rebootResult.stdout.trim().ifEmpty { "no diagnostic output" }
+            }
+            val s = Status.Failed(
+                "mandatory reboot failed (ssh exit ${rebootResult.exitCode}): $detail"
+            )
+            onStatus(s); return s
         }
         onStatus(Status.Installing(percent = 100))
         val s = Status.Done
         onStatus(s)
         return s
+    }
+
+    private fun isExpectedRebootDisconnect(result: dev.openpolaris.core.net.SshCommandResult): Boolean {
+        if (result.exitCode != 255) return false
+        val diagnostic = (result.stderr + "\n" + result.stdout).lowercase()
+        return diagnostic.contains("connection closed") ||
+            diagnostic.contains("closed by remote host") ||
+            diagnostic.contains("connection reset") ||
+            diagnostic.contains("broken pipe")
     }
 
     private suspend fun deliverWithProgressWatchdog(

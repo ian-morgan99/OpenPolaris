@@ -808,6 +808,43 @@ class FirmwareUpdateControllerTest {
     }
 
     @Test
+    fun sshPipeWithWatcher_returnsFailed_whenMandatoryRebootReturnsNonZero() = runTest {
+        val conn = FakeConnection()
+        conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        val session = MountSession({ conn }, readerScope = backgroundScope)
+        assertTrue(session.connect())
+
+        val ssh = ScriptedSshRunner()
+        ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")
+        ssh.scriptNext(0, "READY\n")
+        ssh.scriptNext(127, "", "reboot: not found")
+
+        val payload = ByteArray(32) { it.toByte() }
+        val controller = FirmwareUpdateController(
+            session = session,
+            delivery = DeliveryMode.SSH_PIPE,
+            sshDelivery = RecordingDelivery(),
+            sshCommandRunner = ssh,
+            installPollIntervalMs = 0,
+            onBoardInstallTimeoutMs = 2_000,
+        )
+        val statuses = mutableListOf<FirmwareUpdateController.Status>()
+        val final = controller.start(
+            bytes = payload,
+            expectedMd5 = md5Of(payload),
+        ) { statuses += it }
+
+        val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
+        assertTrue(failed.reason.contains("ssh exit 127"), failed.reason)
+        assertTrue(failed.reason.contains("reboot: not found"), failed.reason)
+        assertTrue(statuses.none { it is FirmwareUpdateController.Status.Done })
+
+        session.disconnect()
+        runCurrent()
+    }
+
+    @Test
     fun sshPipeWithWatcher_returnsFailed_whenMlogReportsFail() = runTest {
         val conn = FakeConnection()
         conn.pendingReplies += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)

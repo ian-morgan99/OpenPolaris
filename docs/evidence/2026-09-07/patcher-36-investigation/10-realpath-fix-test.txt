@@ -1,0 +1,349 @@
+# Test the REAL fix: symlink in the right CWD location
+# gphoto2 is looking at CWD/../lib/libgphoto2_port/0.12.0
+# pgphoto CWD is /root, so it's looking at /lib/libgphoto2_port/0.12.0
+# 2026-09-07T13:00:04+01:00
+
+## Stop pgphoto
+
+## Create /lib symlink (or directly symlink at the absolute path gphoto2 looks for)
+ln: /lib/libgphoto2_port/0.12.0: No such file or directory
+total 30112
+drwxr-x---    2 1000     1000          9128 Apr 19  2023 .
+drwxr-x--x   24 1000     1000          1848 Sep  7 09:02 ..
+lrwxrwxrwx    1 1000     1000             6 Jun  6  2019 a7_softfp_neon-vfpv4 -> ../lib
+-rwxr-x---    1 1000     1000        153904 Aug 25  2021 ld-2.24.so
+lrwxrwxrwx    1 1000     1000            10 Jun  6  2019 ld-linux-armhf.so.3 -> ld-2.24.so
+lrwxrwxrwx    1 1000     1000            10 Jun  6  2019 ld-linux.so.3 -> ld-2.24.so
+-rwxr-x---    1 1000     1000         29412 Aug 25  2021 ld-uClibc.so.0
+-rwxr-x---    1 1000     1000          7304 Aug 25  2021 libBrokenLocale-2.24.so
+lrwxrwxrwx    1 1000     1000            23 Jun  6  2019 libBrokenLocale.so.1 -> libBrokenLocale-2.24.so
+-rwxr-x---    1 1000     1000         12296 Aug 25  2021 libSegFault.so
+-rwxr-x---    1 1000     1000         14184 Aug 25  2021 libanl-2.24.so
+lrwxrwxrwx    1 1000     1000            14 Jun  6  2019 libanl.so.1 -> libanl-2.24.so
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libasan.so -> libasan.so.3.0.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libasan.so.3 -> libasan.so.3.0.0
+-rwxr-x---    1 1000     1000       1333592 Aug 25  2021 libasan.so.3.0.0
+-rwxr-x---    1 1000     1000           976 Aug 25  2021 libasan_preinit.o
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libatomic.so -> libatomic.so.1.2.0
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libatomic.so.1 -> libatomic.so.1.2.0
+-rwxr-x---    1 1000     1000         26156 Aug 25  2021 libatomic.so.1.2.0
+-rwxr-x---    1 1000     1000        179412 Dec 30  2019 libbluetooth.so.3
+-rwxr-x---    1 1000     1000       1470068 Aug 25  2021 libc-2.24.so
+-rwxr-x---    1 1000     1000        646976 Aug 25  2021 libc.so.0
+lrwxrwxrwx    1 1000     1000            12 Jun  6  2019 libc.so.6 -> libc-2.24.so
+-rwxr-x---    1 1000     1000        187284 Aug 25  2021 libcidn-2.24.so
+lrwxrwxrwx    1 1000     1000            15 Jun  6  2019 libcidn.so.1 -> libcidn-2.24.so
+-rwxr-x---    1 1000     1000         35876 Aug 25  2021 libcrypt-2.24.so
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libcrypt.so.1 -> libcrypt-2.24.so
+-rwxr-x---    1 1000     1000       1901112 Jan 11  2022 libcrypto.so.1.0.0
+-rwxr-x---    1 1000     1000        540004 Jan 11  2022 libcurl.so.4
+-rwxr-x---    1 1000     1000        558604 Aug 25  2021 libdbus-1.so.3
+-rwxr-x---    1 1000     1000         13888 Aug 25  2021 libdl-2.24.so
+lrwxrwxrwx    1 1000     1000            13 Jun  6  2019 libdl.so.2 -> libdl-2.24.so
+-rwxr-x---    1 1000     1000         29664 Aug 25  2021 libdng.so
+-rwxr-x---    1 1000     1000         37900 Aug 25  2021 libeventhub.so
+-rwxr-x---    1 1000     1000         72368 Aug 25  2021 libexif.so
+-rwxr-x---    1 1000     1000        413620 Aug 25  2021 libexpat.so.1
+-rwxr-x---    1 1000     1000         43776 Aug 25  2021 libffi.so.6
+-rwxr-x---    1 1000     1000         43776 Aug 25  2021 libffi.so.7
+-rwxr-x---    1 1000     1000        772004 Aug 25  2021 libffmpeg_demuxer.so
+-rwxr-x---    1 1000     1000         50196 Aug 25  2021 libfileformat.so
+-rwxr-x---    1 1000     1000           132 Aug 25  2021 libgcc_s.so
+-rwxr-x---    1 1000     1000        185356 Aug 25  2021 libgcc_s.so.1
+-rwxr-x---    1 1000     1000       2297696 Aug 25  2021 libgio-2.0.so.0
+-rwxr-x---    1 1000     1000       1728924 Aug 25  2021 libglib-2.0.so.0
+-rwxr-x---    1 1000     1000         19224 Aug 25  2021 libgmodule-2.0.so.0
+-rwxr-x---    1 1000     1000        487504 Aug 25  2021 libgobject-2.0.so.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libgomp.so -> libgomp.so.1.0.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libgomp.so.1 -> libgomp.so.1.0.0
+-rwxr-x---    1 1000     1000        195692 Aug 25  2021 libgomp.so.1.0.0
+-rwxr-x---    1 1000     1000         19016 Aug 25  2021 libhitimer.so
+-rwxr-x---    1 1000     1000        159192 Aug 25  2021 libintl.so.8
+-rwxr-x---    1 1000     1000        408872 Aug 25  2021 libjpeg.so.8
+-rwxr-x---    1 1000     1000        509380 Aug 25  2021 libm-2.24.so
+-rwxr-x---    1 1000     1000         54212 Aug 25  2021 libm.so.0
+lrwxrwxrwx    1 1000     1000            12 Jun  6  2019 libm.so.6 -> libm-2.24.so
+-rwxr-x---    1 1000     1000         21952 Aug 25  2021 libmemusage.so
+-rwxr-x---    1 1000     1000         38340 Aug 25  2021 libmessagehandler.so
+-rwxr-x---    1 1000     1000        254248 Aug 25  2021 libmp4.so
+-rwxr-x---    1 1000     1000        277348 May  9  2025 libmw_media_adpt.so
+-rwxr-x---    1 1000     1000          8988 May  9  2025 libmwlog.so
+-rwxr-x---    1 1000     1000        296092 Aug 25  2021 libncurses.so.5
+-rwxr-x---    1 1000     1000        336492 Aug 25  2021 libncurses.so.6
+-rwxr-x---    1 1000     1000        461460 Jan 11  2022 libnl-3.so.200
+-rwxr-x---    1 1000     1000         99076 Jan 11  2022 libnl-genl-3.so.200
+-rwxr-x---    1 1000     1000         78976 Aug 25  2021 libnl-genl.so.3
+-rwxr-x---    1 1000     1000         78976 Aug 25  2021 libnl-genl.so.3.0.0
+-rwxr-x---    1 1000     1000        327664 Aug 25  2021 libnl.so.3
+-rwxr-x---    1 1000     1000        327664 Aug 25  2021 libnl.so.3.0.0
+-rwxr-x---    1 1000     1000         90004 Aug 25  2021 libnsl-2.24.so
+lrwxrwxrwx    1 1000     1000            14 Jun  6  2019 libnsl.so.1 -> libnsl-2.24.so
+-rwxr-x---    1 1000     1000         33288 Aug 25  2021 libnss_compat-2.24.so
+lrwxrwxrwx    1 1000     1000            21 Jun  6  2019 libnss_compat.so.2 -> libnss_compat-2.24.so
+-rwxr-x---    1 1000     1000         32956 Aug 25  2021 libnss_db-2.24.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libnss_db.so.2 -> libnss_db-2.24.so
+-rwxr-x---    1 1000     1000         21640 Aug 25  2021 libnss_dns-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libnss_dns.so.2 -> libnss_dns-2.24.so
+-rwxr-x---    1 1000     1000         48152 Aug 25  2021 libnss_files-2.24.so
+lrwxrwxrwx    1 1000     1000            20 Jun  6  2019 libnss_files.so.2 -> libnss_files-2.24.so
+-rwxr-x---    1 1000     1000         18344 Aug 25  2021 libnss_hesiod-2.24.so
+lrwxrwxrwx    1 1000     1000            21 Jun  6  2019 libnss_hesiod.so.2 -> libnss_hesiod-2.24.so
+-rwxr-x---    1 1000     1000         48084 Aug 25  2021 libnss_nis-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libnss_nis.so.2 -> libnss_nis-2.24.so
+-rwxr-x---    1 1000     1000         57580 Aug 25  2021 libnss_nisplus-2.24.so
+lrwxrwxrwx    1 1000     1000            22 Jun  6  2019 libnss_nisplus.so.2 -> libnss_nisplus-2.24.so
+-rwxr-x---    1 1000     1000        273356 May  9  2025 libopenexif.so
+-rwxr-x---    1 1000     1000        837780 Jan 11  2022 libpcap.so.1
+-rwxr-x---    1 1000     1000          7608 Aug 25  2021 libpcprofile.so
+-rwxr-x---    1 1000     1000        386996 Aug 25  2021 libpcre.so.1
+-rwxr-x---    1 1000     1000        130108 Aug 25  2021 libpthread-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libpthread.so.0 -> libpthread-2.24.so
+-rwxr-x---    1 1000     1000       1705916 Aug 25  2021 libraw.so.21
+-rwxr-x---    1 1000     1000        796604 Aug 25  2021 libreadline.so.6
+-rwxr-x---    1 1000     1000        414484 Aug 25  2021 libreadline.so.7
+-rwxr-x---    1 1000     1000        414484 Aug 25  2021 libreadline.so.8
+-rwxr-x---    1 1000     1000         79744 Aug 25  2021 libresolv-2.24.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libresolv.so.2 -> libresolv-2.24.so
+-rwxr-x---    1 1000     1000         36848 Aug 25  2021 librt-2.24.so
+-rwxr-x---    1 1000     1000         36848 Aug 25  2021 librt.so.0
+lrwxrwxrwx    1 1000     1000            13 Jun  6  2019 librt.so.1 -> librt-2.24.so
+-rwxr-x---    1 1000     1000         95508 May  9  2025 libsecurec.so
+-rwxr-x---    1 1000     1000        434900 Jan 11  2022 libssl.so.1.0.0
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libstdc++.so -> libstdc++.so.6.0.23
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libstdc++.so.6 -> libstdc++.so.6.0.23
+-rwxr-x---    1 1000     1000       1871120 Aug 25  2021 libstdc++.so.6.0.23
+-rwxr-x---    1 1000     1000         32568 Aug 25  2021 libthread_db-1.0.so
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libthread_db.so.1 -> libthread_db-1.0.so
+-rwxr-x---    1 1000     1000         18472 May  9  2025 libtimers.so
+-rwxr-x---    1 1000     1000         55900 Aug 25  2021 libts.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libubsan.so -> libubsan.so.0.0.0
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libubsan.so.0 -> libubsan.so.0.0.0
+-rwxr-x---    1 1000     1000        342284 Aug 25  2021 libubsan.so.0.0.0
+-rwxr-x---    1 1000     1000        840280 Aug 25  2021 libudev.a
+-rwxr-x---    1 1000     1000           959 Aug 25  2021 libudev.la
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so.1
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so.1.6.3
+-rwxr-x---    1 1000     1000          8868 May  9  2025 libuproc.so
+-rwxr-x---    1 1000     1000         12996 Aug 25  2021 libutil-2.24.so
+lrwxrwxrwx    1 1000     1000            15 Jun  6  2019 libutil.so.1 -> libutil-2.24.so
+-rwxr-x---    1 1000     1000         86136 Aug 25  2021 libxmp.so
+-rwxr-x---    1 1000     1000       2244276 May  9  2025 libxmpcore.so
+-rwxr-x---    1 1000     1000        117656 Aug 25  2021 libz.so.1
+
+## Also test: set CWD via the wrapper - cd into /app/lib/stage2 first
+ls: /app/lib/stage2/../lib/libgphoto2_port/0.12.0: No such file or directory
+
+## Truncate Clog
+
+## Launch pgphoto via wrapper
+launched
+
+## Wait for full init
+
+## Init log
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[13:00:07:747 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[13:00:07:747 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[13:00:07:747 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231584464
+[m[13:00:07:748 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[13:00:07:748 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[13:00:07:748 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[13:00:07:748 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[13:00:07:749 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001388 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[13:00:08:751 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[13:00:08:751 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[13:00:08:753 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[13:00:08:846 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+===
+## Cleanup
+total 30112
+drwxr-x---    2 1000     1000          9128 Apr 19  2023 .
+drwxr-x--x   24 1000     1000          1848 Sep  7 09:02 ..
+lrwxrwxrwx    1 1000     1000             6 Jun  6  2019 a7_softfp_neon-vfpv4 -> ../lib
+-rwxr-x---    1 1000     1000        153904 Aug 25  2021 ld-2.24.so
+lrwxrwxrwx    1 1000     1000            10 Jun  6  2019 ld-linux-armhf.so.3 -> ld-2.24.so
+lrwxrwxrwx    1 1000     1000            10 Jun  6  2019 ld-linux.so.3 -> ld-2.24.so
+-rwxr-x---    1 1000     1000         29412 Aug 25  2021 ld-uClibc.so.0
+-rwxr-x---    1 1000     1000          7304 Aug 25  2021 libBrokenLocale-2.24.so
+lrwxrwxrwx    1 1000     1000            23 Jun  6  2019 libBrokenLocale.so.1 -> libBrokenLocale-2.24.so
+-rwxr-x---    1 1000     1000         12296 Aug 25  2021 libSegFault.so
+-rwxr-x---    1 1000     1000         14184 Aug 25  2021 libanl-2.24.so
+lrwxrwxrwx    1 1000     1000            14 Jun  6  2019 libanl.so.1 -> libanl-2.24.so
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libasan.so -> libasan.so.3.0.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libasan.so.3 -> libasan.so.3.0.0
+-rwxr-x---    1 1000     1000       1333592 Aug 25  2021 libasan.so.3.0.0
+-rwxr-x---    1 1000     1000           976 Aug 25  2021 libasan_preinit.o
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libatomic.so -> libatomic.so.1.2.0
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libatomic.so.1 -> libatomic.so.1.2.0
+-rwxr-x---    1 1000     1000         26156 Aug 25  2021 libatomic.so.1.2.0
+-rwxr-x---    1 1000     1000        179412 Dec 30  2019 libbluetooth.so.3
+-rwxr-x---    1 1000     1000       1470068 Aug 25  2021 libc-2.24.so
+-rwxr-x---    1 1000     1000        646976 Aug 25  2021 libc.so.0
+lrwxrwxrwx    1 1000     1000            12 Jun  6  2019 libc.so.6 -> libc-2.24.so
+-rwxr-x---    1 1000     1000        187284 Aug 25  2021 libcidn-2.24.so
+lrwxrwxrwx    1 1000     1000            15 Jun  6  2019 libcidn.so.1 -> libcidn-2.24.so
+-rwxr-x---    1 1000     1000         35876 Aug 25  2021 libcrypt-2.24.so
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libcrypt.so.1 -> libcrypt-2.24.so
+-rwxr-x---    1 1000     1000       1901112 Jan 11  2022 libcrypto.so.1.0.0
+-rwxr-x---    1 1000     1000        540004 Jan 11  2022 libcurl.so.4
+-rwxr-x---    1 1000     1000        558604 Aug 25  2021 libdbus-1.so.3
+-rwxr-x---    1 1000     1000         13888 Aug 25  2021 libdl-2.24.so
+lrwxrwxrwx    1 1000     1000            13 Jun  6  2019 libdl.so.2 -> libdl-2.24.so
+-rwxr-x---    1 1000     1000         29664 Aug 25  2021 libdng.so
+-rwxr-x---    1 1000     1000         37900 Aug 25  2021 libeventhub.so
+-rwxr-x---    1 1000     1000         72368 Aug 25  2021 libexif.so
+-rwxr-x---    1 1000     1000        413620 Aug 25  2021 libexpat.so.1
+-rwxr-x---    1 1000     1000         43776 Aug 25  2021 libffi.so.6
+-rwxr-x---    1 1000     1000         43776 Aug 25  2021 libffi.so.7
+-rwxr-x---    1 1000     1000        772004 Aug 25  2021 libffmpeg_demuxer.so
+-rwxr-x---    1 1000     1000         50196 Aug 25  2021 libfileformat.so
+-rwxr-x---    1 1000     1000           132 Aug 25  2021 libgcc_s.so
+-rwxr-x---    1 1000     1000        185356 Aug 25  2021 libgcc_s.so.1
+-rwxr-x---    1 1000     1000       2297696 Aug 25  2021 libgio-2.0.so.0
+-rwxr-x---    1 1000     1000       1728924 Aug 25  2021 libglib-2.0.so.0
+-rwxr-x---    1 1000     1000         19224 Aug 25  2021 libgmodule-2.0.so.0
+-rwxr-x---    1 1000     1000        487504 Aug 25  2021 libgobject-2.0.so.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libgomp.so -> libgomp.so.1.0.0
+lrwxrwxrwx    1 1000     1000            16 Jun  6  2019 libgomp.so.1 -> libgomp.so.1.0.0
+-rwxr-x---    1 1000     1000        195692 Aug 25  2021 libgomp.so.1.0.0
+-rwxr-x---    1 1000     1000         19016 Aug 25  2021 libhitimer.so
+-rwxr-x---    1 1000     1000        159192 Aug 25  2021 libintl.so.8
+-rwxr-x---    1 1000     1000        408872 Aug 25  2021 libjpeg.so.8
+-rwxr-x---    1 1000     1000        509380 Aug 25  2021 libm-2.24.so
+-rwxr-x---    1 1000     1000         54212 Aug 25  2021 libm.so.0
+lrwxrwxrwx    1 1000     1000            12 Jun  6  2019 libm.so.6 -> libm-2.24.so
+-rwxr-x---    1 1000     1000         21952 Aug 25  2021 libmemusage.so
+-rwxr-x---    1 1000     1000         38340 Aug 25  2021 libmessagehandler.so
+-rwxr-x---    1 1000     1000        254248 Aug 25  2021 libmp4.so
+-rwxr-x---    1 1000     1000        277348 May  9  2025 libmw_media_adpt.so
+-rwxr-x---    1 1000     1000          8988 May  9  2025 libmwlog.so
+-rwxr-x---    1 1000     1000        296092 Aug 25  2021 libncurses.so.5
+-rwxr-x---    1 1000     1000        336492 Aug 25  2021 libncurses.so.6
+-rwxr-x---    1 1000     1000        461460 Jan 11  2022 libnl-3.so.200
+-rwxr-x---    1 1000     1000         99076 Jan 11  2022 libnl-genl-3.so.200
+-rwxr-x---    1 1000     1000         78976 Aug 25  2021 libnl-genl.so.3
+-rwxr-x---    1 1000     1000         78976 Aug 25  2021 libnl-genl.so.3.0.0
+-rwxr-x---    1 1000     1000        327664 Aug 25  2021 libnl.so.3
+-rwxr-x---    1 1000     1000        327664 Aug 25  2021 libnl.so.3.0.0
+-rwxr-x---    1 1000     1000         90004 Aug 25  2021 libnsl-2.24.so
+lrwxrwxrwx    1 1000     1000            14 Jun  6  2019 libnsl.so.1 -> libnsl-2.24.so
+-rwxr-x---    1 1000     1000         33288 Aug 25  2021 libnss_compat-2.24.so
+lrwxrwxrwx    1 1000     1000            21 Jun  6  2019 libnss_compat.so.2 -> libnss_compat-2.24.so
+-rwxr-x---    1 1000     1000         32956 Aug 25  2021 libnss_db-2.24.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libnss_db.so.2 -> libnss_db-2.24.so
+-rwxr-x---    1 1000     1000         21640 Aug 25  2021 libnss_dns-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libnss_dns.so.2 -> libnss_dns-2.24.so
+-rwxr-x---    1 1000     1000         48152 Aug 25  2021 libnss_files-2.24.so
+lrwxrwxrwx    1 1000     1000            20 Jun  6  2019 libnss_files.so.2 -> libnss_files-2.24.so
+-rwxr-x---    1 1000     1000         18344 Aug 25  2021 libnss_hesiod-2.24.so
+lrwxrwxrwx    1 1000     1000            21 Jun  6  2019 libnss_hesiod.so.2 -> libnss_hesiod-2.24.so
+-rwxr-x---    1 1000     1000         48084 Aug 25  2021 libnss_nis-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libnss_nis.so.2 -> libnss_nis-2.24.so
+-rwxr-x---    1 1000     1000         57580 Aug 25  2021 libnss_nisplus-2.24.so
+lrwxrwxrwx    1 1000     1000            22 Jun  6  2019 libnss_nisplus.so.2 -> libnss_nisplus-2.24.so
+-rwxr-x---    1 1000     1000        273356 May  9  2025 libopenexif.so
+-rwxr-x---    1 1000     1000        837780 Jan 11  2022 libpcap.so.1
+-rwxr-x---    1 1000     1000          7608 Aug 25  2021 libpcprofile.so
+-rwxr-x---    1 1000     1000        386996 Aug 25  2021 libpcre.so.1
+-rwxr-x---    1 1000     1000        130108 Aug 25  2021 libpthread-2.24.so
+lrwxrwxrwx    1 1000     1000            18 Jun  6  2019 libpthread.so.0 -> libpthread-2.24.so
+-rwxr-x---    1 1000     1000       1705916 Aug 25  2021 libraw.so.21
+-rwxr-x---    1 1000     1000        796604 Aug 25  2021 libreadline.so.6
+-rwxr-x---    1 1000     1000        414484 Aug 25  2021 libreadline.so.7
+-rwxr-x---    1 1000     1000        414484 Aug 25  2021 libreadline.so.8
+-rwxr-x---    1 1000     1000         79744 Aug 25  2021 libresolv-2.24.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libresolv.so.2 -> libresolv-2.24.so
+-rwxr-x---    1 1000     1000         36848 Aug 25  2021 librt-2.24.so
+-rwxr-x---    1 1000     1000         36848 Aug 25  2021 librt.so.0
+lrwxrwxrwx    1 1000     1000            13 Jun  6  2019 librt.so.1 -> librt-2.24.so
+-rwxr-x---    1 1000     1000         95508 May  9  2025 libsecurec.so
+-rwxr-x---    1 1000     1000        434900 Jan 11  2022 libssl.so.1.0.0
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libstdc++.so -> libstdc++.so.6.0.23
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libstdc++.so.6 -> libstdc++.so.6.0.23
+-rwxr-x---    1 1000     1000       1871120 Aug 25  2021 libstdc++.so.6.0.23
+-rwxr-x---    1 1000     1000         32568 Aug 25  2021 libthread_db-1.0.so
+lrwxrwxrwx    1 1000     1000            19 Jun  6  2019 libthread_db.so.1 -> libthread_db-1.0.so
+-rwxr-x---    1 1000     1000         18472 May  9  2025 libtimers.so
+-rwxr-x---    1 1000     1000         55900 Aug 25  2021 libts.so
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libubsan.so -> libubsan.so.0.0.0
+lrwxrwxrwx    1 1000     1000            17 Jun  6  2019 libubsan.so.0 -> libubsan.so.0.0.0
+-rwxr-x---    1 1000     1000        342284 Aug 25  2021 libubsan.so.0.0.0
+-rwxr-x---    1 1000     1000        840280 Aug 25  2021 libudev.a
+-rwxr-x---    1 1000     1000           959 Aug 25  2021 libudev.la
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so.1
+-rwxr-x---    1 1000     1000        591200 Aug 25  2021 libudev.so.1.6.3
+-rwxr-x---    1 1000     1000          8868 May  9  2025 libuproc.so
+-rwxr-x---    1 1000     1000         12996 Aug 25  2021 libutil-2.24.so
+lrwxrwxrwx    1 1000     1000            15 Jun  6  2019 libutil.so.1 -> libutil-2.24.so
+-rwxr-x---    1 1000     1000         86136 Aug 25  2021 libxmp.so
+-rwxr-x---    1 1000     1000       2244276 May  9  2025 libxmpcore.so
+-rwxr-x---    1 1000     1000        117656 Aug 25  2021 libz.so.1

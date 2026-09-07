@@ -1,0 +1,53 @@
+# Test the proper fix: create the iolibs/iolibs/ subdirectory structure at the expected path
+# 2026-09-07T13:01:47+01:00
+
+## Stop pgphoto
+
+## Create the expected structure at the absolute path the runtime looks for
+total 32
+drwxr-xr-x    2 root     root           224 Sep  7 13:01 .
+drwxr-xr-x    3 root     root           224 Sep  7 13:01 ..
+-rwxr-xr-x    1 root     root         30260 Sep  7 13:01 usb1.so
+
+## Truncate Clog
+
+## Launch pgphoto
+launched
+
+## Wait for full init
+
+## Did the iolibs get found?
+[m[m[13:01:55:130 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1232035024
+[m[13:01:55:131 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[13:01:55:131 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[13:01:55:131 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[13:01:55:131 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[13:01:55:131 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001905 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[13:01:56:134 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[13:01:56:135 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[13:01:56:137 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[13:01:56:201 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+===
+## Clog state
+===
+## Cleanup the iolibs test directory

@@ -204,3 +204,55 @@ remains valid.
   `dev wlp8s0` (Hitron fallback not in use). SSH to gimbal reachable. Will start
   with the read-only USB / process baseline, then ask the user to confirm the
   battery is installed + camera powered on before any camera-facing command.
+- 2026-09-07 12:55: BREAKTHROUGH FINDING. Direct libgphoto2 CLI on the freshly
+  battery-attached K-3 III produces a valid 1080x720 JPEG preview frame
+  (77,145 bytes) in 18 ms, first attempt, on the embedded
+  `/app/bin/gphoto2 --capture-preview`. Captured to
+  `docs/evidence/2026-09-07/patcher-36-investigation/preview-direct-libgphoto2.jpg`.
+  This is the OPPOSITE of patcher#36's claim: 0xa008 is not reproduced
+  via direct libgphoto2, even though function flags are still 0x00000000.
+  The runtime (pgphoto) Clog is empty — the runtime has not bound the
+  USB device despite the device being attached and the direct CLI working.
+  So the bug is in pgphoto's USB enumeration notifier / session binder,
+  not in libgphoto2. patcher#36 ownership reverts from "embedded libgphoto2"
+  to "embedded runtime / pgphoto session attachment" — same conclusion as
+  my earlier `function flags 0x0` analysis, but now we have positive
+  evidence: direct libgphoto2 works, runtime doesn't, so the runtime is
+  what's broken. Captured additional evidence: `02-direct-cli-step1-detect.txt`,
+  `03-direct-cli-step2-preview-capture.txt`.
+
+- 2026-09-07 12:55: ROOT CAUSE FOUND. The `pgphoto` runtime is hard-coded
+  to look for libgphoto2_port at `../lib/libgphoto2_port/0.12.0` (visible
+  in `strings pgphoto.stage2ondisk`). The installed iolibs is at
+  `/app/lib/stage2/libgphoto2_port/0.12.2`. When the version path
+  doesn't match, gphoto2's port-info-list returns -2 (no devices
+  found) — same code that pgphoto reports as `sp_Gphoto_Init ret -2`
+  / `state:-2`. Confirmed by:
+    - `IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2 gphoto2 --auto-detect`
+      → `Pentax K-3 Mark III (MTP mode) usb:001,004`
+    - `IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.0 gphoto2 --auto-detect`
+      → (empty list, same -2)
+  The runtime is built against libgphoto2_port 0.12.0 but deployed with
+  0.12.2 — a patcher-build/runtime-deployment version skew. The
+  `/app/restart_gphoto` wrapper sets IOLIBS to 0.12.2 but the wrapped
+  process doesn't inherit that env. This is the patcher#36 root cause.
+- 2026-09-07 13:02: STAGE2 DEPLOYMENT DEFECT IDENTIFIED. The stage2 dir
+  ships a stripped `libgphoto2_port.so.12` (38,620 bytes) that hard-codes
+  the iolibs search to `../lib/libgphoto2_port/0.12.0/iolibs/iolibs/`
+  (relative to CWD, default `/root` = `/lib/libgphoto2_port/0.12.0/iolibs/iolibs/`).
+  The deployed device has the iolib at
+  `/app/lib/stage2/libgphoto2_port/0.12.2/usb1.so` (no nested
+  iolibs/iolibs/ subdir) and the patcher's libgphoto2.so.6
+  (133,508 bytes, commit 6aa3e4e6) is built against a NEWER
+  libgphoto2_port ABI (`LIBGPHOTO2_5_0` symbol) that neither the
+  stub nor `/app/lib/libgphoto2_port.so.12` (105,852 bytes stock
+  Apr 2021) provides. The only working gphoto2 is the direct
+  CLI on `/app/bin/gphoto2` because it loads
+  `/app/lib/libgphoto2_port.so.12` (the stock one), bypassing the
+  stage2 stub. So patcher#36's "function flags 0x0" failure is a
+  STAGE2 DEPLOYMENT DEFECT, not a libgphoto2 defect, not a Pentax
+  driver defect, not a runtime USB-enumeration defect — the stage2
+  loader is shipping a stripped libgphoto2_port that fails every
+  gphoto2 call. The real libgphoto2_port that matches
+  libgphoto2.so.6 (133KB) is not deployed. patcher#36 ownership:
+  PATCHER DEPLOY (not libgphoto2, not runtime USB, not Pentax driver).

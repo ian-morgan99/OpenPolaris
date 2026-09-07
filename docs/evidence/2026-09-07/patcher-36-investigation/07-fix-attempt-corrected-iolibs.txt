@@ -1,0 +1,111 @@
+# Test the proposed fix: stop pgphoto, launch with correct IOLIBS env
+# 2026-09-07T12:55:40+01:00
+
+## Current state before fix
+2074
+2232
+---
+
+## Stop pgphoto (it was just restarted, PID 2074)
+2238
+after kill
+
+## Launch with corrected IOLIBS env (0.12.2 not 0.12.0)
+launched, sleep 6
+
+## Wait for new pgphoto to come up, then check
+2245
+2266
+---
+[m[12:55:50:245 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[12:55:50:245 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[12:55:50:245 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1232362704
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001301 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[12:55:51:249 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[12:55:51:249 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[12:55:51:251 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[12:55:51:329 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+
+## Verify the camera is now visible from the runtime
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[12:55:50:245 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[12:55:50:245 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[12:55:50:245 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1232362704
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[12:55:50:246 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001301 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[12:55:51:249 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[12:55:51:249 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[12:55:51:251 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[12:55:51:329 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 

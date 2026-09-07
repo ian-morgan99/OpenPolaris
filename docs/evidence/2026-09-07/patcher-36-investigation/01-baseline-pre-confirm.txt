@@ -1,0 +1,42 @@
+# Baseline at 2026-09-07T12:50:59+01:00 - post-battery (per user), pre-confirm
+# Hardware owner: secondary agent, claimed 2026-09-07 12:50
+
+## lsusb over SSH
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+Bus 001 Device 004: ID 25fb:0189
+
+## /sys/bus/usb/devices USB tree
+/sys/bus/usb/devices/1-1.2/  25fb:0189  PENTAX K-3 Mark III  driver=usb
+/sys/bus/usb/devices/1-1/  1a40:0101  USB2.0 HUB  driver=usb
+/sys/bus/usb/devices/usb1/  1d6b:0002  xHCI Host Controller  driver=usb
+/sys/bus/usb/devices/usb2/  1d6b:0003  xHCI Host Controller  driver=usb
+
+## Process tree (pgphoto / polestar / watchdog)
+  249     1  62:03  polestar_app     ./polestar_app
+ 1009     2  31:09  dhd_watchdog_th  [dhd_watchdog_th]
+ 1433     1   8:39  pgphoto.stage2o  /app/lib/stage2/pgphoto.stage2ondisk
+ 1738  1735   0:01  sh               sh -c ps -eo pid,ppid,etime,comm,args 2>&1 | grep -E "pgphoto|polestar|gphoto|stage2|sp_|watchdog" | head -20
+ 1740  1738   0:01  grep             grep -E pgphoto|polestar|gphoto|stage2|sp_|watchdog
+
+## Listeners (8080, 9090) and connected clients
+  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     
+   0: 00000000:2382 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1278 1 ee340b80 100 0 0 10 0                              
+   1: 00000000:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 3166 1 ee2ce1c0 100 0 0 10 0                              
+   5: 0100A8C0:1F90 0400A8C0:8D4A 08 00000000:00000001 00:00000000 00000000     0        0 3175 1 ee2cf300 21 4 28 10 7                              
+   6: 0100A8C0:2382 0200A8C0:C023 01 00000000:00000000 02:00000177 00000000     0        0 2471 2 ee2c9700 21 4 31 10 -1                             
+
+## /app/Clog.txt tail (what the runtime has been doing since boot)
+
+## /app/Mlog.txt tail (firmware log)
+[m[m[12:50:27:467 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[12:50:27:467 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+[m[m[12:50:57:553 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[12:50:57:553 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+
+## /app/error.log tail
+
+## Route (host-side)
+192.168.0.1 dev wlp8s0 src 192.168.0.4 uid 1000 
+    cache 

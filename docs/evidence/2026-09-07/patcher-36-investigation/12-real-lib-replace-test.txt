@@ -1,0 +1,61 @@
+# Test the REAL fix: replace the stage2 stub libgphoto2_port with the real one
+# 2026-09-07T13:02:16+01:00
+
+## Stop pgphoto
+
+## Backup the stub and replace with the real libgphoto2_port
+-rwxr-x---    1 root     root        105852 Sep  7 13:02 /app/lib/stage2/libgphoto2_port.so.12
+
+## Truncate Clog
+
+## Launch pgphoto
+launched
+
+## Wait for full init
+
+## Result
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core FAILED (/app/lib/stage2/libgphoto2.so.6: symbol gp_port_init_localedir, version LIBGPHOTO2_5_0 not defined in file libgphoto2_port.so.12 with link time reference) -- all 64 slots left at abort stub (fail-closed)
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core FAILED (/app/lib/stage2/libgphoto2.so.6: symbol gp_port_init_localedir, version LIBGPHOTO2_5_0 not defined in file libgphoto2_port.so.12 with link time reference) -- all 64 slots left at abort stub (fail-closed)
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core FAILED (/app/lib/stage2/libgphoto2.so.6: symbol gp_port_init_localedir, version LIBGPHOTO2_5_0 not defined in file libgphoto2_port.so.12 with link time reference) -- all 64 slots left at abort stub (fail-closed)
+[m[13:02:27:781 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[13:02:27:781 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[13:02:27:782 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1230564560
+[m[13:02:27:782 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[13:02:27:782 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[13:02:27:783 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[13:02:27:783 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[13:02:27:783 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+[stage2] FATAL early call to gp_port_new @slot=0x300000f0 before fill (slot unresolved / called in pre-fill window). Aborting cleanly.
+[stage2]   last checkpoint reached: init: stubbed slots
+===
+## Clog
+[stage2] another pgphoto launch is already in progress; refusing duplicate
+===
+## Did the camera come up?
+[m[m[13:02:26:611 [1;31mERROR[m-]:checkGphotoTask[3315]:[0;32;31mpgphoto is exit,reboot it
+[restart_gphoto] stale PID file (PID 3666 is not pgphoto); removing
+[restart_gphoto] no running pgphoto found
+[restart_gphoto] starting pgphoto via /app/bin/pgphoto
+[restart_gphoto] FAIL: pgphoto exited immediately (PID 4070); check /app/Clog.txt
+[m[13:02:29:529 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[13:02:29:529 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+===
+## Restore the stub (so we leave the gimbal in a known state)
+-rwxr-xr-x    1 root     root         38620 Sep  7 13:02 /app/lib/stage2/libgphoto2_port.so.12

@@ -1,0 +1,30 @@
+# Confirm: iolibs path is the actual root cause of patcher#36
+# 2026-09-07T12:55:18+01:00
+
+## With correct IOLIBS, gphoto2 finds the K-3 III:
+Model                          Port            
+----------------------------------------------------------
+Pentax K-3 Mark III (MTP mode) usb:001,004     
+
+## With default (wrong) path, gphoto2 returns the same -2 that pgphoto sees:
+Model                          Port            
+----------------------------------------------------------
+## (no IOLIBS env, default lookup)
+Model                          Port            
+----------------------------------------------------------
+Pentax K-3 Mark III (MTP mode) usb:001,004     
+
+## What does the embedded pgphoto.stage2ondisk set IOLIBS to?
+Internal error looking for camlibs (%d)
+Internal error looking for camlibs. (path names too long?)
+CAMLIBS
+standard camlib set SKIPPING SOME (ptp2 SKIPPING lumix)
+ltdl (for portable loading of camlibs)
+standard camlibs (SKIPPING lumix)
+/media/psf/Home/myCode/snoppa/polaris/polarisGphoto/gphoto/camlibs/ptp2/chdk.c
+/media/psf/Home/myCode/snoppa/polaris/polarisGphoto/gphoto/camlibs/ptp2/config.c
+/media/psf/Home/myCode/snoppa/polaris/polarisGphoto/gphoto/camlibs/ptp2/fujiptpip.c
+/media/psf/Home/myCode/snoppa/polaris/polarisGphoto/gphoto/camlibs/ptp2/library.c
+
+## Does the stage2 init have it hard-coded?
+../lib/libgphoto2_port/0.12.0

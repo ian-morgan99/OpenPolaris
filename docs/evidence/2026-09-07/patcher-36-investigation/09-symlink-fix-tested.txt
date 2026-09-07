@@ -1,0 +1,124 @@
+# Test the symlink fix properly: symlink 0.12.0 dir -> 0.12.2
+# 2026-09-07T12:59:26+01:00
+
+## Stop pgphoto first
+
+## Create the symlink for 0.12.0 -> 0.12.2 (the version gphoto2_port was compiled against)
+total 0
+drwxr-xr-x    3 root     root           288 Sep  7 12:59 .
+drwxr-x---    4 1000     1000           616 Sep  7 05:27 ..
+lrwxrwxrwx    1 root     root             6 Sep  7 12:59 0.12.0 -> 0.12.2
+drwxr-x---    2 1000     1000           224 Sep  7 05:27 0.12.2
+
+## Truncate Clog and Mlog to capture fresh
+-rw-r--r--    1 root     root             0 Sep  7 12:59 /app/Clog.txt
+
+## Launch pgphoto via wrapper
+launched
+
+## Wait for full init
+
+## Did the camera come up?
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[12:59:38:457 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: USER=root  ---- 
+ 
+ 
+[m[12:59:38:457 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[12:59:38:457 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231523024
+[m[12:59:38:458 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[12:59:38:458 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[12:59:38:458 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[12:59:38:459 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[12:59:38:459 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001412 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[12:59:39:461 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[12:59:39:461 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[12:59:39:463 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[12:59:39:553 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+
+===
+## Clog state
+[stage2] another pgphoto launch is already in progress; refusing duplicate
+
+## Camera state reported by 286?
+[m[m[12:59:10:092 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m[m[12:59:10:092 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m[m[12:59:29:013 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[12:59:29:014 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+[m[m[12:59:36:793 [1;31mERROR[m-]:checkGphotoTask[3315]:[0;32;31mpgphoto is exit,reboot it
+[restart_gphoto] stale PID file (PID 3039 is not pgphoto); removing
+[restart_gphoto] no running pgphoto found
+[restart_gphoto] starting pgphoto via /app/bin/pgphoto
+[m[12:59:39:461 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m[m[12:59:39:461 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[restart_gphoto] FAIL: pgphoto exited immediately (PID 3439); check /app/Clog.txt
+
+## Cleanup: remove the symlink (so we leave the gimbal in a known state)
+total 0
+drwxr-xr-x    3 root     root           224 Sep  7 12:59 .
+drwxr-x---    4 1000     1000           616 Sep  7 05:27 ..
+drwxr-x---    2 1000     1000           224 Sep  7 05:27 0.12.2

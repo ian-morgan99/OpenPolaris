@@ -1,0 +1,57 @@
+# Direct preview + capture on freshly-battery K-3 III
+# 2026-09-07T12:52:59+01:00 - hardware-test owner: secondary agent
+
+## Capture one image (--capture-image-and-download)
+## 60-second timeout because we expect this to fail on MTP-only
+## (function flags 0x0, no vendor specific capture)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+
+*** Error ***              
+You need to specify a folder starting with /store_xxxxxxxxx/
+ERROR: Could not get image.
+New file is in location /IMGP3463.JPG on the camera
+rc=0
+
+## Capture image only (no download)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+New file is in location /IMGP3464.JPG on the camera
+rc=0
+
+## Trigger capture (--trigger-capture)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+
+*** Error ***              
+Sorry, your camera does not support generic capture
+ERROR: Could not trigger capture.
+*** Error (-6: 'Unsupported operation') ***       
+
+For debugging messages, please use the --debug option.
+Debugging messages may help finding a solution to your problem.
+If you intend to send any error or debug messages to the gphoto
+developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+gphoto2 as follows:
+
+    env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --trigger-capture
+
+Please make sure there is sufficient quoting around the arguments.
+
+rc=1
+
+## Start preview (--capture-preview), 5s
+## 30s timeout; expect 0xa008 (NoUpdateImage) per patcher#36
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+Pentax preview stage start-PC-LV returned 0x2001.
+Pentax preview stage get-frame returned 0x2001 (77145 bytes, 1 attempts, 18 ms).
+Saving file as capture_preview.jpg
+rc=0
+
+## --wait-event-and-download 10s
+timeout: can't execute '10': No such file or directory
+rc=127
+
+## /tmp on gimbal - any new JPEGs?
+-rw-r--r--    1 root     root           832 Sep  7 10:03 /tmp/k3iii_list.txt

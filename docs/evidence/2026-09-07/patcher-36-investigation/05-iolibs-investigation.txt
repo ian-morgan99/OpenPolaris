@@ -1,0 +1,28 @@
+# Investigate the iolibs path mismatch
+# 2026-09-07T12:55:05+01:00
+
+## /app/lib/stage2/libgphoto2 contents
+total 0
+drwxr-xr-x    3 root     root           224 Sep  7 05:27 .
+drwxr-x---    4 1000     1000           616 Sep  7 05:27 ..
+drwxr-x---    2 1000     1000           224 Sep  7 05:27 2.5.34
+
+## /app/lib/stage2/libgphoto2_port contents
+total 0
+drwxr-xr-x    3 root     root           224 Sep  7 05:27 .
+drwxr-x---    4 1000     1000           616 Sep  7 05:27 ..
+drwxr-x---    2 1000     1000           224 Sep  7 05:27 0.12.2
+
+## What does the direct CLI see for IOLIBS?
+Devices found: 1
+Path                             Description
+--------------------------------------------------------------
+usb:001,004                      Universal Serial Bus            
+
+## What does the direct CLI see for IOLIBS with 0.12.0 path?
+Devices found: -2
+Path                             Description
+--------------------------------------------------------------
+
+## And no IOLIBS at all?
+env: invalid number 'IOLIBS'

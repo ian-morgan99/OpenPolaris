@@ -1,0 +1,202 @@
+# Restart pgphoto to test runtime USB attach handling
+# 2026-09-07T12:54:39+01:00
+
+## Clog size before restart
+0 /app/Clog.txt
+
+## /app/restart_gphoto - read script first to see what it does
+#!/bin/sh
+# restart_gphoto.sh — single-owner pgphoto restart helper (issues #33, #34)
+#
+# Replaces the stock /app/restart_gphoto which does a blind:
+#   pkill /app/bin/pgphoto
+#   nohup /app/bin/pgphoto >> /app/Clog.txt &
+#
+# The stock script's pkill matches nothing because after our wrapper execs,
+# the running process is /app/lib/stage2/pgphoto.stage2ondisk (not /app/bin/
+# pgphoto). So the old instance survives, keeps port 8080, and every new
+# instance dies on bind → crash loop.
+#
+# This script implements the PID-file design from issue #33:
+#   1. Read PID from /var/run/openpolaris-pgphoto.pid (if present)
+#   2. Verify /proc/$pid/cmdline still names a pgphoto process
+#   3. TERM → bounded wait for process exit AND TCP/8080 unbind → KILL fallback
+#   4. Start replacement, record its PID atomically
+#   5. Verify liveness + 8080 ownership before declaring success
+#
+# Also sets a restart-in-progress marker so the polestar watchdog
+# (checkGphotoTask) can detect an in-flight restart and not race it (#34).
+#
+# BusyBox-safe: uses only /proc, kill, sleep, grep, tr, mv. No pgrep/pkill.
+
+RUN_DIR=${OPENPOLARIS_RUN_DIR:-/var/run}
+PROC_ROOT=${OPENPOLARIS_PROC_ROOT:-/proc}
+PIDFILE=$RUN_DIR/openpolaris-pgphoto.pid
+LOCKDIR=$RUN_DIR/openpolaris-pgphoto.restart.lock
+WRAPPER=${OPENPOLARIS_PGPHOTO_WRAPPER:-/app/bin/pgphoto}
+STAGE2_BIN=${OPENPOLARIS_PGPHOTO_BINARY:-/app/lib/stage2/pgphoto.stage2ondisk}
+LOG=${OPENPOLARIS_PGPHOTO_LOG:-/app/Clog.txt}
+PORT_HEX=1F90   # 8080 in hex (for /proc/net/tcp grep)
+WAIT_MAX=10     # seconds to wait for clean exit after TERM
+START_WAIT_MAX=20  # stage2 + camera init can take more than five seconds
+
+# --- helpers ---------------------------------------------------------------
+
+port_in_use() {
+    # Check if anything is listening on TCP port 8080.
+    # /proc/net/tcp local_address format: HEXIP:HEXPORT (e.g. 00000000:1F90)
+    for netfile in "$PROC_ROOT/net/tcp" "$PROC_ROOT/net/tcp6"; do
+        [ -r "$netfile" ] || continue
+        awk -v port=":${PORT_HEX}" '$2 ~ (port "$") && $4 == "0A" { found=1 } END { exit !found }' \
+            "$netfile" 2>/dev/null && return 0
+    done
+    return 1
+    return 1
+}
+
+pid_is_pgphoto() {
+
+## Now run restart_gphoto
+[restart_gphoto] stopping pgphoto (PID 1433)
+[restart_gphoto] starting pgphoto via /app/bin/pgphoto
+[restart_gphoto] pgphoto running (PID 2074)
+[restart_gphoto] OK: port 8080 listening — restart successful
+rc=0
+
+## Wait 5s, then check Clog
+## Clog after restart
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[m[12:54:42:755 [1;32mINFO[m-]:main[194]:[0;32;31m 
+ 
+ 
+ 
+ 
+ 
+------/app/lib/stage2/pgphoto.stage2ondisk: version: 1.3.4  build: 1.3.9  ---libgphoto: 0562e8a  ----env: SSH_CLIENT=192.168.0.4 59666 22  ---- 
+ 
+ 
+[m[12:54:42:755 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1003], id[65538]
+[m[m[12:54:42:755 [1;32mINFO[m-]:ipc_msg_queue_create[50]:[0;32;32m--- create msg queue success, key[1002], id[98307]
+[m[SP_RunThread]     thread name ipc_msg_loop
+[spc_ipc_msg_loop]     thread name ipc_msg_loop thread  -1231613136
+[m[12:54:42:756 [1;32mINFO[m-]:scanUsb[1853]:[0;32;31m--- openUsbDir ret 0
+[m[12:54:42:756 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/002/001      idVendor: 1d6b  idProduct: 0003 
+[m[12:54:42:756 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/004      idVendor: 25fb  idProduct: 0189 
+[m[12:54:42:756 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/002      idVendor: 1a40  idProduct: 0101 
+[m[12:54:42:756 [1;32mINFO[m-]:scanUsb[1877]:[0;32;31m----------  devpath: /dev/bus/usb/001/001      idVendor: 1d6b  idProduct: 0002 
+gphoto2 2.5.27
+
+Copyright (c) 2000-2021 Marcus Meissner and others
+
+gphoto2 comes with NO WARRANTY, to the extent permitted by law. You may
+redistribute copies of gphoto2 under the terms of the GNU General Public
+License. For more information about these matters, see the files named COPYING.
+
+This version of gphoto2 is using the following software versions and options:
+gphoto2         2.5.27         /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, popt(m), exif, no cdk, no aa, no jpeg, no readline
+libgphoto2      2.5.27         standard camlibs (SKIPPING lumix), /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF
+libgphoto2_port 2.5.27         iolibs: ptpip, /Applications/Xcode.app/Contents/Developer/usr/bin/gcc, ltdl, EXIF, no USB, no serial
+0.001271 gp_port_info_list_load [gphoto2-port-info-list.c:328](0): No iolibs found in '../lib/libgphoto2_port/0.12.0'
+[m[12:54:43:758 [1;32mINFO[m-]:sp_Gphoto_Init[147]:----sp_Gphoto_Init ret -2 
+[m[12:54:43:759 [1;32mINFO[m-]:send_ipc_msg_retry[80]:[0;32;32m------SP_sendMsg success; id[98307] type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m o: www-folder-path......: disabled
+ o: HTTP TCP port........: 8080
+ o: HTTP Listen Address..: (null)
+ o: username:password....: disabled
+ o: commands.............: enabled
+[m[12:54:43:761 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:0 
+[m[12:54:43:847 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 
+
+## Mlog around the restart
+[m[m[12:54:28:154 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[12:54:28:154 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+[m[m[12:54:43:759 [1;32mINFO[m-]:SP_MsgFromCameraProc[1154]:[0;36mMsgFromCamera-->type[1],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+[m[m[12:54:43:759 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[286],val[manufacturer:none;model:none;state:-2;storage:0;photoFormat:0;]
+
+## ps for pgphoto
+ 2074 root       0:00 /app/lib/stage2/pgphoto.stage2ondisk
+ 2113 root       0:00 sh -c ps -ef 2>&1 | grep -E "pgphoto|gphoto" | head -5
+ 2115 root       0:00 grep -E pgphoto|gphoto
+
+## lsusb - does K-3 III still enumerate?
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+Bus 001 Device 004: ID 25fb:0189
+
+## /sys/bus/usb/devices - K-3 III still attached?
+/sys/bus/usb/devices/1-1.2/  25fb:0189  PENTAX K-3 Mark III  driver=usb
+/sys/bus/usb/devices/1-1/  1a40:0101  USB2.0 HUB  driver=usb
+/sys/bus/usb/devices/usb1/  1d6b:0002  xHCI Host Controller  driver=usb
+/sys/bus/usb/devices/usb2/  1d6b:0003  xHCI Host Controller  driver=usb

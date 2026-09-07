@@ -1,0 +1,159 @@
+# Direct libgphoto2 CLI on freshly-battery K-3 III
+# 2026-09-07T12:52:37+01:00 - hardware-test owner: secondary agent
+
+## Embedded libgphoto2 provenance
+source_kind=git-directory
+requested_version=2.5.34
+actual_version=2.5.34
+git_commit=6aa3e4e66240d4b4d68a65b75631e0f6aadf308a
+dirty_diff_hash=
+input_sha256=
+
+## Step 1: --auto-detect
+Model                          Port            
+----------------------------------------------------------
+Pentax K-3 Mark III (MTP mode) usb:001,004     
+
+## Step 2: --summary (cold, no shutdown - pgphoto has session already)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+Camera summary:
+Manufacturer: RICOH IMAGING COMPANY, LTD.
+Model: PENTAX K-3 Mark III
+  Version: 2.20
+  Serial Number: 8093033
+Vendor Extension ID: 0x6 (1.10)
+Vendor Extension Description: microsoft.com/DeviceServices: 1.0; 
+
+Capture Formats: Association/Directory Apple Quicktime Defined Type JPEG TIFF
+Display Formats: Undefined Type, Association/Directory, Apple Quicktime, Defined Type, JPEG, TIFF
+
+Device Capabilities:
+	File Download, File Deletion, No File Upload
+	No Image Capture, No Open Capture, No vendor specific capture
+
+Storage Devices Summary:
+store_00010001:
+	StorageDescription: SD1
+	VolumeLabel: 
+	Storage Type: Removable RAM (memory card)
+	Filesystemtype: Digital Camera Layout (DCIM)
+	Access Capability: Read-Write
+	Maximum Capability: 63831015424 (60874 MB)
+	Free Space (Bytes): 22555525120 (21510 MB)
+	Free Space (Images): 307
+
+Device Property Summary:
+Battery Level             (5001 ro u8 ): Range [0 - 100, step 1] value: 100% (100)
+White Balance             (5005 rw u16): Enumeration [2,32783,4,32770,32771,32772,32773,32774,32781,6,32782,32775,32776,32777,32778,32779,32780] value: 32783
+F-Number                  (5007 rw u16): Enumeration [2200,2000,1800,1600,1400,1300,1100,1000,900,800,710,630,560,500,450,400,350,320,280] value: f/4 (400)
+Exposure Bias Compensation (5010 rw i16): Enumeration [5000,4700,4300,4000,3700,3300,3000,2700,2300,2000,1700,1300,1000,700,300,0,-300,-700,-1000,-1300,-1700,-2000,-2300,-2700,-3000,-3300,-3700,-4000,-4300,-4700,-5000] value: 0.0 stops (0)
+Date & Time               (5011 rw str): '20260907T124332'
+Contrast                  (5014 rw u8 ): Enumeration [0,1,2,3,4,5,6,7,8] value: 4
+Sharpness                 (5015 rw u8 ): Enumeration [0,1,2,3,4,5,6,7,8] value: 4
+Session Initiator Info    (d406 rw str): ''
+Perceived Device Type     (d407 ro u32): 1
+[Unknown Property]        (d303 ro u8 ): 1
+[Unknown Property]        (d009 rw [u16]): a[8] 1080,720,1080,720,734,432,96,96
+[Unknown Property]        (d00f rw u64): Enumeration [8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,10,10,10,10,10,1,10,10,1,10,1,1,1,1,1,1,1,1,1,1,1] value: 160
+[Unknown Property]        (d013 rw u8 ): Enumeration [0,4,5,6,1,12,14,15,18,19,20,21] value: 0
+[Unknown Property]        (d014 rw u8 ): Enumeration [0,0,0,0,0] value: 0
+[Unknown Property]        (d015 rw u8 ): Enumeration [50,47,43,40,37,33,30,27,23,20,17,13,10,7,3] value: 20
+[Unknown Property]        (d018 -- ---): PTP error 200a on query
+[Unknown Property]        (d01b rw [u8 ]): a[7] 2,6,0,2,1,1,1
+[Unknown Property]        (d01e rw u32): Enumeration [100,200,400,800,1600,3200,6400,12800,25600,51200,102400,204800,409600,819200,1600000] value: 3200
+[Unknown Property]        (d020 rw u8 ): Enumeration [255,1,0,2,3,4,12,9,6,11,8,7,17,5,10] value: 0
+[Unknown Property]        (d021 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d022 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d023 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d024 rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d025 rw i8 ): Enumeration [] value: 0
+[Unknown Property]        (d026 rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d027 rw u8 ): Enumeration [0,1] value: 1
+[Unknown Property]        (d028 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d029 rw i8 ): Enumeration [-4,-3,-2,-1,0,1,2,3,4] value: 0
+[Unknown Property]        (d02a rw u8 ): Enumeration [0,1] value: 1
+[Unknown Property]        (d02b rw u8 ): Enumeration [0,1,2] value: 0
+[Unknown Property]        (d02c rw u8 ): Enumeration [] value: 0
+[Unknown Property]        (d02d rw [u8 ]): a[4] 0,0,0,0
+[Unknown Property]        (d035 rw u8 ): Enumeration [0,1] value: 0
+[Unknown Property]        (d036 rw [u16]): a[2] 540,360
+[Unknown Property]        (d037 rw [u16]): a[4] 540,360,1,0
+[Unknown Property]        (d039 rw u8 ): Enumeration [0,1] value: 0
+
+
+## Step 3: --list-config (capabilities)
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+/main/actions/manualfocusdrivenear
+/main/actions/manualfocusdrivefar
+/main/actions/opcode
+/main/settings/datetime
+/main/status/serialnumber
+/main/status/manufacturer
+/main/status/cameramodel
+/main/status/deviceversion
+/main/status/vendorextension
+/main/status/pentaxconditions
+/main/status/pentaxliveviewcontrols
+/main/status/pentaxpropd00f
+/main/status/pentaxprop5007
+/main/status/pentaxpropd01e
+/main/status/pentaxprop5010
+/main/status/pentaxprop5005
+/main/status/pentaxpropd013
+/main/status/pentaxpropd02b
+/main/status/pentaxpropd035
+/main/status/pentaxfocuspeaking
+/main/status/pentaxpclvmode
+/main/status/pentaxbracketmode
+/main/status/pentaxbracketstep
+/main/status/pentaxcimode
+/main/status/pentaxcompositionadjust
+/main/status/pentaxcrossprocess
+/main/status/pentaxmoviemode
+/main/status/pentaxpclvkeep
+/main/status/pentaxcardwritingmode
+/main/status/pentaxdirectshutter
+/main/status/pentaxdirectiso
+/main/status/pentaxdirectaperture
+/main/status/pentaxdirectev
+/main/status/pentaxliveviewafposition
+/main/status/pentaxliveviewzoom
+/main/status/pentaxdrivemode
+/main/status/pentaxdirectwb
+/main/status/pentaxliveviewafposition
+/main/status/batterylevel
+/main/imgsettings/iso
+/main/imgsettings/whitebalance
+/main/capturesettings/exposurecompensation
+/main/capturesettings/f-number
+/main/capturesettings/sharpness
+/main/capturesettings/shutterspeed
+/main/other/5001
+/main/other/5005
+/main/other/5007
+/main/other/5010
+/main/other/5011
+/main/other/5014
+/main/other/5015
+/main/other/d406
+/main/other/d407
+/main/other/d303
+/main/other/d009
+/main/other/d00f
+/main/other/d013
+
+## Step 4: --get-config=capturesettings
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+Label: Capture Settings
+Readonly: 0
+END
+
+## Step 5: --get-config=imgsettings
+Pentax session already open from a previous connection; observing camera state.
+Pentax init stage vendor enable succeeded; function flags 0x00000000.
+Label: Image Settings
+Readonly: 0
+END

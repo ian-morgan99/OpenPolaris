@@ -149,12 +149,12 @@ ssh root@192.168.0.1 'lsusb 2>&1'
 # Bus 001 Device 001: ID 1d6b:0002
 # Bus 001 Device 002: ID 1a40:0101
 # Bus 002 Device 001: ID 1d6b:0003
-# Bus 001 Device 004: ID 25fb:0188          <-- K-1 II
+# Bus 001 Device 004: ID 25fb:0183          <-- K-1 II
 # OR (if cold-boot didn't enumerate)
 # (no 25fb entry at all)
 ```
 
-If `25fb:0188` is present, the gimbal sees the K-1 II. Note
+If `25fb:0183` is present, the gimbal sees the K-1 II. Note
 the bus/device number for the matrix.
 
 If no `25fb` entry, the cold-boot USB enumeration missed the
@@ -167,7 +167,7 @@ ssh root@192.168.0.1 'lsusb 2>&1'   # confirm 25fb disappears
 sleep 2
 # Replug into the same gimbal USB port
 sleep 5
-ssh root@192.168.0.1 'lsusb 2>&1'   # confirm 25fb:0188 reappears
+ssh root@192.168.0.1 'lsusb 2>&1'   # confirm 25fb:0183 reappears
 ```
 
 If the warm plug also fails, try the **runtime USB

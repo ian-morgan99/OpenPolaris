@@ -5,6 +5,7 @@ import dev.openpolaris.core.protocol.ResponseParser
 import dev.openpolaris.core.protocol.command
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketTimeoutException
 
 private fun log(s: String) { println(s); System.out.flush() }
 
@@ -55,20 +56,10 @@ fun runBurst(args: BurstArgs, sink: (String) -> Unit = ::log): List<String> {
                 val line = "  sent code=$c"
                 sink(line); results += line
 
-                // short per-code window — setters (e.g. 544) ack-free, push codes are async
-                socket.soTimeout = 1500
-                val pending = java.io.ByteArrayOutputStream()
-                val buf = ByteArray(4096)
-                try {
-                    while (true) {
-                        val n = `in`.read(buf)
-                        if (n <= 0) break
-                        pending.write(buf, 0, n)
-                    }
-                } catch (_: java.net.SocketTimeoutException) {
-                    // expected for setter / push codes
-                }
-                val bytes = pending.toByteArray()
+                // This is an absolute window, not merely Socket.soTimeout.
+                // The real mount emits an ongoing async stream; limiting each
+                // individual read lets that traffic keep this loop alive forever.
+                val bytes = drainForWindow(socket, `in`, 1500)
                 val drained = "  drained ${bytes.size}B raw=${String(bytes, Charsets.US_ASCII).trim()}"
                 sink(drained); results += drained
                 if (bytes.isEmpty()) {
@@ -94,6 +85,29 @@ fun runBurst(args: BurstArgs, sink: (String) -> Unit = ::log): List<String> {
         sink(err); results += err
     }
     return results
+}
+
+internal fun drainForWindow(
+    socket: Socket,
+    input: java.io.InputStream,
+    windowMs: Long,
+): ByteArray {
+    val pending = java.io.ByteArrayOutputStream()
+    val buf = ByteArray(4096)
+    val deadline = System.nanoTime() + windowMs * 1_000_000L
+    while (true) {
+        val remainingMs = (deadline - System.nanoTime()) / 1_000_000L
+        if (remainingMs <= 0) break
+        socket.soTimeout = minOf(remainingMs, 250L).coerceAtLeast(1L).toInt()
+        try {
+            val n = input.read(buf)
+            if (n <= 0) break
+            pending.write(buf, 0, n)
+        } catch (_: SocketTimeoutException) {
+            // A quiet slice does not extend the absolute command deadline.
+        }
+    }
+    return pending.toByteArray()
 }
 
 fun main(args: Array<String>) {

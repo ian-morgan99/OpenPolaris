@@ -4,6 +4,7 @@ import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.stub.runServer
 import java.net.ServerSocket
 import java.net.Socket
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -88,6 +89,32 @@ class BurstTest {
             lines.first().startsWith("burst → 127.0.0.1:$freePort codes="),
             "expected header line, got: ${lines.first()}"
         )
+    }
+
+    @Test
+    fun `drain window ends while peer continuously sends async data`() {
+        ServerSocket(0).use { server ->
+            val writer = thread(isDaemon = true) {
+                runCatching {
+                    server.accept().use { peer ->
+                        val out = peer.getOutputStream()
+                        while (true) {
+                            out.write("1&284&2&mode:1;state:0;#".toByteArray())
+                            out.flush()
+                            Thread.sleep(10)
+                        }
+                    }
+                }
+            }
+            Socket("127.0.0.1", server.localPort).use { client ->
+                val started = System.nanoTime()
+                val bytes = drainForWindow(client, client.getInputStream(), 200)
+                val elapsedMs = (System.nanoTime() - started) / 1_000_000L
+                assertTrue(bytes.isNotEmpty(), "continuous peer should produce data")
+                assertTrue(elapsedMs in 150..700, "absolute 200 ms window took ${elapsedMs} ms")
+            }
+            writer.join(1000)
+        }
     }
 
     // ---- runBurst: integration with stub-server ----

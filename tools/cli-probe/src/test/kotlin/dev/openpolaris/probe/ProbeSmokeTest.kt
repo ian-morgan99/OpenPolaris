@@ -384,7 +384,7 @@ class FakeMountHarness : MountHarness() {
     }
 
     override fun stop() {
-        runCatching { session.disconnect() }
+        runCatching { runBlocking(Dispatchers.IO) { session.disconnect() } }
         runCatching { connection.close() }
         runCatching { mount.stop() }
         runCatching { scope.cancel() }
@@ -446,7 +446,7 @@ class RealMountHarness(
     }
 
     override fun stop() {
-        runCatching { session.disconnect() }
+        runCatching { runBlocking(Dispatchers.IO) { session.disconnect() } }
         runCatching { connection.close() }
         runCatching { scope.cancel() }
     }

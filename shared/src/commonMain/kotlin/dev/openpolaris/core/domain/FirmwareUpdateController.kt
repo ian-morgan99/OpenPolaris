@@ -28,8 +28,9 @@ import kotlin.coroutines.coroutineContext
  *    drops the zip onto the SD card. This is the path the on-board
  *    `polestar_app` binary actually watches (see `HANDOVER-2026-08-31.md`
  *    §4.4 — `SP_UpgradeCheckFw` at `0x14023c` in `polestar_app`). The
- *    user must then reboot the gimbal for the install to fire. No
- *    protocol magic, no per-code envelope guess.
+ *    controller then sends the hardware-proven 783 extraction trigger,
+ *    verifies the extracted manifests over SSH, and reboots so the stock
+ *    boot-time SD scan flashes the package.
  *
  *  - [DeliveryMode.WIRE] (experimental, **unverified**): the controller
  *    drives a chunked upload through the gimbal's binary control plane
@@ -84,15 +85,9 @@ class FirmwareUpdateController(
      *  bytes; expected to drop them at `/app/sd/FwPkt.zip` on the
      *  mount. Ignored for [DeliveryMode.WIRE]. */
     private val sshDelivery: FirmwareDelivery = NoOpFirmwareDelivery,
-    /** Optional SSH runner used after the scp delivery to:
-     *   1) restart the on-board `polestar_app` so it picks up the
-     *      freshly-staged `FwPkt.zip`, and
-     *   2) poll `/app/Mlog.txt` for the install state-machine's
-     *      terminal sentinels (Pass / Fail / Timeout) so the user
-     *      gets real feedback instead of "dropped, now reboot".
-     *  Null disables both — the controller will fall back to the
-     *  legacy behaviour of returning `Status.Done` after the bytes
-     *  land on the SD card. Ignored for [DeliveryMode.WIRE]. */
+    /** Optional SSH runner used after delivery to verify extraction and
+     *  invoke the mandatory boot-time flash scan. Null retains the legacy
+     *  delivery-only behaviour for platforms without an SSH client. */
     private val sshCommandRunner: SshCommandRunner? = null,
     /** How often the on-board install watcher polls Mlog.txt.
      *  SSH_PIPE mode only. */
@@ -296,53 +291,60 @@ class FirmwareUpdateController(
             return s
         }
 
-        // Restart the on-board `polestar_app` so the freshly-staged
-        // `FwPkt.zip` is picked up by `SP_UpgradeCheckFw` immediately
-        // (the running instance already finished its install check on
-        // boot and won't look again until the next reboot).
+        // Live hardware proof (2026-09-07): 783 asks the already-running
+        // polestar_app to validate and extract the newly delivered zip. A
+        // subsequent boot-time SD scan flashes the extracted FwPkt tree.
+        // Restarting polestar_app is neither necessary nor sufficient.
         onStatus(Status.Installing(percent = 0))
         try {
-            val restart = runner.run(
-                "pkill polestar_app; nohup /app/polestar_app >/dev/null 2>&1 &",
-            )
-            if (restart.exitCode != 0) {
-                val s = Status.Failed(
-                    "could not restart on-board app: exit=${restart.exitCode} ${restart.stderr.orEmpty()}"
-                )
-                onStatus(s); return s
-            }
+            session.send(Codes.FILE_INFO)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             val s = Status.Failed(
-                "ssh restart failed: ${e.message ?: e::class.simpleName}"
+                "could not trigger on-board package extraction: ${e.message ?: e::class.simpleName}"
             )
             onStatus(s); return s
         }
 
-        // Poll Mlog for the install state-machine's terminal sentinels.
-        val watcher = OnBoardInstallWatcher(
-            ssh = runner,
-            overallTimeoutMs = onBoardInstallTimeoutMs,
-            pollIntervalMs = installPollIntervalMs,
-        )
-        val install = watcher.watch()
-        return when (install) {
-            is OnBoardInstallWatcher.Outcome.Pass -> {
-                onStatus(Status.Installing(percent = 100))
-                val s = Status.Done
-                onStatus(s); s
+        var extractionFailure: String? = null
+        val extracted = withTimeoutOrNull(onBoardInstallTimeoutMs) {
+            while (coroutineContext.isActive) {
+                val probe = runner.run(
+                    "if test ! -f /app/sd/FwPkt.zip && " +
+                        "test -f /app/sd/FwPkt/firmwareInfo && " +
+                        "test -f /app/sd/FwPkt/crcInfo; then echo READY; fi"
+                )
+                if (probe.stdout.lineSequence().any { it.trim() == "READY" } ||
+                    probe.stdout.contains("SP_EVENT_UPGRADE_SUCCESS")) return@withTimeoutOrNull true
+                if (probe.stdout.contains("SP_EVENT_UPGRADE_FAIL")) {
+                    extractionFailure = probe.stdout.trim()
+                    return@withTimeoutOrNull false
+                }
+                // Keep zero-delay test configurations from spinning without
+                // yielding; production uses 500 ms.
+                delay(maxOf(10L, installPollIntervalMs))
             }
-            is OnBoardInstallWatcher.Outcome.Fail -> {
-                val s = Status.Failed("on-board install failed: ${install.reason}")
-                onStatus(s); s
-            }
-            is OnBoardInstallWatcher.Outcome.Timeout -> {
-                val s = Status.Failed("on-board install timed out after ${onBoardInstallTimeoutMs}ms")
-                onStatus(s); s
-            }
+            false
+        } == true
+        if (!extracted) {
+            val s = Status.Failed(extractionFailure?.let { "on-board install failed: $it" }
+                ?: "on-board package extraction timed out after ${onBoardInstallTimeoutMs}ms")
+            onStatus(s); return s
         }
 
+        // A reboot is mandatory for the stock boot-time SP_EVENT_SD_SCAN to
+        // flash the verified tree. The SSH connection commonly drops before
+        // reboot returns an exit status, so dispatch is the success boundary.
+        try {
+            runner.run("sync; reboot")
+        } catch (_: Exception) {
+            // Expected when reboot tears down dropbear first.
+        }
+        onStatus(Status.Installing(percent = 100))
+        val s = Status.Done
+        onStatus(s)
+        return s
     }
 
     private suspend fun deliverWithProgressWatchdog(

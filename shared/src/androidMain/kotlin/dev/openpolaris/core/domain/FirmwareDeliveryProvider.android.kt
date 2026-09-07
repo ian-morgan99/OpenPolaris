@@ -1,5 +1,7 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.net.SshCommandRunner
+
 /**
  * Android-side implementation of [platformFirmwareDelivery].
  *
@@ -23,3 +25,9 @@ actual fun platformFirmwareDelivery(
     port: Int,
     user: String,
 ): FirmwareDelivery = NoOpFirmwareDelivery
+
+actual fun platformFirmwareCommandRunner(
+    host: String,
+    port: Int,
+    user: String,
+): SshCommandRunner? = null

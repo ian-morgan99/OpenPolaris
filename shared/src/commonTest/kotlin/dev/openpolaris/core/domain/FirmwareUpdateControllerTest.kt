@@ -770,8 +770,8 @@ class FirmwareUpdateControllerTest {
 
         val ssh = ScriptedSshRunner()
         ssh.scriptNext(0, "Filesystem 1B-blocks Used Available Use% Mounted on\n/dev/root 200000000 50000000 150000000 25% /app/sd\n")  // pre-flight df: 150 MB free
-        ssh.scriptNext(0, "")                  // pkill+nohup restart
-        ssh.scriptNext(0, "[OMS] SP_EVENT_UPGRADE_SUCCESS\n")  // first Mlog tail
+        ssh.scriptNext(0, "READY\n")           // extracted tree verified
+        ssh.scriptNext(255, "", "connection closed by remote host") // reboot
 
         val delivery = RecordingDelivery()
         val controller = FirmwareUpdateController(
@@ -792,15 +792,12 @@ class FirmwareUpdateControllerTest {
         ) { statuses += it }
 
         assertIs<FirmwareUpdateController.Status.Done>(final)
-        // 3 scripted SSH calls: 1 pre-flight df + 1 restart + 1 tail
-        // (the tail returned Pass, so we don't keep polling).
+        // pre-flight + extracted-tree probe + mandatory reboot
         assertEquals(3, ssh.commands.size, "expected exactly 3 SSH calls, got: ${ssh.commands}")
         assertTrue(ssh.commands[0].contains("df -B1 /app/sd"),
             "first SSH call should be the pre-flight df, got: ${ssh.commands[0]}")
-        assertTrue(ssh.commands[1].contains("pkill polestar_app"),
-            "second SSH call should restart polestar_app, got: ${ssh.commands[1]}")
-        assertTrue(ssh.commands[2].contains("/app/Mlog.txt"),
-            "third SSH call should tail Mlog.txt, got: ${ssh.commands[2]}")
+        assertTrue(ssh.commands[1].contains("FwPkt/crcInfo"))
+        assertEquals("sync; reboot", ssh.commands[2])
         // The controller must surface an Installing(100) before Done so the UI can show 100%.
         val installing100 = statuses.filterIsInstance<FirmwareUpdateController.Status.Installing>()
             .any { it.percent == 100 }
@@ -886,7 +883,7 @@ class FirmwareUpdateControllerTest {
         )
 
         val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
-        assertTrue(failed.reason.contains("on-board install timed out"),
+        assertTrue(failed.reason.contains("package extraction timed out"),
             "expected on-board install timeout reason, got: ${failed.reason}")
         assertTrue(failed.reason.contains("50ms"),
             "expected the 50ms timeout to be quoted in the reason, got: ${failed.reason}")
@@ -895,8 +892,7 @@ class FirmwareUpdateControllerTest {
             "expected at least pre-flight + restart + 1 tail call, got: ${ssh.commands.size}")
         assertTrue(ssh.commands[0].contains("df -B1 /app/sd"),
             "first SSH call should be the pre-flight df, got: ${ssh.commands[0]}")
-        assertTrue(ssh.commands[1].contains("pkill polestar_app"),
-            "second SSH call should restart polestar_app, got: ${ssh.commands[1]}")
+        assertTrue(ssh.commands[1].contains("FwPkt/crcInfo"))
 
         session.disconnect()
         runCurrent()
@@ -932,11 +928,9 @@ class FirmwareUpdateControllerTest {
         )
 
         val failed = assertIs<FirmwareUpdateController.Status.Failed>(final)
-        assertTrue(failed.reason.contains("restart") || failed.reason.contains("exit=127"),
-            "expected restart-failure reason, got: ${failed.reason}")
-        // Pre-flight ran + restart was attempted — no tail calls because we bailed out.
-        assertEquals(2, ssh.commands.size,
-            "expected pre-flight + restart, got: ${ssh.commands.size}")
+        assertTrue(failed.reason.contains("package extraction timed out"),
+            "expected extraction timeout after failed probe, got: ${failed.reason}")
+        assertTrue(ssh.commands.size >= 2)
 
         session.disconnect()
         runCurrent()

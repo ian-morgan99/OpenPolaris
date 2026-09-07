@@ -1,5 +1,7 @@
 package dev.openpolaris.core.domain
 
+import dev.openpolaris.core.net.SshCommandRunner
+
 /**
  * Platform-supplied [FirmwareDelivery] factory.
  *
@@ -28,3 +30,10 @@ expect fun platformFirmwareDelivery(
     port: Int = 22,
     user: String = "root",
 ): FirmwareDelivery
+
+/** Platform companion used to verify and activate an SSH-delivered package. */
+expect fun platformFirmwareCommandRunner(
+    host: String,
+    port: Int = 22,
+    user: String = "root",
+): SshCommandRunner?

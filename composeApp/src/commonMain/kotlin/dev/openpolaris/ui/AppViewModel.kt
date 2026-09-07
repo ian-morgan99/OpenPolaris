@@ -28,6 +28,7 @@ import dev.openpolaris.core.domain.DeliveryMode
 import dev.openpolaris.core.domain.FirmwareDelivery
 import dev.openpolaris.core.domain.NoOpFirmwareDelivery
 import dev.openpolaris.core.domain.platformFirmwareDelivery
+import dev.openpolaris.core.domain.platformFirmwareCommandRunner
 import dev.openpolaris.core.domain.GimbalPosition
 import dev.openpolaris.core.io.FilePicker
 import dev.openpolaris.core.io.PickerBridge
@@ -2127,6 +2128,9 @@ class AppViewModel(
                 session = s,
                 delivery = firmwareDeliveryMode,
                 sshDelivery = buildFirmwareDelivery(),
+                sshCommandRunner = if (firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
+                    platformFirmwareCommandRunner(host = firmwareSshHost)
+                } else null,
                 chunkSize = 1024,
                 progressPollMs = 500,
                 progressDoneRepeats = 2,

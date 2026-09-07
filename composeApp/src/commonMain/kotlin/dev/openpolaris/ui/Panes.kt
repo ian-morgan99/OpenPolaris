@@ -811,8 +811,8 @@ private fun FirmwareStep2(vm: AppViewModel) {
         // ---- Delivery mode (verified vs experimental) -----------------
         // The default SSH_PIPE path is the verified one — the bytes
         // are scp'd to /app/sd/FwPkt.zip and the on-board
-        // SP_UpgradeCheckFw watcher takes over after the user
-        // reboots. The WIRE path drives 810/784/794/795/811/812
+        // 783 extraction trigger and boot-time SD scan take over.
+        // The WIRE path drives 810/784/794/795/811/812
         // through the binary control plane; that envelope is a
         // best-effort reconstruction from the Benro Connect
         // Android decompile and has not been observed in a live
@@ -832,9 +832,9 @@ private fun FirmwareStep2(vm: AppViewModel) {
                 RadioButton(
                     selected = vm.firmwareDeliveryMode == DeliveryMode.WIRE,
                     onClick = { vm.firmwareDeliveryMode = DeliveryMode.WIRE },
-                    enabled = !vm.firmwareBusy,
+                    enabled = false,
                 )
-                Text("Wire envelope (unverified) — 810/784/794/795/811/812", style = MaterialTheme.typography.bodyMedium)
+                Text("Wire envelope unavailable — chunk framing is unproven", style = MaterialTheme.typography.bodyMedium)
             }
             if (vm.firmwareDeliveryMode == DeliveryMode.WIRE) {
                 Text(

@@ -21,3 +21,9 @@ androidApp/key.properties
 # The workflow creates and deletes this directory in CI; this entry keeps a developer's
 # local run from accidentally staging it.
 docs/evidence/_regression-fixture/
+
+# Local tooling / editor state — per-machine, not source.
+.vscode/
+
+# LM Studio log-review reports are generated locally; keep them out of the tree.
+LMStudioLogEnhancements.md

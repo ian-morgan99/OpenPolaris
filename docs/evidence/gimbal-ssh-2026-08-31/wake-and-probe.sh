@@ -135,9 +135,15 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes ${POLARIS_SSH} '
   echo "--- recent dmesg (last 80 lines, USB/UART/firmware) ---"
   dmesg 2>&1 | tail -80 | grep -iE "usb|uart|serial|ftdi|cdc|firmware|upgrade|fwpkt|cdc_acm" || dmesg 2>&1 | tail -80
   echo "--- Mlog FwPkt touch (H1/H3) ---"
-  ls /app/mcu_debug/ 2>&1
-  grep -E "fwpkt|firmware|crc|upgrade|SP_UpgradeCheckFw|TtyUsbUartInit" /app/mcu_debug/Mlog_* 2>&1 | tail -60
-  echo "--- ps in mcu_debug (firmware check helpers) ---"
+  # NOTE (2026-09-04): on this firmware the Mlog is /app/Mlog.txt, not
+  # /app/mcu_debug/Mlog_* (that directory does not exist). Keep the old
+  # path as a fallback in case a future firmware build reintroduces it.
+  ls /app/mcu_debug/ 2>&1 || true
+  grep -E "fwpkt|firmware|crc|upgrade|SP_UpgradeCheckFw|TtyUsbUartInit" /app/Mlog.txt 2>&1 | tail -60
+  echo "--- /app error.log + Clog.txt (firmware check helpers) ---"
+  cat /app/error.log 2>&1 | tail -40
+  cat /app/Clog.txt 2>&1 | tail -40
+  echo "--- ps in /app (firmware check helpers) ---"
   ls -la /app/ 2>&1
 ' | tee "${OUT_DIR}/01-first-look.txt"
 
@@ -151,13 +157,26 @@ for rel in /proc/version /proc/cmdline /proc/mtd /etc/os-release; do
 done
 
 # Pull the most recent Mlog if reachable.
-Mlog_remote="$(ssh -o ConnectTimeout=5 -o BatchMode=yes ${POLARIS_SSH} \
-  'ls -t /app/mcu_debug/Mlog_* 2>/dev/null | head -1' 2>/dev/null | tr -d '\r')"
-if [ -n "${Mlog_remote}" ]; then
-  echo "pulling ${Mlog_remote}"
-  scp -o ConnectTimeout=5 ${POLARIS_SSH}:"${Mlog_remote}" "${OUT_DIR}/03-${Mlog_remote##*/}"
-else
-  echo "no Mlog_* found on device"
+# NOTE (2026-09-04): on this firmware the Mlog is /app/Mlog.txt (plus
+# /app/Clog.txt and /app/error.log), not /app/mcu_debug/Mlog_*. Try the
+# known-good path first, fall back to the old glob for other builds.
+Mlog_remote=""
+for cand in /app/Mlog.txt /app/Clog.txt /app/error.log; do
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes ${POLARIS_SSH} "test -s ${cand}" 2>/dev/null; then
+    Mlog_remote="${cand}"
+    echo "pulling ${Mlog_remote}"
+    scp -o ConnectTimeout=5 ${POLARIS_SSH}:"${Mlog_remote}" "${OUT_DIR}/03-${Mlog_remote##*/}" || true
+  fi
+done
+if [ -z "${Mlog_remote}" ]; then
+  Mlog_remote="$(ssh -o ConnectTimeout=5 -o BatchMode=yes ${POLARIS_SSH} \
+    'ls -t /app/mcu_debug/Mlog_* 2>/dev/null | head -1' 2>/dev/null | tr -d '\r')"
+  if [ -n "${Mlog_remote}" ]; then
+    echo "pulling ${Mlog_remote}"
+    scp -o ConnectTimeout=5 ${POLARIS_SSH}:"${Mlog_remote}" "${OUT_DIR}/03-${Mlog_remote##*/}" || true
+  else
+    echo "no Mlog found on device (checked /app/Mlog.txt, /app/Clog.txt, /app/error.log, /app/mcu_debug/Mlog_*)"
+  fi
 fi
 
 echo

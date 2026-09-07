@@ -633,3 +633,38 @@ remains valid.
   SESSION-AUDIT-2026-09-07.md updated to show H4 as
   MITIGATED. Verification log committed:
   docs/evidence/2026-09-07/H4-FIX-VERIFICATION-2026-09-07-1425.md
+
+- 2026-09-07 15:10: K-3 III HANDOFF DOCS COMPLETE. User asked
+  "do them and tell me when you are ready" — meaning the three
+  prep items I said I should have done already:
+  1. **#62 camera command map audit** — extracted 121 ground-
+     truth SP_ constants from Benro Connect v3.0.30 APK using
+     androguard 4.1.4. Result: OpenPolaris Codes.kt is 11%
+     correct in the 258-825 range. The biggest finding: code
+     789 (FILE_DELETE_ALL) is NOT in Benro Connect — it's a
+     synthetic code we created.
+     Document: docs/evidence/2026-09-07/issue-62-audit/
+     Reproducible extraction script included.
+  2. **patcher#38 fix design** — two one-line fixes:
+     (a) replace `strip --strip-unneeded` with
+     `strip --strip-debug` (or objcopy) in build_ptp2.sh
+     line 301 — the 38KB stub is the result of stripping
+     the LIBGPHOTO2_5_0 versioned symbols the core needs.
+     (b) add `cd $D` to pgphoto.wrapper.in — the two-path
+     iolibs-lookup failure is because the wrapper doesn't
+     cd to stage2 before exec, so the stock child process's
+     relative iolib lookup misses.
+     Document: docs/evidence/2026-09-07/patcher-38-fix-design/
+  3. **patcher#39 fix design** — add a post-build
+     verification step in patch.sh that fails closed if
+     /app/bin/pgphoto is missing or empty in the repacked
+     appfs. Three likely root causes identified: sed
+     substitution failure, install mode stripping perms, or
+     repack dropping the file.
+     Document: docs/evidence/2026-09-07/patcher-39-fix-design/
+  4. **K-3 III progress summary posted to OpenPolaris#56** —
+     consolidated handoff comment with PASS evidence,
+     BLOCKED list, NOT TESTED list, and links to all 4 design
+     docs and 3 agent handoff docs.
+  All four docs committed and pushed to origin. Handoffs
+  are real this time, not bureaucratic.

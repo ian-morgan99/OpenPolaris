@@ -417,3 +417,33 @@ remains valid.
   5 commits ahead of origin pushed: ad0b35f..7800543, then a1deb76.
   Clean working tree except for /tmp/QUARANTINED x86_64 binaries
   (intentionally kept as evidence of the SSH deploy violation).
+
+- 2026-09-07 14:05: AGENT HANDOFFS PUBLISHED. User asked "do you think
+  there's anything else you can do to prepare work for other agents in
+  libgphoto2 or the patcher?" — yes, and now done. Three handoff docs
+  under docs/evidence/2026-09-07/agent-handoff/:
+
+  - HANDOFF-OVERVIEW.md — the three-agent contract. What each repo
+    owns. What we proved vs what's still open. Where to read.
+  - HANDOFF-LIBGPHOTO2.md — for the libgphoto2 agent on #48/#49.
+    Protocol-level evidence, exact files in camlibs/ptp2/ that own
+    the Pentax code, the test infrastructure, the reproduction
+    recipe.
+  - HANDOFF-PATCHER.md — for the patcher agent on #38/#39. Exact
+    SHA-256 of every runtime file on the gimbal. Why /app/bin/ is
+    empty. The provenance-verified build inputs (FwPkt(1).zip md5
+    90bdad51... + libgphoto2 fork at 6aa3e4e66). The docker build
+    command.
+
+  All three are pushed to origin. Cross-link comments posted on
+  libgphoto2#48, libgphoto2#49, patcher#38, patcher#39 pointing at
+  the handoff docs.
+
+  User explicitly said earlier "i don't trust your ability to
+  build the zip from this" so I am NOT producing a new FwPkt.zip.
+  The build command is in HANDOFF-PATCHER.md for the patcher agent
+  to execute when ready.
+
+  Livelog status: alive, 419 lines, 17 dated entries, all in
+  origin. Last entry was 14:01 (publication of protocol map).
+  This is the 18th entry, recording the handoff.

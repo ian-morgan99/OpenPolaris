@@ -1,0 +1,37 @@
+# Snapshot at 2026-09-07T12:43:09+01:00 - read-only, no processes started/stopped
+
+## Processes
+  249     1  54:11  polestar_app     ./polestar_app
+ 1433     1   0:47  pgphoto.stage2o  /app/lib/stage2/pgphoto.stage2ondisk
+ 1493  1490   0:01  sh               sh -c ps -eo pid,ppid,etime,comm,args 2>&1 | grep -E "pgphoto|polestar|gphoto|stage2|sp_" | head -30
+ 1495  1493   0:01  grep             grep -E pgphoto|polestar|gphoto|stage2|sp_
+
+## Listeners on 8080 / 9090
+  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     
+   0: 00000000:2382 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1278 1 ee340b80 100 0 0 10 0                              
+   1: 00000000:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 3166 1 ee2ce1c0 100 0 0 10 0                              
+   4: 0100A8C0:2382 0400A8C0:9B3C 01 00000000:00000000 02:00000290 00000000     0        0 3230 2 ee2c8000 21 4 29 10 7                              
+   5: 0100A8C0:1F90 0200A8C0:C034 08 00000000:00000001 00:00000000 00000000     0        0 3231 1 ee2c9140 21 4 28 10 229                            
+   6: 0100A8C0:1F90 0200A8C0:C031 08 00000000:00000001 00:00000000 00000000     0        0 3174 1 ee2ced40 21 4 28 10 229                            
+   7: 0100A8C0:1F90 0400A8C0:8D4A 08 00000000:00000001 00:00000000 00000000     0        0 3175 1 ee2cf300 21 4 28 10 7                              
+   8: 0100A8C0:1F90 0200A8C0:C033 08 00000000:00000001 00:00000000 00000000     0        0 3229 1 ee2c8b80 21 4 28 10 229                            
+  10: 0100A8C0:2382 0200A8C0:C023 01 00000000:00000000 02:0000017D 00000000     0        0 2471 2 ee2c9700 22 4 29 10 -1                             
+  11: 0100A8C0:1F90 0200A8C0:C030 08 00000000:00000001 00:00000000 00000000     0        0 3168 1 ee2ce780 21 4 28 10 229                            
+  12: 0100A8C0:1F90 0200A8C0:C032 08 00000000:00000001 00:00000000 00000000     0        0 3201 1 ee2c85c0 21 4 28 10 229                            
+   1: 00000000:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 3166 1 ee2ce1c0 100 0 0 10 0                              
+   5: 0100A8C0:1F90 0200A8C0:C034 08 00000000:00000001 00:00000000 00000000     0        0 3231 1 ee2c9140 21 4 28 10 229                            
+   6: 0100A8C0:1F90 0200A8C0:C031 08 00000000:00000001 00:00000000 00000000     0        0 3174 1 ee2ced40 21 4 28 10 229                            
+   7: 0100A8C0:1F90 0400A8C0:8D4A 08 00000000:00000001 00:00000000 00000000     0        0 3175 1 ee2cf300 21 4 28 10 7                              
+   8: 0100A8C0:1F90 0200A8C0:C033 08 00000000:00000001 00:00000000 00000000     0        0 3229 1 ee2c8b80 21 4 28 10 229                            
+  11: 0100A8C0:1F90 0200A8C0:C030 08 00000000:00000001 00:00000000 00000000     0        0 3168 1 ee2ce780 21 4 28 10 229                            
+  12: 0100A8C0:1F90 0200A8C0:C032 08 00000000:00000001 00:00000000 00000000     0        0 3201 1 ee2c85c0 21 4 28 10 229                            
+
+## USB device tree (look for Pentax 25fb:0183/0189)
+/sys/bus/usb/devices/1-1/  1a40:0101  USB2.0 HUB  driver=usb
+/sys/bus/usb/devices/usb1/  1d6b:0002  xHCI Host Controller  driver=usb
+/sys/bus/usb/devices/usb2/  1d6b:0003  xHCI Host Controller  driver=usb
+
+## Anyone holding the Pentax USB endpoints?
+
+## Clog.txt tail (what the app runtime has been doing)
+[m[12:43:08:748 [1;32mINFO[m-]:camera_connected_to_app[1634]:[0;32;31m----camera_connected_to_app connected:1 

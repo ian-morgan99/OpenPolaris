@@ -497,3 +497,36 @@ remains valid.
   2. Run the protocol map against the K-1 II when it's connected
   3. Capture K-1 II baseline if possible
   4. Cross-check d02c code path against the libgphoto2 source
+
+- 2026-09-07 14:13: WAITING FOR PHYSICAL K-1 II SWAP. The K-3 III →
+  K-1 II swap is a physical operation (USB cable + K-3 III power
+  off + K-1 II power on). The user has to do it. While waiting:
+
+  1. Re-read the prior K-1 II live test evidence from
+     docs/evidence/k1ii-live-test-2026-09-06/ to set the
+     expected baseline.
+  2. Prepare the K-1 II protocol sweep — same 30 codes as the
+     K-3 III sweep, so the comparison is apples-to-apples.
+  3. K-1 II specific test surface: d02c cross-process
+     (gated OUT of k3iii family by commit 8e9560ca9), so the
+     vendor-mode toggle path is different. The K-1 II also
+     takes a different PTP session init than the K-3 III (the
+     K-3 III is MTP-only; the K-1 II is PTP-only).
+  4. Once the user swaps and reports the new lsusb ID, run
+     the protocol map and the liveBurst, then compare.
+
+  Action when user reports the swap:
+  - `ssh root@192.168.0.1 'lsusb | grep 25fb'` — should
+    show the K-1 II's USB ID (likely 25fb:0171 or 25fb:0172)
+  - `cli-probe send 286 1 192.168.0.1 9090` — should return
+    K-1 II's `manufacturer` and `model:pentax k-1 mark ii`
+  - `cli-probe send 525 1 192.168.0.1 9090` — push, may or
+    may not return (520 doesn't reply either; 525 only on
+    K-3 III)
+  - `./gradlew :tools:cli-probe:liveBurst -q` — canonical
+    pre-camera burst
+  - `cat /app/Mlog.txt | tail -50` — check the new
+    Pentax:vendor mode enabled line and any new errors
+  - Run `nina-pentax-spec` agent's test matrix (the
+     d02c_probe template from commit ee472a8c) if the K-1 II
+     is recognized at the protocol level

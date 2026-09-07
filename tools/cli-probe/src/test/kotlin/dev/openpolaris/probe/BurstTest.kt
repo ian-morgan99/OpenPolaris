@@ -117,6 +117,73 @@ class BurstTest {
         }
     }
 
+    @Test
+    fun `runBurst times out a silent code and continues on one connection`() {
+        ServerSocket(0).use { server ->
+            val peer = thread(isDaemon = true) {
+                runCatching {
+                    server.accept().use { socket ->
+                        val input = socket.getInputStream()
+                        val buf = ByteArray(256)
+                        // Consume both requests but deliberately never reply.
+                        while (input.read(buf) >= 0) Unit
+                    }
+                }
+            }
+            val started = System.nanoTime()
+            val lines = runBurst(
+                BurstArgs("127.0.0.1", server.localPort, codes = listOf(524, 802)),
+                sink = {},
+            )
+            val elapsedMs = (System.nanoTime() - started) / 1_000_000L
+            assertEquals(2, lines.count { it.contains("<no response>") }, lines.joinToString("\n"))
+            assertTrue(elapsedMs in 2_500..4_500, "two bounded silent reads took ${elapsedMs} ms")
+            peer.join(1000)
+        }
+    }
+
+    @Test
+    fun `runBurst receives delayed replies over one persistent connection`() {
+        ServerSocket(0).use { server ->
+            val accepts = java.util.concurrent.atomic.AtomicInteger()
+            val peer = thread(isDaemon = true) {
+                runCatching {
+                    server.accept().use { socket ->
+                        accepts.incrementAndGet()
+                        val input = socket.getInputStream()
+                        val output = socket.getOutputStream()
+                        val request = StringBuilder()
+                        while (true) {
+                            val b = input.read()
+                            if (b < 0) break
+                            request.append(b.toChar())
+                            if (b.toChar() == '#') {
+                                val code = request.toString().split('&').getOrNull(1)?.toIntOrNull()
+                                Thread.sleep(75)
+                                val frame = when (code) {
+                                    524 -> "1&524&2&state:1;#"
+                                    802 -> "1&802&2&band:5;#"
+                                    else -> "1&$code&2&ret:0;#"
+                                }
+                                output.write(frame.toByteArray())
+                                output.flush()
+                                request.clear()
+                            }
+                        }
+                    }
+                }
+            }
+            val lines = runBurst(
+                BurstArgs("127.0.0.1", server.localPort, codes = listOf(524, 802)),
+                sink = {},
+            )
+            assertEquals(1, accepts.get(), "burst must reuse one persistent socket")
+            assertTrue(lines.any { it.startsWith("  code=524") && it.contains("state=1") })
+            assertTrue(lines.any { it.startsWith("  code=802") && it.contains("band=5") })
+            peer.join(1000)
+        }
+    }
+
     // ---- runBurst: integration with stub-server ----
 
     @Test

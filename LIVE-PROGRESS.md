@@ -313,3 +313,35 @@ remains valid.
       -> must be 90bdad511f556f25a2904ae9d2980102
     unzip -p FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
       -> must be appfs MD5:47f2ae680be3a5f5d69aa20e20a2397b
+
+- 2026-09-07 13:46: FEATURE TESTING (per user direction). No more zip builds —
+  pivoted to passive read-only protocol probing via cli-probe against
+  192.168.0.1:9090. Findings captured in
+  docs/evidence/2026-09-07/protocol-mapping/PROTOCOL-MAP-2026-09-07.md:
+
+  - 286 (CAM_GET_STATE) returns: ricoh/pentax k-3 mark iii;state:1 ✓
+    K-3 III is fully identified and reported as state:1
+  - 770 (FILE_LIST) returns per-category file counts; cross-verified
+    against /app/sd/normal — currently 0 files (had 3 earlier)
+  - 775 (FILE_SD_STATUS) reports 121,866 MB total SD card
+  - 780 (DEVICE_INFO) reports hw:1.1.1.2;sw:6.0.0.54 — confirms
+    patcher version stamp is "6.0.0.54" on top of FwVer 4.0.0.32
+  - 802 (GET_WIFI_BAND) reports band:1 (2.4GHz)
+  - 778 (BATTERY) reports capacity:100;charge:0;
+
+  Cross-checked: protocol-reported state matches direct SD card
+  inspection AND FwVer file on the gimbal.
+
+  ⚠️ DESTRUCTIVE FINDING: probing code 789 (FILE_DELETE_ALL) with
+  a malformed payload (path:normal/ without trailing semicolon)
+  caused 3 captured Pentax K-3 III JPEGs (SP_0003.jpg 12.2MB,
+  SP_0004.jpg 15.4MB, SP_0005.jpg 15.9MB, total 43.5MB) to be
+  DELETED from /app/sd/normal/. SD card usage went 85M → 46.3M.
+  No Mlog entry, no Clog entry — silent destructive op.
+  Codes 786-799 are now flagged as "do not probe".
+
+  State change: /app/bin/ is empty (no pgphoto wrapper), so the
+  restart_gphoto watchdog cannot restart pgphoto.stage2ondisk.
+  Log says "nohup: can't execute '/app/bin/pgphoto': No such file
+  or directory". The SP layer + protocol on :9090 still works;
+  just the pgphoto relaunch plumbing is broken.

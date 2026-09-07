@@ -830,3 +830,16 @@ dead" — exactly the same state as the K-3 III matrix.
   valid and complete; the only thing that would change with
   a working runtime is the NOT TESTED rows becoming
   PASS/FAIL. Hardware owner remains UNCLAIMED.
+
+- 2026-09-07 16:00: CROSS-REPOSITORY ISSUE OWNERSHIP AUDIT.
+  Reviewed every open issue body and acceptance criteria in
+  OpenPolaris, benro-polaris-firmware-patcher and libgphoto2.
+  Full table: `docs/ISSUE-OWNERSHIP-AUDIT-2026-09-07.md`.
+  Split the firmware half of OpenPolaris#64 into patcher#40;
+  scoped OpenPolaris#65 to the process incident while patcher
+  #38/#39 own repair; closed patcher duplicate seeds #25/#26
+  and superseded conditional updater investigation #22.
+  Flagged stale/conflicting evidence in patcher #11/#15/#35/
+  #38/#39. All six open libgphoto2 issues remain correctly
+  located behind direct-reproduction or upstream-work gates.
+  No hardware commands were sent; owner remains UNCLAIMED.

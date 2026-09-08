@@ -50,3 +50,18 @@ boundary change, parser-breaking structural difference.
 
 Pin the patcher to **commit SHAs**, not branches, when citing these files in
 patcher-side issues — main moves.
+
+## FwPkt provenance handoff (binding on this repo too)
+
+The canonical registry for "which FwPkt bytes are which" lives in the patcher:
+[`benro-polaris-firmware-patcher/docs/FWPKT-PROVENANCE-CONTRACT.md`](https://github.com/ian-morgan99/benro-polaris-firmware-patcher/blob/main/docs/FWPKT-PROVENANCE-CONTRACT.md).
+
+When OpenPolaris **delivers** a FwPkt zip (e.g. `ScpFirmwareDelivery` →
+`/app/sd/FwPkt.zip`) or **receives** one from the patcher/libgphoto2 side, it must
+pass and verify all four handoff values: registry id, zip MD5 + SHA-256, payload
+appfs MD5, and both commit links (libgphoto2 source SHA + patcher commit/branch).
+OpenPolaris records the *received* row in its own handover doc (e.g.
+`docs/K1II-K3III-HANDOVER-*.md`) but does **not** re-derive provenance — the
+patcher's registry is the source of truth. A zip with no matching registry row is
+unprovenanced and must not be staged on a device.
+

@@ -29,3 +29,7 @@ docs/evidence/_regression-fixture/
 LMStudioLogEnhancements.md
 androidApp/keystore/*.keystore
 androidApp/key.properties
+
+# Local scratch / tool state — per-machine, not source.
+.lmstudio/
+test_output.txt

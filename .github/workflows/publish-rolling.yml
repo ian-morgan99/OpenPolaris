@@ -82,6 +82,12 @@ jobs:
             | awk -F': *' '/SHA-256 digest/ {print $2}' | head -1 > apk-sha256.txt
           echo "APK SHA-256: $(cat apk-sha256.txt)"
 
+      - name: Move rolling tag to this commit
+        run: |
+          set -euo pipefail
+          git tag --force latest "${GITHUB_SHA}"
+          git push --force origin refs/tags/latest
+
       - name: Upload APK to rolling prerelease
         uses: softprops/action-gh-release@v2
         with:
@@ -149,6 +155,7 @@ jobs:
           make_latest: false
           files: |
             desktopApp\build\inno\output\*-Setup-*.exe
+            desktopApp\build\compose\binaries\main\msi\*.msi
             desktopApp\build\compose\binaries\main\app\OpenPolaris-windows-x64.zip
 
   # ---------------------------------------------------------------------------

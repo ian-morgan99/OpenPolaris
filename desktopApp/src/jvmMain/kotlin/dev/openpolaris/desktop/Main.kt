@@ -25,6 +25,18 @@ private const val DEFAULT_POLARIS_PROFILE = "polaris_d13e86"
 // per machine. Overridable.
 private const val DEFAULT_POLARIS_IFNAME = "wlp8s0"
 
+private fun desktopVersionLabel(): String {
+    val build = Properties()
+    val loaded = runCatching {
+        object {}.javaClass.getResourceAsStream("/openpolaris-build.properties")
+            ?.use(build::load) != null
+    }.getOrDefault(false)
+    if (!loaded) return "OpenPolaris Desktop (development build)"
+    val version = build.getProperty("version", "unknown")
+    val commit = build.getProperty("commit", "unknown")
+    return "OpenPolaris Desktop v$version ($commit)"
+}
+
 private fun resolveProfile(): String {
     System.getenv("OPENPOLARIS_PROFILE")?.takeIf { it.isNotBlank() }?.let { return it }
     // CLI flag wins over env. Convention: --profile=<name>
@@ -106,7 +118,7 @@ fun main() = application {
             wakeProbe = { progress ->
                 orchestrator.wakeOnly(progress = progress)
             },
+            versionLabel = desktopVersionLabel(),
         )
     }
 }
-

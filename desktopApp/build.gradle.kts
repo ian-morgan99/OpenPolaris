@@ -30,6 +30,28 @@ kotlin {
 val appPackageName = "OpenPolaris"
 val appPackageVersion = "1.0.0"
 
+val generatedBuildInfoDirectory = layout.buildDirectory.dir("generated/build-info")
+val generateBuildInfo by tasks.registering {
+    val outputDirectory = generatedBuildInfoDirectory.get().asFile
+    val gitCommit = providers.exec {
+        commandLine("git", "rev-parse", "--short=7", "HEAD")
+    }.standardOutput.asText.map { it.trim() }
+    inputs.property("version", appPackageVersion)
+    inputs.property("gitCommit", gitCommit)
+    outputs.dir(outputDirectory)
+    doLast {
+        outputDirectory.mkdirs()
+        outputDirectory.resolve("openpolaris-build.properties").writeText(
+            "version=$appPackageVersion\ncommit=${gitCommit.get()}\n",
+        )
+    }
+}
+
+tasks.named<ProcessResources>("jvmProcessResources") {
+    dependsOn(generateBuildInfo)
+    from(generatedBuildInfoDirectory)
+}
+
 compose.desktop {
     application {
         mainClass = "dev.openpolaris.desktop.MainKt"

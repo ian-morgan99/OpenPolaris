@@ -35,6 +35,8 @@ class BluetoothProbe(
      * appears to need ~1s; 2s is a safe default.
      */
     private val wakeSettleMs: Int = 2_000,
+    /** Keep the wake-producing GATT link open while Wi-Fi comes up. */
+    private val retainGattConnection: Boolean = true,
     /**
      * GATT characteristic handle UUID that toggles the gimbal's Wi-Fi AP,
      * for firmware revisions that require a GATT write. Format:
@@ -105,11 +107,11 @@ class BluetoothProbe(
      * peripheral. This is the mechanism the official Benro app uses; see
      * `polaris-re-results.md` §8.5. The sequence is:
      *
-     *   1. `bluetoothctl pair`   — bond so subsequent connects don't prompt
-     *   2. `bluetoothctl trust`  — auto-accept future connections
-     *   3. `bluetoothctl connect` — open the GATT link (this IS the wake pulse)
-     *   4. wait [wakeSettleMs]   — let the firmware bring the AP up
-     *   5. `bluetoothctl disconnect` — drop the BT link; we don't need it
+     *   1. `bluetoothctl connect` — open GATT immediately (this IS the wake pulse)
+     *   2. on failure, try pair/trust as best-effort cache improvements
+     *   3. retry `connect`; pair/trust failures never suppress this attempt
+     *   4. wait [wakeSettleMs] for the AP
+     *   5. retain GATT by default; callers may explicitly opt out
      *
      * After this returns, the gimbal's AP should be visible to NetworkManager
      * (or any wifi scanner). The caller should then bring up the
@@ -118,15 +120,28 @@ class BluetoothProbe(
      * Throws [BridgeException] if any bluetoothctl call fails.
      */
     fun wake(device: DiscoveredDevice) {
-        runner.run(listOf("bluetoothctl", "pair", device.address))
-        runner.run(listOf("bluetoothctl", "trust", device.address))
-        runner.run(listOf("bluetoothctl", "connect", device.address))
+        val connect = listOf("bluetoothctl", "connect", device.address)
+        try {
+            runner.run(connect)
+        } catch (firstFailure: BridgeException) {
+            runCatching { runner.run(listOf("bluetoothctl", "pair", device.address)) }
+            runCatching { runner.run(listOf("bluetoothctl", "trust", device.address)) }
+            try {
+                runner.run(connect)
+            } catch (retryFailure: BridgeException) {
+                throw BridgeException(
+                    "bluetoothctl connect ${device.address}",
+                    retryFailure.exitCode,
+                    "direct connect failed (${firstFailure.message}); retry failed (${retryFailure.message})",
+                )
+            }
+        }
         if (wakeSettleMs > 0) {
             Thread.sleep(wakeSettleMs.toLong())
         }
-        // Disconnect is best-effort: if it fails, the link will drop on its
-        // own once the device goes idle, and the WiFi AP is already up.
-        runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
+        if (!retainGattConnection) {
+            runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
+        }
     }
 
     /**

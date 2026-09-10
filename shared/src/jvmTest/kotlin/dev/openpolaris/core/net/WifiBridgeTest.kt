@@ -76,16 +76,20 @@ class WifiBridgeTest {
     }
 
     @Test
-    fun `installPolicyRoute adds rule and routes idempotently`() {
+    fun `installPolicyRoute delegates only the fixed contract to privileged helper`() {
         val fake = FakeRunner()
         val rt = FakeRtTables()
         val bridge = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = rt)
         bridge.installPolicyRoute("wlp8s0")
         bridge.installPolicyRoute("wlp8s0")
-        val rule = fake.calls.filter { it.first() == "ip" && it.getOrNull(1) == "rule" }
-        val addRule = rule.count { it == listOf("ip", "rule", "add", "to", "192.168.0.0/24", "table", fakeLikelyTableId(), "priority", "1000") }
-        assertEquals(1, addRule, "rule should be added once, even after two install calls")
-        assertEquals(1, rt.appends.size, "rt_tables should be appended to once")
+        assertEquals(
+            listOf(
+                listOf("sudo", "-n", "/usr/local/libexec/openpolaris-network-helper", "install", "wlp8s0"),
+                listOf("sudo", "-n", "/usr/local/libexec/openpolaris-network-helper", "install", "wlp8s0"),
+            ),
+            fake.calls,
+        )
+        assertEquals(0, rt.appends.size)
     }
 
     @Test

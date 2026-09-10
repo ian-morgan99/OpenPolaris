@@ -8,7 +8,6 @@ import dev.openpolaris.core.protocol.commandWithSubtype
 import dev.openpolaris.core.protocol.Codes
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.io.ByteArrayOutputStream
 
 private fun log(s: String) { println(s); System.out.flush() }
 
@@ -16,8 +15,23 @@ fun main(args: Array<String>) {
     val host = args.getOrNull(0) ?: "127.0.0.1"
     val port = args.getOrNull(1)?.toIntOrNull() ?: 9099
     val destructive = System.getenv("DESTRUCTIVE")?.toBooleanStrictOrNull() == true
+    val allowCapture = System.getenv("ALLOW_CAPTURE")?.toBooleanStrictOrNull() == true
+    val allowUnverifiedCamera = System.getenv("ALLOW_UNVERIFIED_CAMERA")?.toBooleanStrictOrNull() == true
+    val allowUnsafeProtocol = System.getenv("ALLOW_UNSAFE_PROTOCOL")?.toBooleanStrictOrNull() == true
 
-    log("OpenPolaris smoke test -> $host:$port  (destructive=$destructive)")
+    runSmoke(host, port, destructive, allowCapture, allowUnverifiedCamera, allowUnsafeProtocol)
+}
+
+internal fun runSmoke(
+    host: String,
+    port: Int,
+    destructive: Boolean,
+    allowCapture: Boolean,
+    allowUnverifiedCamera: Boolean = false,
+    allowUnsafeProtocol: Boolean = false,
+    responseWindowMs: Long = 5_000,
+) {
+    log("OpenPolaris smoke test -> $host:$port  (destructive=$destructive capture=$allowCapture)")
 
     val pass = mutableListOf<String>()
     val fail = mutableListOf<String>()
@@ -29,12 +43,16 @@ fun main(args: Array<String>) {
     // window was classifying it as "no immediate response / push-mode"
     // and creating misleading evidence. 5000ms matches the in-app
     // `request()` timeout and gives the gimbal room to answer.
-    socket.soTimeout = 5000
     val out = socket.getOutputStream()
     val `in` = socket.getInputStream()
     val parser = ResponseParser()
 
     fun runOne(label: String, code: Int, keyValue: Pair<String, String>? = null) {
+        if (code !in SAFE_LIVE_READ_CODES && !allowUnsafeProtocol) {
+            log("BLOCKED  $label (code=$code) -- not in the evidence-backed live read allowlist")
+            skip += "$label (unsafe or unknown classification)"
+            return
+        }
         val req = if (keyValue != null) {
             commandWithSubtype(code) {
                 put(keyValue.first, keyValue.second)
@@ -43,21 +61,11 @@ fun main(args: Array<String>) {
             commandWithSubtype(code) {}
         }
         out.write(req); out.flush()
-
-        val pending = ByteArrayOutputStream()
-        val buf = ByteArray(4096)
-        try {
-            while (true) {
-                val n = `in`.read(buf)
-                if (n <= 0) break
-                pending.write(buf, 0, n)
-            }
-        } catch (_: java.net.SocketTimeoutException) {
-            // expected
-        }
-        val bytes = pending.toByteArray()
+        val startedAt = System.nanoTime()
+        val bytes = drainForWindow(socket, `in`, responseWindowMs)
+        val latencyMs = (System.nanoTime() - startedAt) / 1_000_000
         if (bytes.isEmpty()) {
-            log("SKIP  $label (code=$code) -- no immediate response (setter or push-mode)")
+            log("NOT TESTED  $label (code=$code latencyMs=$latencyMs) -- no matching response")
             skip += label
             return
         }
@@ -67,10 +75,16 @@ fun main(args: Array<String>) {
             fail += "$label (unparsed)"
             return
         }
-        val summaries = frames.joinToString(" | ") { f ->
+        val matching = frames.filter { it.code == code }
+        if (matching.isEmpty()) {
+            log("FAIL  $label (code=$code latencyMs=$latencyMs) -- ${frames.size} unrelated push frame(s)")
+            fail += "$label (no correlated response)"
+            return
+        }
+        val summaries = matching.joinToString(" | ") { f ->
             "code=${f.code} ${f.fields.entries.joinToString(" ") { "${it.key}=${it.value}" }}"
         }
-        log("PASS  $label (req=$code) -- $summaries")
+        log("PASS  $label (req=$code latencyMs=$latencyMs) -- $summaries")
         pass += label
     }
 
@@ -82,9 +96,12 @@ fun main(args: Array<String>) {
         }
 
         // 2. Camera info burst
-        log("\n== 2. Camera info burst (10 codes) ==")
-        for (code in CommandTable.BURST_CAMERA_CODES) {
-            runOne("cam.$code", code)
+        log("\n== 2. Legacy inferred camera burst ==")
+        if (allowUnverifiedCamera) {
+            for (code in CommandTable.BURST_CAMERA_CODES) runOne("cam.$code", code)
+        } else {
+            log("BLOCKED  inferred camera burst -- set ALLOW_UNVERIFIED_CAMERA=1 only on an isolated test target")
+            skip += "inferred camera burst (unsafe mapping)"
         }
 
         // 3. Push stream codes (polling loop)
@@ -98,10 +115,17 @@ fun main(args: Array<String>) {
         )) {
             runOne("push.$code", code)
         }
-        val capture = CommandBuilder(Codes.CAM_CAPTURE, Codes.CAM_CAPTURE_SUBTYPE)
-            .putRaw(Codes.CAM_CAPTURE_PAYLOAD)
-            .build()
-        out.write(capture); out.flush()
+        if (allowCapture) {
+            val capture = CommandBuilder(Codes.CAM_CAPTURE, Codes.CAM_CAPTURE_SUBTYPE)
+                .putRaw(Codes.CAM_CAPTURE_PAYLOAD)
+                .build()
+            out.write(capture); out.flush()
+            log("NOT TESTED  capture.${Codes.CAM_CAPTURE} -- shutter sent; final file-ready validation is not implemented")
+            skip += "capture (final completion unverified)"
+        } else {
+            log("BLOCKED  capture.${Codes.CAM_CAPTURE} -- set ALLOW_CAPTURE=1 for an explicit shutter opt-in")
+            skip += "capture (ALLOW_CAPTURE=0)"
+        }
 
         // 4. File/SD reads
         log("\n== 4. File/SD reads ==")
@@ -162,22 +186,27 @@ fun main(args: Array<String>) {
         log("\n== 9. Camera info ==")
         runOne("cam-info.${Codes.CAM_INFO}", Codes.CAM_INFO)
         runOne("cam-info.${Codes.CAM_FOCUS}", Codes.CAM_FOCUS)
-        runOne("cam-info.${Codes.CAM_GET_ISO}", Codes.CAM_GET_ISO)
-        runOne("cam-info.${Codes.CAM_GET_WB}", Codes.CAM_GET_WB)
-        runOne("cam-info.${Codes.CAM_GET_FNUM}", Codes.CAM_GET_FNUM)
-        runOne("cam-info.${Codes.CAM_GET_EV}", Codes.CAM_GET_EV)
-        runOne("cam-info.${Codes.CAM_GET_FOCUS}", Codes.CAM_GET_FOCUS)
-        runOne("cam-info.${Codes.CAM_GET_IMG_SIZE}", Codes.CAM_GET_IMG_SIZE)
-        runOne("cam-info.${Codes.CAM_GET_IMG_FMT}", Codes.CAM_GET_IMG_FMT)
-        runOne("cam-info.${Codes.CAM_GET_COLOR}", Codes.CAM_GET_COLOR)
-        runOne("cam-info.${Codes.CAM_GET_SHUTTER}", Codes.CAM_GET_SHUTTER)
-        runOne("cam-info.${Codes.CAM_GET_CAPTURE_MODE}", Codes.CAM_GET_CAPTURE_MODE)
+        if (allowUnverifiedCamera) {
+            runOne("cam-info.${Codes.CAM_GET_ISO}", Codes.CAM_GET_ISO)
+            runOne("cam-info.${Codes.CAM_GET_WB}", Codes.CAM_GET_WB)
+            runOne("cam-info.${Codes.CAM_GET_FNUM}", Codes.CAM_GET_FNUM)
+            runOne("cam-info.${Codes.CAM_GET_EV}", Codes.CAM_GET_EV)
+            runOne("cam-info.${Codes.CAM_GET_FOCUS}", Codes.CAM_GET_FOCUS)
+            runOne("cam-info.${Codes.CAM_GET_IMG_SIZE}", Codes.CAM_GET_IMG_SIZE)
+            runOne("cam-info.${Codes.CAM_GET_IMG_FMT}", Codes.CAM_GET_IMG_FMT)
+            runOne("cam-info.${Codes.CAM_GET_COLOR}", Codes.CAM_GET_COLOR)
+            runOne("cam-info.${Codes.CAM_GET_SHUTTER}", Codes.CAM_GET_SHUTTER)
+            runOne("cam-info.${Codes.CAM_GET_CAPTURE_MODE}", Codes.CAM_GET_CAPTURE_MODE)
+        } else {
+            log("BLOCKED  inferred camera parameter queries -- unsafe mapping")
+            skip += "camera parameter queries (unsafe mapping)"
+        }
 
         // 10. Camera setters — DESTRUCTIVE only
         log("\n== 10. Camera setters (DESTRUCTIVE=$destructive) ==")
-        if (!destructive) {
-            log("SKIP  camera setters -- set DESTRUCTIVE=1 to exercise")
-            skip += "camera setters (DESTRUCTIVE=0)"
+        if (!destructive || !allowUnverifiedCamera) {
+            log("BLOCKED  camera setters -- require DESTRUCTIVE=1 and ALLOW_UNVERIFIED_CAMERA=1")
+            skip += "camera setters (explicit gates missing)"
         } else {
             val setters = listOf(
                 "set.iso" to Codes.CAM_SET_ISO,
@@ -223,4 +252,28 @@ fun main(args: Array<String>) {
         skip.forEach { log("  - $it") }
     }
     if (fail.isEmpty()) log("\nAll exercised tests PASSED.")
+}
+
+/** Codes with direct evidence that an empty request is observational only. */
+internal val SAFE_LIVE_READ_CODES: Set<Int> = buildSet {
+    addAll(CommandTable.BURST_PRE_CAMERA.map { it.code })
+    addAll(
+        listOf(
+            Codes.PUSH_MODE_STATE,
+            Codes.GET_GIMBAL_POS,
+            Codes.GET_TEMPERATURE,
+            Codes.BATTERY_STATUS,
+            Codes.BATTERY_DETAIL,
+            Codes.FILE_SD_STATUS,
+            Codes.DEVICE_INFO,
+            Codes.CAM_INFO,
+            Codes.CAM_GET_STATE,
+            Codes.CAM_LIVEVIEW_GET,
+            Codes.GET_DITHER_STATE,
+            Codes.GET_LIMIT_STATE,
+            Codes.GET_SETTLING_TIME,
+            Codes.GET_AUTO_LEVEL_EN,
+            Codes.GET_TILT_STATE,
+        )
+    )
 }

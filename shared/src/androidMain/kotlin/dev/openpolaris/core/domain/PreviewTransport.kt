@@ -4,6 +4,7 @@ import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
@@ -17,6 +18,7 @@ class JvmPreviewTransport(
 ) : PreviewTransport {
     @Volatile private var cancelled: Boolean = false
     private var connection: HttpURLConnection? = null
+    private var receivedValidFrame: Boolean = false
 
     override fun start(host: String, port: Int, path: String) {
         val url = URL("http://$host:$port$path")
@@ -24,7 +26,7 @@ class JvmPreviewTransport(
         try {
             conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 5_000
-                readTimeout = 0 // never time out the read on an open stream
+                readTimeout = PREVIEW_READ_TIMEOUT_MS
                 doInput = true
                 useCaches = false
                 instanceFollowRedirects = false
@@ -46,6 +48,11 @@ class JvmPreviewTransport(
             val stream = BufferedInputStream(conn.inputStream, 64 * 1024)
             val dis = DataInputStream(stream)
             readParts(dis, boundary)
+        } catch (t: SocketTimeoutException) {
+            if (!cancelled) {
+                val message = if (receivedValidFrame) "Preview stream stalled" else "No preview frame within 10s"
+                onError(IllegalStateException(message, t))
+            }
         } catch (t: Throwable) {
             if (!cancelled) onError(t)
         } finally {
@@ -93,6 +100,11 @@ class JvmPreviewTransport(
             }
             if (cancelled) return
             // 4. Hand off; onFrame returning false means "drop".
+            if (!isPlausibleJpeg(bytes)) {
+                onError(IllegalStateException("Preview part is not a non-empty JPEG (${bytes.size} bytes)"))
+                return
+            }
+            receivedValidFrame = true
             onFrame(bytes)
             // 5. Consume the trailing \r\n (or \n) after the part body.
             readCrlf(dis)
@@ -188,6 +200,14 @@ class JvmPreviewTransport(
             }
         }
         return null
+    }
+    private fun isPlausibleJpeg(bytes: ByteArray): Boolean =
+        bytes.size >= 4 &&
+            bytes[0] == 0xff.toByte() && bytes[1] == 0xd8.toByte() &&
+            bytes[bytes.lastIndex - 1] == 0xff.toByte() && bytes[bytes.lastIndex] == 0xd9.toByte()
+
+    private companion object {
+        const val PREVIEW_READ_TIMEOUT_MS = 10_000
     }
 }
 

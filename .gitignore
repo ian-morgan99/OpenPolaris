@@ -27,3 +27,5 @@ docs/evidence/_regression-fixture/
 
 # LM Studio log-review reports are generated locally; keep them out of the tree.
 LMStudioLogEnhancements.md
+androidApp/keystore/*.keystore
+androidApp/key.properties

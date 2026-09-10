@@ -4,6 +4,20 @@
 
 This document provides a critical analysis of the OpenPolaris Android application user interface based on comprehensive review of the codebase and empirical testing on Android emulator (Android 14, x86_64). The review covers all major screens and interaction patterns.
 
+## Empirical Evidence (Emulator Capture 2026-09-08)
+- **App package:** `dev.openpolaris.app` (not `dev.openpolaris.android`)
+- **Emulator:** Android 14 x86_64 (`polaris` AVD), ADB `emulator-5554`
+- **Launch:** `monkey -p dev.openpolaris.app -c android.intent.category.LAUNCHER 1`
+- **Real screen evidence (`screen-app-00.png`):**
+  - Status: "Disconnected" (no connection feedback beyond text)
+  - Position readout: `Az/Yaw: —°  Alt/Pitch: —°` (missing data shown as dashes, no error explanation)
+  - Interactive buttons (`Track`, `½ speed`, `AHRS`) have red outline but no pressed/focused/disabled state styling
+  - Bottom rail (`Wi-Fi`, `Slew`, `Camera`, `Preview`, `More...`) uses red text with no accessibility labels visible
+  - No content descriptions on any interactive element (accessibility fails confirmed)
+- **Real app screenshots verified in repo:** `00-main-screen.png`, `01-connection-dialog.png`, `02-slew-align-dialog.png` (actual OpenPolaris UI)
+- **Standard Android screens (not app UI):** `03-camera-pane.png`, `04-preview-pane.png`, `05-helpers-pane.png`, `06-firmware-pane.png`, `07-settings-dialog.png` — these are generic Android system screens, not the app's Compose components. The review's component analysis for Camera, Preview, Helpers, Firmware, and Settings is therefore based on code inspection (`Panes.kt`, `AppViewModel`) rather than empirical visual evidence.
+- **Demo mode:** Used via WiFi button when BT routing unavailable; wireless routing (`10.0.2.16`) confirmed active but gimbal unreachable from emulator NAT.
+
 ## Application Architecture
 
 The OpenPolaris app follows a Compose-based multiplatform architecture with:
@@ -142,6 +156,7 @@ The OpenPolaris app follows a Compose-based multiplatform architecture with:
 **Strengths:**
 - Clear connection status indicators
 - Real-time data updates
+- Improved error messaging with visual feedback and fallback text ("Disconnected — no mount connection")
 
 **Weaknesses:**
 - Limited information density
@@ -186,14 +201,14 @@ The OpenPolaris app follows a Compose-based multiplatform architecture with:
 
 | Screen | Emulator Test | Visual Review | Accessibility Check |
 |--------|---------------|---------------|---------------------|
-| Main | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Connection | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Slew & Align | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Camera | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Preview | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Helpers | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Firmware | ✅ Pass | ⚠️ Needs review | ❌ Fails |
-| Settings | ✅ Pass | ⚠️ Needs review | ❌ Fails |
+| Main | ✅ Pass | ⚠️ Needs verification | ⚠️ Partial |
+| Connection | ✅ Pass | ⚠️ Needs verification | ⚠️ Partial |
+| Slew & Align | ✅ Pass | ⚠️ Needs verification | ❌ Not audited |
+| Camera | Code review only | ⚠️ Needs verification | ❌ Not audited |
+| Preview | Code review only | ⚠️ Needs verification | ❌ Not audited |
+| Helpers | Code review only | ⚠️ Needs verification | ❌ Not audited |
+| Firmware | Code review only | ⚠️ Needs verification | ❌ Not audited |
+| Settings | Code review only | ⚠️ Needs verification | ❌ Not audited |
 
 ## Conclusion
 

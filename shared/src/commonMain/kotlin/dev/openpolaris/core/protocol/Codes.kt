@@ -32,6 +32,8 @@ package dev.openpolaris.core.protocol
  * Payloads and key names are ground truth from polestar_app strings.
  */
 object Codes {
+    /** Release safety gate: inferred camera parameter mappings must never hit hardware. */
+    const val CAMERA_PARAMETERS_VERIFIED = false
     // ---- gimbal status / push ------------------------------------------------
     // 0 — session/handshake ret (live 2026-09-01: `0@ret:-1;` first probe, then
     // `0@ret:0;` on retry). Not a real command, but a single byte the gimbal

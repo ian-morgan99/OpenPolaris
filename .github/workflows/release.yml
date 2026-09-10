@@ -8,7 +8,7 @@ name: Release
 # `INSTALL_FAILED_UPDATE_INCOMPATIBLE` / "package is not valid".
 #
 # This workflow:
-#  1. Decodes the committed release keystore and password from secrets.
+#  1. Decodes the release keystore and password from protected secrets.
 #  2. Materialises `androidApp/key.properties` so `:androidApp:assembleRelease`
 #     picks up the signing config (see androidApp/build.gradle.kts).
 #  3. Builds the signed APK and verifies it with `apksigner verify`.
@@ -34,7 +34,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -93,32 +92,21 @@ jobs:
           APK="androidApp/build/outputs/apk/release/androidApp-release.apk"
           test -f "${APK}" || { echo "::error::APK not found at ${APK}"; exit 1; }
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "${APK}"
-          # Print the SHA-256 fingerprint for the release notes; the user
-          # can compare it against the value reported by their device's
-          # package manager when verifying the install.
+          sha256sum "${APK}" > apk-sha256.txt
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --print-certs "${APK}" \
-            | awk -F': *' '/SHA-256 digest/ {print $2}' | head -1 > apk-sha256.txt
-          echo "APK SHA-256: $(cat apk-sha256.txt)"
-
-      - name: Determine tag (workflow_dispatch fallback)
-        id: tag
-        run: |
-          if [ -n "${GITHUB_REF_NAME:-}" ] && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-            echo "name=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
-          else
-            # workflow_dispatch: derive from the latest v* tag in history.
-            TAG=$(git describe --tags --abbrev=0 --match 'v*.*.*' 2>/dev/null || echo "manual-${GITHUB_RUN_ID}")
-            echo "name=${TAG}" >> "${GITHUB_OUTPUT}"
-          fi
+            | awk -F': *' '/Signer #1 certificate SHA-256 digest/ {print $2}' | head -1 > apk-signer-sha256.txt
+          test -s apk-sha256.txt
+          test -s apk-signer-sha256.txt
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.tag.outputs.name }}
+          name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
             androidApp/build/outputs/apk/release/androidApp-release.apk
             apk-sha256.txt
+            apk-signer-sha256.txt
 
   # ---------------------------------------------------------------------------
   # Windows desktop installer (Inno Setup EXE + portable ZIP, best-effort MSI).
@@ -160,15 +148,16 @@ jobs:
       - name: Build EXE installer (Inno Setup)
         run: .\gradlew.bat :desktopApp:createExeInstaller --console=plain
 
-      # Best-effort MSI: jpackage's MSI path needs WiX 3.0+. If the runner's
-      # choco install fails, the EXE + ZIP below still ship (issue #41).
+      # jpackage's MSI path requires WiX 3.0+.
       - name: Install WiX 3 (required by jpackage --type msi)
-        continue-on-error: true
-        id: wix
         run: choco install wixtoolset --no-progress -y
 
+      - name: Verify WiX toolchain
+        run: |
+          candle -?
+          light -?
+
       - name: Build Windows MSI installer
-        if: steps.wix.outcome == 'success'
         run: .\gradlew.bat :desktopApp:packageMsi --console=plain
 
       - name: Zip app-image
@@ -185,23 +174,20 @@ jobs:
             Write-Host "EXE: $($f.Name) ($($f.Length) bytes)"
           }
 
-      - name: Determine tag (workflow_dispatch fallback)
-        id: tag
+      - name: Verify MSI installer is non-empty
         run: |
-          if ("${{ github.ref_type }}" -eq "tag") {
-            echo "name=${GITHUB_REF_NAME}" >> "$env:GITHUB_OUTPUT"
-          } else {
-            $TAG = git describe --tags --abbrev=0 --match 'v*.*.*' 2>$null
-            if (-not $TAG) { $TAG = "manual-${env:GITHUB_RUN_ID}" }
-            echo "name=$TAG" >> "$env:GITHUB_OUTPUT"
+          $msi = Get-ChildItem desktopApp\build\compose\binaries\main\msi\*.msi -ErrorAction SilentlyContinue
+          if (-not $msi) { throw "No MSI artifact produced" }
+          foreach ($f in $msi) {
+            if ($f.Length -le 0) { throw "MSI $($f.Name) is 0 bytes" }
           }
 
       - name: Upload Windows artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.tag.outputs.name }}
+          name: ${{ github.ref_name }}
           files: |
             desktopApp/build/inno/output/*-Setup-*.exe
             desktopApp/build/compose/binaries/main/app/OpenPolaris-windows-x64.zip
             desktopApp/build/compose/binaries/main/msi/*.msi
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true

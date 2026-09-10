@@ -60,7 +60,7 @@ object FeatureFlags {
     /** Camera 10-param GET/SET steppers (258-311). Experimental — see
      *  CameraController. Lives behind this flag so the unsafe-codes warning
      *  banner can be turned off in test rigs. */
-    const val experimentalCamera: Boolean = true
+    const val experimentalCamera: Boolean = false
     /** Tonight catalog/comets (read-only, no wire side effect). */
     const val catalog: Boolean = true
     /** Star alignment record (530). */

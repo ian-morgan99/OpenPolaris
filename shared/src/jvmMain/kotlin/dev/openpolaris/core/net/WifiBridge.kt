@@ -25,6 +25,7 @@ open class WifiBridge(
     private val policyTableName: String = "polaris-wifi",
     private val policyPriority: Int = 1000,
     private val rtTables: RtTables = SystemRtTables,
+    private val privilegedHelper: String = "/usr/local/libexec/openpolaris-network-helper",
 ) {
 
     /** Exposed for progress messages; the policy route is keyed off this CIDR. */
@@ -50,39 +51,17 @@ open class WifiBridge(
     // ---------- Routing ----------------------------------------------------
 
     fun installPolicyRoute(ifname: String) {
-        val tableId = ensureRoutingTable()
-        val rules = runner.run(listOf("ip", "rule", "show"))
-        if (!rules.lineSequence().any { it.contains("to $gimbalCidr") && it.contains("lookup $tableId") }) {
-            runner.run(
-                listOf("ip", "rule", "add", "to", gimbalCidr, "table", tableId, "priority", policyPriority.toString())
-            )
-        }
-        val table = runner.run(listOf("ip", "route", "show", "table", tableId))
-        if (!table.lineSequence().any { it.startsWith("$gimbalCidr ") && it.contains("dev $ifname") }) {
-            runner.run(
-                listOf("ip", "route", "add", gimbalCidr, "dev", ifname, "table", tableId)
-            )
-        }
-        if (!table.lineSequence().any { it.startsWith("default ") && it.contains("dev $ifname") }) {
-            // High-metric default via the same device, so NetworkManager can't ever
-            // promote wlp8s0 to the system default while the rule is installed.
-            runner.run(
-                listOf("ip", "route", "add", "default", "dev", ifname, "metric", "10000", "table", tableId)
-            )
-        }
+        requireValidInterfaceName(ifname)
+        runner.run(listOf("sudo", "-n", privilegedHelper, "install", ifname))
     }
 
     fun removePolicyRoute(ifname: String) {
-        val tableId = tableIdFor(policyTableName)
-        runCatching {
-            runner.run(listOf("ip", "rule", "del", "to", gimbalCidr, "table", tableId, "priority", policyPriority.toString()))
-        }
-        runCatching {
-            runner.run(listOf("ip", "route", "del", gimbalCidr, "dev", ifname, "table", tableId))
-        }
-        runCatching {
-            runner.run(listOf("ip", "route", "del", "default", "dev", ifname, "metric", "10000", "table", tableId))
-        }
+        requireValidInterfaceName(ifname)
+        runCatching { runner.run(listOf("sudo", "-n", privilegedHelper, "remove", ifname)) }
+    }
+
+    private fun requireValidInterfaceName(ifname: String) {
+        require(Regex("[A-Za-z0-9_.:-]{1,15}").matches(ifname)) { "Invalid interface name: '$ifname'" }
     }
 
     private fun ensureRoutingTable(): String {

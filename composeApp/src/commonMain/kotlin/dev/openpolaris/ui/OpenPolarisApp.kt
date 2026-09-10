@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
@@ -296,8 +297,9 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
         ) {
             MoreItems.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
-                DropdownMenuItem(
+        DropdownMenuItem(
                     text = { Text(c.glyph) },
+                    modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
                     onClick = {
                         expanded = false
                         onSelect(c)
@@ -310,7 +312,10 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
 
 @Composable
 private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
-    TextButton(onClick = { onSelect(c) }) {
+    TextButton(
+        onClick = { onSelect(c) },
+        modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
+    ) {
         Text(c.glyph, style = MaterialTheme.typography.labelMedium)
     }
 }

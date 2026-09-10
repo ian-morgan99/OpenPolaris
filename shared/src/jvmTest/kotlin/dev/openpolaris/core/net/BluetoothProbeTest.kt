@@ -3,14 +3,13 @@ package dev.openpolaris.core.net
 import dev.openpolaris.core.net.BluetoothProbe.DiscoveredDevice
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * Exercises [BluetoothProbe] against a fake [ProcessRunner]. Locks down the
- * RE-documented wake sequence (pair → trust → connect → wait → disconnect)
+ * live-verified wake rule: connect first; pairing is only a fallback.
  * so future refactors can't accidentally drop a step or change the order.
  */
 class BluetoothProbeTest {
@@ -29,7 +28,7 @@ class BluetoothProbeTest {
         DiscoveredDevice(addr, name)
 
     @Test
-    fun `wake issues pair then trust then connect then disconnect in that exact order`() {
+    fun `wake connects directly and retains GATT by default`() {
         val fake = FakeRunner()
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         probe.wake(dev())
@@ -38,10 +37,7 @@ class BluetoothProbeTest {
         val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }
         assertEquals(
             listOf(
-                listOf("bluetoothctl", "pair", "AA:BB:CC:DD:EE:FF"),
-                listOf("bluetoothctl", "trust", "AA:BB:CC:DD:EE:FF"),
                 listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF"),
-                listOf("bluetoothctl", "disconnect", "AA:BB:CC:DD:EE:FF"),
             ),
             bt,
         )
@@ -50,7 +46,7 @@ class BluetoothProbeTest {
     @Test
     fun `wake waits wakeSettleMs between connect and disconnect`() {
         val fake = FakeRunner()
-        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0, retainGattConnection = false)
         val start = System.nanoTime()
         probe.wake(dev())
         val elapsedMs = (System.nanoTime() - start) / 1_000_000
@@ -70,7 +66,7 @@ class BluetoothProbeTest {
                 return ""
             }
         }
-        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0, retainGattConnection = false)
         // Should not throw even though disconnect fails.
         probe.wake(dev())
         // Disconnect was attempted.
@@ -81,19 +77,23 @@ class BluetoothProbeTest {
     }
 
     @Test
-    fun `wake propagates non-disconnect failures so caller knows wake actually failed`() {
+    fun `pair failure does not suppress retry of the wake-producing connect`() {
         val fake = object : ProcessRunner {
+            var connects = 0
             override fun run(args: List<String>): String {
                 if (args.getOrNull(1) == "connect") {
-                    throw BridgeException("bluetoothctl", 1, "Failed to connect")
+                    connects++
+                    if (connects == 1) throw BridgeException("bluetoothctl", 1, "not cached")
+                }
+                if (args.getOrNull(1) == "pair") {
+                    throw BridgeException("bluetoothctl", 1, "pair rejected")
                 }
                 return ""
             }
         }
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        assertFailsWith<BridgeException> {
-            probe.wake(dev())
-        }
+        probe.wake(dev())
+        assertEquals(2, fake.connects)
     }
 
     @Test

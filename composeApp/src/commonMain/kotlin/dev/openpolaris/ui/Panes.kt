@@ -28,6 +28,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -146,7 +148,12 @@ fun ConnectionPane(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Button(onClick = vm::connect) { Text("Connect") }
+                Button(
+                    onClick = vm::connect,
+                    modifier = Modifier.semantics {
+                        contentDescription = "Connect to mount"
+                    },
+                ) { Text("Connect") }
                 if (onWake != null) {
                     OutlinedButton(
                         onClick = onWake,
@@ -456,7 +463,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Experimental — command codes unverified; enable only in Demo mode or after hardware validation.",
+                "Camera parameter controls are disabled: the legacy opcode mappings are unsafe and unverified.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -515,12 +522,14 @@ private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
         ) {
             OutlinedButton(
                 onClick = { if (value != null && value > 0) onChange(value - 1) else onChange(0) },
-                modifier = Modifier.weight(1f),
+                enabled = false,
+                modifier = Modifier.weight(1f).semantics { contentDescription = "Decrease $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("−", style = MaterialTheme.typography.labelLarge) }
             OutlinedButton(
                 onClick = { onChange((value ?: -1) + 1) },
-                modifier = Modifier.weight(1f),
+                enabled = false,
+                modifier = Modifier.weight(1f).semantics { contentDescription = "Increase $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("+", style = MaterialTheme.typography.labelLarge) }
         }

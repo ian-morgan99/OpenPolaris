@@ -1188,19 +1188,8 @@ class AppViewModel(
             }
         }
 
-        // Camera parameter burst (10 GETs). Each merges one field into the
-        // running CameraInfo snapshot. Code 266 (STATE) is not part of this;
-        // capture shares code 264 but uses subtype 4 and its own action path.
-        runCatching {
-            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
-            for (c in CommandTable.BURST_CAMERA_CODES) {
-                val r = s.request<ResponseParser.Frame>(c) { it }
-                if (r is MountSession.CmdResult.Ok) {
-                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
-                }
-            }
-            cameraInfo = snapshot
-        }
+        // Camera parameter opcodes are not sequential GET/SET pairs (#62).
+        // Do not send the legacy inferred burst until every descriptor is evidenced.
     }
 
     /**
@@ -1248,20 +1237,6 @@ class AppViewModel(
                 val r = s.request(step.code, parse = step.parse as (ResponseParser.Frame) -> Any?)
                 if (r is MountSession.CmdResult.Ok) applyBurstValue(step.code, r.value)
             }
-        }
-        // Re-fire the camera burst too — cameraInfo is part of "what the
-        // mount knows about itself" and the user expects the device-info
-        // refresh to update it.
-        val s = session ?: return@launch
-        runCatching {
-            var snapshot: CameraInfo = cameraInfo ?: CameraInfo()
-            for (c in CommandTable.BURST_CAMERA_CODES) {
-                val r = s.request<ResponseParser.Frame>(c) { it }
-                if (r is MountSession.CmdResult.Ok) {
-                    snapshot = CameraInfo.fromFrame(c, r.value, snapshot)
-                }
-            }
-            cameraInfo = snapshot
         }
     }
 
@@ -1743,40 +1718,22 @@ class AppViewModel(
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
 
     fun refreshCamera() {
-        val cc = cameraController ?: run { statusMessage = "Not connected"; return }
-        scope.launch {
-            val p = dev.openpolaris.core.domain.CameraController.Params(
-                isoIndex = cc.queryIso(),
-                wbIndex = cc.queryWb(),
-                fNumIndex = cc.queryFNum(),
-                evIndex = cc.queryEv(),
-                focusIndex = cc.queryFocus(),
-                imgSizeIndex = cc.queryImgSize(),
-                imgFmtIndex = cc.queryImgFmt(),
-                colorIndex = cc.queryColor(),
-                shutterIndex = cc.queryShutter(),
-                captureModeIndex = cc.queryCaptureMode(),
-            )
-            camera = p
-            statusMessage = if (p.isoIndex != null || p.wbIndex != null ||
-                p.fNumIndex != null || p.evIndex != null || p.focusIndex != null ||
-                p.imgSizeIndex != null || p.imgFmtIndex != null || p.colorIndex != null ||
-                p.shutterIndex != null || p.captureModeIndex != null)
-                "Camera parameters refreshed" else "Camera did not respond"
-        }
+        statusMessage = "Camera parameter reads disabled: protocol mappings are unverified"
     }
 
-    fun setFocus(index: Int) { camera = camera.copy(focusIndex = index); scope.launch { cameraController?.setFocus(index) } }
-    fun setImgSize(index: Int) { camera = camera.copy(imgSizeIndex = index); scope.launch { cameraController?.setImgSize(index) } }
-    fun setImgFmt(index: Int) { camera = camera.copy(imgFmtIndex = index); scope.launch { cameraController?.setImgFmt(index) } }
-    fun setColor(index: Int) { camera = camera.copy(colorIndex = index); scope.launch { cameraController?.setColor(index) } }
-    fun setShutter(index: Int) { camera = camera.copy(shutterIndex = index); scope.launch { cameraController?.setShutter(index) } }
-    fun setCaptureMode(index: Int) { camera = camera.copy(captureModeIndex = index); scope.launch { cameraController?.setCaptureMode(index) } }
-
-    fun setIso(index: Int) { camera = camera.copy(isoIndex = index); scope.launch { cameraController?.setIso(index) } }
-    fun setWb(index: Int) { camera = camera.copy(wbIndex = index); scope.launch { cameraController?.setWb(index) } }
-    fun setFNum(index: Int) { camera = camera.copy(fNumIndex = index); scope.launch { cameraController?.setFNum(index) } }
-    fun setEv(index: Int) { camera = camera.copy(evIndex = index); scope.launch { cameraController?.setEv(index) } }
+    private fun rejectUnverifiedCameraWrite() {
+        statusMessage = "Camera parameter write blocked: protocol mapping is unverified"
+    }
+    fun setFocus(index: Int) = rejectUnverifiedCameraWrite()
+    fun setImgSize(index: Int) = rejectUnverifiedCameraWrite()
+    fun setImgFmt(index: Int) = rejectUnverifiedCameraWrite()
+    fun setColor(index: Int) = rejectUnverifiedCameraWrite()
+    fun setShutter(index: Int) = rejectUnverifiedCameraWrite()
+    fun setCaptureMode(index: Int) = rejectUnverifiedCameraWrite()
+    fun setIso(index: Int) = rejectUnverifiedCameraWrite()
+    fun setWb(index: Int) = rejectUnverifiedCameraWrite()
+    fun setFNum(index: Int) = rejectUnverifiedCameraWrite()
+    fun setEv(index: Int) = rejectUnverifiedCameraWrite()
     fun capture() = scope.launch {
         if (cameraController == null) { statusMessage = "Not connected"; return@launch }
         cameraController?.capture()

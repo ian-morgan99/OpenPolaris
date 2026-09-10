@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+IP=/usr/sbin/ip
+CIDR=192.168.0.0/24
+TABLE=5188
+PRIORITY=1000
+
+usage() { echo "usage: openpolaris-network-helper install|remove IFNAME" >&2; exit 64; }
+[ "$#" -eq 2 ] || usage
+operation=$1
+ifname=$2
+
+case "$ifname" in
+    ""|*[!a-zA-Z0-9_.:-]*) echo "invalid interface name" >&2; exit 64 ;;
+esac
+[ -e "/sys/class/net/$ifname" ] || { echo "interface does not exist: $ifname" >&2; exit 69; }
+
+case "$operation" in
+    install)
+        "$IP" rule add to "$CIDR" table "$TABLE" priority "$PRIORITY" 2>/dev/null || true
+        "$IP" route replace "$CIDR" dev "$ifname" table "$TABLE"
+        "$IP" route replace default dev "$ifname" metric 10000 table "$TABLE"
+        ;;
+    remove)
+        "$IP" rule del to "$CIDR" table "$TABLE" priority "$PRIORITY" 2>/dev/null || true
+        "$IP" route flush table "$TABLE" 2>/dev/null || true
+        ;;
+    *) usage ;;
+esac

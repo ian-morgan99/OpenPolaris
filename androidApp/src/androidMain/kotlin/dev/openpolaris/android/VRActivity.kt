@@ -340,7 +340,7 @@ class VRActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        finish()
+        super.onBackPressed()
     }
 
     /**

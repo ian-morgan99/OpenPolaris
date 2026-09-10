@@ -10,7 +10,10 @@ class UiAccessibilityContractTest {
         val start = Paths.get("").toAbsolutePath()
         val root = generateSequence(start) { it.parent }
             .first { Files.exists(it.resolve("settings.gradle.kts")) }
-        return Files.readString(root.resolve("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/$file"))
+        return String(
+            Files.readAllBytes(root.resolve("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/$file")),
+            Charsets.UTF_8,
+        )
     }
 
     @Test

@@ -57,9 +57,8 @@ object FeatureFlags {
     const val basicControls: Boolean = true
     /** Post-connect burst (808, 809, 802, 778, 779, 775, 824, 524, 543). */
     const val postConnectBurst: Boolean = true
-    /** Camera 10-param GET/SET steppers (258-311). Experimental — see
-     *  CameraController. Lives behind this flag so the unsafe-codes warning
-     *  banner can be turned off in test rigs. */
+    /** Camera qualification surface. The Camera pane requires an additional
+     * per-visit acknowledgement before any evidenced SET can be sent. */
     const val experimentalCamera: Boolean = false
     /** Tonight catalog/comets (read-only, no wire side effect). */
     const val catalog: Boolean = true

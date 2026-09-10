@@ -1718,7 +1718,34 @@ class AppViewModel(
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
 
     fun refreshCamera() {
-        statusMessage = "Camera parameter reads disabled: protocol mappings are unverified"
+        val controller = cameraController
+        if (controller == null) { statusMessage = "Not connected"; return }
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
+            statusMessage = "Enable Camera qualification mode in Settings first"
+            return
+        }
+        scope.launch {
+            val iso = controller.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
+            val wb = controller.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
+            val ev = controller.queryBenroInfo(Codes.BenroCamera.GET_EV_INFO, "ev")
+            val shutter = controller.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
+            val aperture = controller.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
+            camera = camera.copy(
+                isoIndex = iso.index,
+                wbIndex = wb.index,
+                evIndex = ev.index,
+                shutterIndex = shutter.index,
+                fNumIndex = aperture.index,
+            )
+            val readings = listOf(
+                "ISO[265]=${iso.raw.ifBlank { "<empty>" }}",
+                "WB[266]=${wb.raw.ifBlank { "<empty>" }}",
+                "EV[267]=${ev.raw.ifBlank { "<empty>" }}",
+                "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }}",
+                "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }}",
+            )
+            statusMessage = readings.joinToString(" | ")
+        }
     }
 
     private fun rejectUnverifiedCameraWrite() {
@@ -1728,12 +1755,39 @@ class AppViewModel(
     fun setImgSize(index: Int) = rejectUnverifiedCameraWrite()
     fun setImgFmt(index: Int) = rejectUnverifiedCameraWrite()
     fun setColor(index: Int) = rejectUnverifiedCameraWrite()
-    fun setShutter(index: Int) = rejectUnverifiedCameraWrite()
+    fun setShutter(index: Int) = qualifyCameraSetting("Shutter", Codes.BenroCamera.GET_SHUTTER_INFO, Codes.BenroCamera.SET_SHUTTER, "shutter", index)
     fun setCaptureMode(index: Int) = rejectUnverifiedCameraWrite()
-    fun setIso(index: Int) = rejectUnverifiedCameraWrite()
-    fun setWb(index: Int) = rejectUnverifiedCameraWrite()
-    fun setFNum(index: Int) = rejectUnverifiedCameraWrite()
-    fun setEv(index: Int) = rejectUnverifiedCameraWrite()
+    fun setIso(index: Int) = qualifyCameraSetting("ISO", Codes.BenroCamera.GET_ISO_INFO, Codes.BenroCamera.SET_ISO, "iso", index)
+    fun setWb(index: Int) = qualifyCameraSetting("WB", Codes.BenroCamera.GET_WB_INFO, Codes.BenroCamera.SET_WB, "wb", index)
+    fun setFNum(index: Int) = qualifyCameraSetting("Aperture", Codes.BenroCamera.GET_FNUM_INFO, Codes.BenroCamera.SET_FNUM, "fNum", index)
+    fun setEv(index: Int) = qualifyCameraSetting("EV", Codes.BenroCamera.GET_EV_INFO, Codes.BenroCamera.SET_EV, "ev", index)
+
+    private fun qualifyCameraSetting(label: String, infoCode: Int, setCode: Int, key: String, index: Int) {
+        val controller = cameraController
+        if (controller == null) { statusMessage = "Not connected"; return }
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
+            statusMessage = "Enable Camera qualification mode in Settings first"
+            return
+        }
+        scope.launch {
+            val result = controller.qualifyBenroSetting(label, infoCode, setCode, key, index)
+            if (result.verified) {
+                camera = when (label) {
+                    "ISO" -> camera.copy(isoIndex = result.after.index)
+                    "WB" -> camera.copy(wbIndex = result.after.index)
+                    "EV" -> camera.copy(evIndex = result.after.index)
+                    "Shutter" -> camera.copy(shutterIndex = result.after.index)
+                    "Aperture" -> camera.copy(fNumIndex = result.after.index)
+                    else -> camera
+                }
+            }
+            statusMessage = if (result.verified) {
+                "$label verified: SET[$setCode] $key:$index; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"
+            } else {
+                "$label NOT VERIFIED: SET[$setCode] $key:$index; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"
+            }
+        }
+    }
     fun capture() = scope.launch {
         if (cameraController == null) { statusMessage = "Not connected"; return@launch }
         cameraController?.capture()

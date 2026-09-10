@@ -34,6 +34,39 @@ package dev.openpolaris.core.protocol
 object Codes {
     /** Release safety gate: inferred camera parameter mappings must never hit hardware. */
     const val CAMERA_PARAMETERS_VERIFIED = false
+
+    /** Canonical Benro Connect camera-setting map (v3.0.30 build 240930). */
+    object BenroCamera {
+        const val SET_ISO = 258
+        const val SET_WB = 259
+        const val SET_EV = 260
+        const val SET_SHUTTER = 261
+        const val SET_FOCUS = 262
+        const val SET_VIDEO_RECORD_STATUS = 263
+        const val SET_PHOTO_RECORD_STATUS = 264
+        const val GET_ISO_INFO = 265
+        const val GET_WB_INFO = 266
+        const val GET_EV_INFO = 267
+        const val GET_SHUTTER_INFO = 268
+        const val FOCUS_STACK = 270
+        const val PANORAMIC = 271
+        const val DELAY_SHOT = 272
+        const val GET_FNUM_INFO = 275
+        const val SET_FNUM = 276
+        const val SUN_SHOT = 277
+        const val HDR = 280
+        const val GET_IMG_FORMAT = 282
+        const val PLC = 283
+        const val REMOVE_PEOPLE_SHOT = 289
+        const val GET_CONTROL_MODE = 296
+        const val SET_CONTROL_MODE = 297
+        const val GET_EX_TIME = 298
+        const val SET_EX_TIME = 299
+        const val HOLY_GRAIL = 305
+        const val GET_INTERVAL_TYPE = 306
+        const val SET_INTERVAL_TYPE = 307
+        const val SET_FOCUS_ADJ = 311
+    }
     // ---- gimbal status / push ------------------------------------------------
     // 0 — session/handshake ret (live 2026-09-01: `0@ret:-1;` first probe, then
     // `0@ret:0;` on retry). Not a real command, but a single byte the gimbal

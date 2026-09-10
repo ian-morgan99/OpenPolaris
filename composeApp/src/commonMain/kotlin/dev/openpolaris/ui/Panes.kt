@@ -459,28 +459,33 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val c = vm.camera
+    val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
+    var qualificationArmed by remember { mutableStateOf(false) }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Camera parameter controls are disabled: the legacy opcode mappings are unsafe and unverified.",
+                if (qualificationEnabled)
+                    "Qualification mode uses Benro Connect's evidenced INFO/SET map. Changes are sent to the attached camera; verify and restore each original value."
+                else
+                    "Camera settings are locked. Enable Camera qualification mode in Settings to test the evidenced Benro mappings.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+            if (qualificationEnabled && !qualificationArmed) {
+                Button(onClick = { qualificationArmed = true }) {
+                    Text("I understand — arm setting tests")
+                }
+            }
             // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
             // phone in landscape. Was a single 10-row Column that clipped
             // half its controls below the callout dialog fold (#45).
             val steppers: List<@Composable () -> Unit> = listOf(
-                { StepperRow("ISO", c.isoIndex, vm::setIso) },
-                { StepperRow("WB", c.wbIndex, vm::setWb) },
-                { StepperRow("Aperture", c.fNumIndex, vm::setFNum) },
-                { StepperRow("EV", c.evIndex, vm::setEv) },
-                { StepperRow("Focus", c.focusIndex, vm::setFocus) },
-                { StepperRow("Image size", c.imgSizeIndex, vm::setImgSize) },
-                { StepperRow("Image format", c.imgFmtIndex, vm::setImgFmt) },
-                { StepperRow("Color", c.colorIndex, vm::setColor) },
-                { StepperRow("Shutter", c.shutterIndex, vm::setShutter) },
-                { StepperRow("Capture mode", c.captureModeIndex, vm::setCaptureMode) },
+                { StepperRow("ISO", c.isoIndex, qualificationArmed, vm::setIso) },
+                { StepperRow("WB", c.wbIndex, qualificationArmed, vm::setWb) },
+                { StepperRow("Aperture", c.fNumIndex, qualificationArmed, vm::setFNum) },
+                { StepperRow("EV", c.evIndex, qualificationArmed, vm::setEv) },
+                { StepperRow("Shutter", c.shutterIndex, qualificationArmed, vm::setShutter) },
             )
             val midpoint = (steppers.size + 1) / 2
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -491,6 +496,10 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     steppers.drop(midpoint).forEach { it() }
                 }
             }
+            Text(
+                "Not mapped for setting yet: focus, image size, image format, colour, capture mode. Workflow commands are inventoried but remain locked until their payload contracts are evidenced.",
+                style = MaterialTheme.typography.bodySmall,
+            )
             val busy = vm.captureState?.state == 1
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = vm::capture, enabled = !busy) { Text("Capture") }
@@ -504,15 +513,16 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
+private fun StepperRow(label: String, value: Int?, enabled: Boolean, onChange: (Int) -> Unit) {
     // v0.1.12: vertical layout to keep the label readable inside the
     // narrow 2-column Camera pane. The previous Row-with-weight-Text
     // got squeezed to ~0 width when the two OutlinedButtons took
     // their natural width first (#47). See
     // .copilot/agent-state/.../v0111-ui-audit/20_camera_pane.png.
+    var candidate by remember(value) { mutableStateOf(value ?: 0) }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            "$label: ${value?.toString() ?: "—"}",
+            "$label: current ${value?.toString() ?: "?"}, test $candidate",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -521,14 +531,20 @@ private fun StepperRow(label: String, value: Int?, onChange: (Int) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             OutlinedButton(
-                onClick = { if (value != null && value > 0) onChange(value - 1) else onChange(0) },
-                enabled = false,
+                onClick = {
+                    candidate = (candidate - 1).coerceAtLeast(0)
+                    onChange(candidate)
+                },
+                enabled = enabled,
                 modifier = Modifier.weight(1f).semantics { contentDescription = "Decrease $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("−", style = MaterialTheme.typography.labelLarge) }
             OutlinedButton(
-                onClick = { onChange((value ?: -1) + 1) },
-                enabled = false,
+                onClick = {
+                    candidate += 1
+                    onChange(candidate)
+                },
+                enabled = enabled,
                 modifier = Modifier.weight(1f).semantics { contentDescription = "Increase $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("+", style = MaterialTheme.typography.labelLarge) }

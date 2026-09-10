@@ -146,10 +146,17 @@ class MobileResponsiveLayoutContractTest {
             Regex("""val\s+steppers\s*:\s*List<@Composable\s*\(\)\s*->\s*Unit>\s*=\s*listOf\(""").containsMatchIn(noComments),
             "CameraPane must build a steppers list (v0.1.8 layout)"
         )
-        // Count StepperRow( call sites inside the listOf. The function is also called from
-        // its definition line ("private fun StepperRow("); we subtract that to get 10 steppers.
+        // Five settings currently have decompile-evidenced Benro INFO/SET pairs.
+        // The function definition is the sixth textual StepperRow occurrence.
         val stepperCallSites = Regex("""\bStepperRow\(""").findAll(noComments).count()
-        assertTrue(stepperCallSites >= 9, "CameraPane must have at least 8 stepper call sites. Found $stepperCallSites")
+        assertTrue(stepperCallSites == 6, "CameraPane must expose exactly 5 evidenced setting rows. Found ${stepperCallSites - 1}")
+        for (mapped in listOf("ISO", "WB", "Aperture", "EV", "Shutter")) {
+            assertTrue("StepperRow(\"$mapped\"" in noComments, "$mapped must remain testable")
+        }
+        assertTrue(
+            "Not mapped for setting yet: focus, image size, image format, colour, capture mode" in noComments,
+            "Known-unmapped controls must remain explicitly classified",
+        )
         // List must be partitioned into two columns (take/drop, chunked, subList, or partition)
         val splitsInHalf = Regex("""\bsteppers\.(?:take|drop|chunked|subList|partition)\b""").containsMatchIn(noComments)
         val altPartition = Regex("""\b(first|left|top)Half\b.*\b(second|right|bottom)Half\b""", RegexOption.DOT_MATCHES_ALL).containsMatchIn(noComments)

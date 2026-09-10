@@ -1,6 +1,7 @@
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.protocol.Codes
+import kotlinx.coroutines.delay
 
 /**
  * Camera parameter control (ISO / WB / aperture / EV / capture).
@@ -9,10 +10,22 @@ import dev.openpolaris.core.protocol.Codes
  * option lists (SP_SetCameraIsoIndex etc.), not raw ISO/shutter numbers. The app
  * queries the list, presents it sorted, and sends the chosen index.
  *
- * WARNING: numeric codes are inferred (see Codes.kt). Callers must keep controls
- * disabled until validated on hardware.
+ * The legacy ten-pair methods below remain for simulator compatibility. Physical
+ * qualification uses the individually evidenced [Codes.BenroCamera] map via
+ * [queryBenroInfo] and [qualifyBenroSetting].
  */
 class CameraController(private val session: MountSession) {
+
+    data class Info(val code: Int, val raw: String, val index: Int?)
+
+    data class QualificationResult(
+        val label: String,
+        val requestedIndex: Int,
+        val before: Info,
+        val after: Info,
+    ) {
+        val verified: Boolean get() = after.index == requestedIndex
+    }
 
     /** Current camera parameter snapshot; null while unknown. */
     data class Params(
@@ -49,6 +62,30 @@ class CameraController(private val session: MountSession) {
     suspend fun queryCaptureMode(): Int? = queryIndex(Codes.CAM_GET_CAPTURE_MODE, "captureMode")
     suspend fun setCaptureMode(index: Int) = session.send(Codes.CAM_SET_CAPTURE_MODE, "captureMode:$index;")
 
+    suspend fun queryBenroInfo(code: Int, key: String): Info =
+        when (val result = session.request(code) { it }) {
+            is MountSession.CmdResult.Ok -> {
+                val frame = result.value
+                Info(code, frame.raw.orEmpty(), frame.int(key) ?: firstInteger(frame.raw))
+            }
+            is MountSession.CmdResult.Timeout -> Info(code, "TIMEOUT", null)
+            is MountSession.CmdResult.ProtocolError -> Info(code, "ERROR: ${result.message}", null)
+        }
+
+    suspend fun qualifyBenroSetting(
+        label: String,
+        infoCode: Int,
+        setCode: Int,
+        key: String,
+        index: Int,
+    ): QualificationResult {
+        val before = queryBenroInfo(infoCode, key)
+        session.send(setCode, "$key:$index;", subtype = 1)
+        delay(150)
+        val after = queryBenroInfo(infoCode, key)
+        return QualificationResult(label, index, before, after)
+    }
+
     /** Trigger a single exposure. */
     suspend fun capture() = session.send(
         Codes.CAM_CAPTURE,
@@ -62,4 +99,9 @@ class CameraController(private val session: MountSession) {
             is MountSession.CmdResult.Ok -> r.value
             else -> null
         }
+
+    private fun firstInteger(raw: String?): Int? = raw
+        ?.trim()
+        ?.removeSuffix(";")
+        ?.toIntOrNull()
 }

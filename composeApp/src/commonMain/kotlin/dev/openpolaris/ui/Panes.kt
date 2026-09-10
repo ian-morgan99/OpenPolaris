@@ -481,11 +481,11 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // phone in landscape. Was a single 10-row Column that clipped
             // half its controls below the callout dialog fold (#45).
             val steppers: List<@Composable () -> Unit> = listOf(
-                { StepperRow("ISO", c.isoIndex, qualificationArmed, vm::setIso) },
-                { StepperRow("WB", c.wbIndex, qualificationArmed, vm::setWb) },
-                { StepperRow("Aperture", c.fNumIndex, qualificationArmed, vm::setFNum) },
-                { StepperRow("EV", c.evIndex, qualificationArmed, vm::setEv) },
-                { StepperRow("Shutter", c.shutterIndex, qualificationArmed, vm::setShutter) },
+                { StepperRow("ISO", c.isoIndex, c.isoOptions, qualificationArmed, vm::setIso) },
+                { StepperRow("WB", c.wbIndex, c.wbOptions, qualificationArmed, vm::setWb) },
+                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, qualificationArmed, vm::setFNum) },
+                { StepperRow("EV", c.evIndex, c.evOptions, qualificationArmed, vm::setEv) },
+                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, qualificationArmed, vm::setShutter) },
             )
             val midpoint = (steppers.size + 1) / 2
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -513,7 +513,13 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StepperRow(label: String, value: Int?, enabled: Boolean, onChange: (Int) -> Unit) {
+private fun StepperRow(
+    label: String,
+    value: Int?,
+    options: List<String>,
+    enabled: Boolean,
+    onChange: (Int) -> Unit,
+) {
     // v0.1.12: vertical layout to keep the label readable inside the
     // narrow 2-column Camera pane. The previous Row-with-weight-Text
     // got squeezed to ~0 width when the two OutlinedButtons took
@@ -522,7 +528,8 @@ private fun StepperRow(label: String, value: Int?, enabled: Boolean, onChange: (
     var candidate by remember(value) { mutableStateOf(value ?: 0) }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            "$label: current ${value?.toString() ?: "?"}, test $candidate",
+            "$label: ${value?.let { options.getOrNull(it) } ?: "unavailable"}" +
+                if (value != candidate) " → ${options.getOrNull(candidate) ?: candidate}" else "",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -535,7 +542,7 @@ private fun StepperRow(label: String, value: Int?, enabled: Boolean, onChange: (
                     candidate = (candidate - 1).coerceAtLeast(0)
                     onChange(candidate)
                 },
-                enabled = enabled,
+                enabled = enabled && value != null && options.isNotEmpty() && candidate > 0,
                 modifier = Modifier.weight(1f).semantics { contentDescription = "Decrease $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("−", style = MaterialTheme.typography.labelLarge) }
@@ -544,7 +551,7 @@ private fun StepperRow(label: String, value: Int?, enabled: Boolean, onChange: (
                     candidate += 1
                     onChange(candidate)
                 },
-                enabled = enabled,
+                enabled = enabled && value != null && options.isNotEmpty() && candidate < options.lastIndex,
                 modifier = Modifier.weight(1f).semantics { contentDescription = "Increase $label" },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) { Text("+", style = MaterialTheme.typography.labelLarge) }

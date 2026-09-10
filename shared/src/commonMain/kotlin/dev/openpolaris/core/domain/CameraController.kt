@@ -16,15 +16,27 @@ import kotlinx.coroutines.delay
  */
 class CameraController(private val session: MountSession) {
 
-    data class Info(val code: Int, val raw: String, val index: Int?)
+    data class Info(
+        val code: Int,
+        val raw: String,
+        val index: Int?,
+        val options: List<String> = emptyList(),
+        val ready: Int? = null,
+    )
 
     data class QualificationResult(
         val label: String,
         val requestedIndex: Int,
         val before: Info,
         val after: Info,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val setRaw: String? = null,
+        val setRet: Int? = null,
     ) {
-        val verified: Boolean get() = after.index == requestedIndex
+        val setAccepted: Boolean get() = sent && setRaw != null && setRaw != "TIMEOUT" &&
+            !setRaw.startsWith("ERROR:") && (setRet == null || setRet >= 0)
+        val verified: Boolean get() = setAccepted && after.index == requestedIndex
     }
 
     /** Current camera parameter snapshot; null while unknown. */
@@ -39,6 +51,11 @@ class CameraController(private val session: MountSession) {
         val colorIndex: Int? = null,
         val shutterIndex: Int? = null,
         val captureModeIndex: Int? = null,
+        val isoOptions: List<String> = emptyList(),
+        val wbOptions: List<String> = emptyList(),
+        val fNumOptions: List<String> = emptyList(),
+        val evOptions: List<String> = emptyList(),
+        val shutterOptions: List<String> = emptyList(),
     )
 
     suspend fun queryIso(): Int? = queryIndex(Codes.CAM_GET_ISO, "iso")
@@ -66,7 +83,7 @@ class CameraController(private val session: MountSession) {
         when (val result = session.request(code) { it }) {
             is MountSession.CmdResult.Ok -> {
                 val frame = result.value
-                Info(code, frame.raw.orEmpty(), frame.int(key) ?: firstInteger(frame.raw))
+                parseBenroInfo(code, key, frame)
             }
             is MountSession.CmdResult.Timeout -> Info(code, "TIMEOUT", null)
             is MountSession.CmdResult.ProtocolError -> Info(code, "ERROR: ${result.message}", null)
@@ -80,10 +97,32 @@ class CameraController(private val session: MountSession) {
         index: Int,
     ): QualificationResult {
         val before = queryBenroInfo(infoCode, key)
-        session.send(setCode, "$key:$index;", subtype = 1)
+        if (before.index == null || before.options.isEmpty()) {
+            return QualificationResult(
+                label, index, before, before, sent = false,
+                error = "camera did not provide a current value and option list",
+            )
+        }
+        if (index !in before.options.indices) {
+            return QualificationResult(
+                label, index, before, before, sent = false,
+                error = "index $index is outside camera option range ${before.options.indices}",
+            )
+        }
+        val setReply = session.request(
+            code = setCode,
+            payload = "$key:$index;",
+            timeoutMs = 10_000,
+            subtype = 1,
+        ) { it }
+        val (setRaw, setRet) = when (setReply) {
+            is MountSession.CmdResult.Ok -> setReply.value.raw.orEmpty() to setReply.value.int("ret")
+            is MountSession.CmdResult.Timeout -> "TIMEOUT" to null
+            is MountSession.CmdResult.ProtocolError -> "ERROR: ${setReply.message}" to null
+        }
         delay(150)
         val after = queryBenroInfo(infoCode, key)
-        return QualificationResult(label, index, before, after)
+        return QualificationResult(label, index, before, after, setRaw = setRaw, setRet = setRet)
     }
 
     /** Trigger a single exposure. */
@@ -104,4 +143,23 @@ class CameraController(private val session: MountSession) {
         ?.trim()
         ?.removeSuffix(";")
         ?.toIntOrNull()
+
 }
+
+internal fun parseBenroInfo(
+    code: Int,
+    key: String,
+    frame: dev.openpolaris.core.protocol.ResponseParser.Frame,
+): CameraController.Info = CameraController.Info(
+    code = code,
+    raw = frame.raw.orEmpty(),
+    index = frame.int("V") ?: frame.int(key) ?: frame.raw
+        ?.trim()
+        ?.removeSuffix(";")
+        ?.toIntOrNull(),
+    options = frame["R"].orEmpty()
+        .split(',')
+        .map(String::trim)
+        .filter(String::isNotEmpty),
+    ready = frame.int("RD"),
+)

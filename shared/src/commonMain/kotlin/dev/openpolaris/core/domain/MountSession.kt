@@ -646,6 +646,7 @@ class MountSession(
         code: Int,
         payload: String = EMPTY_CONTENT,
         timeoutMs: Long = 2000,
+        subtype: Int = REQUEST_TYPE,
         parse: (ResponseParser.Frame) -> T?,
     ): CmdResult<T> {
         val conn = connection
@@ -659,7 +660,7 @@ class MountSession(
         return try {
             sendMutex.withLock {
                 try {
-                    val frame = command(code) { putRaw(payload) }
+                    val frame = CommandBuilder(code, subtype).apply { putRaw(payload) }.build()
                     ProtocolTrace.logBytes("writer", "→ code=$code", frame)
                     conn.write(frame)
                 } catch (e: Exception) {

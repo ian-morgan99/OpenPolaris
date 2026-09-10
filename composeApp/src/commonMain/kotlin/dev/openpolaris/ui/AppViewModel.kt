@@ -1736,6 +1736,11 @@ class AppViewModel(
                 evIndex = ev.index,
                 shutterIndex = shutter.index,
                 fNumIndex = aperture.index,
+                isoOptions = iso.options,
+                wbOptions = wb.options,
+                evOptions = ev.options,
+                shutterOptions = shutter.options,
+                fNumOptions = aperture.options,
             )
             val readings = listOf(
                 "ISO[265]=${iso.raw.ifBlank { "<empty>" }}",
@@ -1782,9 +1787,9 @@ class AppViewModel(
                 }
             }
             statusMessage = if (result.verified) {
-                "$label verified: SET[$setCode] $key:$index; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"
+                "$label verified: SET[$setCode] reply=${result.setRaw}; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"
             } else {
-                "$label NOT VERIFIED: SET[$setCode] $key:$index; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"
+                "$label NOT VERIFIED: ${result.error ?: "SET[$setCode] reply=${result.setRaw}; INFO[$infoCode] before=${result.before.raw}; after=${result.after.raw}"}"
             }
         }
     }

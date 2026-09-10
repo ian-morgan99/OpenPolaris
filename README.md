@@ -15,6 +15,7 @@ but disabled for v2.
 | **[USER-MANUAL.md](docs/USER-MANUAL.md)** | **End-user manual — bundled inside the app (Guide callout) and readable on the web. Start here if you just want to use the app.** |
 | [SPEC.md](docs/SPEC.md) | Functional specification: feature inventory mirroring the stock app, screen map, behavioral rules, v1 acceptance criteria |
 | [PROTOCOL.md](docs/PROTOCOL.md) | Complete protocol reference: transport, framing, all command codes/payloads, session lifecycle, known quirks (inverted halfSpeed, AHRS gating) |
+| [CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md](docs/CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md) | One-feature-at-a-time handoff for deriving camera contracts from the local Benro APK, implementing them safely, testing them, and qualifying both camera bodies |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech stack (Kotlin Multiplatform + Compose), module layout, key design decisions, testing strategy |
 | [PLAN.md](docs/PLAN.md) | Phased project plan with hardware-validated gates G0–G3, effort estimates, risk register |
 

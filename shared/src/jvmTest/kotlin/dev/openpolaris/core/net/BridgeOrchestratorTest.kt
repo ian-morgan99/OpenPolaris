@@ -77,8 +77,10 @@ class BridgeOrchestratorTest {
         assertTrue(ok, "happy path should return true when link is up")
 
         // BT phase scans, finds nothing, and the orchestrator proceeds.
+        // Live 2026-09-10: a BlueZ abort can still wake the AP, so the
+        // message now says "did not confirm" rather than "failed".
         assertTrue(
-            messages.any { it.contains("BT wake failed") },
+            messages.any { it.contains("BT wake did not confirm") },
             "expected explicit BT wake failure message, got: " + messages.toString(),
         )
         // A bluetoothctl scan should have been issued.

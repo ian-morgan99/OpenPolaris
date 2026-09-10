@@ -56,9 +56,15 @@ class BridgeOrchestrator(
             throw e
         } catch (e: Exception) {
             progress(
-                "BT wake failed: ${e.message ?: e::class.simpleName}; " +
-                    "trying the saved Wi-Fi profile"
+                "BT wake did not confirm: ${e.message ?: e::class.simpleName}; " +
+                    "waiting for the AP before trying the saved Wi-Fi profile"
             )
+            // Live 2026-09-10: BlueZ returned
+            // `le-connection-abort-by-local`, but that short-lived attempt
+            // still woke the Polaris AP. Treat the exit status as
+            // inconclusive and allow firmware time to advertise Wi-Fi. The
+            // link, route and ports 22/9090 checks below remain authoritative.
+            delay(5_000)
         }
 
         progress("Bringing $profile up on $ifname…")

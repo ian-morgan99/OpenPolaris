@@ -138,7 +138,7 @@ private fun sendOnce(args: Array<String>) {
         // the gimbal's APP_HELLO reply, which takes 2-4s in the live
         // captures; bumping here makes the one-shot `send` command
         // directly comparable to the desktop app's behaviour.
-        val raw = readFrames(socket.getInputStream(), 10_000)
+        val raw = readFramesUntilCode(socket.getInputStream(), code, 10_000)
         if (raw.isEmpty()) {
             println("  (no response within 10s)")
         } else {
@@ -155,9 +155,14 @@ private fun sendOnce(args: Array<String>) {
  * elapses), then split on '#' and re-emit each non-empty piece with the
  * trailing '#' attached so callers can echo/store the original frame.
  */
-private fun readFrames(`in`: java.io.InputStream, totalTimeoutMs: Int): List<String> {
+internal fun readFramesUntilCode(
+    `in`: java.io.InputStream,
+    requestedCode: Int,
+    totalTimeoutMs: Int,
+): List<String> {
     val buf = ByteArray(16384)
     val pending = StringBuilder()
+    val frames = mutableListOf<String>()
     val deadline = System.currentTimeMillis() + totalTimeoutMs
     while (System.currentTimeMillis() < deadline) {
         val n = try {
@@ -167,12 +172,18 @@ private fun readFrames(`in`: java.io.InputStream, totalTimeoutMs: Int): List<Str
         }
         if (n <= 0) break
         pending.append(String(buf, 0, n, Charsets.US_ASCII))
-        if (pending.contains('#')) break
+        while (true) {
+            val terminator = pending.indexOf("#")
+            if (terminator < 0) break
+            val frame = pending.substring(0, terminator).trim()
+            pending.delete(0, terminator + 1)
+            if (frame.isBlank()) continue
+            frames += "$frame#"
+            val responseCode = frame.substringBefore('@').substringAfterLast('&').toIntOrNull()
+            if (responseCode == requestedCode) return frames
+        }
     }
-    return pending.split('#')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .map { "$it#" }
+    return frames
 }
 
 private fun sendBurst(args: Array<String>) {

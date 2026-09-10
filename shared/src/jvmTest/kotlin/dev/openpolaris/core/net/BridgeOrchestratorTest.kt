@@ -26,6 +26,8 @@ import kotlin.test.assertTrue
  */
 class BridgeOrchestratorTest {
 
+    private val serviceOk = PolarisServiceIdentityProbe { _, _ -> Result.success("9090/284") }
+
     private class FakeRunner : ProcessRunner {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
@@ -46,6 +48,8 @@ class BridgeOrchestratorTest {
         gimbalCidr: String = "192.168.0.0/24",
     ) : WifiBridge(runner, gimbalCidr = gimbalCidr, rtTables = InMemoryRtTables()) {
         override fun awaitLinkUp(ifname: String, timeoutMs: Int): Boolean = linkUpResult
+        override fun verifyPolarisIdentity(ifname: String): Result<LinkIdentity> =
+            Result.success(LinkIdentity("polaris_test", "AA:BB:CC:DD:EE:FF", "192.168.0.1 dev $ifname"))
     }
 
     private class InMemoryRtTables : RtTables {
@@ -61,7 +65,7 @@ class BridgeOrchestratorTest {
         // Fake scanner returns no devices. The orchestrator reports it and
         // still lets saved-profile activation verify whether Wi-Fi is ready.
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceOk)
 
         val messages = mutableListOf<String>()
         val ok = orch.bridgeToMount(
@@ -89,11 +93,7 @@ class BridgeOrchestratorTest {
             listOf(listOf("nmcli", "connection", "up", "polaris_d13e86", "ifname", "wlp8s0")),
             nmUp,
         )
-        val ruleAdd = fake.calls.filter {
-            it.first() == "ip" && it.getOrNull(1) == "rule" && it.getOrNull(2) == "add" &&
-                it.getOrNull(3) == "to" && it.getOrNull(4) == "192.168.0.0/24"
-        }
-        assertEquals(1, ruleAdd.size, "expected one policy rule add, got " + ruleAdd.size.toString() + ": " + ruleAdd.toString())
+        assertTrue(fake.calls.any { it.takeLast(2) == listOf("install", "wlp8s0") })
 
         // No scan primitives issued anywhere along the path.
         for (call in fake.calls) {
@@ -102,7 +102,6 @@ class BridgeOrchestratorTest {
             assertFalse(s.contains("wifi list"), "forbidden: " + s)
             assertFalse(s.contains("wifi connect"), "forbidden: " + s)
             assertFalse(s.contains("iwlist"), "forbidden: " + s)
-            assertFalse(s.contains("iw dev"), "forbidden: " + s)
             assertFalse(s.contains("iw scan"), "forbidden: " + s)
         }
 
@@ -111,6 +110,36 @@ class BridgeOrchestratorTest {
             messages.any { it.startsWith("Mount Wi-Fi ready") },
             "expected ready message, got: " + messages.toString(),
         )
+    }
+
+    @Test
+    fun `bridge refuses connected state when 9090 service identity fails`() = runBlocking {
+        val fake = FakeRunner()
+        val wifi = StubbedWifiBridge(fake, linkUpResult = true)
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val serviceFail = PolarisServiceIdentityProbe { _, _ -> Result.failure(IllegalStateException("wrong service")) }
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceFail)
+        val messages = mutableListOf<String>()
+
+        val ok = orch.bridgeToMount("polaris_test", "wlp8s0") { messages += it }
+
+        assertFalse(ok)
+        assertTrue(messages.any { it.contains("service identity failed") })
+        assertTrue(fake.calls.any { it.takeLast(2) == listOf("remove", "wlp8s0") })
+    }
+
+    @Test
+    fun `wake tries configured known BLE address without scanning`() = runBlocking {
+        val fake = FakeRunner()
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(bt = bt, knownBleAddress = "48:E7:DA:D4:B5:72")
+
+        assertTrue(orch.wakeOnly())
+        assertEquals(
+            listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72"),
+            fake.calls.first(),
+        )
+        assertFalse(fake.calls.any { "scan" in it })
     }
 
     @Test
@@ -196,8 +225,8 @@ class BridgeOrchestratorTest {
             progress = { messages += it },
         )
 
-        val ruleDel = fake.calls.filter { it.first() == "ip" && it.getOrNull(1) == "rule" && it.getOrNull(2) == "del" }
-        assertEquals(1, ruleDel.size, "expected one policy rule del, got: " + ruleDel.toString())
+        val helperRemove = fake.calls.filter { it.takeLast(2) == listOf("remove", "wlp8s0") }
+        assertEquals(1, helperRemove.size, "expected one helper remove, got: $helperRemove")
         val nmDown = fake.calls.filter {
             it.firstOrNull() == "nmcli" && it.getOrNull(1) == "connection" && it.getOrNull(2) == "down"
         }
@@ -206,7 +235,7 @@ class BridgeOrchestratorTest {
             nmDown,
         )
         // Order: policy route removal before profile down.
-        val ruleDelIdx = fake.calls.indexOfFirst { it == ruleDel.first() }
+        val ruleDelIdx = fake.calls.indexOfFirst { it == helperRemove.first() }
         val nmDownIdx = fake.calls.indexOfFirst { it == nmDown.first() }
         assertTrue(ruleDelIdx < nmDownIdx, "policy route should be removed before nmcli down")
         assertTrue(messages.any { it.contains("torn down") })

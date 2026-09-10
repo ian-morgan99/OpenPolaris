@@ -26,6 +26,7 @@ open class WifiBridge(
     private val policyPriority: Int = 1000,
     private val rtTables: RtTables = SystemRtTables,
     private val privilegedHelper: String = "/usr/local/libexec/openpolaris-network-helper",
+    private val expectedBssid: String? = System.getenv("OPENPOLARIS_BSSID")?.takeIf { it.isNotBlank() },
 ) {
 
     /** Exposed for progress messages; the policy route is keyed off this CIDR. */
@@ -62,6 +63,27 @@ open class WifiBridge(
 
     private fun requireValidInterfaceName(ifname: String) {
         require(Regex("[A-Za-z0-9_.:-]{1,15}").matches(ifname)) { "Invalid interface name: '$ifname'" }
+    }
+
+    data class LinkIdentity(val ssid: String, val bssid: String, val route: String)
+
+    /** Reject a responsive router or transitional NM state that is not the Polaris link. */
+    open fun verifyPolarisIdentity(ifname: String): Result<LinkIdentity> = runCatching {
+        requireValidInterfaceName(ifname)
+        val link = runner.run(listOf("iw", "dev", ifname, "link"))
+        val bssid = Regex("Connected to ([0-9A-Fa-f:]{17})").find(link)?.groupValues?.get(1)
+            ?: error("$ifname is not associated")
+        val ssid = Regex("(?m)^\\s*SSID:\\s*(\\S+)\\s*$").find(link)?.groupValues?.get(1)
+            ?: error("associated network has no SSID")
+        require(ssid.startsWith("polaris_", ignoreCase = true)) { "wrong SSID: $ssid" }
+        if (expectedBssid != null) {
+            require(bssid.equals(expectedBssid, ignoreCase = true)) { "wrong Polaris BSSID: $bssid" }
+        }
+        val route = runner.run(listOf("ip", "route", "get", "192.168.0.1"))
+        require(Regex("(?:^|\\s)dev\\s+$ifname(?:\\s|$)").containsMatchIn(route)) {
+            "192.168.0.1 is not routed through $ifname: $route"
+        }
+        LinkIdentity(ssid, bssid.uppercase(), route.trim())
     }
 
     private fun ensureRoutingTable(): String {

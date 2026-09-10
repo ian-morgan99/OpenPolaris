@@ -33,6 +33,8 @@ class BridgeOrchestrator(
     private val wifi: WifiBridge = WifiBridge(),
     private val bt: BluetoothProbe = BluetoothProbe(),
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val serviceProbe: PolarisServiceIdentityProbe = SocketPolarisServiceIdentityProbe,
+    private val knownBleAddress: String? = System.getenv("OPENPOLARIS_BLE_ADDRESS")?.takeIf { it.isNotBlank() },
 ) {
 
     /**
@@ -93,7 +95,20 @@ class BridgeOrchestrator(
             return@withContext false
         }
 
-        progress("Mount Wi-Fi ready on $ifname")
+        progress("Verifying Polaris AP and route identity…")
+        val identity = wifi.verifyPolarisIdentity(ifname).getOrElse { error ->
+            progress("Polaris identity check failed: ${error.message ?: error::class.simpleName}")
+            runCatching { wifi.removePolicyRoute(ifname) }
+            return@withContext false
+        }
+        progress("Verifying Polaris control service…")
+        val serviceIdentity = serviceProbe.verify("192.168.0.1", 9090).getOrElse { error ->
+            progress("Polaris service identity failed: ${error.message ?: error::class.simpleName}")
+            runCatching { wifi.removePolicyRoute(ifname) }
+            return@withContext false
+        }
+
+        progress("Mount Wi-Fi ready on $ifname (${identity.ssid}, ${identity.bssid}, $serviceIdentity)")
         true
     }
 
@@ -143,6 +158,16 @@ class BridgeOrchestrator(
         // The wake path is unconditional on the Benro Polaris: a bare GATT
         // connect pulses the firmware's Wi-Fi AP. If the gimbal is already
         // awake, the scan and connect will still succeed (no-op).
+        if (knownBleAddress != null) {
+            progress("Trying known Polaris Bluetooth address $knownBleAddress…")
+            try {
+                bt.wake(BluetoothProbe.DiscoveredDevice(knownBleAddress, "known Polaris"))
+                progress("Known-address GATT wake connected")
+                return
+            } catch (e: Exception) {
+                progress("Known-address connect failed: ${e.message}; scanning fallback…")
+            }
+        }
         progress("Scanning for gimbal over Bluetooth…")
         val device = bt.discover(timeoutMs = 5_000)
         if (device == null) {

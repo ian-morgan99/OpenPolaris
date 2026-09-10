@@ -125,6 +125,26 @@ class WifiBridgeTest {
         assertTrue(elapsed >= 500, "awaitLinkUp should poll, not return instantly (elapsed=$elapsed)")
     }
 
+    @Test
+    fun `identity requires polaris association and route on selected interface`() {
+        val fake = FakeRunner().apply {
+            responses["iw"] = "Connected to aa:bb:cc:dd:ee:ff\n\tSSID: polaris_d13e86\n"
+            responses["ip"] = "192.168.0.1 dev wlp8s0 src 192.168.0.2"
+        }
+        val result = WifiBridge(fake).verifyPolarisIdentity("wlp8s0")
+        assertTrue(result.isSuccess, result.exceptionOrNull()?.message)
+        assertEquals("AA:BB:CC:DD:EE:FF", result.getOrThrow().bssid)
+    }
+
+    @Test
+    fun `identity rejects wired fallback route`() {
+        val fake = FakeRunner().apply {
+            responses["iw"] = "Connected to aa:bb:cc:dd:ee:ff\n\tSSID: polaris_d13e86\n"
+            responses["ip"] = "192.168.0.1 via 192.168.68.1 dev enp11s0"
+        }
+        assertTrue(WifiBridge(fake).verifyPolarisIdentity("wlp8s0").isFailure)
+    }
+
     private fun fakeLikelyTableId(): String {
         // Mirror the hash table-id strategy used by WifiBridge so the assertion
         // matches the implementation regardless of the String hash.

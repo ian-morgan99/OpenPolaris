@@ -12,6 +12,10 @@ fun interface PolarisServiceIdentityProbe {
 
 object SocketPolarisServiceIdentityProbe : PolarisServiceIdentityProbe {
     override fun verify(host: String, port: Int): Result<String> = runCatching {
+        require(port == 9090) { "Polaris protocol port must be 9090" }
+        Socket().use { ssh ->
+            ssh.connect(InetSocketAddress(host, 22), 2_000)
+        }
         Socket().use { socket ->
             socket.connect(InetSocketAddress(host, port), 2_000)
             socket.soTimeout = 3_000
@@ -23,7 +27,7 @@ object SocketPolarisServiceIdentityProbe : PolarisServiceIdentityProbe {
             require(frames.any { it.code == Codes.PUSH_MODE_STATE }) {
                 "service did not return Polaris status code ${Codes.PUSH_MODE_STATE}"
             }
-            "9090/${Codes.PUSH_MODE_STATE}"
+            "ports 22+9090/${Codes.PUSH_MODE_STATE}"
         }
     }
 }

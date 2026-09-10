@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
  */
 class BridgeOrchestratorTest {
 
-    private val serviceOk = PolarisServiceIdentityProbe { _, _ -> Result.success("9090/284") }
+    private val serviceOk = PolarisServiceIdentityProbe { _, _ -> Result.success("ports 22+9090/284") }
 
     private class FakeRunner : ProcessRunner {
         val calls = mutableListOf<List<String>>()
@@ -113,7 +113,7 @@ class BridgeOrchestratorTest {
     }
 
     @Test
-    fun `bridge refuses connected state when 9090 service identity fails`() = runBlocking {
+    fun `bridge refuses connected state when required service ports fail verification`() = runBlocking {
         val fake = FakeRunner()
         val wifi = StubbedWifiBridge(fake, linkUpResult = true)
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)

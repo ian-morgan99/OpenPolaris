@@ -137,7 +137,7 @@ class WifiBridgeTest {
     }
 
     @Test
-    fun `identity rejects wired fallback route`() {
+    fun `identity rejects a route on the wrong interface`() {
         val fake = FakeRunner().apply {
             responses["iw"] = "Connected to aa:bb:cc:dd:ee:ff\n\tSSID: polaris_d13e86\n"
             responses["ip"] = "192.168.0.1 via 192.168.68.1 dev enp11s0"

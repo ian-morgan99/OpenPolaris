@@ -101,7 +101,7 @@ class BridgeOrchestrator(
             runCatching { wifi.removePolicyRoute(ifname) }
             return@withContext false
         }
-        progress("Verifying Polaris control service…")
+        progress("Verifying ports 22 and 9090…")
         val serviceIdentity = serviceProbe.verify("192.168.0.1", 9090).getOrElse { error ->
             progress("Polaris service identity failed: ${error.message ?: error::class.simpleName}")
             runCatching { wifi.removePolicyRoute(ifname) }

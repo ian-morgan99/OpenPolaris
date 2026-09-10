@@ -1,0 +1,69 @@
+#!/bin/bash
+# deploy-libgphoto2-port-fix.sh
+# Replaces the stripped /app/lib/stage2/libgphoto2_port.so.12 (38KB stub)
+# with the full libgphoto2_port.so.12.2.0 (133KB) built from commit 6aa3e4e66.
+#
+# PREREQUISITES:
+#   1. The K-3 III must be in a clean state - power-cycle or USB reseat it
+#      to clear the stuck MTP session.
+#   2. Stop pgphoto first (or this will fail with "device busy").
+#   3. Back up the existing stub so we can restore if needed.
+#
+# After deployment, /app/restart_gphoto should report:
+#   manufacturer:ricoh;model:pentax k-3 mark iii;state:1
+# instead of:
+#   manufacturer:none;model:none;state:-2
+#
+# SHA-256 of the file we deploy:
+#   da0370339953d28b6011a30de71189ef1b59c5f6a3b9c31d0320575fc8646ab6
+#   libgphoto2_port.so.12.2.0 (133,480 bytes, source commit 6aa3e4e66)
+#
+# We also deploy the matching usb1.so iolib (119,928 bytes, same source):
+#   e361eee913d1e0a4fc89d82fb9901cdb97bdcdb67fc5cbd63bbc624cea538968
+#
+# To roll back: restore from /app/lib/stage2/libgphoto2_port.so.12.stub.bak
+# and /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak
+set -e
+POLARIS="ssh -o ConnectTimeout=5 -o BatchMode=yes root@192.168.0.1"
+echo "=== Pre-flight ==="
+echo "  K-3 III present?"
+$POLARIS 'lsusb 2>&1 | grep 25fb || echo "NOT FOUND - abort"'
+echo "  pgphoto running?"
+$POLARIS 'pgrep -f pgphoto.stage2ondisk 2>&1 && echo "ABORT - kill pgphoto first" || echo "ok - not running"'
+echo
+echo "=== Stop pgphoto (and its watchdog will eventually restart it) ==="
+$POLARIS 'pkill -9 -f pgphoto.stage2ondisk 2>&1; sleep 2; pgrep -f pgphoto.stage2ondisk 2>&1 || echo "stopped"'
+echo
+echo "=== Backup current stub and iolib ==="
+$POLARIS 'cp /app/lib/stage2/libgphoto2_port.so.12 /app/lib/stage2/libgphoto2_port.so.12.stub.bak 2>&1
+cp /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak 2>&1
+ls -la /app/lib/stage2/libgphoto2_port.so.12.stub.bak /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak 2>&1'
+echo
+echo "=== Deploy libgphoto2_port.so.12 ==="
+$POLARIS 'cat > /app/lib/stage2/libgphoto2_port.so.12' < /tmp/fix-libgphoto2_port.so.12.2.0
+$POLARIS 'chmod 755 /app/lib/stage2/libgphoto2_port.so.12
+ls -la /app/lib/stage2/libgphoto2_port.so.12 2>&1
+sha256sum /app/lib/stage2/libgphoto2_port.so.12 2>&1'
+echo
+echo "=== Deploy usb1.so (the libgphoto2_port 0.12.2 iolib) ==="
+$POLARIS 'cat > /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so' < /tmp/fix-usb1.so
+$POLARIS 'chmod 755 /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so
+ls -la /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so 2>&1
+sha256sum /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so 2>&1'
+echo
+echo "=== Truncate Clog, restart pgphoto, wait 15s for full init ==="
+$POLARIS '> /app/Clog.txt; > /app/Mlog.txt 2>&1; /app/restart_gphoto 2>&1; sleep 15'
+echo
+echo "=== Result: does pgphoto now see the K-3 III? ==="
+$POLARIS 'tail -60 /app/Clog.txt 2>&1 | tail -30'
+echo
+echo "=== Mlog: was the camera identified? ==="
+$POLARIS 'grep -E "code\[286\]|code\[520\]" /app/Mlog.txt 2>&1 | tail -5'
+echo
+echo "=== If state is still -2, restore the stub and report the failure ==="
+$POLARIS 'grep -q "state:1" /app/Mlog.txt 2>/dev/null && echo "FIX WORKED" || (
+  echo "FIX DID NOT WORK - restoring stub"
+  cp /app/lib/stage2/libgphoto2_port.so.12.stub.bak /app/lib/stage2/libgphoto2_port.so.12
+  cp /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so.stock.bak /app/lib/stage2/libgphoto2_port/0.12.2/usb1.so
+  /app/restart_gphoto
+)'

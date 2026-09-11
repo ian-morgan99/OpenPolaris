@@ -135,6 +135,30 @@ dynamically in firmware; APK unavailable). Open Polaris implements the payload f
 ground truth with named GET/SET constants in `Codes.kt`; camera controls carry an
 experimental warning and must be validated on hardware before trusting the code mapping.
 
+#### 3.4.1 Focus set (262) and focus adjust (311) — derived from Benro Connect APK
+
+Source: decompiled `PolarisOrderCommunication.java` + call sites in
+`ParameterItemLayout` / `FocusTrackLayout` (see CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md).
+This supersedes the inferred `focus:<index>;` mapping for these two codes.
+
+| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
+|---|---:|---:|---|---|---|
+| focus jog (AF speed) | 262 | 1 | `mod:<m>;f:<s>;` | `ret:<n>;` only | no — jog |
+| MF adjust (focus track) | 311 | 1 | `mode:<m>;adj:<a>;` | `ret:<n>;` only | no — jog |
+
+- **262 is a jog, not a set.** The stock app sends it repeatedly every 300 ms while the
+  user holds a focus-speed button; `mod:0;f:0;` is the stop. Speed values observed at
+  call sites: left (add) fast/middle/slow = `6`/`5`/`4`, right (drop) fast/middle/slow =
+  `2`/`1`/`0`, with `mod:1` for all moving states.
+- **311 is the manual-focus jog used inside focus-track mode.** Observed values: add
+  fast/slow = `-4`/`-1`, drop fast/slow = `4`/`1`, always `mode:1`.
+- **No INFO/read-back exists for either code** (no GET pair in the opcode table). The
+  reply parser extracts only `ret:` and broadcasts it; success means `ret >= 0`. There is
+  no state to verify against — do not treat a missing read-back as failure, but also do
+  not claim the lens position changed without hardware evidence.
+- Both are exposed in qualification mode only, with hold-to-jog semantics (repeat while
+  held, send stop on release for 262).
+
 ### 3.5 Out of scope (documented for completeness)
 
 File ops (770–788) beyond thumbnail listing if needed, cellular remote (808–814, depends on

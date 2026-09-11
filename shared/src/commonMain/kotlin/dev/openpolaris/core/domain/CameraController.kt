@@ -39,6 +39,23 @@ class CameraController(private val session: MountSession) {
         val verified: Boolean get() = setAccepted && after.index == requestedIndex
     }
 
+    /**
+     * Result of a focus jog (262) or MF adjust (311). These codes have no INFO
+     * read-back pair — the stock app's parser extracts only `ret:` — so success is
+     * "the camera acknowledged the jog", not "the lens moved". Hardware evidence is
+     * still required before trusting actual focus movement.
+     */
+    data class FocusJogResult(
+        val code: Int,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val raw: String? = null,
+        val ret: Int? = null,
+    ) {
+        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
+            !raw.startsWith("ERROR:") && ret != null && ret >= 0
+    }
+
     /** Current camera parameter snapshot; null while unknown. */
     data class Params(
         val isoIndex: Int? = null,
@@ -125,6 +142,57 @@ class CameraController(private val session: MountSession) {
         return QualificationResult(label, index, before, after, setRaw = setRaw, setRet = setRet)
     }
 
+    /**
+     * Focus jog (262), derived from the Benro Connect APK contract:
+     * `mod:<m>;f:<s>;` with subtype 1. The stock app repeats this every 300 ms
+     * while a focus-speed button is held and sends `mod:0;f:0;` to stop.
+     * Speed values observed at call sites: left fast/middle/slow = 6/5/4,
+     * right fast/middle/slow = 2/1/0 (mod 1 while moving).
+     */
+    suspend fun jogFocus(mod: Int, speed: Int): FocusJogResult {
+        val valid = (mod == 0 && speed == 0) || (mod == 1 && speed in FOCUS_JOG_SPEEDS)
+        if (!valid) return FocusJogResult(
+            code = Codes.BenroCamera.SET_FOCUS,
+            sent = false,
+            error = "Unsupported focus jog mod=$mod speed=$speed",
+        )
+        return sendBenroJog(Codes.BenroCamera.SET_FOCUS, "mod:$mod;f:$speed;")
+    }
+
+    /**
+     * Manual-focus adjust inside focus-track mode (311), derived from the Benro
+     * Connect APK contract: `mode:<m>;adj:<a>;` with subtype 1. Observed values:
+     * add fast/slow = -4/-1, drop fast/slow = 4/1, always mode 1.
+     */
+    suspend fun adjustManualFocus(mode: Int, adj: Int): FocusJogResult {
+        if (mode != 1 || adj !in MANUAL_FOCUS_ADJUSTMENTS) return FocusJogResult(
+            code = Codes.BenroCamera.SET_FOCUS_ADJ,
+            sent = false,
+            error = "Unsupported manual-focus adjustment mode=$mode adj=$adj",
+        )
+        return sendBenroJog(Codes.BenroCamera.SET_FOCUS_ADJ, "mode:$mode;adj:$adj;")
+    }
+
+    private suspend fun sendBenroJog(code: Int, payload: String): FocusJogResult {
+        val reply = session.request(
+            code = code,
+            payload = payload,
+            timeoutMs = 10_000,
+            subtype = 1,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> FocusJogResult(
+                code = code,
+                raw = reply.value.raw.orEmpty(),
+                ret = reply.value.int("ret"),
+            )
+            is MountSession.CmdResult.Timeout -> FocusJogResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
+            is MountSession.CmdResult.ProtocolError -> FocusJogResult(
+                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+            )
+        }
+    }
+
     /** Trigger a single exposure. */
     suspend fun capture() = session.send(
         Codes.CAM_CAPTURE,
@@ -143,6 +211,11 @@ class CameraController(private val session: MountSession) {
         ?.trim()
         ?.removeSuffix(";")
         ?.toIntOrNull()
+
+    private companion object {
+        val FOCUS_JOG_SPEEDS = setOf(0, 1, 2, 4, 5, 6)
+        val MANUAL_FOCUS_ADJUSTMENTS = setOf(-4, -1, 1, 4)
+    }
 
 }
 

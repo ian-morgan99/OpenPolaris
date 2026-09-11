@@ -2,11 +2,14 @@
 
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.CoroutineScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import dev.openpolaris.core.protocol.Codes
 
@@ -129,6 +132,58 @@ class CameraFocusJogContractTest {
         assertFalse(result.sent)
         assertEquals("TIMEOUT", result.error)
         s.disconnect()
+    }
+
+    @Test
+    fun `non-numeric ret is not accepted`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&262&2&ret:ok;#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.jogFocus(mod = 1, speed = 1)
+
+        assertFalse(result.accepted, "a malformed ret must not display as success")
+        assertEquals(null, result.ret)
+        s.disconnect()
+    }
+
+    @Test
+    fun `empty raw data is not accepted`() = runTest {
+        val conn = FakeConnection()
+        // A same-code frame with no payload fields at all: the parser yields an
+        // empty raw string and no ret, so the jog must not be reported as
+        // acknowledged.
+        conn.responses += "1&262&2&#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.jogFocus(mod = 1, speed = 1)
+
+        assertFalse(result.accepted, "an empty acknowledgement must not count as success")
+        assertEquals(null, result.ret)
+        s.disconnect()
+    }
+
+    @Test
+    fun `protocol error is reported as not sent, not success`() = runTest {
+        val conn = FakeConnection()
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        // A jog in flight: no reply is queued, so disconnect must fail the
+        // waiter with a ProtocolError instead of letting it time out.
+        val deferred = async { c.jogFocus(mod = 1, speed = 2) }
+        runCurrent()
+        s.disconnect()
+        val result = deferred.await()
+
+        assertFalse(result.accepted)
+        assertFalse(result.sent)
+        // The protocol-error path records the message in `error` and an
+        // "ERROR:"-prefixed diagnostic in `raw`; neither may read as success.
+        assertNotNull(result.error, "a protocol error must carry a diagnostic")
+        assertTrue(result.raw.orEmpty().startsWith("ERROR:"), "got: ${result.raw}")
     }
 
     @Test

@@ -130,10 +130,24 @@ Semantics: values are **indices into firmware-sorted option lists** (`SP_SetCame
 CableRelease task (`SP_CreateCableReleaseTask`, `SP_CableReleaseMakePhoto`). Battery:
 `capacity:%d;charge:%d;`.
 
-**Status of numeric codes:** the exact code numbers within 258–311 are INFERRED (built
-dynamically in firmware; APK unavailable). Open Polaris implements the payload formats as
-ground truth with named GET/SET constants in `Codes.kt`; camera controls carry an
-experimental warning and must be validated on hardware before trusting the code mapping.
+**Status of numeric codes — evidence levels (keep these distinct):**
+
+- **APK-derived (decompiled Benro Connect, 2026-09-11):** the exact code numbers and
+  payload spellings for the camera SET/INFO map in `Codes.BenroCamera` (258–311),
+  including focus jog 262 and MF adjust 311 (§3.4.1). The stock app's request methods
+  are the source of truth for code + payload; the firmware symbols above are the source
+  of truth for response shapes.
+- **Live-verified:** only what is recorded in §5.1 (2026-09-07 hardware session) and in
+  `docs/evidence/`. A code being APK-derived does NOT mean it has been exercised on a
+  K-3 III or K-1 II.
+- **Inferred:** payload *semantics* that are not directly observable — e.g. which index
+  values map to which physical ISO/shutter/aperture options (the firmware sorts option
+  lists per model), and the jog speed magnitudes (6/5/4 vs 2/1/0) whose direction
+  (add vs drop) comes from UI button labels, not wire captures.
+
+Open Polaris implements the payload formats as ground truth with named GET/SET constants
+in `Codes.kt`; camera controls carry an experimental warning and must be validated on
+hardware before trusting the code mapping.
 
 #### 3.4.1 Focus set (262) and focus adjust (311) — derived from Benro Connect APK
 

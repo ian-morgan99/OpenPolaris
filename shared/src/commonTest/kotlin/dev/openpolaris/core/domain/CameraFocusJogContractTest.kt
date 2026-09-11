@@ -76,6 +76,26 @@ class CameraFocusJogContractTest {
     }
 
     @Test
+    fun `semantic near and far preserve hardware verified sign`() = runTest {
+        val conn = FakeConnection()
+        repeat(4) {
+            conn.responses += "1&311&2&ret:0;#".toByteArray(Charsets.US_ASCII)
+        }
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        c.adjustManualFocusNear()
+        assertEquals("1&311&1&mode:1;adj:1;#", String(conn.written.last(), Charsets.US_ASCII))
+        c.adjustManualFocusNear(fast = true)
+        assertEquals("1&311&1&mode:1;adj:4;#", String(conn.written.last(), Charsets.US_ASCII))
+        c.adjustManualFocusFar()
+        assertEquals("1&311&1&mode:1;adj:-1;#", String(conn.written.last(), Charsets.US_ASCII))
+        c.adjustManualFocusFar(fast = true)
+        assertEquals("1&311&1&mode:1;adj:-4;#", String(conn.written.last(), Charsets.US_ASCII))
+        s.disconnect()
+    }
+
+    @Test
     fun `negative ret is not accepted`() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&262&2&ret:-1;#".toByteArray(Charsets.US_ASCII)

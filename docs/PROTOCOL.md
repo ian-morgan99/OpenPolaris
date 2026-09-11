@@ -166,6 +166,13 @@ This supersedes the inferred `focus:<index>;` mapping for these two codes.
   `2`/`1`/`0`, with `mod:1` for all moving states.
 - **311 is the manual-focus jog used inside focus-track mode.** Observed values: add
   fast/slow = `-4`/`-1`, drop fast/slow = `4`/`1`, always `mode:1`.
+- **Physical direction (K-3 III on Polaris, 2026-09-11):** the APK's add/drop
+  labels are not safe Near/Far names. Polaris passes the signed value to the
+  generic libgphoto2 focus control: `adj:+1/+4` means **Near** and
+  `adj:-1/-4` means **Far**. An earlier qualification instruction labelled
+  `adj:-1` as Near and was physically observed to move the opposite way.
+  UI code must use the semantic controller wrappers rather than assigning raw
+  signs at the button call site.
 - **No INFO/read-back exists for either code** (no GET pair in the opcode table). The
   reply parser extracts only `ret:` and broadcasts it; success means `ret >= 0`. There is
   no state to verify against — do not treat a missing read-back as failure, but also do

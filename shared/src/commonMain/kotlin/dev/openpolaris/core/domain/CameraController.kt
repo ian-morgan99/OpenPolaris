@@ -174,6 +174,19 @@ class CameraController(private val session: MountSession) {
         return sendBenroJog(Codes.BenroCamera.SET_FOCUS_ADJ, "mode:$mode;adj:$adj;")
     }
 
+    /**
+     * Semantic wrappers for UI controls. Hardware qualification on the K-3 III
+     * established that Polaris passes the signed adjustment through to
+     * libgphoto2: positive values move Near and negative values move Far.
+     * Keeping that conversion here prevents UI labels from reinterpreting the
+     * APK's ambiguous "add"/"drop" names backwards.
+     */
+    suspend fun adjustManualFocusNear(fast: Boolean = false): FocusJogResult =
+        adjustManualFocus(mode = 1, adj = if (fast) 4 else 1)
+
+    suspend fun adjustManualFocusFar(fast: Boolean = false): FocusJogResult =
+        adjustManualFocus(mode = 1, adj = if (fast) -4 else -1)
+
     private suspend fun sendBenroJog(code: Int, payload: String): FocusJogResult {
         val reply = session.request(
             code = code,

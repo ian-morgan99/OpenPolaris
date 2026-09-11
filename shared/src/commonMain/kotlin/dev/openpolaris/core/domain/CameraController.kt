@@ -1,6 +1,7 @@
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.protocol.Codes
+import dev.openpolaris.core.protocol.EMPTY_CONTENT
 import kotlinx.coroutines.delay
 
 /**
@@ -188,6 +189,70 @@ class CameraController(private val session: MountSession) {
             )
             is MountSession.CmdResult.Timeout -> FocusJogResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
             is MountSession.CmdResult.ProtocolError -> FocusJogResult(
+                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+            )
+        }
+    }
+
+    /**
+     * Result of a camera liveview (preview) command.
+     *
+     * Contract (docs/PROTOCOL.md §3.4.2, K-3 III v9d live-verified 2026-09-11):
+     *  - SET 291 `state:1;`/`state:0;` replies `state:<n>;ret:<code>;` — success
+     *    requires an explicit `ret >= 0`.
+     *  - GET 292 (empty payload) replies `state:<0|1>;` with NO `ret` field — a
+     *    missing ret is normal here, so [accepted] only applies to SET results.
+     * The image data itself streams on the separate 8080 multipart endpoint;
+     * these commands only control the stream.
+     */
+    data class PreviewResult(
+        val code: Int,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val raw: String? = null,
+        val state: Int? = null,
+        val ret: Int? = null,
+    ) {
+        /** True only when the reply carried an explicit non-negative `ret`. */
+        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
+            !raw.startsWith("ERROR:") && ret != null && ret >= 0
+    }
+
+    /**
+     * Start or stop the camera liveview (291), APK contract `state:<0|1>;` with
+     * subtype 2. Starting opens the 8080 multipart JPEG stream; stopping closes
+     * it. Live-verified on K-3 III v9d (issue #80 evidence).
+     */
+    suspend fun setCameraPreview(on: Boolean): PreviewResult {
+        val payload = "state:${if (on) 1 else 0};"
+        return sendBenroPreview(Codes.BenroCamera.SET_CAMERA_PREVIEW, payload)
+    }
+
+    /**
+     * Query the current liveview state (292), empty payload, subtype 2. The reply
+     * carries `state:` but no `ret` — [PreviewResult.accepted] is not meaningful
+     * for GET results; use [PreviewResult.state] instead.
+     */
+    suspend fun queryCameraPreview(): PreviewResult {
+        return sendBenroPreview(Codes.BenroCamera.GET_CAMERA_PREVIEW, EMPTY_CONTENT)
+    }
+
+    private suspend fun sendBenroPreview(code: Int, payload: String): PreviewResult {
+        val reply = session.request(
+            code = code,
+            payload = payload,
+            timeoutMs = 10_000,
+            subtype = 2,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> PreviewResult(
+                code = code,
+                raw = reply.value.raw.orEmpty(),
+                state = reply.value.int("state"),
+                ret = reply.value.int("ret"),
+            )
+            is MountSession.CmdResult.Timeout -> PreviewResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
+            is MountSession.CmdResult.ProtocolError -> PreviewResult(
                 code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
             )
         }

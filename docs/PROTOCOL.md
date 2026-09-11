@@ -173,6 +173,30 @@ This supersedes the inferred `focus:<index>;` mapping for these two codes.
 - Both are exposed in qualification mode only, with hold-to-jog semantics (repeat while
   held, send stop on release for 262).
 
+#### 3.4.2 Camera liveview / preview (291/292) — APK-derived, K-3 III v9d live-verified
+
+Source: decompiled `SP_SET_CAMERA_PREVIEW` / `SP_GET_CAMERA_PREVIEW` in
+`PolarisOrderCommunication.java`. **Live-verified on K-3 III (firmware v9d), 2026-09-11**
+(issue #80 evidence, patcher commits 8bc6163 and 12465c8): `1&291&2&state:1;#` →
+`291@state:1;ret:0;#`; `1&292&2&#` → `292@state:1;#`; a 120 s run delivered 58/58
+complete JPEG frames (~0.483 fps) on the 8080 data plane, and stop returned `state:0`.
+
+| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
+|---|---:|---:|---|---|---|
+| preview ON | 291 | 2 | `state:1;` | `state:1;ret:0;` | no — stream starts on 8080 |
+| preview OFF | 291 | 2 | `state:0;` | `state:0;ret:0;` (verify) | yes for the control plane |
+| preview state query | 292 | 2 | *(empty)* | `state:<0\|1>;` | no — query |
+
+- **The 292 reply carries `state:` but NOT `ret:`** (live capture: `292@state:1;#`).
+  The stock app's parser reads only `state:` and treats `0` as "off". Do not require a
+  `ret` field on 292 replies.
+- **The image data does not travel over the 9090 control socket.** Starting preview
+  opens a separate multipart JPEG stream on port 8080 (see §3.4.2 evidence and the
+  preview-stream issues #61/#74). Observed cadence: ~0.5 fps, complete JPEG frames
+  (~66 KB each) in a continuous multipart stream; the stream stops cleanly when
+  `state:0` is sent.
+- Qualification-mode exposure only until K-1 II is also verified (issue #63).
+
 ### 3.5 Out of scope (documented for completeness)
 
 File ops (770–788) beyond thumbnail listing if needed, cellular remote (808–814, depends on

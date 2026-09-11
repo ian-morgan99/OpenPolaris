@@ -66,6 +66,10 @@ object Codes {
         const val GET_INTERVAL_TYPE = 306
         const val SET_INTERVAL_TYPE = 307
         const val SET_FOCUS_ADJ = 311
+        /** Camera liveview ON/OFF (PolarisCMD.SP_SET_CAMERA_PREVIEW). `state:1;` / `state:0;`. */
+        const val SET_CAMERA_PREVIEW = 291
+        /** Camera liveview state query (PolarisCMD.SP_GET_CAMERA_PREVIEW), empty payload. */
+        const val GET_CAMERA_PREVIEW = 292
     }
     // ---- gimbal status / push ------------------------------------------------
     // 0 — session/handshake ret (live 2026-09-01: `0@ret:-1;` first probe, then

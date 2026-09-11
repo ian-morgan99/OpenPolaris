@@ -271,6 +271,164 @@ class CameraController(private val session: MountSession) {
         }
     }
 
+    /**
+     * Result of a task-3 camera parameter command (image format 282, control mode
+     * 296/297, exposure time 298/299, interval type 306/307).
+     *
+     * Contract (docs/PROTOCOL.md §3.4.3, APK-derived):
+     *  - GET queries (282/296/298/306) reply with a value field (`format:` / `mode:` /
+     *    `ExTime:` / raw passthrough) and NO `ret` — [value] carries the answer.
+     *  - SET commands (297/299) reply `ret:<n>;` only — success requires an explicit
+     *    `ret >= 0`.
+     *  - Interval-type SET (307) is fire-and-forget with no observed reply; [sent]
+     *    reflects that the frame was written, not that the camera acknowledged it.
+     */
+    data class CameraParamResult(
+        val code: Int,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val raw: String? = null,
+        val value: String? = null,
+        val ret: Int? = null,
+    ) {
+        /** True when the frame was written and (for SET) an explicit non-negative `ret` arrived. */
+        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
+            !raw.startsWith("ERROR:") && (ret == null || ret >= 0)
+    }
+
+    /**
+     * Query the camera image format (282). APK contract: subtype **4**, `-100` payload,
+     * reply `format:<str>;`. The value is a firmware string (e.g. "RAW"/"JPEG"), not an
+     * index — do not parse it as an int.
+     */
+    suspend fun queryImageFormat(): CameraParamResult =
+        sendBenroParamQuery(Codes.BenroCamera.GET_IMG_FORMAT, "format", subtype = 4)
+
+    /** Query the camera control mode (296). Reply `mode:<0|1>;` (0=USB, 1=HDMI take-model). */
+    suspend fun queryControlMode(): CameraParamResult =
+        sendBenroParamQuery(Codes.BenroCamera.GET_CONTROL_MODE, "mode", subtype = 2)
+
+    /**
+     * Set the camera control mode (297), `mode:<m>;` with subtype 2. Only the APK-observed
+     * values 0 (USB) and 1 (HDMI) are accepted; anything else fails before writing.
+     */
+    suspend fun setControlMode(mode: Int): CameraParamResult {
+        if (mode !in CONTROL_MODES) return CameraParamResult(
+            code = Codes.BenroCamera.SET_CONTROL_MODE,
+            sent = false,
+            error = "Unsupported control mode=$mode (observed: ${CONTROL_MODES})",
+        )
+        return sendBenroParamSet(Codes.BenroCamera.SET_CONTROL_MODE, "mode:$mode;")
+    }
+
+    /** Query the camera exposure-time index (298). Reply `ExTime:<v>;` — a model-dependent index. */
+    suspend fun queryExposureTime(): CameraParamResult =
+        sendBenroParamQuery(Codes.BenroCamera.GET_EX_TIME, "ExTime", subtype = 2)
+
+    /**
+     * Set the camera exposure-time index (299), `ExTime:<v>;` with subtype 2. The value is a
+     * camera-specific index whose valid range is model-dependent (enumerate under #63); we
+     * accept any non-negative int rather than hard-coding a range.
+     */
+    suspend fun setExposureTime(index: Int): CameraParamResult {
+        if (index < 0) return CameraParamResult(
+            code = Codes.BenroCamera.SET_EX_TIME,
+            sent = false,
+            error = "Unsupported exposure-time index=$index (must be >= 0)",
+        )
+        return sendBenroParamSet(Codes.BenroCamera.SET_EX_TIME, "ExTime:$index;")
+    }
+
+    /**
+     * Query the timelapse interval type (306). APK quirk: sends a literal **empty** payload
+     * (not `-100`) and the stock app broadcasts the whole reply with no field parse, so the
+     * answer is returned in [CameraParamResult.raw] / [CameraParamResult.value].
+     */
+    suspend fun queryIntervalType(): CameraParamResult {
+        val reply = session.request(
+            code = Codes.BenroCamera.GET_INTERVAL_TYPE,
+            payload = "",
+            timeoutMs = 10_000,
+            subtype = 2,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> CameraParamResult(
+                code = Codes.BenroCamera.GET_INTERVAL_TYPE,
+                raw = reply.value.raw.orEmpty(),
+                value = reply.value.raw?.trim()?.removeSuffix(";"),
+            )
+            is MountSession.CmdResult.Timeout -> CameraParamResult(
+                Codes.BenroCamera.GET_INTERVAL_TYPE, sent = false, error = "TIMEOUT", raw = "TIMEOUT",
+            )
+            is MountSession.CmdResult.ProtocolError -> CameraParamResult(
+                Codes.BenroCamera.GET_INTERVAL_TYPE, sent = false, error = reply.message,
+                raw = "ERROR: ${reply.message}",
+            )
+        }
+    }
+
+    /**
+     * Set the timelapse interval type (307), `type:<t>` with subtype 2. APK quirk: **no
+     * trailing semicolon** and fire-and-forget (no reply parser registered), so this uses a
+     * one-way send — [CameraParamResult.sent] means "frame written", not "camera acked".
+     */
+    suspend fun setIntervalType(type: Int): CameraParamResult {
+        if (type !in INTERVAL_TYPES) return CameraParamResult(
+            code = Codes.BenroCamera.SET_INTERVAL_TYPE,
+            sent = false,
+            error = "Unsupported interval type=$type (observed: ${INTERVAL_TYPES})",
+        )
+        return try {
+            session.send(Codes.BenroCamera.SET_INTERVAL_TYPE, "type:$type", subtype = 2)
+            CameraParamResult(code = Codes.BenroCamera.SET_INTERVAL_TYPE, raw = "sent (fire-and-forget)")
+        } catch (e: Exception) {
+            CameraParamResult(
+                code = Codes.BenroCamera.SET_INTERVAL_TYPE,
+                sent = false, error = e.message, raw = "ERROR: ${e.message}",
+            )
+        }
+    }
+
+    private suspend fun sendBenroParamQuery(code: Int, key: String, subtype: Int): CameraParamResult {
+        val reply = session.request(
+            code = code,
+            payload = EMPTY_CONTENT,
+            timeoutMs = 10_000,
+            subtype = subtype,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> CameraParamResult(
+                code = code,
+                raw = reply.value.raw.orEmpty(),
+                value = reply.value.fields[key]?.trim(),
+            )
+            is MountSession.CmdResult.Timeout -> CameraParamResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
+            is MountSession.CmdResult.ProtocolError -> CameraParamResult(
+                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+            )
+        }
+    }
+
+    private suspend fun sendBenroParamSet(code: Int, payload: String): CameraParamResult {
+        val reply = session.request(
+            code = code,
+            payload = payload,
+            timeoutMs = 10_000,
+            subtype = 2,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> CameraParamResult(
+                code = code,
+                raw = reply.value.raw.orEmpty(),
+                ret = reply.value.int("ret"),
+            )
+            is MountSession.CmdResult.Timeout -> CameraParamResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
+            is MountSession.CmdResult.ProtocolError -> CameraParamResult(
+                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+            )
+        }
+    }
+
     /** Trigger a single exposure. */
     suspend fun capture() = session.send(
         Codes.CAM_CAPTURE,
@@ -293,6 +451,11 @@ class CameraController(private val session: MountSession) {
     private companion object {
         val FOCUS_JOG_SPEEDS = setOf(0, 1, 2, 4, 5, 6)
         val MANUAL_FOCUS_ADJUSTMENTS = setOf(-4, -1, 1, 4)
+        // Task-3 (docs/PROTOCOL.md §3.4.3): APK-observed values only.
+        // Control mode: 0=USB take-model, 1=HDMI take-model (SwitchTakeModelDialog).
+        val CONTROL_MODES = setOf(0, 1)
+        // Interval type: two shoot types (InnerSettingDialog).
+        val INTERVAL_TYPES = setOf(0, 1)
     }
 
 }

@@ -204,6 +204,43 @@ complete JPEG frames (~0.483 fps) on the 8080 data plane, and stop returned `sta
   `state:0` is sent.
 - Qualification-mode exposure only until K-1 II is also verified (issue #63).
 
+#### 3.4.3 Image format (282), control mode (296/297), exposure time (298/299), interval type (306/307) — APK-derived
+
+Source: decompiled `SP_GET_IMG_FORMAT`, `SP_GET/SET_CONTROL_MODE`,
+`SP_GET/SET_EX_TIME`, `SP_GET/SET_TIME_INTERVAL_TYPE` in
+`PolarisOrderCommunication.java` + call sites in `SwitchTakeModelDialog`,
+`InnerSettingDialog`, `ParameterItemLayout`. Evidence level: **APK-derived** (not yet
+live-verified on K-3 III / K-1 II — issue #63).
+
+| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
+|---|---:|---:|---|---|---|
+| image format query | 282 | **4** | `-100` (null) | `format:<str>;` | no — query |
+| control mode query | 296 | 2 | `-100` (null) | `mode:<0\|1>;` | no — query |
+| control mode set | 297 | 2 | `mode:<m>;` | `ret:<n>;` only | yes |
+| exposure time query | 298 | 2 | `-100` (null) | `ExTime:<v>;` | no — query |
+| exposure time set | 299 | 2 | `ExTime:<v>;` | `ret:<n>;` only | yes |
+| interval type query | 306 | 2 | *(empty string, NOT `-100`)* | raw passthrough (no field parse) | no — query |
+| interval type set | 307 | 2 | `type:<t>` (**no trailing `;`**) | none observed (fire-and-forget) | yes |
+
+Quirks that differ from the rest of the camera cluster:
+
+- **282 is the only camera code that uses subtype 4** (image-format reads). Every other
+  camera GET/SET in this section uses subtype 2.
+- **306 GET sends a literal empty payload**, not `-100`. The stock app's `sendOrder`
+  converts `null` → `-100` but passes `""` through, and `SP_GET_TIME_INTERVAL_TYPE()`
+  calls `sendOrder(306, 2, "")`. Its parser does no field extraction — it broadcasts the
+  whole reply string. Do not "normalise" this to `-100`.
+- **307 SET has no trailing semicolon** (`"type:" + i`, not `"type:" + i + ";"`) and the
+  stock app treats it as fire-and-forget (no parser registered for a 307 reply).
+- **Control mode values are `0`/`1`** (USB vs HDMI take-model, per
+  `SwitchTakeModelDialog`). **Interval type values are `0`/`1`** (two shoot types, per
+  `InnerSettingDialog`).
+- **Exposure time is a camera-specific index** (`ParameterItemLayout` sends the cached
+  `exTime` value back unchanged); the valid range is model-dependent and must come from
+  hardware enumeration under #63 — do not hard-code a range.
+- SET replies (297/299) carry only `ret:`; success means an explicit `ret >= 0`.
+- Qualification-mode exposure only until hardware passes (guide step 13).
+
 ### 3.5 Out of scope (documented for completeness)
 
 File ops (770–788) beyond thumbnail listing if needed, cellular remote (808–814, depends on

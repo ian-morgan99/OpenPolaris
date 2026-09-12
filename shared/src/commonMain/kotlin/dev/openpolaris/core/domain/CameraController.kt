@@ -296,6 +296,36 @@ class CameraController(private val session: MountSession) {
             !raw.startsWith("ERROR:") && (ret == null || ret >= 0)
     }
 
+    /** Result of a video record status command (263). */
+    data class VideoRecordResult(
+        val code: Int,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val raw: String? = null,
+        val state: String? = null,
+        val recordState: String? = null,
+        val ret: Int? = null,
+        val requestedState: String? = null,
+    ) {
+        /** True only when the camera echoes the requested normal state (0 or 1). */
+        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
+            !raw.startsWith("ERROR:") && state == requestedState && state in VIDEO_RECORD_STATES
+    }
+
+    /** Result of a photo record status command (264 subtype 2). */
+    data class PhotoRecordResult(
+        val code: Int,
+        val sent: Boolean = true,
+        val error: String? = null,
+        val raw: String? = null,
+        val state: String? = null,
+        val requestedState: String? = null,
+    ) {
+        /** True only when the camera echoes the requested state (0 or 1). */
+        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
+            !raw.startsWith("ERROR:") && state == requestedState && state in PHOTO_RECORD_STATES
+    }
+
     /**
      * Query the camera image format (282). APK contract: subtype **4**, `-100` payload,
      * reply `format:<str>;`. The value is a firmware string (e.g. "RAW"/"JPEG"), not an
@@ -389,6 +419,89 @@ class CameraController(private val session: MountSession) {
         }
     }
 
+    /**
+     * Start or stop video recording (263), `state:<0|1>;` with subtype 2. The
+     * APK response is a state echo; `state:-1` is a non-success terminal reply.
+     */
+    suspend fun setVideoRecordStatus(recording: Boolean): VideoRecordResult {
+        val requestedState = if (recording) "1" else "0"
+        val reply = session.request(
+            code = Codes.BenroCamera.SET_VIDEO_RECORD_STATUS,
+            payload = "state:$requestedState;",
+            timeoutMs = 10_000,
+            subtype = 2,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> {
+                val state = reply.value["state"]?.trim()
+                val (recordState, ret) = when (state) {
+                    "0" -> "recordComplete" to 0
+                    "1" -> "recordStart" to 0
+                    "-1" -> "recordStart" to -1
+                    else -> null to null
+                }
+                VideoRecordResult(
+                    code = Codes.BenroCamera.SET_VIDEO_RECORD_STATUS,
+                    raw = reply.value.raw.orEmpty(),
+                    state = state,
+                    recordState = recordState,
+                    ret = ret,
+                    requestedState = requestedState,
+                )
+            }
+            is MountSession.CmdResult.Timeout -> VideoRecordResult(
+                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = false,
+                error = "TIMEOUT", raw = "TIMEOUT", requestedState = requestedState,
+            )
+            is MountSession.CmdResult.ProtocolError -> VideoRecordResult(
+                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = false,
+                error = reply.message, raw = "ERROR: ${reply.message}", requestedState = requestedState,
+            )
+        }
+    }
+
+    /**
+     * Start or stop still-photo recording (264 subtype 2). This deliberately
+     * remains separate from [capture], whose 264 subtype-4 contract is a single
+     * still shutter release. Bulb seconds must be non-negative; `c` accepts the
+     * observed sentinel -1 and non-negative continuation counts.
+     */
+    suspend fun setPhotoRecordStatus(
+        recording: Boolean,
+        bulbSeconds: Int = 0,
+        continuationCount: Int = -1,
+    ): PhotoRecordResult {
+        val requestedState = if (recording) "1" else "0"
+        if (bulbSeconds < 0 || continuationCount < -1) return PhotoRecordResult(
+            code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
+            sent = false,
+            error = "Unsupported photo status bulb=$bulbSeconds c=$continuationCount",
+            requestedState = requestedState,
+        )
+        val reply = session.request(
+            code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
+            payload = "state:$requestedState;bulb:$bulbSeconds;c:$continuationCount;",
+            timeoutMs = 10_000,
+            subtype = 2,
+        ) { it }
+        return when (reply) {
+            is MountSession.CmdResult.Ok -> PhotoRecordResult(
+                code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
+                raw = reply.value.raw.orEmpty(),
+                state = reply.value["state"]?.trim(),
+                requestedState = requestedState,
+            )
+            is MountSession.CmdResult.Timeout -> PhotoRecordResult(
+                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = false,
+                error = "TIMEOUT", raw = "TIMEOUT", requestedState = requestedState,
+            )
+            is MountSession.CmdResult.ProtocolError -> PhotoRecordResult(
+                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = false,
+                error = reply.message, raw = "ERROR: ${reply.message}", requestedState = requestedState,
+            )
+        }
+    }
+
     private suspend fun sendBenroParamQuery(code: Int, key: String, subtype: Int): CameraParamResult {
         val reply = session.request(
             code = code,
@@ -456,6 +569,8 @@ class CameraController(private val session: MountSession) {
         val CONTROL_MODES = setOf(0, 1)
         // Interval type: two shoot types (InnerSettingDialog).
         val INTERVAL_TYPES = setOf(0, 1)
+        val VIDEO_RECORD_STATES = setOf("0", "1")
+        val PHOTO_RECORD_STATES = setOf("0", "1")
     }
 
 }

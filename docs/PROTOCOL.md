@@ -355,6 +355,27 @@ inspection, the protocol response is the suspect — not the shell.
   for the divergence list.** Until we hardware-confirm the wiki's claims on those divergent codes,
   PROTOCOL.md stays on our evidence and does not import the wiki's framing for them.
 
+#### 3.4.4 Video/photo status (263/264) — APK-derived
+
+Source: decompiled `SP_SET_VIDEO_RECORD_STATUS` and `SP_SET_PHOTO_RECORD_STATUS` in
+`PolarisOrderCommunication.java` + call sites in `MainActivity`. Evidence level: **APK-derived** (not yet live-verified on K-3 III / K-1 II — issue #63).
+
+| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
+|---|---:|---:|---|---|---|
+| video record start/stop | 263 | 2 | `state:<0|1>;` | `state:<value>;` | yes |
+| photo record start/stop | 264 | 2 | `state:<0|1>;bulb:<n>;c:<n>;` | `state:<value>;` | yes |
+
+- Both commands set recording state and receive the resulting `state:` echo. The app sends
+  `0` to stop and `1` to start. The 263 parser also recognises reply `state:-1` as a
+  non-success state; it is not emitted by the observed setter call sites.
+- For 264, `bulb:` is `0` or a non-negative bulb duration and `c:` is the observed `-1`
+  sentinel or a non-negative continuation count. Both fields are ignored in the reply.
+- The reply contains only a `state:` field; there is no `ret:` field. OpenPolaris reports
+  success only when that state explicitly matches the requested normal state (`0` or `1`).
+- Qualification-mode exposure only until hardware passes (guide step 13).
+
+Note: Code 264 is overloaded: subtype 2 is photo record status (as above), subtype 4 is still capture (CAM_CAPTURE) with the fixed payload `state:1;bulb:0;c:-1;`. Do not confuse the two.
+
 ## 7. Where another team's notes disagree with ours
 
 This section is the human-readable summary of the divergences in

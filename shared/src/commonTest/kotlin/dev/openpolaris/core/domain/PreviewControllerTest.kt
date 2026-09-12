@@ -27,6 +27,34 @@ class PreviewControllerTest {
         override fun stop() = onStop(this)
     }
 
+    @Test
+    fun defaultStartUsesDedicatedPreviewPort() = runTest {
+        var observedHost: String? = null
+        var observedPort: Int? = null
+        val factory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport =
+            { _, _ ->
+                object : PreviewTransport {
+                    override fun start(host: String, port: Int, path: String) {
+                        observedHost = host
+                        observedPort = port
+                    }
+
+                    override fun stop() = Unit
+                }
+            }
+        val c = PreviewController(
+            transportFactory = factory,
+            parent = SupervisorJob(),
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+
+        c.start("192.168.0.1")
+
+        assertEquals("192.168.0.1", observedHost)
+        assertEquals(8080, observedPort, "preview must not inherit the 9090 control port")
+        c.shutdown()
+    }
+
     /**
      * Happy path: the transport emits three frames, the controller
      * forwards them all and transitions to [PreviewController.State.Streaming].

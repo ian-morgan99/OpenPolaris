@@ -1085,16 +1085,13 @@ class AppViewModel(
      * is decoded off the main thread and published to [previewFrame].
      */
     private fun startPreview() {
-        // 3h-BUG: read the live port field, not a hard-coded 8080. The port
-        // is seeded from the persisted SessionMarker (in
-        // tryReconnectIfMarkerExists) and may be overridden by the user via
-        // the reconnect dialog's port field (acceptReconnect() writes
-        // `port = targetPort`). Previously this call always hit 8080 even
-        // when the user picked a non-default port, so the preview never
-        // opened. Called before the collector launches so the first frame
-        // isn't missed by a start/collect race.
+        // Preview is a separate service from the configurable 9090 control
+        // socket.  Deliberately use PreviewController's dedicated 8080
+        // default: passing the control port here sends the MJPEG HTTP request
+        // to polestar_app, where it is rejected as an unknown control frame
+        // (issue #74).
         try {
-            preview.start(host, port)
+            preview.start(host)
         } catch (e: Throwable) {
             // 3e E2: PreviewController.start may throw if the host is
             // unresolvable or the port is closed. Surface as a status

@@ -3,6 +3,9 @@
 Ordered validation against a physical Benro Polaris. Run top to bottom;
 each step assumes the previous passed. Record pass/fail + notes per step.
 
+Before running, apply the runtime evidence policy in
+`docs/RUNTIME-FIRST-UI-LENS.md`.
+
 **Setup:** mount powered on, Wi-Fi joined to the mount AP, app connected
 (`1&100&2&#` handshake OK, status pane shows mode/battery).
 

@@ -11,6 +11,14 @@ This document is the audit; concrete fixes land in the same release
 
 ## Scope and method
 
+Runtime-first rule for this audit:
+
+1. Reproduce each UI finding in a live runtime (emulator or device).
+2. Capture screenshot + `uiautomator dump` + foreground activity at the same step.
+3. Treat static source inspection as supporting evidence only.
+
+This review follows `docs/RUNTIME-FIRST-UI-LENS.md`.
+
 UI surface audited (`composeApp/src/commonMain`, `androidApp/src/androidMain`,
 `composeApp/src/jvmMain` — 6,830 LoC across 14 files):
 

@@ -208,6 +208,7 @@ Debug-signed; expect rough edges. Field-test findings go straight into the issue
 | [PLAN.md](PLAN.md) | Phased delivery plan with hardware-gated milestones |
 | [EVALUATION.md](EVALUATION.md) | Phase 0/1 close-out evaluation |
 | [SMOKE-TEST.md](SMOKE-TEST.md) | Hardware smoke-test checklist |
+| [RUNTIME-FIRST-UI-LENS.md](RUNTIME-FIRST-UI-LENS.md) | Evidence-first UI bug review and screenshot acceptance gates |
 
 The "Wi-Fi bridge for laptops" section above links the laptop BT→WiFi flow to the architecture
 document, where the segregated routing table and NetworkManager integration live in detail.

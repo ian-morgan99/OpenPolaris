@@ -114,6 +114,30 @@ fun ConnectionPane(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Keep primary actions immediately visible in landscape. The
+            // password field is optional for most firmwares and can sit below.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Button(
+                    onClick = vm::connect,
+                    modifier = Modifier.semantics {
+                        contentDescription = "Connect to mount"
+                    },
+                ) { Text("Connect") }
+                if (onWake != null) {
+                    OutlinedButton(
+                        onClick = onWake,
+                        enabled = !vm.waking.value,
+                    ) {
+                        Text(if (vm.waking.value) "Waking…" else "Wake")
+                    }
+                }
+                OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
+                OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+            }
             // Connection-password field. Most production gimbal firmware
             // does not require a password (820→821 skipped, `needed:0`),
             // in which case leaving this blank is the correct state and
@@ -140,31 +164,6 @@ fun ConnectionPane(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
-            // v0.1.8: primary action row now wraps to a second line on
-            // narrow phones. Was a single Row that clipped Connect/Wake
-            // off the right edge at 320 dp wide landscape (#46).
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Button(
-                    onClick = vm::connect,
-                    modifier = Modifier.semantics {
-                        contentDescription = "Connect to mount"
-                    },
-                ) { Text("Connect") }
-                if (onWake != null) {
-                    OutlinedButton(
-                        onClick = onWake,
-                        enabled = !vm.waking.value,
-                    ) {
-                        Text(if (vm.waking.value) "Waking…" else "Wake")
-                    }
-                }
-                OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
-                OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
-            }
             if (onBridgeWifi != null) {
                 OutlinedButton(onClick = onBridgeWifi) {
                     Text("Bridge to mount Wi-Fi…")

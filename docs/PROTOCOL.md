@@ -130,116 +130,10 @@ Semantics: values are **indices into firmware-sorted option lists** (`SP_SetCame
 CableRelease task (`SP_CreateCableReleaseTask`, `SP_CableReleaseMakePhoto`). Battery:
 `capacity:%d;charge:%d;`.
 
-**Status of numeric codes — evidence levels (keep these distinct):**
-
-- **APK-derived (decompiled Benro Connect, 2026-09-11):** the exact code numbers and
-  payload spellings for the camera SET/INFO map in `Codes.BenroCamera` (258–311),
-  including focus jog 262 and MF adjust 311 (§3.4.1). The stock app's request methods
-  are the source of truth for code + payload; the firmware symbols above are the source
-  of truth for response shapes.
-- **Live-verified:** only what is recorded in §5.1 (2026-09-07 hardware session) and in
-  `docs/evidence/`. A code being APK-derived does NOT mean it has been exercised on a
-  K-3 III or K-1 II.
-- **Inferred:** payload *semantics* that are not directly observable — e.g. which index
-  values map to which physical ISO/shutter/aperture options (the firmware sorts option
-  lists per model), and the jog speed magnitudes (6/5/4 vs 2/1/0) whose direction
-  (add vs drop) comes from UI button labels, not wire captures.
-
-Open Polaris implements the payload formats as ground truth with named GET/SET constants
-in `Codes.kt`; camera controls carry an experimental warning and must be validated on
-hardware before trusting the code mapping.
-
-#### 3.4.1 Focus set (262) and focus adjust (311) — derived from Benro Connect APK
-
-Source: decompiled `PolarisOrderCommunication.java` + call sites in
-`ParameterItemLayout` / `FocusTrackLayout` (see CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md).
-This supersedes the inferred `focus:<index>;` mapping for these two codes.
-
-| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
-|---|---:|---:|---|---|---|
-| focus jog (AF speed) | 262 | 1 | `mod:<m>;f:<s>;` | `ret:<n>;` only | no — jog |
-| MF adjust (focus track) | 311 | 1 | `mode:<m>;adj:<a>;` | `ret:<n>;` only | no — jog |
-
-- **262 is a jog, not a set.** The stock app sends it repeatedly every 300 ms while the
-  user holds a focus-speed button; `mod:0;f:0;` is the stop. Speed values observed at
-  call sites: left (add) fast/middle/slow = `6`/`5`/`4`, right (drop) fast/middle/slow =
-  `2`/`1`/`0`, with `mod:1` for all moving states.
-- **311 is the manual-focus jog used inside focus-track mode.** Observed values: add
-  fast/slow = `-4`/`-1`, drop fast/slow = `4`/`1`, always `mode:1`.
-- **Physical direction (K-3 III on Polaris, 2026-09-11):** the APK's add/drop
-  labels are not safe Near/Far names. Polaris passes the signed value to the
-  generic libgphoto2 focus control: `adj:+1/+4` means **Near** and
-  `adj:-1/-4` means **Far**. An earlier qualification instruction labelled
-  `adj:-1` as Near and was physically observed to move the opposite way.
-  UI code must use the semantic controller wrappers rather than assigning raw
-  signs at the button call site.
-- **No INFO/read-back exists for either code** (no GET pair in the opcode table). The
-  reply parser extracts only `ret:` and broadcasts it; success means `ret >= 0`. There is
-  no state to verify against — do not treat a missing read-back as failure, but also do
-  not claim the lens position changed without hardware evidence.
-- Both are exposed in qualification mode only, with hold-to-jog semantics (repeat while
-  held, send stop on release for 262).
-
-#### 3.4.2 Camera liveview / preview (291/292) — APK-derived, K-3 III v9d live-verified
-
-Source: decompiled `SP_SET_CAMERA_PREVIEW` / `SP_GET_CAMERA_PREVIEW` in
-`PolarisOrderCommunication.java`. **Live-verified on K-3 III (firmware v9d), 2026-09-11**
-(issue #80 evidence, patcher commits 8bc6163 and 12465c8): `1&291&2&state:1;#` →
-`291@state:1;ret:0;#`; `1&292&2&#` → `292@state:1;#`; a 120 s run delivered 58/58
-complete JPEG frames (~0.483 fps) on the 8080 data plane, and stop returned `state:0`.
-
-| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
-|---|---:|---:|---|---|---|
-| preview ON | 291 | 2 | `state:1;` | `state:1;ret:0;` | no — stream starts on 8080 |
-| preview OFF | 291 | 2 | `state:0;` | `state:0;ret:0;` (verify) | yes for the control plane |
-| preview state query | 292 | 2 | *(empty)* | `state:<0\|1>;` | no — query |
-
-- **The 292 reply carries `state:` but NOT `ret:`** (live capture: `292@state:1;#`).
-  The stock app's parser reads only `state:` and treats `0` as "off". Do not require a
-  `ret` field on 292 replies.
-- **The image data does not travel over the 9090 control socket.** Starting preview
-  opens a separate multipart JPEG stream on port 8080 (see §3.4.2 evidence and the
-  preview-stream issues #61/#74). Observed cadence: ~0.5 fps, complete JPEG frames
-  (~66 KB each) in a continuous multipart stream; the stream stops cleanly when
-  `state:0` is sent.
-- Qualification-mode exposure only until K-1 II is also verified (issue #63).
-
-#### 3.4.3 Image format (282), control mode (296/297), exposure time (298/299), interval type (306/307) — APK-derived
-
-Source: decompiled `SP_GET_IMG_FORMAT`, `SP_GET/SET_CONTROL_MODE`,
-`SP_GET/SET_EX_TIME`, `SP_GET/SET_TIME_INTERVAL_TYPE` in
-`PolarisOrderCommunication.java` + call sites in `SwitchTakeModelDialog`,
-`InnerSettingDialog`, `ParameterItemLayout`. Evidence level: **APK-derived** (not yet
-live-verified on K-3 III / K-1 II — issue #63).
-
-| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
-|---|---:|---:|---|---|---|
-| image format query | 282 | **4** | `-100` (null) | `format:<str>;` | no — query |
-| control mode query | 296 | 2 | `-100` (null) | `mode:<0\|1>;` | no — query |
-| control mode set | 297 | 2 | `mode:<m>;` | `ret:<n>;` only | yes |
-| exposure time query | 298 | 2 | `-100` (null) | `ExTime:<v>;` | no — query |
-| exposure time set | 299 | 2 | `ExTime:<v>;` | `ret:<n>;` only | yes |
-| interval type query | 306 | 2 | *(empty string, NOT `-100`)* | raw passthrough (no field parse) | no — query |
-| interval type set | 307 | 2 | `type:<t>` (**no trailing `;`**) | none observed (fire-and-forget) | yes |
-
-Quirks that differ from the rest of the camera cluster:
-
-- **282 is the only camera code that uses subtype 4** (image-format reads). Every other
-  camera GET/SET in this section uses subtype 2.
-- **306 GET sends a literal empty payload**, not `-100`. The stock app's `sendOrder`
-  converts `null` → `-100` but passes `""` through, and `SP_GET_TIME_INTERVAL_TYPE()`
-  calls `sendOrder(306, 2, "")`. Its parser does no field extraction — it broadcasts the
-  whole reply string. Do not "normalise" this to `-100`.
-- **307 SET has no trailing semicolon** (`"type:" + i`, not `"type:" + i + ";"`) and the
-  stock app treats it as fire-and-forget (no parser registered for a 307 reply).
-- **Control mode values are `0`/`1`** (USB vs HDMI take-model, per
-  `SwitchTakeModelDialog`). **Interval type values are `0`/`1`** (two shoot types, per
-  `InnerSettingDialog`).
-- **Exposure time is a camera-specific index** (`ParameterItemLayout` sends the cached
-  `exTime` value back unchanged); the valid range is model-dependent and must come from
-  hardware enumeration under #63 — do not hard-code a range.
-- SET replies (297/299) carry only `ret:`; success means an explicit `ret >= 0`.
-- Qualification-mode exposure only until hardware passes (guide step 13).
+**Status of numeric codes:** the exact code numbers within 258–311 are INFERRED (built
+dynamically in firmware; APK unavailable). Open Polaris implements the payload formats as
+ground truth with named GET/SET constants in `Codes.kt`; camera controls carry an
+experimental warning and must be validated on hardware before trusting the code mapping.
 
 ### 3.5 Out of scope (documented for completeness)
 
@@ -354,27 +248,6 @@ inspection, the protocol response is the suspect — not the shell.
   and can be used as second-source confirmation. A handful of codes disagree — see §3 of that doc
   for the divergence list.** Until we hardware-confirm the wiki's claims on those divergent codes,
   PROTOCOL.md stays on our evidence and does not import the wiki's framing for them.
-
-#### 3.4.4 Video/photo status (263/264) — APK-derived
-
-Source: decompiled `SP_SET_VIDEO_RECORD_STATUS` and `SP_SET_PHOTO_RECORD_STATUS` in
-`PolarisOrderCommunication.java` + call sites in `MainActivity`. Evidence level: **APK-derived** (not yet live-verified on K-3 III / K-1 II — issue #63).
-
-| Action | Code | Subtype | Exact payload | Parsed reply | Terminal? |
-|---|---:|---:|---|---|---|
-| video record start/stop | 263 | 2 | `state:<0|1>;` | `state:<value>;` | yes |
-| photo record start/stop | 264 | 2 | `state:<0|1>;bulb:<n>;c:<n>;` | `state:<value>;` | yes |
-
-- Both commands set recording state and receive the resulting `state:` echo. The app sends
-  `0` to stop and `1` to start. The 263 parser also recognises reply `state:-1` as a
-  non-success state; it is not emitted by the observed setter call sites.
-- For 264, `bulb:` is `0` or a non-negative bulb duration and `c:` is the observed `-1`
-  sentinel or a non-negative continuation count. Both fields are ignored in the reply.
-- The reply contains only a `state:` field; there is no `ret:` field. OpenPolaris reports
-  success only when that state explicitly matches the requested normal state (`0` or `1`).
-- Qualification-mode exposure only until hardware passes (guide step 13).
-
-Note: Code 264 is overloaded: subtype 2 is photo record status (as above), subtype 4 is still capture (CAM_CAPTURE) with the fixed payload `state:1;bulb:0;c:-1;`. Do not confuse the two.
 
 ## 7. Where another team's notes disagree with ours
 

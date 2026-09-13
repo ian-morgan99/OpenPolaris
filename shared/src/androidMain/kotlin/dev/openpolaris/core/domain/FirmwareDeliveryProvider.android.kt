@@ -1,33 +1,35 @@
 package dev.openpolaris.core.domain
 
 import dev.openpolaris.core.net.SshCommandRunner
+import dev.openpolaris.core.net.SshjCommandRunner
 
 /**
  * Android-side implementation of [platformFirmwareDelivery].
  *
- * **As of 2026-08-31, this returns [NoOpFirmwareDelivery] by design.**
- * Android does not ship with an `ssh` binary on `PATH`, and the
- * OpenPolaris dependency set does not include JSch/SSHJ yet. Users
- * who want SSH_PIPE delivery from the Android app can:
+ * Wires the requested host/port/user into a [SshjFirmwareDelivery] that pushes
+ * the FwPkt.zip onto `/app/sd/FwPkt.zip` over SSHJ (a pure-JVM SSH client), so
+ * the APK needs no `ssh`/`scp` binary on PATH. This is the same "verified path"
+ * the JVM-side [ScpFirmwareDelivery] uses; only the transport differs.
  *
- *  1. Add `com.jcraft:jsch` (or `org.apache.sshd:sshd-common`) to
- *     the Android dependencies, then swap this actual for a real
- *     `JschSshDelivery`.
- *  2. Or use [DeliveryMode.WIRE] and rely on the binary control
- *     plane envelope (with the documented "unverified" caveat).
- *
- * Returning a clear [NoOpFirmwareDelivery] is preferable to a
- * silent no-op: the user gets an actionable error message instead
- * of thinking they uploaded.
+ * The gimbal's dropbear sshd allows **root with an empty password** by default,
+ * so no key setup is required for a stock gimbal. See [SshjFirmwareDelivery].
  */
 actual fun platformFirmwareDelivery(
     host: String,
     port: Int,
     user: String,
-): FirmwareDelivery = NoOpFirmwareDelivery
+): FirmwareDelivery = SshjFirmwareDelivery(host = host, port = port, user = user)
 
+/**
+ * Android-side implementation of [platformFirmwareCommandRunner].
+ *
+ * Returns a [SshjCommandRunner] so the [FirmwareUpdateController] can run the
+ * post-delivery probes (the `/app/sd` free-space pre-flight, the extraction
+ * readiness check, and the mandatory `sync; /sbin/reboot`) over SSHJ without an
+ * `ssh` binary on PATH. See [SshjCommandRunner].
+ */
 actual fun platformFirmwareCommandRunner(
     host: String,
     port: Int,
     user: String,
-): SshCommandRunner? = null
+): SshCommandRunner? = SshjCommandRunner(host = host, port = port, user = user)

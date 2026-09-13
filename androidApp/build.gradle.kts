@@ -56,8 +56,8 @@ android {
         applicationId = "dev.openpolaris.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "0.1.16"
+        versionCode = 17
+        versionName = "0.1.17"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -71,6 +71,18 @@ android {
         // build identity — important when users have a third-party fork
         // installed under a similar id (see issue #43).
         buildConfig = true
+    }
+    packaging {
+        // SSHJ (the Android firmware-delivery seam) pulls in BouncyCastle,
+        // whose bcpkix/bcutil/bcprov jars each ship an OSGi manifest at the
+        // same path. Android ignores OSGi metadata, so keep only one copy
+        // instead of failing the resource merge on the duplicates.
+        resources {
+            excludes += setOf(
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/OSGI-INF/MANIFEST.MF",
+            )
+        }
     }
     signingConfigs {
         if (keystorePropsFile.exists()) {

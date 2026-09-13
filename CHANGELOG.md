@@ -34,6 +34,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   supplied checksum is still required to be 32 hexadecimal characters
   and must match the selected bundle before it is uploaded.
 
+## [0.1.17] - 2026-09-14
+
+### Added
+- **Android firmware delivery over SSHJ (no `ssh` binary needed).** The APK now
+  ships a pure-JVM SSH client (SSHJ) so the firmware pane can push `FwPkt.zip`
+  onto the gimbal's SD card (`/app/sd/FwPkt.zip`) and run the post-delivery
+  probes (free-space pre-flight, extraction check, `sync; /sbin/reboot`) with
+  no `ssh`/`scp` binary on PATH. The stock Polaris dropbear sshd allows root
+  with an empty password, so a stock unit needs no key setup. This makes the
+  verified SSH_PIPE firmware path work end-to-end from the Android app.
+
+### Fixed
+- **Windows release build no longer fails on duplicate OSGi manifests.** SSHJ
+  pulls in BouncyCastle, whose `bcpkix`/`bcutil`/`bcprov` jars each ship an
+  OSGi manifest at the same path; the Android packaging now excludes the
+  duplicates so the resource merge succeeds.
+
 ## [0.1.16] - 2026-09-04
 
 ### Fixed

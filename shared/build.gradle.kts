@@ -47,6 +47,12 @@ kotlin {
             // transitively, which is what we need for ComponentActivity
             // and the result-launcher types.
             implementation(libs.androidx.activity.compose)
+            // SSHJ powers the Android-side firmware delivery seam
+            // (SshjFirmwareDelivery / SshjCommandRunner in androidMain):
+            // the Polaris exposes dropbear sshd on :22 with empty-password
+            // root, so a pure-JVM SSH client is all the APK needs to push
+            // FwPkt.zip onto /app/sd and run the post-delivery probes.
+            implementation(libs.sshj)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

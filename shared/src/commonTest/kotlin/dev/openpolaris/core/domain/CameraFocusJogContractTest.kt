@@ -76,7 +76,10 @@ class CameraFocusJogContractTest {
     }
 
     @Test
-    fun `semantic near and far preserve hardware verified sign`() = runTest {
+    fun `semantic near and far use field-verified sign`() = runTest {
+        // Field qualification on the K-3 III (o-v9i, 2026-09-13) confirmed the
+        // 311 adj sign is: negative = Near, positive = Far. The earlier
+        // "positive = Near" mapping was wrong-way-round in the field.
         val conn = FakeConnection()
         repeat(4) {
             conn.responses += "1&311&2&ret:0;#".toByteArray(Charsets.US_ASCII)
@@ -85,13 +88,13 @@ class CameraFocusJogContractTest {
         s.connect()
 
         c.adjustManualFocusNear()
-        assertEquals("1&311&1&mode:1;adj:1;#", String(conn.written.last(), Charsets.US_ASCII))
-        c.adjustManualFocusNear(fast = true)
-        assertEquals("1&311&1&mode:1;adj:4;#", String(conn.written.last(), Charsets.US_ASCII))
-        c.adjustManualFocusFar()
         assertEquals("1&311&1&mode:1;adj:-1;#", String(conn.written.last(), Charsets.US_ASCII))
-        c.adjustManualFocusFar(fast = true)
+        c.adjustManualFocusNear(fast = true)
         assertEquals("1&311&1&mode:1;adj:-4;#", String(conn.written.last(), Charsets.US_ASCII))
+        c.adjustManualFocusFar()
+        assertEquals("1&311&1&mode:1;adj:1;#", String(conn.written.last(), Charsets.US_ASCII))
+        c.adjustManualFocusFar(fast = true)
+        assertEquals("1&311&1&mode:1;adj:4;#", String(conn.written.last(), Charsets.US_ASCII))
         s.disconnect()
     }
 

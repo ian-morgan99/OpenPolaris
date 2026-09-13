@@ -175,17 +175,24 @@ class CameraController(private val session: MountSession) {
     }
 
     /**
-     * Semantic wrappers for UI controls. Hardware qualification on the K-3 III
-     * established that Polaris passes the signed adjustment through to
-     * libgphoto2: positive values move Near and negative values move Far.
+     * Semantic wrappers for UI controls.
+     *
+     * Field qualification on the K-3 III (o-v9i, 2026-09-13) established that
+     * the 311 `adj` sign is the OPPOSITE of the earlier assumption: positive
+     * values move the lens FAR and negative values move it NEAR. The earlier
+     * "positive = Near" mapping (derived from the APK's ambiguous
+     * "add"/"drop" labels) was confirmed wrong-way-round in the field on the
+     * K-3 III, so the semantic wrappers now send:
+     *   Near -> negative adj (-1 / -4 fast)
+     *   Far  -> positive adj (+1 / +4 fast)
      * Keeping that conversion here prevents UI labels from reinterpreting the
      * APK's ambiguous "add"/"drop" names backwards.
      */
     suspend fun adjustManualFocusNear(fast: Boolean = false): FocusJogResult =
-        adjustManualFocus(mode = 1, adj = if (fast) 4 else 1)
+        adjustManualFocus(mode = 1, adj = if (fast) -4 else -1)
 
     suspend fun adjustManualFocusFar(fast: Boolean = false): FocusJogResult =
-        adjustManualFocus(mode = 1, adj = if (fast) -4 else -1)
+        adjustManualFocus(mode = 1, adj = if (fast) 4 else 1)
 
     private suspend fun sendBenroJog(code: Int, payload: String): FocusJogResult {
         val reply = session.request(

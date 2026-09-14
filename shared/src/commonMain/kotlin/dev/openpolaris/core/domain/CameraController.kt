@@ -297,10 +297,22 @@ class CameraController(private val session: MountSession) {
         val raw: String? = null,
         val value: String? = null,
         val ret: Int? = null,
+        /**
+         * Whether this command's success contract requires an explicit `ret >= 0`.
+         * SET commands (297/299) reply `ret:<n>;` only, so a missing or malformed
+         * `ret` must NOT display as success. GET queries and the fire-and-forget
+         * interval-type SET (307) have no `ret` field — their success is
+         * value/reply-based — so they set this to false.
+         */
+        val requiresRet: Boolean = false,
     ) {
-        /** True when the frame was written and (for SET) an explicit non-negative `ret` arrived. */
+        /**
+         * True when the frame was written and the command's success contract is met:
+         * for `requiresRet` commands an explicit non-negative `ret` must have arrived;
+         * otherwise a clean (non-timeout, non-error) reply suffices.
+         */
         val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
-            !raw.startsWith("ERROR:") && (ret == null || ret >= 0)
+            !raw.startsWith("ERROR:") && (!requiresRet || (ret != null && ret >= 0))
     }
 
     /** Result of a video record status command (263). */
@@ -541,6 +553,10 @@ class CameraController(private val session: MountSession) {
                 code = code,
                 raw = reply.value.raw.orEmpty(),
                 ret = reply.value.int("ret"),
+                // SET replies (297/299) carry only `ret:` — success requires an
+                // explicit non-negative ret, so a missing/malformed ret must not
+                // display as accepted.
+                requiresRet = true,
             )
             is MountSession.CmdResult.Timeout -> CameraParamResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
             is MountSession.CmdResult.ProtocolError -> CameraParamResult(

@@ -199,6 +199,67 @@ class CameraParamContractTest {
     }
 
     @Test
+    fun `control mode set with missing ret is not accepted`() = runTest {
+        // A clean Ok reply that carries no `ret:` field at all. The SET contract
+        // requires an explicit ret >= 0, so a missing ret must not display as success.
+        val conn = FakeConnection()
+        conn.responses += "1&297&2&state:1;#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.setControlMode(mode = 0)
+
+        assertTrue(result.sent, "the frame was written")
+        assertNull(result.ret, "no ret field in the reply")
+        assertFalse(result.accepted, "missing ret must not display as success")
+        s.disconnect()
+    }
+
+    @Test
+    fun `control mode set with non-numeric ret is not accepted`() = runTest {
+        // A malformed `ret:` value parses to null (toIntOrNull), so it must also fail.
+        val conn = FakeConnection()
+        conn.responses += "1&297&2&ret:abc;#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.setControlMode(mode = 0)
+
+        assertNull(result.ret, "non-numeric ret parses to null")
+        assertFalse(result.accepted, "malformed ret must not display as success")
+        s.disconnect()
+    }
+
+    @Test
+    fun `exposure time set with missing ret is not accepted`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&299&2&state:1;#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.setExposureTime(index = 3)
+
+        assertTrue(result.sent, "the frame was written")
+        assertNull(result.ret, "no ret field in the reply")
+        assertFalse(result.accepted, "missing ret must not display as success")
+        s.disconnect()
+    }
+
+    @Test
+    fun `exposure time set with non-numeric ret is not accepted`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&299&2&ret:xyz;#".toByteArray(Charsets.US_ASCII)
+        val (s, c) = newSession(conn, backgroundScope)
+        s.connect()
+
+        val result = c.setExposureTime(index = 3)
+
+        assertNull(result.ret, "non-numeric ret parses to null")
+        assertFalse(result.accepted, "malformed ret must not display as success")
+        s.disconnect()
+    }
+
+    @Test
     fun `constants match the BenroCamera registry`() {
         assertEquals(282, Codes.BenroCamera.GET_IMG_FORMAT)
         assertEquals(296, Codes.BenroCamera.GET_CONTROL_MODE)

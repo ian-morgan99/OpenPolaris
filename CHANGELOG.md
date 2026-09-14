@@ -42,8 +42,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   onto the gimbal's SD card (`/app/sd/FwPkt.zip`) and run the post-delivery
   probes (free-space pre-flight, extraction check, `sync; /sbin/reboot`) with
   no `ssh`/`scp` binary on PATH. The stock Polaris dropbear sshd allows root
-  with an empty password, so a stock unit needs no key setup. This makes the
-  verified SSH_PIPE firmware path work end-to-end from the Android app.
+  with an empty password, so a stock unit needs no key setup.
+
+  This is the **ZIP-at-root + code-783-extract** route: the raw ZIP is staged at
+  `/app/sd/FwPkt.zip` and the on-board watcher extracts it at boot. It is a
+  distinct transport from the pre-extracted-tree staging route tracked in #73,
+  which verifies every component against `firmwareInfo` + provenance before
+  reboot. The SSHJ transport itself (connect/auth/SFTP/exec) is unit-tested and
+  bundled in the APK; the full on-device flash (partial-upload behaviour,
+  post-extraction component/provenance checks, and the #51 stall/cancellation
+  semantics) still needs hardware evidence before this route is treated as
+  release-verified. See #73 for the reconciliation.
 
 ### Fixed
 - **Windows release build no longer fails on duplicate OSGi manifests.** SSHJ

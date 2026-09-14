@@ -143,16 +143,19 @@ class CameraFocusJogContractTest {
     }
 
     @Test
-    fun `timeout is reported as not sent, not success`() = runTest {
+    fun `post-write timeout is attempted but not accepted`() = runTest {
         val conn = FakeConnection()
-        // No response queued: the 10s jog timeout must elapse.
+        // No response queued: the 10s jog timeout must elapse. The frame was
+        // dispatched before the timeout, so [sent] stays true (a jog may be
+        // active even though its ack was lost) while [accepted] is false —
+        // recovery code must not treat this as "nothing was sent". See #77.
         val (s, c) = newSession(conn, backgroundScope)
         s.connect()
 
         val result = c.jogFocus(mod = 1, speed = 2)
 
-        assertFalse(result.accepted)
-        assertFalse(result.sent)
+        assertTrue(result.sent, "the frame was dispatched before the timeout")
+        assertFalse(result.accepted, "a lost acknowledgement is not success")
         assertEquals("TIMEOUT", result.error)
         s.disconnect()
     }
@@ -195,14 +198,17 @@ class CameraFocusJogContractTest {
         s.connect()
 
         // A jog in flight: no reply is queued, so disconnect must fail the
-        // waiter with a ProtocolError instead of letting it time out.
+        // waiter with a ProtocolError instead of letting it time out. The frame
+        // was dispatched before the disconnect, so [sent] stays true (a jog may
+        // be active even though its ack was lost) while [accepted] is false —
+        // recovery code must not treat this as "nothing was sent". See #77.
         val deferred = async { c.jogFocus(mod = 1, speed = 2) }
         runCurrent()
         s.disconnect()
         val result = deferred.await()
 
-        assertFalse(result.accepted)
-        assertFalse(result.sent)
+        assertTrue(result.sent, "the frame was dispatched before the disconnect")
+        assertFalse(result.accepted, "a lost acknowledgement is not success")
         // The protocol-error path records the message in `error` and an
         // "ERROR:"-prefixed diagnostic in `raw`; neither may read as success.
         assertNotNull(result.error, "a protocol error must carry a diagnostic")

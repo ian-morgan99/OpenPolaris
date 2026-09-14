@@ -48,14 +48,27 @@ class CameraController(private val session: MountSession) {
      */
     data class FocusJogResult(
         val code: Int,
+        /**
+         * Whether the jog frame was dispatched to the wire. `true` for every
+         * post-write outcome (acknowledged, timeout, or protocol error after the
+         * frame left this process) and `false` only for pre-send validation
+         * failures (an unobserved value rejected before writing). A movement
+         * command that timed out or lost its acknowledgement still has
+         * [sent] = true — recovery/retry code must not treat it as "nothing was
+         * sent" and resend a possibly-active jog. See issue #77.
+         */
         val sent: Boolean = true,
+        /**
+         * Whether the camera acknowledged the jog with an explicit `ret >= 0`.
+         * This is the "did the camera accept it" signal, distinct from [sent]
+         * (which only means the frame was written). A post-write timeout or
+         * protocol error has [sent] = true but [accepted] = false.
+         */
+        val accepted: Boolean = false,
         val error: String? = null,
         val raw: String? = null,
         val ret: Int? = null,
-    ) {
-        val accepted: Boolean get() = sent && raw != null && raw != "TIMEOUT" &&
-            !raw.startsWith("ERROR:") && ret != null && ret >= 0
-    }
+    )
 
     /** Current camera parameter snapshot; null while unknown. */
     data class Params(
@@ -202,14 +215,26 @@ class CameraController(private val session: MountSession) {
             subtype = 1,
         ) { it }
         return when (reply) {
-            is MountSession.CmdResult.Ok -> FocusJogResult(
-                code = code,
-                raw = reply.value.raw.orEmpty(),
-                ret = reply.value.int("ret"),
+            is MountSession.CmdResult.Ok -> {
+                val ret = reply.value.int("ret")
+                FocusJogResult(
+                    code = code,
+                    // A jog is only "accepted" when the camera acknowledged it with
+                    // an explicit non-negative ret; a same-code frame with no/malformed
+                    // ret is not success even though the frame was sent.
+                    accepted = ret != null && ret >= 0,
+                    raw = reply.value.raw.orEmpty(),
+                    ret = ret,
+                )
+            }
+            // Post-write: the frame was dispatched before the timeout/disconnect,
+            // so [sent] stays true (a jog may be active even though its ack was
+            // lost) while [accepted] is false. See issue #77.
+            is MountSession.CmdResult.Timeout -> FocusJogResult(
+                code, accepted = false, error = "TIMEOUT", raw = "TIMEOUT",
             )
-            is MountSession.CmdResult.Timeout -> FocusJogResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
             is MountSession.CmdResult.ProtocolError -> FocusJogResult(
-                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+                code, accepted = false, error = reply.message, raw = "ERROR: ${reply.message}",
             )
         }
     }

@@ -93,8 +93,14 @@ jobs:
           test -f "${APK}" || { echo "::error::APK not found at ${APK}"; exit 1; }
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "${APK}"
           sha256sum "${APK}" > apk-sha256.txt
+          # apksigner prints the signer cert digest under different labels
+          # depending on the signing scheme: v1 (JAR) uses "Signer #1
+          # certificate SHA-256 digest", while v2-only APKs use "V2 Signer:
+          # certificate SHA-256 digest". Match either so a v2-only signed
+          # release (the current default on recent build-tools) does not leave
+          # apk-signer-sha256.txt empty and fail the `test -s` below.
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --print-certs "${APK}" \
-            | awk -F': *' '/Signer #1 certificate SHA-256 digest/ {print $2}' | head -1 > apk-signer-sha256.txt
+            | awk -F': *' '/(Signer #1|V2 Signer) certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
           test -s apk-sha256.txt
           test -s apk-signer-sha256.txt
 

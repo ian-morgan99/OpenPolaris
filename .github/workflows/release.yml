@@ -96,11 +96,12 @@ jobs:
           # apksigner prints the signer cert digest under different labels
           # depending on the signing scheme: v1 (JAR) uses "Signer #1
           # certificate SHA-256 digest", while v2-only APKs use "V2 Signer:
-          # certificate SHA-256 digest". Match either so a v2-only signed
-          # release (the current default on recent build-tools) does not leave
-          # apk-signer-sha256.txt empty and fail the `test -s` below.
+          # certificate SHA-256 digest" (note the colon after "V2 Signer").
+          # Match on the common "certificate SHA-256 digest" substring so a
+          # v2-only signed release (the current default on recent build-tools)
+          # does not leave apk-signer-sha256.txt empty and fail `test -s`.
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --print-certs "${APK}" \
-            | awk -F': *' '/(Signer #1|V2 Signer) certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
+            | awk -F': *' '/certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
           test -s apk-sha256.txt
           test -s apk-signer-sha256.txt
 

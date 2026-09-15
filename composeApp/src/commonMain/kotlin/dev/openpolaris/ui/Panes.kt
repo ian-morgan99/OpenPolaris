@@ -499,11 +499,27 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Not mapped for setting yet: focus, image size, image format, colour, capture mode. Workflow commands are inventoried but remain locked until their payload contracts are evidenced.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            val busy = vm.captureState?.state == 1
+            // #60: drive the button off the capture *phase* machine, not just
+            // the raw 266 poll value. The K-3 III reports transient negative
+            // states (e.g. -1005) mid-capture; the phase machine treats those
+            // as busy and only completes when the camera returns to idle, so
+            // the user sees one pending/busy period followed by an accurate
+            // result instead of a false "failed" flash.
+            val phase = vm.capturePhase
+            val inFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
+                phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::capture, enabled = !busy) { Text("Capture") }
-                if (busy) {
-                    Text("Busy", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Button(onClick = vm::capture, enabled = !inFlight) { Text("Capture") }
+                when (phase) {
+                    is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ->
+                        Text("Sent…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy ->
+                        Text("Busy", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    is dev.openpolaris.ui.AppViewModel.CapturePhase.Completed ->
+                        Text("Done", style = MaterialTheme.typography.labelMedium)
+                    is dev.openpolaris.ui.AppViewModel.CapturePhase.Failed ->
+                        Text("Failed: ${phase.reason}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    else -> {}
                 }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
             }

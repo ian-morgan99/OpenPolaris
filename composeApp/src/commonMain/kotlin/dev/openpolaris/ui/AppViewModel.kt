@@ -255,6 +255,39 @@ class AppViewModel(
         private set
 
     /**
+     * #60: the capture lifecycle as a state machine, distinct from the raw
+     * [captureState] poll value. The K-3 III capture path is asynchronous —
+     * the shutter request is acknowledged in ~12 ms, the camera reports a
+     * transient negative state (e.g. `-1005`) around 2 s, goes idle at ~3 s,
+     * and the final image lands 3–4 s after the shutter. Treating the first
+     * response as completion (the pre-fix behaviour) made the UI flash a
+     * false "failed" while the shot was actually succeeding.
+     *
+     * Transitions are driven by the 266 poll in [startCapturePolling]:
+     *  - [Requested] → [Busy] when the camera reports `state==1` (in progress);
+     *  - any active phase → [Completed] when the camera returns to idle
+     *    (`state==0`) after a request — the authoritative "shot done" signal;
+     *  - transient negative states (e.g. `-1005`) are treated as [Busy],
+     *    never as terminal failure (issue #60 evidence);
+     *  - [Failed] only on an explicit bounded timeout with no idle observed,
+     *    or when the session drops mid-capture.
+     *
+     * The shutter is debounced while any non-[Idle] phase is active: a second
+     * press is ignored (never auto-retried) so a possibly-successful release
+     * can't be doubled.
+     */
+    sealed interface CapturePhase {
+        data object Idle : CapturePhase
+        data object Requested : CapturePhase
+        data object Busy : CapturePhase
+        data object Completed : CapturePhase
+        data class Failed(val reason: String) : CapturePhase
+    }
+
+    var capturePhase by mutableStateOf<CapturePhase>(CapturePhase.Idle)
+        private set
+
+    /**
      * Live status of the firmware-update flow (FirmwareUpdateController). Null
      * when no upload has been attempted yet in this session. Surfaced by
      * FirmwarePane as a progress bar / status line.
@@ -361,6 +394,11 @@ class AppViewModel(
     private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
     private var capturePollJob: Job? = null
+    // #60: bounded watchdog for an in-flight capture. Started by [capture],
+    // cancelled when the 266 poll observes the camera return to idle (shot
+    // done) or when the phase reaches a terminal state. If it fires, the
+    // capture is reported as Failed("timeout") instead of hanging on Busy.
+    private var captureWatchdogJob: Job? = null
     // The simulated mount (only set in demo mode). Held so disconnect()
     // can cancel its private reader scope.
     private var demoSim: SimulatedMount? = null
@@ -1064,6 +1102,12 @@ class AppViewModel(
         deviceInfo = null
         temperature = null
         captureState = null
+        // #60: a capture in flight at disconnect time is abandoned — drop the
+        // watchdog and reset the phase so a stale "Busy" / "Failed" doesn't
+        // linger into the next session.
+        captureWatchdogJob?.cancel()
+        captureWatchdogJob = null
+        capturePhase = CapturePhase.Idle
         // Tear down the auto-level controller in its own coroutine so we can
         // call the suspending stopAutoLevel() from a non-suspending context.
         // Safe to fire-and-forget: stopAutoLevel only cancels jobs that
@@ -1176,10 +1220,54 @@ class AppViewModel(
         capturePollJob = scope.launch {
             while (isActive) {
                 when (val r = s.request(dev.openpolaris.core.protocol.Codes.CAM_GET_STATE) { CommandTable.CAM_GET_STATE.parse!!(it) }) {
-                    is MountSession.CmdResult.Ok -> r.value?.let { captureState = it }
+                    is MountSession.CmdResult.Ok -> r.value?.let { onCaptureStatePoll(it) }
                     else -> {} // Timeout / ProtocolError: keep last good captureState
                 }
                 delay(2000)
+            }
+        }
+    }
+
+    /**
+     * #60: fold a 266 (CAM_GET_STATE) poll result into the [capturePhase]
+     * state machine. The camera returning to idle (`state==0`) after a
+     * request is the authoritative "shot done" signal — it is what
+     * transitions an active capture to [CapturePhase.Completed] and cancels
+     * the watchdog. Transient negative states (e.g. `-1005`, observed on the
+     * K-3 III ~2 s into a successful capture) are treated as busy, never as
+     * terminal failure. A late idle that arrives after the watchdog already
+     * reported a timeout is still honoured: the shot evidently completed, so
+     * the phase recovers to Completed rather than staying stuck on Failed.
+     */
+    private fun onCaptureStatePoll(state: CommandTable.CaptureState) {
+        captureState = state
+        val phase = capturePhase
+        when (state.state) {
+            0 -> {
+                // Idle. Only meaningful as a completion signal while a
+                // capture is in flight (or already timed out); otherwise it
+                // just records the camera's resting state.
+                if (phase is CapturePhase.Requested ||
+                    phase is CapturePhase.Busy ||
+                    phase is CapturePhase.Failed
+                ) {
+                    captureWatchdogJob?.cancel()
+                    captureWatchdogJob = null
+                    capturePhase = CapturePhase.Completed
+                }
+            }
+            1 -> {
+                // In progress (bulb exposure / processing).
+                if (phase is CapturePhase.Requested || phase is CapturePhase.Failed) {
+                    capturePhase = CapturePhase.Busy
+                }
+            }
+            else -> {
+                // Transient negative state (e.g. -1005 on K-3 III): the
+                // camera is mid-capture, not terminally failed.
+                if (phase is CapturePhase.Requested || phase is CapturePhase.Failed) {
+                    capturePhase = CapturePhase.Busy
+                }
             }
         }
     }
@@ -1814,10 +1902,54 @@ class AppViewModel(
             }
         }
     }
-    fun capture() = scope.launch {
-        if (cameraController == null) { statusMessage = "Not connected"; return@launch }
-        cameraController?.capture()
-        statusMessage = "Capture sent"
+    /**
+     * #60: trigger a single exposure and track its asynchronous lifecycle via
+     * [capturePhase]. The shutter is debounced while any non-[Idle] phase is
+     * active (a second press is ignored, never auto-retried — the camera may
+     * already be exposing). A bounded watchdog ([CAPTURE_TIMEOUT_MS]) reports
+     * an explicit timeout if the camera never returns to idle; the 266 poll
+     * in [onCaptureStatePoll] drives Requested → Busy → Completed.
+     */
+    fun capture() {
+        if (cameraController == null) { statusMessage = "Not connected"; return }
+        // Debounce: ignore a second shutter press while a capture is pending,
+        // busy, or still settling from the previous one. Only Idle and
+        // terminal states (Completed/Failed) accept a new request.
+        val phase = capturePhase
+        if (phase !is CapturePhase.Idle &&
+            phase !is CapturePhase.Completed &&
+            phase !is CapturePhase.Failed
+        ) {
+            statusMessage = "Capture in progress — wait for it to finish"
+            return
+        }
+        scope.launch {
+            cameraController?.capture()
+            capturePhase = CapturePhase.Requested
+            statusMessage = "Capture sent"
+            // Bounded watchdog: if the 266 poll never observes the camera
+            // return to idle, report an explicit timeout instead of leaving
+            // the UI stuck on Busy. Cancelled by onCaptureStatePoll on a
+            // terminal transition.
+            captureWatchdogJob?.cancel()
+            captureWatchdogJob = scope.launch {
+                delay(CAPTURE_TIMEOUT_MS)
+                if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
+                    capturePhase = CapturePhase.Failed("timeout: camera did not return to idle within ${CAPTURE_TIMEOUT_MS / 1000}s")
+                    statusMessage = "Capture timed out"
+                }
+            }
+        }
+    }
+
+    /** #60 test seam: drive the state machine directly without a live 266 poll. */
+    internal fun testOnCaptureStatePoll(state: CommandTable.CaptureState) = onCaptureStatePoll(state)
+
+    /** #60 test seam: reset the phase to Idle (e.g. between scripted scenarios). */
+    internal fun testResetCapturePhase() {
+        captureWatchdogJob?.cancel()
+        captureWatchdogJob = null
+        capturePhase = CapturePhase.Idle
     }
 
     // ---- catalog & comets (Tonight pane) ----------------------------------
@@ -2412,6 +2544,15 @@ class AppViewModel(
          * almost certainly the wrong target.
          */
         private const val RECONNECT_MAX_AGE_MS: Long = 24L * 60L * 60L * 1000L
+
+        /**
+         * #60: bounded wait for a capture to complete after the shutter
+         * request. The K-3 III lands its final image ~3–4 s after the
+         * shutter; 15 s leaves generous headroom for slower cameras /
+         * long bulb exposures while still catching a genuinely wedged
+         * pipeline instead of leaving the UI stuck on "Busy" forever.
+         */
+        private const val CAPTURE_TIMEOUT_MS: Long = 15_000L
 
     }
 }

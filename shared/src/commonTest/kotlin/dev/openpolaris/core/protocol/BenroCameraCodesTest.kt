@@ -13,6 +13,7 @@ class BenroCameraCodesTest {
         assertEquals(260, c.SET_EV)
         assertEquals(261, c.SET_SHUTTER)
         assertEquals(262, c.SET_FOCUS)
+        assertEquals(263, c.SET_VIDEO_RECORD_STATUS)
         assertEquals(264, c.SET_PHOTO_RECORD_STATUS)
         assertEquals(265, c.GET_ISO_INFO)
         assertEquals(266, c.GET_WB_INFO)
@@ -34,5 +35,28 @@ class BenroCameraCodesTest {
         assertEquals(280, c.HDR)
         assertEquals(289, c.REMOVE_PEOPLE_SHOT)
         assertEquals(305, c.HOLY_GRAIL)
+    }
+
+    @Test
+    fun `control-mode and exposure-time codes are individually pinned`() {
+        val c = Codes.BenroCamera
+        assertEquals(296, c.GET_CONTROL_MODE)
+        assertEquals(297, c.SET_CONTROL_MODE)
+        assertEquals(298, c.GET_EX_TIME)
+        assertEquals(299, c.SET_EX_TIME)
+        assertEquals(306, c.GET_INTERVAL_TYPE)
+        assertEquals(307, c.SET_INTERVAL_TYPE)
+    }
+
+    /**
+     * #62: until every camera parameter mapping has captured-wire + physical
+     * read-back evidence, the release safety gate must stay closed so inferred
+     * mappings never hit hardware. Flipping this to `true` is a deliberate,
+     * reviewed decision that should land with the physical-qualification
+     * results (K-3 III + K-1 II).
+     */
+    @Test
+    fun `release safety gate stays closed until mappings are physically verified`() {
+        assertEquals(false, Codes.CAMERA_PARAMETERS_VERIFIED)
     }
 }

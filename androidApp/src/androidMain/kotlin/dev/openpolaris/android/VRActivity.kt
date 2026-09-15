@@ -67,7 +67,10 @@ class VRActivity : ComponentActivity() {
     private lateinit var hudText: TextView
     private lateinit var connLoss: TextView
     private var hudHost: String = DEFAULT_HOST
-    private var hudPort: Int = DEFAULT_PORT
+    // #74: the MJPEG stream port (fixed 8080 on the Polaris), distinct from
+    // the configurable control socket port (9090). Named previewPort so it
+    // can't be confused with the control port in the HUD or intent extras.
+    private var previewPort: Int = DEFAULT_PORT
     private var hudTickHandler: Handler? = null
     private val hudTick = object : Runnable {
         override fun run() {
@@ -76,7 +79,7 @@ class VRActivity : ComponentActivity() {
             val stale = last == 0L || now - last > 2_000L
             val fps = renderer.fps()
             val frames = renderer.frameCount
-            hudText.text = "host=$hudHost:$hudPort  fps=${"%.1f".format(fps)}  frames=$frames"
+            hudText.text = "host=$hudHost:$previewPort  fps=${"%.1f".format(fps)}  frames=$frames"
             if (stale) {
                 if (connLoss.visibility != View.VISIBLE) connLoss.visibility = View.VISIBLE
             } else {
@@ -111,15 +114,13 @@ class VRActivity : ComponentActivity() {
         )
 
         hudHost = intent.getStringExtra(EXTRA_HOST) ?: DEFAULT_HOST
-        // 3h-BUG: read the live port from the launching Intent so the
-        // user-chosen port from the reconnect dialog (or the persisted
-        // SessionMarker on disk) actually flows into the MJPEG transport.
-        // Previously the intent had no port extra and we fell back to
-        // 8080, so a non-default port never received frames. The
-        // fallback is 8080 to preserve the pre-3h default rather than
-        // fail loudly — this activity is launched by the user explicitly
-        // and a wrong port just shows "no frames" in the HUD.
-        hudPort = intent.getIntExtra(EXTRA_PORT, DEFAULT_PORT)
+        // #74: read the *preview* port from the launching Intent. The MJPEG
+        // stream is served by the Polaris on its dedicated 8080 endpoint,
+        // independent of the configurable control socket (9090). The
+        // fallback is 8080 to preserve the pre-3h default rather than fail
+        // loudly — this activity is launched by the user explicitly and a
+        // wrong port just shows "no frames" in the HUD.
+        previewPort = intent.getIntExtra(EXTRA_PREVIEW_PORT, DEFAULT_PORT)
 
         renderer = StereoRenderer()
 
@@ -376,10 +377,10 @@ class VRActivity : ComponentActivity() {
      */
     private fun startPreview() {
         if (collectJob?.isActive == true) return
-        // 3h-BUG: pass hudPort (seeded from EXTRA_PORT) instead of a
-        // hard-coded 8080. Combined with the new EXTRA_PORT intent extra
-        // in MainActivity this lets the user pick a non-default port.
-        preview.start(hudHost, hudPort)
+        // #74: pass previewPort (seeded from EXTRA_PREVIEW_PORT), which
+        // MainActivity sets from AppViewModel.previewPort — the dedicated
+        // 8080 MJPEG endpoint, NOT the configurable control port.
+        preview.start(hudHost, previewPort)
         collectJob = lifecycleScope.launch {
             preview.bytes.collect { jpeg -> if (jpeg != null) renderer.submitFrame(jpeg) }
         }
@@ -419,7 +420,10 @@ class VRActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_HOST = "dev.openpolaris.android.VR_HOST"
-        const val EXTRA_PORT = "dev.openpolaris.android.VR_PORT"
+        // #74: the MJPEG preview endpoint port (8080), distinct from the
+        // control socket port. Renamed from EXTRA_PORT so a future caller
+        // can't accidentally pass the control port into the stream URL.
+        const val EXTRA_PREVIEW_PORT = "dev.openpolaris.android.VR_PREVIEW_PORT"
         const val TAG = "VRActivity"
 
         // Stream 7.4 — solve-target marker overlay (issue #11).

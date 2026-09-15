@@ -45,7 +45,9 @@ import dev.openpolaris.core.domain.SdStatus
 import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
+import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.TrackingController
+import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
@@ -129,6 +131,12 @@ class AppViewModel(
     // `withTimeout(2000)` fires before the reader's real-time channel
     // receive delivers the response.
     private val sessionReaderScope: CoroutineScope? = null,
+    // #74 test seam: lets tests inject a recording [PreviewTransport] factory
+    // so they can assert the stream URL's host/port (the regression was that
+    // the control port 9090 leaked into the MJPEG request). Production keeps
+    // the platform default via PreviewController's own default.
+    private val previewTransportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
+    private val previewIoDispatcher: CoroutineDispatcher? = null,
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -150,6 +158,18 @@ class AppViewModel(
         private set
 
     fun updatePort(p: Int) { port = p }
+
+    // #74: the MJPEG preview endpoint is a *separate* service from the
+    // configurable control socket. The Polaris serves it on a fixed 8080;
+    // sending the stream request to the control port (9090) makes the
+    // firmware log `unkown msg:GET /?action=stream` and consume an extra
+    // control client. Kept as its own field so callers (e.g. VRActivity's
+    // intent extras) can read the preview endpoint without confusing it
+    // with [port].
+    var previewPort by mutableStateOf(8080)
+        private set
+
+    fun updatePreviewPort(p: Int) { previewPort = p }
 
     // App-handshake password. Defaults to null (most production gimbal firmware
     // doesn't require a password, so the 820→821 sequence is skipped). When
@@ -348,7 +368,11 @@ class AppViewModel(
     // Live preview of the camera MJPEG stream. Independent of the control
     // socket so a slow preview frame can never block the mount poll loop.
     // Decoded JPEGs land in [previewFrame] on Dispatchers.Default.
-    val preview = PreviewController(parent = scope.coroutineContext[Job])
+    val preview = PreviewController(
+        transportFactory = previewTransportFactory,
+        parent = scope.coroutineContext[Job],
+        ioDispatcher = previewIoDispatcher ?: kotlinx.coroutines.Dispatchers.Default,
+    )
     val previewState: StateFlow<PreviewController.State> get() = preview.state
     var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
         private set
@@ -1086,12 +1110,12 @@ class AppViewModel(
      */
     private fun startPreview() {
         // Preview is a separate service from the configurable 9090 control
-        // socket.  Deliberately use PreviewController's dedicated 8080
-        // default: passing the control port here sends the MJPEG HTTP request
-        // to polestar_app, where it is rejected as an unknown control frame
-        // (issue #74).
+        // socket. Deliberately use [previewPort] (fixed 8080 on the Polaris),
+        // NOT [port]: passing the control port here sends the MJPEG HTTP
+        // request to polestar_app, where it is rejected as an unknown control
+        // frame (issue #74).
         try {
-            preview.start(host)
+            preview.start(host, previewPort)
         } catch (e: Throwable) {
             // 3e E2: PreviewController.start may throw if the host is
             // unresolvable or the port is closed. Surface as a status

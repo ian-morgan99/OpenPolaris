@@ -370,7 +370,12 @@ class MainActivity : ComponentActivity() {
                     val targetDecDeg = AstroMath.parseDec(viewModel.gotoDec)
                     val intent = Intent(this, VRActivity::class.java).apply {
                         putExtra(VRActivity.EXTRA_HOST, viewModel.host)
-                        putExtra(VRActivity.EXTRA_PORT, viewModel.port)
+                        // #74: the MJPEG stream lives on the dedicated 8080
+                        // preview endpoint, NOT on the configurable control
+                        // port (9090). Passing viewModel.port here made the
+                        // Polaris log `unkown msg:GET /?action=stream` on the
+                        // control socket and never serve frames.
+                        putExtra(VRActivity.EXTRA_PREVIEW_PORT, viewModel.previewPort)
                         if (solve != null && targetRaDeg != null && targetDecDeg != null) {
                             putExtra(VRActivity.EXTRA_SOLVE_RA_DEG, solve.raDeg)
                             putExtra(VRActivity.EXTRA_SOLVE_DEC_DEG, solve.decDeg)

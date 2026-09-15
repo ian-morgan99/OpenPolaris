@@ -76,6 +76,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -1188,18 +1189,38 @@ class AppViewModel(
 
     }
 
+    /**
+     * #89: the 284 (mount state) and 517 (gimbal position) polls are issued
+     * **concurrently** with a shortened [POLL_REQUEST_TIMEOUT_MS] timeout,
+     * instead of sequentially with the 2 s default. With a camera attached the
+     * Polaris is constantly busy with PTP/camera I/O and responds slowly to
+     * control queries; the pre-fix sequential loop could stall for up to
+     * ~5 s per cycle (2 s + 2 s + 1 s delay) of stale UI, and a slow 284
+     * response delayed the independent 517 update. Running them in parallel
+     * makes the worst case max(t284, t517) instead of the sum, and the 800 ms
+     * timeout means a response older than that is already stale at a 1 Hz
+     * cadence — the next cycle catches up. `MountSession.request` still
+     * serialises the actual socket writes through its internal Mutex, so the
+     * two requests never overlap on the wire; only their wait windows overlap.
+     */
     private fun startPolling(s: MountSession) {
         pollJob?.cancel()
         pollJob = scope.launch {
             while (isActive) {
-                when (val r = s.request(284) { MountState.fromFrame284(it) }) {
-                    is MountSession.CmdResult.Ok -> mount = r.value
-                    is MountSession.CmdResult.Timeout -> {}
-                    is MountSession.CmdResult.ProtocolError -> statusMessage = "Error: ${r.message}"
-                }
-                when (val r = s.request(517) { GimbalPosition.fromFrame517(it) }) {
-                    is MountSession.CmdResult.Ok -> position = r.value
-                    else -> {}
+                coroutineScope {
+                    launch {
+                        when (val r = s.request(284, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { MountState.fromFrame284(it) }) {
+                            is MountSession.CmdResult.Ok -> mount = r.value
+                            is MountSession.CmdResult.Timeout -> {}
+                            is MountSession.CmdResult.ProtocolError -> statusMessage = "Error: ${r.message}"
+                        }
+                    }
+                    launch {
+                        when (val r = s.request(517, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { GimbalPosition.fromFrame517(it) }) {
+                            is MountSession.CmdResult.Ok -> position = r.value
+                            else -> {}
+                        }
+                    }
                 }
                 delay(1000)
             }
@@ -2553,6 +2574,17 @@ class AppViewModel(
          * pipeline instead of leaving the UI stuck on "Busy" forever.
          */
         private const val CAPTURE_TIMEOUT_MS: Long = 15_000L
+
+        /**
+         * #89: per-request timeout for the 1 Hz 284/517 pose poll. The
+         * [MountSession.request] default is 2000 ms; at a 1 s cadence a
+         * response older than 800 ms is already stale, so waiting the full
+         * 2 s only delays the next cycle (worst case ~5 s of stale UI in
+         * the pre-fix sequential loop). 800 ms keeps the worst-case cycle
+         * at ~1.8 s (parallel requests + 1 s delay) while still giving a
+         * busy gimbal plenty of time to answer.
+         */
+        private const val POLL_REQUEST_TIMEOUT_MS: Long = 800L
 
     }
 }

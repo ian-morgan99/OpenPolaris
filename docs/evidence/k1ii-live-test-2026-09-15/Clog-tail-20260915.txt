@@ -1,0 +1,26 @@
+[m[16:44:49:156 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:44:53:156 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:44:57:157 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:01:161 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:05:160 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:09:162 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:13:162 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:17:162 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:21:168 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:25:162 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:29:163 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:33:167 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 
+[m[16:45:37:164 [1;32mINFO[m-]:recv_ipc_msg[129]:[0;32;32m------ recv_ipc_msg success; msg_id [131076] type[2],code[266],val[-100]
+[m[spc_ipc_message_handler]     [1;33m--- spc_ipc_message_handler --- type: 2 command: 266  data: -100   --_isInit 1 

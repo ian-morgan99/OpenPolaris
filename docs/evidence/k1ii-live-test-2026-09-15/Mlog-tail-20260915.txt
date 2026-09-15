@@ -1,0 +1,287 @@
+[m[m[16:44:48:467 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:48:468 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:48:468 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:48:469 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:48:471 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872705;roll:0.813882;]
+[m[m[16:44:49:155 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:44:49:156 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:44:49:479 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:49:479 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:49:479 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:49:486 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:49:488 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872704;roll:0.813882;]
+[m[m[16:44:50:495 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:50:495 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:50:495 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:50:497 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:50:499 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455708;pitch:0.872710;roll:0.813882;]
+[m[m[16:44:51:511 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:51:511 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:51:511 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:51:513 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:51:515 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872705;roll:0.813878;]
+[m[m[16:44:51:634 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=55 192.168.0.4:57048] from [1] s_u32ClientNum[3]
+[m[16:44:51:634 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[16:44:51:634 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+[m[16:44:51:634 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=55] start
+[m[16:44:51:635 [1;31mERROR[m-]:msg_rcv_from_app_process[65]:[0;32;31mrcv msg from App[55]:type:0;code:266;val:
+[m[16:44:51:635 [1;32mINFO[m-]:SocketServerTask[120]:SOCKET_CLOSE(201) [id=55] s_u32ClientNum[2]
+[m[16:44:51:635 [1;31mERROR[m-]:SP_ClientCtxDel[392]:SP_ClientCtxDel:not find this is id[55]
+[m[16:44:52:528 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:52:528 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:52:528 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:52:530 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:52:532 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455709;pitch:0.872709;roll:0.813882;]
+[m[m[16:44:53:156 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:44:53:156 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:44:53:548 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:53:548 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:53:548 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:53:549 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:53:551 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872705;roll:0.813882;]
+[m[m[16:44:54:563 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:54:563 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:54:563 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:54:563 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:54:565 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872703;roll:0.813880;]
+[m[m[16:44:55:576 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:55:577 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:55:577 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:55:578 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:55:580 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872702;roll:0.813883;]
+[m[m[16:44:56:591 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:56:591 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:56:591 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:56:593 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:56:595 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455707;pitch:0.872707;roll:0.813874;]
+[m[m[16:44:57:156 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:44:57:157 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:44:57:607 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:57:607 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:57:607 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:57:609 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:57:611 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872705;roll:0.813884;]
+[m[m[16:44:58:623 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:58:623 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:58:623 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:58:625 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:58:627 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872707;roll:0.813882;]
+[m[m[16:44:59:638 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:44:59:638 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:44:59:639 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:44:59:640 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:44:59:642 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872704;roll:0.813882;]
+[m[m[16:45:00:657 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:00:657 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:00:657 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:00:666 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:00:668 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872704;roll:0.813879;]
+[m[m[16:45:01:161 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:01:161 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:01:675 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:01:675 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:01:675 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:01:677 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:01:678 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872704;roll:0.813882;]
+[m[m[16:45:02:691 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:02:691 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:02:691 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:02:693 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:02:695 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455714;pitch:0.872709;roll:0.813882;]
+[m[m[16:45:03:706 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:03:706 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:03:707 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:03:708 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:03:710 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872705;roll:0.813880;]
+[m[m[16:45:04:721 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:04:722 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:04:722 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:04:723 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:04:725 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455709;pitch:0.872704;roll:0.813882;]
+[m[m[16:45:05:159 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:05:159 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:05:739 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:05:739 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:05:739 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:05:741 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:05:743 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872704;roll:0.813880;]
+[m[m[16:45:06:755 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:06:755 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:06:755 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:06:764 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:06:766 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872705;roll:0.813882;]
+[m[m[16:45:07:773 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:07:773 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:07:773 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:07:775 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:07:777 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872707;roll:0.813872;]
+[m[m[16:45:08:789 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:08:789 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:08:789 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:08:791 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:08:793 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872706;roll:0.813882;]
+[m[m[16:45:09:161 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:09:161 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:09:805 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:09:805 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:09:805 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:09:806 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:09:808 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872706;roll:0.813874;]
+[m[m[16:45:09:988 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361c0000255a ;
+[m[16:45:09:988 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361c0000255a ;]
+[m[m[16:45:10:821 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:10:821 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:10:821 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:10:823 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:10:825 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872706;roll:0.813877;]
+[m[m[16:45:11:837 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:11:837 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:11:837 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:11:839 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:11:841 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455714;pitch:0.872709;roll:0.813880;]
+[m[m[16:45:12:853 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:12:854 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:12:854 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:12:855 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:12:857 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872707;roll:0.813877;]
+[m[m[16:45:13:161 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:13:161 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:13:869 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:13:869 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:13:869 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:13:871 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:13:873 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455714;pitch:0.872706;roll:0.813877;]
+[m[m[16:45:14:886 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:14:886 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:14:886 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:14:888 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:14:890 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455715;pitch:0.872708;roll:0.813880;]
+[m[m[16:45:15:901 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:15:902 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:15:902 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:15:910 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:15:912 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872710;roll:0.813880;]
+[m[m[16:45:16:919 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:16:919 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:16:919 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:16:921 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:16:923 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455709;pitch:0.872709;roll:0.813882;]
+[m[m[16:45:17:162 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:17:162 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:17:936 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:17:936 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:17:936 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:17:938 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:17:939 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872705;roll:0.813880;]
+[m[m[16:45:18:950 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:18:951 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:18:951 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:18:952 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:18:954 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455707;pitch:0.872708;roll:0.813883;]
+[m[m[16:45:19:966 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:19:966 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:19:966 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:19:968 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:19:970 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872707;roll:0.813874;]
+[m[m[16:45:20:980 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:20:981 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:20:981 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:20:982 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:20:984 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872707;roll:0.813882;]
+[m[m[16:45:21:167 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:21:167 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:21:997 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:21:997 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:21:997 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:21:999 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:22:001 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455709;pitch:0.872707;roll:0.813877;]
+[m[m[16:45:22:651 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=56 192.168.0.4:55612] from [1] s_u32ClientNum[3]
+[m[16:45:22:651 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[16:45:22:651 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=56] start
+[m[16:45:22:652 [1;31mERROR[m-]:msg_rcv_from_app_process[65]:[0;32;31mrcv msg from App[56]:type:0;code:266;val:
+[m[16:45:22:652 [1;32mINFO[m-]:SocketServerTask[120]:SOCKET_CLOSE(201) [id=56] s_u32ClientNum[2]
+[m[16:45:22:652 [1;31mERROR[m-]:SP_ClientCtxDel[392]:SP_ClientCtxDel:not find this is id[56]
+[m[16:45:22:652 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+[m[16:45:23:014 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:23:015 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:23:015 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:23:016 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:23:018 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872710;roll:0.813883;]
+[m[m[16:45:24:030 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:24:031 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:24:031 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:24:032 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:24:034 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455712;pitch:0.872707;roll:0.813877;]
+[m[m[16:45:25:047 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:25:047 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:25:047 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:25:049 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:25:051 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872708;roll:0.813882;]
+[m[m[16:45:25:162 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:25:162 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:26:062 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:26:063 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:26:063 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:26:064 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:26:066 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872708;roll:0.813877;]
+[m[m[16:45:27:078 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:27:078 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:27:078 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:27:079 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:27:081 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872706;roll:0.813879;]
+[m[m[16:45:28:093 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:28:093 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:28:093 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:28:095 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:28:096 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872705;roll:0.813877;]
+[m[m[16:45:29:108 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:29:108 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:29:109 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:29:110 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:29:112 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872706;roll:0.813880;]
+[m[m[16:45:29:162 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:29:162 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:30:125 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:30:125 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:30:125 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:30:127 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:30:128 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872703;roll:0.813880;]
+[m[m[16:45:31:140 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:31:140 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:31:140 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:31:142 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:31:144 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872709;roll:0.813884;]
+[m[m[16:45:32:158 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:32:158 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:32:158 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:32:160 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:32:162 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872704;roll:0.813883;]
+[m[m[16:45:33:167 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:33:167 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:33:170 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:33:170 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:33:170 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:33:178 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:33:180 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455713;pitch:0.872709;roll:0.813879;]
+[m[m[16:45:34:189 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:34:189 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:34:189 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:34:191 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:34:193 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455711;pitch:0.872710;roll:0.813880;]
+[m[m[16:45:35:204 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:35:204 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:35:204 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:35:206 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:35:208 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455709;pitch:0.872704;roll:0.813879;]
+[m[m[16:45:36:219 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:36:219 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:36:219 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:36:221 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:36:223 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455710;pitch:0.872706;roll:0.813882;]
+[m[m[16:45:37:164 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:266;val:-100
+[m[16:45:37:164 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1003],type[2],code[266],val[-100]
+[m[m[16:45:37:231 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:284;val:-100
+[m[16:45:37:231 [1;32mINFO[m-]:SP_PushModeState[1911]:[0;35mSP_PushModeState
+[m[16:45:37:231 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[284],val[mode:1;state:0;]
+[m[m[16:45:37:240 [1;32mINFO[m-]:msg_rcv_from_app_process[69]:[0;32;32mrcv msg from App[47]:type:2;code:517;val:-100
+[m[16:45:37:242 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[3],code[517],val[yaw:1.455707;pitch:0.872705;roll:0.813881;]

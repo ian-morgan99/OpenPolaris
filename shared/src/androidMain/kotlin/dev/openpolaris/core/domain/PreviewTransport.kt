@@ -50,7 +50,7 @@ class JvmPreviewTransport(
             readParts(dis, boundary)
         } catch (t: SocketTimeoutException) {
             if (!cancelled) {
-                val message = if (receivedValidFrame) "Preview stream stalled" else "No preview frame within 10s"
+                val message = if (receivedValidFrame) "Preview stream stalled" else "No preview frame within ${PREVIEW_READ_TIMEOUT_MS / 1000}s"
                 onError(IllegalStateException(message, t))
             }
         } catch (t: Throwable) {
@@ -207,7 +207,14 @@ class JvmPreviewTransport(
             bytes[bytes.lastIndex - 1] == 0xff.toByte() && bytes[bytes.lastIndex] == 0xd9.toByte()
 
     private companion object {
-        const val PREVIEW_READ_TIMEOUT_MS = 10_000
+        // #61 / K-1 II live test 2026-09-15: the Polaris MJPG-Streamer serves
+        // valid JPEGs but at a very low rate on some cameras (~1 frame per
+        // 7–8 s observed with a K-1 II). A 10 s read timeout sat right at the
+        // edge of that inter-frame gap, so the transport's SocketTimeoutException
+        // fired *between* frames and the pane cycled between a frame and
+        // "Stream unavailable: Preview stream stalled". 30 s comfortably covers
+        // the observed gap while still catching a genuinely dead stream.
+        const val PREVIEW_READ_TIMEOUT_MS = 30_000
     }
 }
 

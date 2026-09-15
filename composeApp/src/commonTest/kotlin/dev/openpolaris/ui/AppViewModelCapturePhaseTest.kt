@@ -227,6 +227,38 @@ class AppViewModelCapturePhaseTest {
         }
     }
 
+    // K-1 II live test (2026-09-15): some firmware never answers 266 at all, so
+    // no idle is ever observed even though the shot succeeded. The watchdog must
+    // treat a no-response window as Completed (shutter released, image on card),
+    // not a false Failed.
+    @Test
+    fun noCaptureStateResponseTreatsTimeoutAsCompleted() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply {
+            // No 266 responses at all — the firmware never reports capture state.
+            captureStateResponses = emptyList()
+        }
+        val vm = newViewModel(this, { conn })
+        try {
+            connectAndSettle(this, vm)
+            vm.capture()
+            advanceTimeBy(1_000)
+            assertIs<AppViewModel.CapturePhase.Requested>(vm.capturePhase)
+            // No 266 response has been seen yet.
+            assertEquals(false, vm.testSawCaptureStateSinceRequest)
+
+            // Watchdog fires with no state observed -> Completed, not Failed.
+            advanceTimeBy(16_000)
+            assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertTrue(
+                vm.statusMessage.contains("did not report state"),
+                "expected the no-state completion message, got '${vm.statusMessage}'"
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
     // 5. second shutter press while busy: debounced, no duplicate 264 sent.
     @Test
     fun secondShutterPressWhileBusyIsDebounced() = runTest(UnconfinedTestDispatcher()) {

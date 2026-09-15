@@ -400,6 +400,15 @@ class AppViewModel(
     // done) or when the phase reaches a terminal state. If it fires, the
     // capture is reported as Failed("timeout") instead of hanging on Busy.
     private var captureWatchdogJob: Job? = null
+    // #60 / K-1 II live test 2026-09-15: true once the 266 poll has returned at
+    // least one parseable result since the last capture request. Some firmware
+    // (observed on a K-1 II, FW 4.0.0.32) never answers 266 at all — the Mlog
+    // shows the app's request but zero camera→gimbal 266 pushes. In that case
+    // the watchdog cannot distinguish "busy" from "done", so it treats a
+    // no-response window as success (the shutter was released; the image lands
+    // on the card) instead of a false Failed. Reset in capture(), set in
+    // onCaptureStatePoll().
+    private var sawCaptureStateSinceRequest: Boolean = false
     // The simulated mount (only set in demo mode). Held so disconnect()
     // can cancel its private reader scope.
     private var demoSim: SimulatedMount? = null
@@ -1262,6 +1271,9 @@ class AppViewModel(
      */
     private fun onCaptureStatePoll(state: CommandTable.CaptureState) {
         captureState = state
+        // The camera (or firmware) answered a 266 poll — the watchdog can now
+        // trust the idle transition as the completion signal.
+        sawCaptureStateSinceRequest = true
         val phase = capturePhase
         when (state.state) {
             0 -> {
@@ -1947,17 +1959,31 @@ class AppViewModel(
         scope.launch {
             cameraController?.capture()
             capturePhase = CapturePhase.Requested
+            sawCaptureStateSinceRequest = false
             statusMessage = "Capture sent"
             // Bounded watchdog: if the 266 poll never observes the camera
             // return to idle, report an explicit timeout instead of leaving
             // the UI stuck on Busy. Cancelled by onCaptureStatePoll on a
             // terminal transition.
+            //
+            // K-1 II fallback (2026-09-15 live test): some firmware never
+            // answers 266 at all, so no idle is ever observed even though the
+            // shot succeeded. If we saw NO 266 response during the window,
+            // treat the shutter as released-and-done (Completed) rather than
+            // a false Failed — the image lands on the card regardless. Only
+            // report Failed when the camera DID report state and never went
+            // idle (a genuine stuck pipeline).
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
                 delay(CAPTURE_TIMEOUT_MS)
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    capturePhase = CapturePhase.Failed("timeout: camera did not return to idle within ${CAPTURE_TIMEOUT_MS / 1000}s")
-                    statusMessage = "Capture timed out"
+                    if (sawCaptureStateSinceRequest) {
+                        capturePhase = CapturePhase.Failed("timeout: camera did not return to idle within ${CAPTURE_TIMEOUT_MS / 1000}s")
+                        statusMessage = "Capture timed out"
+                    } else {
+                        capturePhase = CapturePhase.Completed
+                        statusMessage = "Capture sent (camera did not report state — check the card)"
+                    }
                 }
             }
         }
@@ -1966,11 +1992,15 @@ class AppViewModel(
     /** #60 test seam: drive the state machine directly without a live 266 poll. */
     internal fun testOnCaptureStatePoll(state: CommandTable.CaptureState) = onCaptureStatePoll(state)
 
+    /** #60 test seam: observe whether a 266 response was seen since the last request. */
+    internal val testSawCaptureStateSinceRequest: Boolean get() = sawCaptureStateSinceRequest
+
     /** #60 test seam: reset the phase to Idle (e.g. between scripted scenarios). */
     internal fun testResetCapturePhase() {
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
+        sawCaptureStateSinceRequest = false
     }
 
     // ---- catalog & comets (Tonight pane) ----------------------------------

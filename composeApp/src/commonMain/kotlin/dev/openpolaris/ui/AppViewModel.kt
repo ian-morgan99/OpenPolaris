@@ -244,13 +244,9 @@ class AppViewModel(
         private set
 
     /**
-     * Live capture pipeline state (code 266). Polled on a separate 2s cadence
-     * from the main 1Hz pose poll so that a slow/no-response 266 doesn't stall
-     * the 284/517 update loop. `state==1` means a shot is in progress (bulb
-     * exposure, processing, etc.) and the UI should grey out the Capture
-     * button to prevent stacking exposures. `state==0` is idle. `c` is a
-     * firmware-defined counter (typically the remaining shots in a burst).
-     * See docs/PLANNING-2026-08.md Step 7.
+     * Last capture lifecycle event reported by code 264. Code 266 is deliberately
+     * not queried: live firmware identifies it as a white-balance/configuration
+     * read, not capture state (issue #90).
      */
     var captureState by mutableStateOf<CommandTable.CaptureState?>(null)
         private set
@@ -264,14 +260,11 @@ class AppViewModel(
      * response as completion (the pre-fix behaviour) made the UI flash a
      * false "failed" while the shot was actually succeeding.
      *
-     * Transitions are driven by the 266 poll in [startCapturePolling]:
-     *  - [Requested] → [Busy] when the camera reports `state==1` (in progress);
-     *  - any active phase → [Completed] when the camera returns to idle
-     *    (`state==0`) after a request — the authoritative "shot done" signal;
-     *  - transient negative states (e.g. `-1005`) are treated as [Busy],
-     *    never as terminal failure (issue #60 evidence);
-     *  - [Failed] only on an explicit bounded timeout with no idle observed,
-     *    or when the session drops mid-capture.
+     * Completion requires two correlated, post-request signals: a 264 lifecycle
+     * event and a positive 773 file event (non-empty `path`). Some firmware
+     * emits SP_ADD_FILE with no `size`, so size is useful telemetry but is not
+     * part of the portable completion contract. Missing
+     * evidence becomes [OutcomeUnknown], never optimistic success.
      *
      * The shutter is debounced while any non-[Idle] phase is active: a second
      * press is ignored (never auto-retried) so a possibly-successful release
@@ -282,6 +275,7 @@ class AppViewModel(
         data object Requested : CapturePhase
         data object Busy : CapturePhase
         data object Completed : CapturePhase
+        data class OutcomeUnknown(val reason: String) : CapturePhase
         data class Failed(val reason: String) : CapturePhase
     }
 
@@ -394,21 +388,13 @@ class AppViewModel(
     // tears down.
     private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
-    private var capturePollJob: Job? = null
-    // #60: bounded watchdog for an in-flight capture. Started by [capture],
-    // cancelled when the 266 poll observes the camera return to idle (shot
-    // done) or when the phase reaches a terminal state. If it fires, the
-    // capture is reported as Failed("timeout") instead of hanging on Busy.
+    private var captureEventJob: Job? = null
     private var captureWatchdogJob: Job? = null
-    // #60 / K-1 II live test 2026-09-15: true once the 266 poll has returned at
-    // least one parseable result since the last capture request. Some firmware
-    // (observed on a K-1 II, FW 4.0.0.32) never answers 266 at all — the Mlog
-    // shows the app's request but zero camera→gimbal 266 pushes. In that case
-    // the watchdog cannot distinguish "busy" from "done", so it treats a
-    // no-response window as success (the shutter was released; the image lands
-    // on the card) instead of a false Failed. Reset in capture(), set in
-    // onCaptureStatePoll().
-    private var sawCaptureStateSinceRequest: Boolean = false
+    private var captureSawLifecycle = false
+    private var captureSawFile = false
+    private var captureWorkloadsSuspended = false
+    private var cameraPollingSuspended = false
+    private var restorePreviewAfterCapture = false
     // The simulated mount (only set in demo mode). Held so disconnect()
     // can cancel its private reader scope.
     private var demoSim: SimulatedMount? = null
@@ -816,7 +802,7 @@ class AppViewModel(
                 if (s.connect()) {
                     statusMessage = "Connected"
                     // 3e E2: catch any throw from the post-connect bootstrap
-                    // (saveMarker / startPolling / startCapturePolling /
+                    // (saveMarker / startPolling / startCaptureEventObserver /
                     // startPreview) so a single failing bootstrap step surfaces
                     // as a status message instead of killing the launched
                     // coroutine and leaving the UI in a half-connected state.
@@ -828,7 +814,7 @@ class AppViewModel(
                     try {
                         saveMarker()
                         startPolling(s)
-                        startCapturePolling(s)
+                        startCaptureEventObserver(s)
                         startPreview()
                     } catch (e: Throwable) {
                         // Make sure the half-built session is torn down so a
@@ -1065,7 +1051,7 @@ class AppViewModel(
 
     fun disconnect() {
         pollJob?.cancel()
-        capturePollJob?.cancel()
+        captureEventJob?.cancel()
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
@@ -1118,6 +1104,11 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
+        captureSawLifecycle = false
+        captureSawFile = false
+        captureWorkloadsSuspended = false
+        cameraPollingSuspended = false
+        restorePreviewAfterCapture = false
         // Tear down the auto-level controller in its own coroutine so we can
         // call the suspending stopAutoLevel() from a non-suspending context.
         // Safe to fire-and-forget: stopAutoLevel only cancels jobs that
@@ -1216,6 +1207,10 @@ class AppViewModel(
         pollJob?.cancel()
         pollJob = scope.launch {
             while (isActive) {
+                if (cameraPollingSuspended) {
+                    delay(100)
+                    continue
+                }
                 coroutineScope {
                     launch {
                         when (val r = s.request(284, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { MountState.fromFrame284(it) }) {
@@ -1236,71 +1231,78 @@ class AppViewModel(
         }
     }
 
-    /**
-     * Periodic 2s poll for code 266 (CAM_GET_STATE). Kept off the main 1Hz
-     * pose poll so a slow/missing 266 reply (older firmware or hardware
-     * timeout) cannot stall 284/517. MountSession.request serialises through
-     * a single Mutex, so captureState updates will interleave with the pose
-     * poll but never overlap. The parser returns null if `state` is absent;
-     * we preserve the last good value in that case so a single missed
-     * response doesn't visually reset the Capture button.
-     */
-    private fun startCapturePolling(s: MountSession) {
-        capturePollJob?.cancel()
-        capturePollJob = scope.launch {
-            while (isActive) {
-                when (val r = s.request(dev.openpolaris.core.protocol.Codes.CAM_GET_STATE) { CommandTable.CAM_GET_STATE.parse!!(it) }) {
-                    is MountSession.CmdResult.Ok -> r.value?.let { onCaptureStatePoll(it) }
-                    else -> {} // Timeout / ProtocolError: keep last good captureState
+    /** Observe unsolicited camera/file events without issuing any camera query. */
+    private fun startCaptureEventObserver(s: MountSession) {
+        captureEventJob?.cancel()
+        captureEventJob = scope.launch {
+            s.frames.collect { frame -> frame?.let(::onCaptureFrame) }
+        }
+    }
+
+    private fun onCaptureFrame(frame: ResponseParser.Frame) {
+        val active = capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy
+        if (!active) return
+        when (frame.code) {
+            Codes.CAM_CAPTURE -> {
+                val state = frame.int("state") ?: return
+                captureState = CommandTable.CaptureState(
+                    state = state,
+                    bulb = frame.int("bulb") ?: 0,
+                    c = frame.int("c") ?: -1,
+                )
+                // Idle alone is not evidence that this shutter began. Require
+                // a post-request non-idle lifecycle state before accepting a
+                // subsequent file notification as correlated.
+                if (state != 0) captureSawLifecycle = true
+                capturePhase = CapturePhase.Busy
+                completeCaptureIfCorrelated()
+            }
+            Codes.FILE_DOWNLOAD_DATA -> {
+                val path = frame["path"]?.trim().orEmpty()
+                if (path.isNotEmpty() && captureSawLifecycle) {
+                    captureSawFile = true
+                    completeCaptureIfCorrelated()
                 }
-                delay(2000)
             }
         }
     }
 
-    /**
-     * #60: fold a 266 (CAM_GET_STATE) poll result into the [capturePhase]
-     * state machine. The camera returning to idle (`state==0`) after a
-     * request is the authoritative "shot done" signal — it is what
-     * transitions an active capture to [CapturePhase.Completed] and cancels
-     * the watchdog. Transient negative states (e.g. `-1005`, observed on the
-     * K-3 III ~2 s into a successful capture) are treated as busy, never as
-     * terminal failure. A late idle that arrives after the watchdog already
-     * reported a timeout is still honoured: the shot evidently completed, so
-     * the phase recovers to Completed rather than staying stuck on Failed.
-     */
-    private fun onCaptureStatePoll(state: CommandTable.CaptureState) {
-        captureState = state
-        // The camera (or firmware) answered a 266 poll — the watchdog can now
-        // trust the idle transition as the completion signal.
-        sawCaptureStateSinceRequest = true
-        val phase = capturePhase
-        when (state.state) {
-            0 -> {
-                // Idle. Only meaningful as a completion signal while a
-                // capture is in flight (or already timed out); otherwise it
-                // just records the camera's resting state.
-                if (phase is CapturePhase.Requested ||
-                    phase is CapturePhase.Busy ||
-                    phase is CapturePhase.Failed
-                ) {
-                    captureWatchdogJob?.cancel()
-                    captureWatchdogJob = null
-                    capturePhase = CapturePhase.Completed
-                }
-            }
-            1 -> {
-                // In progress (bulb exposure / processing).
-                if (phase is CapturePhase.Requested || phase is CapturePhase.Failed) {
-                    capturePhase = CapturePhase.Busy
-                }
-            }
-            else -> {
-                // Transient negative state (e.g. -1005 on K-3 III): the
-                // camera is mid-capture, not terminally failed.
-                if (phase is CapturePhase.Requested || phase is CapturePhase.Failed) {
-                    capturePhase = CapturePhase.Busy
-                }
+    private fun completeCaptureIfCorrelated() {
+        if (!captureSawLifecycle || !captureSawFile) return
+        captureWatchdogJob?.cancel()
+        captureWatchdogJob = null
+        capturePhase = CapturePhase.Completed
+        statusMessage = "Capture completed"
+        restoreCaptureWorkloads()
+    }
+
+    private suspend fun suspendCaptureWorkloads() {
+        if (captureWorkloadsSuspended) return
+        captureWorkloadsSuspended = true
+        cameraPollingSuspended = true
+        // Let a request already inside the 800 ms poll window finish before
+        // issuing camera-preview or shutter commands on the shared socket.
+        delay(POLL_REQUEST_TIMEOUT_MS + 50)
+        restorePreviewAfterCapture = preview.state.value is PreviewController.State.Streaming ||
+            preview.state.value is PreviewController.State.Connecting
+        preview.stop()
+        previewFrame = null
+        if (restorePreviewAfterCapture) {
+            // Best effort: the transport is already closed, so even a firmware
+            // timeout cannot leave a second 8080 owner in this process.
+            runCatching { cameraController?.setCameraPreview(false) }
+        }
+    }
+
+    private fun restoreCaptureWorkloads() {
+        if (!captureWorkloadsSuspended) return
+        captureWorkloadsSuspended = false
+        cameraPollingSuspended = false
+        if (restorePreviewAfterCapture) {
+            restorePreviewAfterCapture = false
+            scope.launch {
+                runCatching { cameraController?.setCameraPreview(true) }
+                startPreview()
             }
         }
     }
@@ -1940,8 +1942,7 @@ class AppViewModel(
      * [capturePhase]. The shutter is debounced while any non-[Idle] phase is
      * active (a second press is ignored, never auto-retried — the camera may
      * already be exposing). A bounded watchdog ([CAPTURE_TIMEOUT_MS]) reports
-     * an explicit timeout if the camera never returns to idle; the 266 poll
-     * in [onCaptureStatePoll] drives Requested → Busy → Completed.
+     * [OutcomeUnknown] if correlated lifecycle/file evidence never arrives.
      */
     fun capture() {
         if (cameraController == null) { statusMessage = "Not connected"; return }
@@ -1957,50 +1958,37 @@ class AppViewModel(
             return
         }
         scope.launch {
-            cameraController?.capture()
             capturePhase = CapturePhase.Requested
-            sawCaptureStateSinceRequest = false
+            captureSawLifecycle = false
+            captureSawFile = false
+            suspendCaptureWorkloads()
+            cameraController?.capture()
             statusMessage = "Capture sent"
-            // Bounded watchdog: if the 266 poll never observes the camera
-            // return to idle, report an explicit timeout instead of leaving
-            // the UI stuck on Busy. Cancelled by onCaptureStatePoll on a
-            // terminal transition.
-            //
-            // K-1 II fallback (2026-09-15 live test): some firmware never
-            // answers 266 at all, so no idle is ever observed even though the
-            // shot succeeded. If we saw NO 266 response during the window,
-            // treat the shutter as released-and-done (Completed) rather than
-            // a false Failed — the image lands on the card regardless. Only
-            // report Failed when the camera DID report state and never went
-            // idle (a genuine stuck pipeline).
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
                 delay(CAPTURE_TIMEOUT_MS)
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    if (sawCaptureStateSinceRequest) {
-                        capturePhase = CapturePhase.Failed("timeout: camera did not return to idle within ${CAPTURE_TIMEOUT_MS / 1000}s")
-                        statusMessage = "Capture timed out"
-                    } else {
-                        capturePhase = CapturePhase.Completed
-                        statusMessage = "Capture sent (camera did not report state — check the card)"
-                    }
+                    capturePhase = CapturePhase.OutcomeUnknown(
+                        "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+                    )
+                    statusMessage = "Capture outcome unknown — check the card before another shutter"
+                    restoreCaptureWorkloads()
                 }
             }
         }
     }
 
-    /** #60 test seam: drive the state machine directly without a live 266 poll. */
-    internal fun testOnCaptureStatePoll(state: CommandTable.CaptureState) = onCaptureStatePoll(state)
-
-    /** #60 test seam: observe whether a 266 response was seen since the last request. */
-    internal val testSawCaptureStateSinceRequest: Boolean get() = sawCaptureStateSinceRequest
+    /** #90 test seam: drive a parsed unsolicited frame without a live device. */
+    internal fun testOnCaptureFrame(frame: ResponseParser.Frame) = onCaptureFrame(frame)
 
     /** #60 test seam: reset the phase to Idle (e.g. between scripted scenarios). */
     internal fun testResetCapturePhase() {
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
-        sawCaptureStateSinceRequest = false
+        captureSawLifecycle = false
+        captureSawFile = false
+        restoreCaptureWorkloads()
     }
 
     // ---- catalog & comets (Tonight pane) ----------------------------------

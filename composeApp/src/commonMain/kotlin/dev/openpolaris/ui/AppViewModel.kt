@@ -1509,18 +1509,51 @@ class AppViewModel(
         return lat to lng
     }
 
-    /** Slew to entered coordinates (code 519). Reports result in statusMessage. */
+    /**
+     * True while an arrival-aware slew is in flight (519 issued, 517 poll
+     * running). Gates the Slew button and tells the operator that tracking /
+     * shooting must wait for arrival — the pre-fix path reported "Slewing"
+     * the moment the socket write completed (ASTRO-WORKFLOW-HANDOVER §4).
+     */
+    var slewInProgress by mutableStateOf(false)
+        private set
+
+    /** Handle to the in-flight arrival-aware slew coroutine, for [cancelSlew]. */
+    private var slewJob: Job? = null
+
+    /**
+     * Slew to entered coordinates and await arrival (code 519 + 517 poll).
+     *
+     * The UI path now routes through [GoToController] so the mount's actual
+     * position is observed before the slew is reported complete: tracking
+     * and shooting must not unlock merely because a socket write finished.
+     * On timeout the status says so explicitly instead of pretending success.
+     */
     fun goto() {
+        if (slewInProgress) return
+        val s = session ?: run { statusMessage = "Not connected"; return }
+        val c = GoToController(s, controller ?: TrackingController(s))
         if (raDecMode) {
             val loc = parsedLocation() ?: run { statusMessage = "Invalid latitude/longitude"; return }
             val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA (use HH MM SS or H.h)"; return }
             val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use ±DD MM SS or ±D.d)"; return }
             val altAz = AstroMath.toHorizontalAt(ra, dec, loc.first, loc.second, AstroMath.julianDateNow())
-            scope.launch {
-                when (controller?.gotoAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)) {
-                    null -> statusMessage = "Not connected"
-                    else -> statusMessage = "Slewing to RA $gotoRa Dec $gotoDec (az %.1f°, alt %.1f°)"
-                        .format(altAz.azimuthDeg, altAz.altitudeDeg)
+            slewInProgress = true
+            slewJob = scope.launch {
+                try {
+                    val arrived = c.goToAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)
+                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
+                        statusMessage = if (arrived) {
+                            "Arrived at RA $gotoRa Dec $gotoDec (az %.1f°, alt %.1f°)".format(
+                                altAz.azimuthDeg, altAz.altitudeDeg,
+                            )
+                        } else {
+                            "Slew to RA $gotoRa Dec $gotoDec timed out — mount not yet at target"
+                        }
+                    }
+                } finally {
+                    slewInProgress = false
+                    slewJob = null
                 }
             }
         } else {
@@ -1530,18 +1563,38 @@ class AppViewModel(
                 statusMessage = "Invalid coordinates"
                 return
             }
-            scope.launch {
-                when (controller?.gotoAzAlt(az, alt)) {
-                    null -> statusMessage = "Not connected"
-                    else -> statusMessage = "Slewing to az $az°, alt $alt°"
+            slewInProgress = true
+            slewJob = scope.launch {
+                try {
+                    val arrived = c.goToAzAlt(az, alt)
+                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
+                        statusMessage = if (arrived) {
+                            "Arrived at az $az°, alt $alt°"
+                        } else {
+                            "Slew to az $az°, alt $alt° timed out — mount not yet at target"
+                        }
+                    }
+                } finally {
+                    slewInProgress = false
+                    slewJob = null
                 }
             }
         }
     }
 
-    /** Cancel an in-progress slew (519 state:0). */
+    /**
+     * Cancel an in-progress slew: send 519 `state:0` to the firmware and stop
+     * the arrival poll so its terminal status write cannot clobber the
+     * "Slew cancelled" line. Idempotent when no slew is in flight.
+     */
     fun cancelSlew() = scope.launch {
-        session?.send(dev.openpolaris.core.protocol.Codes.SET_GOTO_AU_STATE, "state:0;")
+        val s = session
+        if (s != null) {
+            runCatching { GoToController(s, controller ?: TrackingController(s)).cancelGoto() }
+        }
+        slewJob?.cancel()
+        slewJob = null
+        slewInProgress = false
         statusMessage = "Slew cancelled"
     }
 

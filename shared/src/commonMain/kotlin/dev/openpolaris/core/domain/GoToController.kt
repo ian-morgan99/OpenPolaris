@@ -67,6 +67,42 @@ class GoToController(
     }
 
     /**
+     * Slew to an explicit az/alt (code 519) and poll 517 until the mount
+     * reports arrival within [toleranceDeg] — the UI-path counterpart of
+     * [goToRaDec]. The pre-fix UI path only issued the 519 write and
+     * reported "Slewing" immediately, so tracking/shooting could start
+     * before the mount actually arrived (ASTRO-WORKFLOW-HANDOVER §4).
+     *
+     * @return true when within tolerance of the target; false on timeout.
+     */
+    suspend fun goToAzAlt(
+        azimuthDeg: Double,
+        altitudeDeg: Double,
+        toleranceDeg: Double = 0.5,
+        timeoutMs: Long = 120_000,
+    ): Boolean {
+        val corrected = pointingModel?.applyTo(azimuthDeg, altitudeDeg)
+            ?: (azimuthDeg to altitudeDeg)
+        slewing = true
+        try {
+            tracking.gotoAzAlt(corrected.first, corrected.second)
+            return awaitArrival(corrected, toleranceDeg, timeoutMs)
+        } finally {
+            slewing = false
+        }
+    }
+
+    /**
+     * Cancel an in-progress slew (519 `state:0`). Idempotent — safe to call
+     * when no slew is in flight. Suspend because the underlying write needs
+     * the session's send mutex; callers should invoke from a coroutine.
+     */
+    suspend fun cancelGoto() {
+        session.send(Codes.SET_GOTO_AU_STATE, "state:0;")
+        slewing = false
+    }
+
+    /**
      * Poll 517 until yaw/pitch are within [toleranceDeg] of [target], or timeout.
      */
     private suspend fun awaitArrival(

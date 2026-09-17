@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GoToControllerTest {
@@ -53,6 +54,57 @@ class GoToControllerTest {
         assertTrue(frame.contains("&519&"), "expected goto 519 frame, got $frame")
         assertTrue(frame.contains("alt:60."), "altitude should be ~60, got $frame")
         assertTrue(frame.contains("az:0."), "azimuth should be ~0, got $frame")
+        session.disconnect()
+    }
+
+    @Test
+    fun `goToAzAlt reports arrival when 517 reaches target`() = runTest {
+        val (conn, session, c) = newRig(backgroundScope)
+        session.connect()
+
+        // First 517 poll reports the mount still far from the target;
+        // the second reports it at the target -> arrival.
+        conn.scriptResponse(517, "1&517&2&yaw:0.0;pitch:0.0;roll:0.0;#")
+        conn.scriptResponse(517, "1&517&2&yaw:90.0;pitch:45.0;roll:0.0;#")
+
+        val arrived = c.goToAzAlt(azimuthDeg = 90.0, altitudeDeg = 45.0, timeoutMs = 30_000)
+        assertTrue(arrived, "expected arrival within tolerance")
+        // The 519 slew frame must have been issued before the arrival poll.
+        val frames = conn.written.map { it.decodeToString() }
+        assertTrue(frames.any { it.contains("&519&") }, "expected a 519 goto frame, got $frames")
+        session.disconnect()
+    }
+
+    @Test
+    fun `goToAzAlt times out when the mount never reaches the target`() = runTest {
+        val (conn, session, c) = newRig(backgroundScope)
+        session.connect()
+
+        // Only one 517 response is scripted; every subsequent poll times out,
+        // so the arrival loop must give up and report false.
+        conn.scriptResponse(517, "1&517&2&yaw:0.0;pitch:0.0;roll:0.0;#")
+
+        val arrived = c.goToAzAlt(azimuthDeg = 90.0, altitudeDeg = 45.0, timeoutMs = 3_000)
+        assertFalse(arrived, "expected a timeout when the mount stays far away")
+        session.disconnect()
+    }
+
+    @Test
+    fun `cancelGoto sends 519 state-0 frame and clears the slewing flag`() = runTest {
+        val (conn, session, c) = newRig(backgroundScope)
+        session.connect()
+
+        // cancelGoto is idempotent — safe to call when no slew is in flight.
+        // It must issue a 519 frame with state:0 and leave slewing=false.
+        // (The success/timeout tests above already exercise the in-flight
+        // arrival loop; this test pins the cancel frame + flag contract.)
+        c.cancelGoto()
+        assertFalse(c.slewing, "slewing must be false after cancel")
+        val frames = conn.written.map { it.decodeToString() }
+        assertTrue(
+            frames.any { it.contains("&519&") && it.contains("state:0;") },
+            "expected a 519 state:0 cancel frame, got $frames",
+        )
         session.disconnect()
     }
 

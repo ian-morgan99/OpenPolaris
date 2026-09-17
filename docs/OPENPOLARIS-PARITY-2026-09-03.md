@@ -1,5 +1,7 @@
 # OpenPolaris Feature Parity Audit — 2026-09-03
 
+> **Superseded:** The conclusion in this snapshot that feature parity was complete is no longer valid. The current capability gaps, confirmed defects, target astro workflow, implementation order, and hardware acceptance gates are documented in [ASTRO-WORKFLOW-HANDOVER-2026-09-17.md](ASTRO-WORKFLOW-HANDOVER-2026-09-17.md).
+
 ## Scope of this audit (Polaris ONLY, not Theta)
 
 > ⚠️ **The Benro app supports TWO product lines: Polaris (3-axis gimbal head) and

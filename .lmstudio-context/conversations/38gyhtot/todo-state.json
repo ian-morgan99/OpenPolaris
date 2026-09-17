@@ -1,0 +1,49 @@
+{
+  "todoList": [
+    {
+      "id": "1",
+      "title": "Survey remaining code (Codes, MountSession, tests, UI)",
+      "status": "in-progress"
+    },
+    {
+      "id": "2",
+      "title": "Add failing num:0/1/2 alignment regression test",
+      "status": "not-started"
+    },
+    {
+      "id": "3",
+      "title": "Persistent alignment session + selected-star state in VM",
+      "status": "not-started"
+    },
+    {
+      "id": "4",
+      "title": "Arrival-aware UI goto (timeout/cancel/disconnect)",
+      "status": "not-started"
+    },
+    {
+      "id": "5",
+      "title": "Astro AHRS lifecycle + explicit tracking rate",
+      "status": "not-started"
+    },
+    {
+      "id": "6",
+      "title": "Intervalometer sequence controller + tests",
+      "status": "not-started"
+    },
+    {
+      "id": "7",
+      "title": "Dedicated Astro UI pane bound to session state",
+      "status": "not-started"
+    },
+    {
+      "id": "8",
+      "title": "Run full test suite, fix failures",
+      "status": "not-started"
+    },
+    {
+      "id": "9",
+      "title": "Update LIVE-PROGRESS + commit/push to GitHub periodically",
+      "status": "not-started"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+b7d6b1dc764c8b50cdb5da2e186a96a4  /app/sd/normal/SP_0052.dng
+ 49 49 2a 00 08 00 00 00 27 00 fe 00 04 00 01 00
+CAMERA_INFO
+PREVIEW
+RADIO=1258
+CLIENTS
+tcp        0      0 192.168.0.1:8080        192.168.0.2:49324       ESTABLISHED 7936/pgphoto.stage2
+tcp        0      0 127.0.0.1:45620         127.0.0.1:9090          TIME_WAIT   -
+tcp        0      0 127.0.0.1:45622         127.0.0.1:9090          TIME_WAIT   -
+tcp        0      0 192.168.0.1:9090        192.168.0.2:49317       ESTABLISHED 249/polestar_app

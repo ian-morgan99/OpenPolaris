@@ -1,0 +1,9 @@
+ARP
+IP address       HW type     Flags       HW address            Mask     Device
+192.168.0.2      0x1         0x2         4e:6d:a4:2b:e1:82     *        wlan0
+192.168.0.4      0x1         0x2         4c:23:38:c8:7b:6f     *        wlan0
+CLIENTS_NOW
+tcp        0      0 192.168.0.1:8080        192.168.0.2:49322       ESTABLISHED 7936/pgphoto.stage2
+tcp        0      0 192.168.0.1:9090        192.168.0.2:49317       ESTABLISHED 249/polestar_app
+RADIO_NOW=994
+RADIO_AFTER5=996

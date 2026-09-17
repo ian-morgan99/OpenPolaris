@@ -458,11 +458,34 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val c = vm.camera
+    val attachment = vm.cameraAttachment
     val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
     var qualificationArmed by remember { mutableStateOf(false) }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
+            // 286 camera-attachment status (polled every 5 s). Without this the
+            // pane shows a wall of "unavailable" steppers with no explanation —
+            // the firmware's `state:-5` sentinel is the reason. Live-verified
+            // 2026-09-16: no camera → `manufacturer:none;model:none;state:-5`.
+            when {
+                attachment == null -> Text(
+                    "Camera detection: unknown (waiting for first 286 poll…)",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                !attachment.isAttached -> Text(
+                    "No camera detected by the mount (state ${attachment.state}). " +
+                        "Re-seat the USB cable / power the camera, then wait a few seconds — " +
+                        "the mount re-detects on its own schedule.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                else -> Text(
+                    "Camera: ${attachment.manufacturer ?: "?"} ${attachment.model ?: ""}".trim() +
+                        " (state ${attachment.state})",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
                 if (qualificationEnabled)
                     "Qualification mode uses Benro Connect's evidenced INFO/SET map. Changes are sent to the attached camera; verify and restore each original value."
@@ -611,12 +634,23 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 else ->
                     Text("Stream unavailable — connect to the mount or check Wi-Fi.", style = MaterialTheme.typography.bodySmall)
             }
+            // Live-verified 2026-09-16: with no camera attached the firmware's
+            // MJPG-Streamer answers HTTP 200 but never sends a JPEG frame, so
+            // the pane sits on "Connecting…" for the full 30 s read timeout.
+            // The 286 poll (vm.cameraAttachment) tells us that up front.
+            if (frame == null && vm.cameraAttachment != null && !vm.cameraAttachment!!.isAttached) {
+                Text(
+                    "No camera detected by the mount — the stream will stay empty until one is attached.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Text(
-                // 3h-BUG: surface the live port (vm.port) instead of a
-                // hard-coded 8080 so the user knows which port the preview
-                // is actually using — matters when they entered a non-
-                // default port in the reconnect dialog.
-                "Streamed from http://${vm.host}:${vm.port}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
+                // 3h-BUG: surface the live preview port (vm.previewPort) instead
+                // of a hard-coded 8080 so the user knows which port the preview
+                // is actually using. (Was vm.port — the *control* socket port,
+                // which is wrong: the MJPEG stream lives on the fixed 8080.)
+                "Streamed from http://${vm.host}:${vm.previewPort}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

@@ -15,6 +15,7 @@ import dev.openpolaris.core.astro.CometShardLoader
 import dev.openpolaris.core.astro.EmbeddedCatalog
 import dev.openpolaris.core.astro.ObjectType
 import dev.openpolaris.core.domain.BatteryDetail
+import dev.openpolaris.core.domain.CameraAttachment
 import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
@@ -232,6 +233,15 @@ class AppViewModel(
     var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
+    /** 286 — camera-attachment info (manufacturer/model/state). Polled every 5 s
+     *  so the Camera pane can show "no camera detected" (state -5) instead of a
+     *  wall of "unavailable" steppers, and the Preview pane can explain a dead
+     *  MJPEG stream. Live-verified 2026-09-16: with no camera the firmware
+     *  reports `manufacturer:none;model:none;state:-5` and the 8080 stream
+     *  returns HTTP 200 but zero JPEG frames (issue #61). */
+    var cameraAttachment by mutableStateOf<CameraAttachment?>(null)
+        private set
+
     /** 780 — device info (hardware/software/serverVersion). Read-only,
      *  populated by the post-connect burst. */
     var deviceInfo by mutableStateOf<DeviceInfo?>(null)
@@ -389,6 +399,13 @@ class AppViewModel(
     private val helpersJobs: MutableList<Job> = mutableListOf()
     private var pollJob: Job? = null
     private var captureEventJob: Job? = null
+    // 286 camera-attachment poll (see [startCameraAttachmentPolling]).
+    private var cameraAttachmentPollJob: Job? = null
+    // #60: bounded watchdog for an in-flight capture. Started by [capture],
+    // cancelled when the capture-event observer correlates a lifecycle + file
+    // event (shot done) or when the phase reaches a terminal state. If it
+    // fires, the capture is reported as Failed("timeout") instead of hanging
+    // on Busy.
     private var captureWatchdogJob: Job? = null
     private var captureSawLifecycle = false
     private var captureSawFile = false
@@ -815,6 +832,7 @@ class AppViewModel(
                         saveMarker()
                         startPolling(s)
                         startCaptureEventObserver(s)
+                        startCameraAttachmentPolling(s)
                         startPreview()
                     } catch (e: Throwable) {
                         // Make sure the half-built session is torn down so a
@@ -1052,6 +1070,7 @@ class AppViewModel(
     fun disconnect() {
         pollJob?.cancel()
         captureEventJob?.cancel()
+        cameraAttachmentPollJob?.cancel()
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
@@ -1095,6 +1114,7 @@ class AppViewModel(
         settlingTime = null
         exAxisState = null
         cameraInfo = null
+        cameraAttachment = null
         deviceInfo = null
         temperature = null
         captureState = null
@@ -1307,6 +1327,28 @@ class AppViewModel(
         }
     }
 
+    /**
+     * 5 s poll for code 286 (CAM_INFO / camera attachment). Kept off the 1 Hz
+     * pose poll and the capture-event observer so a slow/missing 286 reply
+     * cannot stall either. The firmware only re-detects a USB camera on its
+     * own schedule, so this is a read-only status poll: it tells the UI
+     * whether the mount sees a camera at all (state -5 = none), which
+     * explains both the "unavailable" camera steppers and a dead 8080 MJPEG
+     * stream.
+     */
+    private fun startCameraAttachmentPolling(s: MountSession) {
+        cameraAttachmentPollJob?.cancel()
+        cameraAttachmentPollJob = scope.launch {
+            while (isActive) {
+                when (val r = s.request(Codes.CAM_INFO) { CommandTable.CAM_INFO.parse!!(it) }) {
+                    is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
+                    else -> {} // Timeout / ProtocolError: keep last good value
+                }
+                delay(5000)
+            }
+        }
+    }
+
     // ---- post-connect burst --------------------------------------------
     //
     // After a successful TCP connect the gimbal is silent until we ask for
@@ -1409,7 +1451,18 @@ class AppViewModel(
     fun stopTracking() = scope.launch { controller?.stop() }
     fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
-    fun jog(code: Int) = scope.launch { controller?.jog(code) }
+    fun jog(code: Int) = scope.launch {
+        val c = controller ?: run { statusMessage = "Not connected"; return@launch }
+        // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513–516 jog
+        // commands are only honoured while tracking is running — with 531
+        // state:0 the firmware accepts the frame but the mount does not move,
+        // which is exactly Benro Connect's behaviour (its rocker operates in
+        // track mode). Surface that instead of a silent no-op.
+        if (mount.tracking == false) {
+            statusMessage = "Jog sent — tracking is off, so the mount will not move (start Tracking first)"
+        }
+        c.jog(code)
+    }
 
     var gotoAz by mutableStateOf("0.0")
     var gotoAlt by mutableStateOf("0.0")

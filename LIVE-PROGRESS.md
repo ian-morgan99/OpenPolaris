@@ -6,6 +6,7 @@ Last updated: 2026-09-07 12:49 Europe/London
 
 **ACTIVE WORK IS BEING HANDED OVER. K-3 III QUALIFICATION IS INCOMPLETE.**
 
+- Astro/parity implementation handover: [`docs/ASTRO-WORKFLOW-HANDOVER-2026-09-17.md`](docs/ASTRO-WORKFLOW-HANDOVER-2026-09-17.md). It records the required Benro-style astro flow, the repeated `num: 0` alignment defect, missing UI/orchestration, and the software plus live-hardware acceptance gates.
 - Hardware-test ownership is now **UNCLAIMED**. The next agent must put its
   name/task and timestamp in the owner field before sending any command.
 - Do not swap to K-1 II yet. Finish or explicitly issue-track every remaining
@@ -27,7 +28,7 @@ issue change.
 
 ## Coordination rules
 
-- **Current hardware-test owner:** **UNCLAIMED** — K-1 II swap and matrix recording complete; K-1 II attached (25fb:0183), matrix recorded in LIVE-PROGRESS.md; runtime dead (patcher#38/#39 blockers remain), see [docs/evidence/2026-09-07/K1II-SWAP-PLAN.md](docs/evidence/2026-09-07/K1II-SWAP-PLAN.md) for the plan and [docs/evidence/2026-09-07/k1ii-swap-execution/K1II-SWAP-STATE-2026-09-07-1530.md](docs/evidence/2026-09-07/k1ii-swap-execution/K1II-SWAP-STATE-2026-09-07-1530.md) for execution state
+- **Current hardware-test owner:** **UNCLAIMED — HANDOVER READY 2026-09-17 01:24 Europe/London.** Codex `/root` completed the bounded K-3 III run; see `docs/evidence/k3iii-live-test-2026-09-17/SUMMARY.md`.
 - Only one agent may send camera, live-view, restart, USB, or firmware commands
   to the physical Polaris at a time.
 - Before hardware work, change the owner above and add a timestamped entry to
@@ -80,20 +81,22 @@ Status meanings: `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`, `N/A`.
 | Direct libgphoto2 | Normal capture/download | PASS | two full-resolution captures |
 | Polaris runtime | Detect before restart | PASS | 286 identified K-3 III |
 | Polaris runtime | Detect after pgphoto restart | NOT TESTED | prior `-2` run invalid: camera battery was flat; retest required |
-| Live view | SET ON / GET state | FAIL | reports success despite dead data plane; patcher #36 |
-| Live view | First JPEG | FAIL | HTTP 200, only 22-byte boundary; patcher #36, OpenPolaris #61 |
-| Live view | OFF/ON restart cycles | FAIL | two cycles plus pgphoto restart, no JPEG |
-| Live view | Sustained cadence/frame integrity | BLOCKED | no first frame; patcher #36 |
-| Still capture | Shutter/image creation | PASS | image appears after about 3–4 seconds |
-| Still capture | Accurate intermediate/final state | FAIL | Error -> Camera busy -> image; patcher #37, OpenPolaris #60 |
+| Live view | SET ON / GET state | PASS | 2026-09-17: OFF/ON `ret:0`, 292 read-back matched |
+| Live view | First JPEG | PASS | 2026-09-17: bounded stream delivered 10 complete JPEGs |
+| Live view | OFF/ON restart cycles | PASS | 2026-09-17: one bounded OFF/ON cycle passed; reboot not exercised |
+| Live view | Sustained cadence/frame integrity | PASS | 20 s: 710,660 bytes, 10 SOI/EOI pairs; multi-client caveat |
+| Still capture | Shutter/image creation | PASS | 2026-09-17: exactly one 28,444,933-byte `SP_0052.dng` |
+| Still capture | Accurate intermediate/final state | PASS | state 1 -> 4 -> 773 final file -> state 0; final DNG verified |
 | Still capture | Five-shot soak/exact file count | NOT TESTED | requires camera recovery |
-| Camera config | ISO | NOT TESTED | OpenPolaris mapping unsafe; #62 |
-| Camera config | White balance | NOT TESTED | OpenPolaris mapping unsafe; #62 |
-| Camera config | EV | NOT TESTED | OpenPolaris mapping unsafe; #62 |
-| Camera config | Shutter | NOT TESTED | OpenPolaris mapping unsafe; #62 |
-| Camera config | Aperture | NOT TESTED | OpenPolaris mapping unsafe; #62 |
+| Camera config | ISO | PASS | index 0 -> 1 -> 0, explicit ack plus read-back |
+| Camera config | White balance | FAIL | empty current `V:` prevented safe round-trip/restore |
+| Camera config | EV | PASS | index 15 -> 16 -> 15, explicit ack plus read-back |
+| Camera config | Shutter | PASS | index 26 -> 27 -> 26, explicit ack plus read-back |
+| Camera config | Aperture | PASS | index 17 -> 18 -> 17, explicit ack plus read-back |
 | Focus | Focus mode/value | NOT TESTED | mapping unsafe; #62 |
-| Focus | AF/focus adjustment 311 | NOT TESTED | requires camera recovery |
+| Focus | Manual adjustment 311 | PASS | near/far each explicit `ret:0`; physical direction not independently observed |
+| Focus | Hold/release jog 262 | FAIL | direction acked, but stop acknowledgements delayed/interleaved; final stop uncorrelated |
+| Focus | Explicit autofocus | NOT TESTED | distinct OpenPolaris autofocus-drive operation is not implemented |
 | Format | Image format/quality/size | NOT TESTED | mapping audit required; #62/#63 |
 | Capture modes | Bulb/video/delay/focus stack/panorama/HDR/sun/timelapse | NOT TESTED | inventory owner #63 |
 | Storage/media | count/list/thumb/download/integrity | NOT TESTED | inventory owner #63 |
@@ -264,6 +267,22 @@ dead" — exactly the same state as the K-3 III matrix.
 
 ## Activity log
 
+- 2026-09-17 01:24: Codex `/root` completed and released the K-3 III
+  hardware claim. Full findings and raw evidence are under
+  `docs/evidence/k3iii-live-test-2026-09-17/`. ISO, EV, shutter, aperture,
+  preview control/data, 311 manual focus acknowledgements, and one verified
+  DNG capture passed. WB lacked a current value and was not written; 262 stop
+  correlation failed; distinct autofocus is not implemented. A persistent
+  second client at `192.168.0.2` and rising bcmdhd bookkeeping errors prevent
+  calling this a clean single-client/radio-stability pass.
+- 2026-09-17 01:09: Codex `/root` claimed exclusive hardware-test ownership
+  for K-3 III end-to-end OpenPolaris qualification. Fresh preflight proved
+  route `192.168.0.1 dev wlp8s0 src 192.168.0.4`; ports 22, 8080 and 9090
+  listening; USB `25fb:0189`; `polestar_app` PID 249 and
+  `pgphoto.stage2ondisk` PID 7936. Deployed provenance is newer than this
+  ledger: libgphoto2 `121675124e173da1864421acebea8e20c851c827`, patcher
+  `cddafb6f087303e3d6d16850e0ab10f962cccbf4`, build `6.0.0.54.7`.
+  Existing unrelated dirty UI/release files are being preserved.
 - 2026-09-07 12:40–12:43: primary agent exclusively tested K-3 III live-view
   OFF/ON/query/HTTP, repeated cycle and pgphoto restart. Live view produced no
   JPEG; restart lost camera discovery.

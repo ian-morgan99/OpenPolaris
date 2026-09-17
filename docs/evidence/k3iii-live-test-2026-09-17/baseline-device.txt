@@ -1,0 +1,473 @@
+Thu Sep 17 01:10:16 UTC 2026
+ 01:10:16 up  3:05,  1 users,  load average: 1.20, 1.15, 1.07
+FwVer:4.0.0.32;date:2025.05.09;
+Bus 001 Device 001: ID 1d6b:0002
+Bus 001 Device 002: ID 1a40:0101
+Bus 002 Device 001: ID 1d6b:0003
+Bus 001 Device 004: ID 25fb:0189
+PID   USER     TIME   COMMAND
+    1 root       0:01 init
+    2 root       0:00 [kthreadd]
+    3 root       0:01 [ksoftirqd/0]
+    5 root       0:00 [kworker/0:0H]
+    7 root       0:02 [rcu_sched]
+    8 root       0:00 [rcu_bh]
+    9 root       0:00 [migration/0]
+   10 root       0:00 [lru-add-drain]
+   11 root       0:00 [cpuhp/0]
+   12 root       0:00 [cpuhp/1]
+   13 root       0:01 [migration/1]
+   14 root       0:01 [ksoftirqd/1]
+   15 root       0:00 [kworker/1:0]
+   16 root       0:00 [kworker/1:0H]
+   17 root       0:00 [kdevtmpfs]
+   18 root       0:00 [oom_reaper]
+   19 root       0:00 [writeback]
+   20 root       0:00 [kcompactd0]
+   21 root       0:00 [crypto]
+   22 root       0:00 [bioset]
+   23 root       0:00 [kblockd]
+   24 root       0:00 [spi0]
+   25 root       0:00 [spi1]
+   27 root       0:00 [spi2]
+   28 root       0:00 [cfg80211]
+   29 root       0:00 [rpciod]
+   30 root       0:00 [xprtiod]
+   31 root       0:00 [kswapd0]
+   32 root       0:00 [vmstat]
+   33 root       0:00 [nfsiod]
+   58 root       0:00 [bioset]
+   59 root       0:00 [bioset]
+   60 root       0:00 [bioset]
+   61 root       0:00 [bioset]
+   62 root       0:00 [bioset]
+   63 root       0:00 [bioset]
+   64 root       0:00 [bioset]
+   65 root       0:00 [bioset]
+   66 root       0:00 [bioset]
+   67 root       0:00 [bioset]
+   68 root       0:00 [bioset]
+   69 root       0:00 [bioset]
+   70 root       0:00 [bioset]
+   71 root       0:00 [bioset]
+   72 root       0:00 [bioset]
+   73 root       0:00 [bioset]
+   74 root       0:00 [bioset]
+   75 root       0:00 [bioset]
+   76 root       0:00 [bioset]
+   77 root       0:00 [bioset]
+   78 root       0:00 [bioset]
+   79 root       0:00 [bioset]
+   80 root       0:00 [bioset]
+   81 root       0:00 [bioset]
+   82 root       0:00 [bioset]
+   83 root       0:00 [bioset]
+   84 root       0:00 [bioset]
+   85 root       0:00 [bioset]
+   86 root       0:00 [bioset]
+   87 root       0:00 [bioset]
+   88 root       0:00 [bioset]
+   89 root       0:00 [bioset]
+   90 root       0:00 [bioset]
+   91 root       0:00 [bioset]
+   92 root       0:00 [bioset]
+   93 root       0:00 [bioset]
+   94 root       0:00 [bioset]
+   95 root       0:00 [bioset]
+   97 root       0:00 [krfcommd]
+   99 root       0:00 [kworker/1:1]
+  100 root       0:00 [kworker/0:4]
+  101 root       0:00 [ubi_bgt0d]
+  102 root       0:00 [ubifs_bgt0_0]
+  122 root       0:00 [ubi_bgt1d]
+  126 root       0:00 [ubifs_bgt1_0]
+  181 root       0:00 [irq/49-VI_CAP0]
+  232 root       0:05 [hi_vdec_thread]
+  248 root       0:00 ./polaris_wifi_bt
+  249 root       0:04 ./polestar_app
+  271 root       0:15 {camera_usb_supe} /bin/sh /app/lib/stage2/camera_usb_supervisor.sh
+  289 root       0:00 /usr/local/bin/sshd
+  290 root       0:00 -sh
+  323 root       0:00 /app/bin/lighttpd -f /etc/lighttpd/lighttpd.conf -m /app/lib/lighttpd/
+  341 root       0:00 [wl_event_handle]
+  343 root       0:00 [dhd_watchdog_th]
+  344 root       0:01 [dhd_dpc]
+  347 root       0:00 [dhd_rxf]
+  362 root       0:00 [wl_event_handle]
+  374 root       0:00 /app/wifi/hostapd -B /app/wifi/hostapd.conf
+  377 root       0:00 /app/wifi//udhcpd /app/wifi/udhcpd.conf
+  402 root       0:00 [bioset]
+  403 root       0:18 [mmcqd/0]
+  409 root       0:00 [kworker/0:1H]
+  415 root       0:00 [kworker/u5:0]
+  416 root       0:00 [hci0]
+  417 root       0:00 [hci0]
+  420 root       0:00 [kworker/u5:1]
+  433 root       0:00 [kworker/1:1H]
+  434 root       0:00 /app/bluetooth/bin/dbus-daemon --config-file=/app/bluetooth/config/system.conf
+  436 root       0:00 /app/bluetooth/libexec/bluetooth/bluetoothd --configfile=/app/bluetooth/config/main.conf --experimental
+ 5920 root       0:00 [kworker/u4:1]
+ 7899 root       0:00 [kworker/0:1]
+ 7936 root       0:22 /app/lib/stage2/pgphoto.stage2ondisk
+ 7951 root       0:00 [camera_usb_supe]
+ 8965 root       0:00 [kworker/u4:0]
+24501 root       0:00 sleep 1
+24502 root       0:00 sshd: root@notty
+24505 root       0:00 sh -c date; uptime; cat /app/FwVer; lsusb; ps; netstat -lntp 2>/dev/null; echo SD_NORMAL; find /app/sd/normal -maxdepth 2 -type f -exec ls -ln {} \; 2>/dev/null; echo CLOG; tail -120 /app/Clog.txt 2>/dev/null; echo MLOG; tail -120 /app/Mlog.txt 2>/dev/null; echo DMESG; dmesg | tail -160
+24510 root       0:00 ps
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:9090            0.0.0.0:*               LISTEN      249/polestar_app
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      7936/pgphoto.stage2
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      323/lighttpd
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      289/sshd
+SD_NORMAL
+-rwxr-xr-x    1 0        0         15294723 Sep 10 15:56 /app/sd/normal/SP_0001.jpg
+-rwxr-xr-x    1 0        0          4013909 Sep 10 16:01 /app/sd/normal/SP_0005.jpg
+-rwxr-xr-x    1 0        0           866485 Sep 10 18:19 /app/sd/normal/SP_0008.jpg
+-rwxr-xr-x    1 0        0          9123135 Sep 11 09:06 /app/sd/normal/SP_0011.jpg
+-rwxr-xr-x    1 0        0          8353538 Sep 11 09:20 /app/sd/normal/SP_0012.jpg
+-rwxr-xr-x    1 0        0         14076599 Sep 11 14:57 /app/sd/normal/SP_0013.jpg
+-rwxr-xr-x    1 0        0         11657140 May  9  2025 /app/sd/normal/SP_0014.jpg
+-rwxr-xr-x    1 0        0         14811398 Sep 14 13:52 /app/sd/normal/SP_0015.jpg
+-rwxr-xr-x    1 0        0         12929871 Sep 14 14:05 /app/sd/normal/SP_0017.jpg
+-rwxr-xr-x    1 0        0         12832060 Sep 14 14:05 /app/sd/normal/SP_0018.jpg
+-rwxr-xr-x    1 0        0         13137251 Sep 14 14:06 /app/sd/normal/SP_0019.jpg
+-rwxr-xr-x    1 0        0         33310117 Sep 14 14:08 /app/sd/normal/SP_0020.dng
+-rwxr-xr-x    1 0        0         33331669 Sep 14 14:08 /app/sd/normal/SP_0021.dng
+-rwxr-xr-x    1 0        0         32276822 Sep 14 22:09 /app/sd/normal/SP_0022.dng
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0024.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0025.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:55 /app/sd/normal/SP_0026.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:59 /app/sd/normal/SP_0027.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:00 /app/sd/normal/SP_0028.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:01 /app/sd/normal/SP_0029.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:02 /app/sd/normal/SP_0030.jpg
+-rwxr-xr-x    1 0        0         12561270 Sep 15 18:24 /app/sd/normal/SP_0031.jpg
+-rwxr-xr-x    1 0        0         12428604 Sep 15 18:26 /app/sd/normal/SP_0032.jpg
+-rwxr-xr-x    1 0        0         11668147 Sep 15 18:31 /app/sd/normal/SP_0033.jpg
+-rwxr-xr-x    1 0        0         11752660 Sep 15 18:34 /app/sd/normal/SP_0034.jpg
+-rwxr-xr-x    1 0        0         11735910 Sep 15 18:34 /app/sd/normal/SP_0035.jpg
+-rwxr-xr-x    1 0        0         12008267 Sep 15 18:49 /app/sd/normal/SP_0036.jpg
+-rwxr-xr-x    1 0        0         30978881 Sep 16 20:30 /app/sd/normal/SP_0037.dng
+-rwxr-xr-x    1 0        0         30951552 Sep 16 20:30 /app/sd/normal/SP_0038.dng
+-rwxr-xr-x    1 0        0         30878650 Sep 16 20:36 /app/sd/normal/SP_0039.dng
+-rwxr-xr-x    1 0        0         30788972 Sep 16 20:36 /app/sd/normal/SP_0040.dng
+-rwxr-xr-x    1 0        0         28387768 Sep 16 21:20 /app/sd/normal/SP_0041.dng
+-rwxr-xr-x    1 0        0         28198130 Sep 16 21:24 /app/sd/normal/SP_0042.dng
+-rwxr-xr-x    1 0        0         28347328 Sep 16 21:53 /app/sd/normal/SP_0043.dng
+-rwxr-xr-x    1 0        0         28542645 Sep 16 21:54 /app/sd/normal/SP_0044.dng
+-rwxr-xr-x    1 0        0         28367021 Sep 16 22:08 /app/sd/normal/SP_0045.dng
+-rwxr-xr-x    1 0        0         28525099 Sep 16 22:08 /app/sd/normal/SP_0046.dng
+-rwxr-xr-x    1 0        0         28570691 Sep 16 22:09 /app/sd/normal/SP_0047.dng
+-rwxr-xr-x    1 0        0         28378325 Sep 16 22:09 /app/sd/normal/SP_0048.dng
+-rwxr-xr-x    1 0        0         28525329 Sep 16 22:10 /app/sd/normal/SP_0049.dng
+-rwxr-xr-x    1 0        0         28531815 Sep 16 22:10 /app/sd/normal/SP_0050.dng
+-rwxr-xr-x    1 0        0         28385516 Sep 16 22:12 /app/sd/normal/SP_0051.dng
+CLOG
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+Pentax preview stage get-frame returned 0x2001 (72981 bytes, 1 attempts, 15 ms).
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+Pentax preview stage get-frame returned 0x2001 (70598 bytes, 1 attempts, 15 ms).
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+Pentax preview stage get-frame returned 0x2001 (74498 bytes, 1 attempts, 16 ms).
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] capture-shim: gp_camera_capture slot -> shim (real core fn cached for pass-through)
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+MLOG
+[m[m[01:09:40:390 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361d0000265a ;
+[m[01:09:40:390 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
+[m[m[01:09:43:867 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=367 192.168.0.4:53378] from [1] s_u32ClientNum[2]
+[m[01:09:43:867 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[01:09:43:867 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=367] start
+[m[01:09:43:867 [1;31mERROR[m-]:msg_rcv_from_app_process[65]:[0;32;31mrcv msg from App[367]:type:0;code:266;val:
+[m[01:09:43:868 [1;32mINFO[m-]:SocketServerTask[120]:SOCKET_CLOSE(201) [id=367] s_u32ClientNum[1]
+[m[01:09:43:868 [1;31mERROR[m-]:SP_ClientCtxDel[392]:SP_ClientCtxDel:not find this is id[367]
+[m[01:09:43:868 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+[m[01:09:48:727 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=368 192.168.0.4:48594] from [1] s_u32ClientNum[2]
+[m[01:09:48:727 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[01:09:48:727 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=368] start
+[m[01:09:48:727 [1;32mINFO[m-]:SocketServerTask[120]:SOCKET_CLOSE(201) [id=368] s_u32ClientNum[1]
+[m[01:09:48:727 [1;31mERROR[m-]:SP_ClientCtxDel[392]:SP_ClientCtxDel:not find this is id[368]
+[m[01:09:48:727 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+[m[01:10:10:475 [1;32mINFO[m-]:GimbalUartRxMsgProcTask[398]:[0;35mTempa509ca361d0000265a ;
+[m[01:10:10:475 [1;32mINFO[m-]:SP_SendMsgToApp[181]:[1;34mSP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
+[m[m[01:10:14:926 [1;32mINFO[m-]:SocketServerTask[139]:SOCKET_ACCEPT(201) [id=369 192.168.0.4:42210] from [1] s_u32ClientNum[2]
+[m[01:10:14:926 [1;32mINFO[m-sp_msgComm]:SP_sendMsg[77]:[1;33mSP_sendMsg success; key[1004],type[5],code[1034],val[1]
+[m[m[01:10:14:926 [1;32mINFO[m-]:SocketServerTask[124]:SOCKET_OPEN(201) [id=369] start
+[m[01:10:14:926 [1;31mERROR[m-]:msg_rcv_from_app_process[65]:[0;32;31mrcv msg from App[369]:type:0;code:266;val:
+[m[01:10:14:926 [1;32mINFO[m-]:SocketServerTask[120]:SOCKET_CLOSE(201) [id=369] s_u32ClientNum[1]
+[m[01:10:14:926 [1;31mERROR[m-]:SP_ClientCtxDel[392]:SP_ClientCtxDel:not find this is id[369]
+[m[01:10:14:926 [1;32mINFO[m-]:EventMsgProc[2679]:SP_EVENT_APP_CONNECT
+DMESG
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!
+_tdata_psh_info_pool_deq 200: Out of tdata_disc_grp
+dhd_tcpdata_info_get 1056: No more free tdata_psh_info!!

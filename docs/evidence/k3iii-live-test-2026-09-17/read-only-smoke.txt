@@ -1,0 +1,151 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:compileKotlinJvm UP-TO-DATE
+> Task :shared:jvmProcessResources UP-TO-DATE
+> Task :shared:jvmMainClasses UP-TO-DATE
+> Task :shared:jvmJar UP-TO-DATE
+> Task :tools:cli-probe:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :tools:cli-probe:compileKotlin UP-TO-DATE
+> Task :tools:cli-probe:compileJava NO-SOURCE
+> Task :tools:cli-probe:processResources NO-SOURCE
+> Task :tools:cli-probe:classes UP-TO-DATE
+
+> Task :tools:cli-probe:smoke
+OpenPolaris smoke test -> 192.168.0.1:9090  (destructive=false capture=false)
+
+== 1. BURST_PRE_CAMERA (every control-panel refresh) ==
+NOT TESTED  burst.0_808 (code=808 latencyMs=5000) -- no matching response
+PASS  burst.1_809 (req=809 latencyMs=5000) -- code=809 ret=-1
+PASS  burst.2_802 (req=802 latencyMs=4999) -- code=802 band=1
+PASS  burst.3_778 (req=778 latencyMs=4999) -- code=778 capacity=54 charge=1
+NOT TESTED  burst.4_779 (code=779 latencyMs=5000) -- no matching response
+PASS  burst.5_775 (req=775 latencyMs=4999) -- code=775 status=1 totalspace=121866 freespace=120012 usespace=1853
+PASS  burst.6_824 (req=824 latencyMs=4999) -- code=824 state=0
+PASS  burst.7_524 (req=524 latencyMs=4999) -- code=524 state=1
+PASS  burst.8_543 (req=543 latencyMs=4999) -- code=543 time=2
+PASS  burst.9_780 (req=780 latencyMs=4999) -- code=780 hw=1.1.1.2 sw=6.0.0.54 exAxis=1.0.2.14 sv=1 ov=
+NOT TESTED  burst.10_525 (code=525 latencyMs=4999) -- no matching response
+
+== 2. Legacy inferred camera burst ==
+BLOCKED  inferred camera burst -- set ALLOW_UNVERIFIED_CAMERA=1 only on an isolated test target
+
+== 3. Push stream (polling loop) ==
+PASS  push.284 (req=284 latencyMs=4999) -- code=284 mode=1 state=0
+BLOCKED  push.518 (code=518) -- not in the evidence-backed live read allowlist
+PASS  push.778 (req=778 latencyMs=4999) -- code=778 capacity=54 charge=1
+NOT TESTED  push.779 (code=779 latencyMs=4999) -- no matching response
+PASS  push.266 (req=266 latencyMs=4999) -- code=266 RD=0 V= R=Automatic,0,Daylight,Cloudy,Fluorescent- Daylight,Fluorescent- Day White,Fluorescent- White,Fluorescent- Tungsten,0,Tungsten,0,0,0,0,0,0,0,
+BLOCKED  capture.264 -- set ALLOW_CAPTURE=1 for an explicit shutter opt-in
+
+== 4. File/SD reads ==
+BLOCKED  file.770 (code=770) -- not in the evidence-backed live read allowlist
+PASS  file.775 (req=775 latencyMs=4999) -- code=775 status=1 totalspace=121866 freespace=120012 usespace=1853
+BLOCKED  file.783 (code=783) -- not in the evidence-backed live read allowlist
+BLOCKED  file.782 (code=782) -- not in the evidence-backed live read allowlist
+BLOCKED  file.788 (code=788) -- not in the evidence-backed live read allowlist
+BLOCKED  file.792 (code=792) -- not in the evidence-backed live read allowlist
+BLOCKED  file.793 (code=793) -- not in the evidence-backed live read allowlist
+
+== 5. System / device ==
+NOT TESTED  sys.808 (code=808 latencyMs=4999) -- no matching response
+PASS  sys.809 (req=809 latencyMs=4999) -- code=809 ret=-1
+BLOCKED  sys.814 (code=814) -- not in the evidence-backed live read allowlist
+BLOCKED  sys.815 (code=815) -- not in the evidence-backed live read allowlist
+BLOCKED  sys.816 (code=816) -- not in the evidence-backed live read allowlist
+PASS  sys.780 (req=780 latencyMs=4999) -- code=780 hw=1.1.1.2 sw=6.0.0.54 exAxis=1.0.2.14 sv=1 ov=
+NOT TESTED  sys.525 (code=525 latencyMs=4999) -- no matching response
+BLOCKED  sys.287 (code=287) -- not in the evidence-backed live read allowlist
+BLOCKED  sys.526 (code=526) -- not in the evidence-backed live read allowlist
+
+== 6. Wi-Fi ==
+BLOCKED  cell.799 (code=799) -- not in the evidence-backed live read allowlist
+BLOCKED  wifi.800 (code=800) -- not in the evidence-backed live read allowlist
+BLOCKED  wifi.801 (code=801) -- not in the evidence-backed live read allowlist
+PASS  wifi.802 (req=802 latencyMs=4999) -- code=802 band=1
+BLOCKED  wifi.806 (code=806) -- not in the evidence-backed live read allowlist
+BLOCKED  wifi.807 (code=807) -- not in the evidence-backed live read allowlist
+
+== 7. OMS / dither / limits / autoLevel / settling ==
+PASS  oms.824 (req=824 latencyMs=4999) -- code=824 state=0
+BLOCKED  oms.825 (code=825) -- not in the evidence-backed live read allowlist
+PASS  sys.539 (req=539 latencyMs=4999) -- code=539 state=0
+PASS  sys.541 (req=541 latencyMs=4999) -- code=541 state=0
+PASS  sys.547 (req=547 latencyMs=4999) -- code=547 en=1
+PASS  sys.543 (req=543 latencyMs=4999) -- code=543 time=2
+PASS  sys.537 (req=537 latencyMs=4999) -- code=537 state=0
+
+== 8. Handshake / app ==
+BLOCKED  app.820 (code=820) -- not in the evidence-backed live read allowlist
+BLOCKED  app.822 (code=822) -- not in the evidence-backed live read allowlist
+BLOCKED  app.823 (code=823) -- not in the evidence-backed live read allowlist
+PASS  app.517 (req=517 latencyMs=4999) -- code=517 yaw=1.648661 pitch=0.697114 roll=-0.116467
+PASS  app.524 (req=524 latencyMs=4999) -- code=524 state=1
+
+== 9. Camera info ==
+PASS  cam-info.286 (req=286 latencyMs=4999) -- code=286 manufacturer=ricoh imaging company, ltd. model=pentax k-3 mark iii state=1 storage=2 photoFormat=2
+BLOCKED  cam-info.311 (code=311) -- not in the evidence-backed live read allowlist
+BLOCKED  inferred camera parameter queries -- unsafe mapping
+
+== 10. Camera setters (DESTRUCTIVE=false) ==
+BLOCKED  camera setters -- require DESTRUCTIVE=1 and ALLOW_UNVERIFIED_CAMERA=1
+
+== 11. Blocked operations (always skipped) ==
+SKIP  blocked code=812 -- never
+SKIP  blocked code=813 -- never
+SKIP  blocked code=776 -- never
+SKIP  blocked code=810 -- never
+SKIP  blocked code=530 -- never
+
+========================================
+PASS=24  FAIL=0  SKIP=37
+
+Skipped:
+  - burst.0_808
+  - burst.4_779
+  - burst.10_525
+  - inferred camera burst (unsafe mapping)
+  - push.518 (unsafe or unknown classification)
+  - push.779
+  - capture (ALLOW_CAPTURE=0)
+  - file.770 (unsafe or unknown classification)
+  - file.783 (unsafe or unknown classification)
+  - file.782 (unsafe or unknown classification)
+  - file.788 (unsafe or unknown classification)
+  - file.792 (unsafe or unknown classification)
+  - file.793 (unsafe or unknown classification)
+  - sys.808
+  - sys.814 (unsafe or unknown classification)
+  - sys.815 (unsafe or unknown classification)
+  - sys.816 (unsafe or unknown classification)
+  - sys.525
+  - sys.287 (unsafe or unknown classification)
+  - sys.526 (unsafe or unknown classification)
+  - cell.799 (unsafe or unknown classification)
+  - wifi.800 (unsafe or unknown classification)
+  - wifi.801 (unsafe or unknown classification)
+  - wifi.806 (unsafe or unknown classification)
+  - wifi.807 (unsafe or unknown classification)
+  - oms.825 (unsafe or unknown classification)
+  - app.820 (unsafe or unknown classification)
+  - app.822 (unsafe or unknown classification)
+  - app.823 (unsafe or unknown classification)
+  - cam-info.311 (unsafe or unknown classification)
+  - camera parameter queries (unsafe mapping)
+  - camera setters (explicit gates missing)
+  - blocked 812
+  - blocked 813
+  - blocked 776
+  - blocked 810
+  - blocked 530
+
+All exercised tests PASSED.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 35s
+5 actionable tasks: 1 executed, 4 up-to-date

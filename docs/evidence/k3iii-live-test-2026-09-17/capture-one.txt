@@ -1,0 +1,95 @@
+TEST_START=2026-09-17T01:21:33+01:00
+RADIO_BEFORE=1136
+BEFORE_FILES
+-rwxr-xr-x    1 0        0         15294723 Sep 10 15:56 /app/sd/normal/SP_0001.jpg
+-rwxr-xr-x    1 0        0          4013909 Sep 10 16:01 /app/sd/normal/SP_0005.jpg
+-rwxr-xr-x    1 0        0           866485 Sep 10 18:19 /app/sd/normal/SP_0008.jpg
+-rwxr-xr-x    1 0        0          9123135 Sep 11 09:06 /app/sd/normal/SP_0011.jpg
+-rwxr-xr-x    1 0        0          8353538 Sep 11 09:20 /app/sd/normal/SP_0012.jpg
+-rwxr-xr-x    1 0        0         14076599 Sep 11 14:57 /app/sd/normal/SP_0013.jpg
+-rwxr-xr-x    1 0        0         11657140 May  9  2025 /app/sd/normal/SP_0014.jpg
+-rwxr-xr-x    1 0        0         14811398 Sep 14 13:52 /app/sd/normal/SP_0015.jpg
+-rwxr-xr-x    1 0        0         12929871 Sep 14 14:05 /app/sd/normal/SP_0017.jpg
+-rwxr-xr-x    1 0        0         12832060 Sep 14 14:05 /app/sd/normal/SP_0018.jpg
+-rwxr-xr-x    1 0        0         13137251 Sep 14 14:06 /app/sd/normal/SP_0019.jpg
+-rwxr-xr-x    1 0        0         33310117 Sep 14 14:08 /app/sd/normal/SP_0020.dng
+-rwxr-xr-x    1 0        0         33331669 Sep 14 14:08 /app/sd/normal/SP_0021.dng
+-rwxr-xr-x    1 0        0         32276822 Sep 14 22:09 /app/sd/normal/SP_0022.dng
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0024.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0025.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:55 /app/sd/normal/SP_0026.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:59 /app/sd/normal/SP_0027.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:00 /app/sd/normal/SP_0028.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:01 /app/sd/normal/SP_0029.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:02 /app/sd/normal/SP_0030.jpg
+-rwxr-xr-x    1 0        0         12561270 Sep 15 18:24 /app/sd/normal/SP_0031.jpg
+-rwxr-xr-x    1 0        0         12428604 Sep 15 18:26 /app/sd/normal/SP_0032.jpg
+-rwxr-xr-x    1 0        0         11668147 Sep 15 18:31 /app/sd/normal/SP_0033.jpg
+-rwxr-xr-x    1 0        0         11752660 Sep 15 18:34 /app/sd/normal/SP_0034.jpg
+-rwxr-xr-x    1 0        0         11735910 Sep 15 18:34 /app/sd/normal/SP_0035.jpg
+-rwxr-xr-x    1 0        0         12008267 Sep 15 18:49 /app/sd/normal/SP_0036.jpg
+-rwxr-xr-x    1 0        0         30978881 Sep 16 20:30 /app/sd/normal/SP_0037.dng
+-rwxr-xr-x    1 0        0         30951552 Sep 16 20:30 /app/sd/normal/SP_0038.dng
+-rwxr-xr-x    1 0        0         30878650 Sep 16 20:36 /app/sd/normal/SP_0039.dng
+-rwxr-xr-x    1 0        0         30788972 Sep 16 20:36 /app/sd/normal/SP_0040.dng
+-rwxr-xr-x    1 0        0         28387768 Sep 16 21:20 /app/sd/normal/SP_0041.dng
+-rwxr-xr-x    1 0        0         28198130 Sep 16 21:24 /app/sd/normal/SP_0042.dng
+-rwxr-xr-x    1 0        0         28347328 Sep 16 21:53 /app/sd/normal/SP_0043.dng
+-rwxr-xr-x    1 0        0         28542645 Sep 16 21:54 /app/sd/normal/SP_0044.dng
+-rwxr-xr-x    1 0        0         28367021 Sep 16 22:08 /app/sd/normal/SP_0045.dng
+-rwxr-xr-x    1 0        0         28525099 Sep 16 22:08 /app/sd/normal/SP_0046.dng
+-rwxr-xr-x    1 0        0         28570691 Sep 16 22:09 /app/sd/normal/SP_0047.dng
+-rwxr-xr-x    1 0        0         28378325 Sep 16 22:09 /app/sd/normal/SP_0048.dng
+-rwxr-xr-x    1 0        0         28525329 Sep 16 22:10 /app/sd/normal/SP_0049.dng
+-rwxr-xr-x    1 0        0         28531815 Sep 16 22:10 /app/sd/normal/SP_0050.dng
+-rwxr-xr-x    1 0        0         28385516 Sep 16 22:12 /app/sd/normal/SP_0051.dng
+CAPTURE_FRAME=1&264&4&state:1;bulb:0;c:-1;#
+264@state:1#778@capacity:57;charge:1;#264@state:4;#773@type:1;path:/app/sd/normal/SP_0052.dng;size:28444933;cTime:2026-09-17 01:21:40;duration:0;#775@status:1;totalspace:121866;freespace:119964;usespace:1901;#264@state:0;#525@Tempa509ca361e0000275a ;#WAITING_FOR_COMPLETION
+AFTER_FILES
+-rwxr-xr-x    1 0        0         15294723 Sep 10 15:56 /app/sd/normal/SP_0001.jpg
+-rwxr-xr-x    1 0        0          4013909 Sep 10 16:01 /app/sd/normal/SP_0005.jpg
+-rwxr-xr-x    1 0        0           866485 Sep 10 18:19 /app/sd/normal/SP_0008.jpg
+-rwxr-xr-x    1 0        0          9123135 Sep 11 09:06 /app/sd/normal/SP_0011.jpg
+-rwxr-xr-x    1 0        0          8353538 Sep 11 09:20 /app/sd/normal/SP_0012.jpg
+-rwxr-xr-x    1 0        0         14076599 Sep 11 14:57 /app/sd/normal/SP_0013.jpg
+-rwxr-xr-x    1 0        0         11657140 May  9  2025 /app/sd/normal/SP_0014.jpg
+-rwxr-xr-x    1 0        0         14811398 Sep 14 13:52 /app/sd/normal/SP_0015.jpg
+-rwxr-xr-x    1 0        0         12929871 Sep 14 14:05 /app/sd/normal/SP_0017.jpg
+-rwxr-xr-x    1 0        0         12832060 Sep 14 14:05 /app/sd/normal/SP_0018.jpg
+-rwxr-xr-x    1 0        0         13137251 Sep 14 14:06 /app/sd/normal/SP_0019.jpg
+-rwxr-xr-x    1 0        0         33310117 Sep 14 14:08 /app/sd/normal/SP_0020.dng
+-rwxr-xr-x    1 0        0         33331669 Sep 14 14:08 /app/sd/normal/SP_0021.dng
+-rwxr-xr-x    1 0        0         32276822 Sep 14 22:09 /app/sd/normal/SP_0022.dng
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0024.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:54 /app/sd/normal/SP_0025.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:55 /app/sd/normal/SP_0026.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 17:59 /app/sd/normal/SP_0027.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:00 /app/sd/normal/SP_0028.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:01 /app/sd/normal/SP_0029.jpg
+-rwxr-xr-x    1 0        0           760957 Sep 15 18:02 /app/sd/normal/SP_0030.jpg
+-rwxr-xr-x    1 0        0         12561270 Sep 15 18:24 /app/sd/normal/SP_0031.jpg
+-rwxr-xr-x    1 0        0         12428604 Sep 15 18:26 /app/sd/normal/SP_0032.jpg
+-rwxr-xr-x    1 0        0         11668147 Sep 15 18:31 /app/sd/normal/SP_0033.jpg
+-rwxr-xr-x    1 0        0         11752660 Sep 15 18:34 /app/sd/normal/SP_0034.jpg
+-rwxr-xr-x    1 0        0         11735910 Sep 15 18:34 /app/sd/normal/SP_0035.jpg
+-rwxr-xr-x    1 0        0         12008267 Sep 15 18:49 /app/sd/normal/SP_0036.jpg
+-rwxr-xr-x    1 0        0         30978881 Sep 16 20:30 /app/sd/normal/SP_0037.dng
+-rwxr-xr-x    1 0        0         30951552 Sep 16 20:30 /app/sd/normal/SP_0038.dng
+-rwxr-xr-x    1 0        0         30878650 Sep 16 20:36 /app/sd/normal/SP_0039.dng
+-rwxr-xr-x    1 0        0         30788972 Sep 16 20:36 /app/sd/normal/SP_0040.dng
+-rwxr-xr-x    1 0        0         28387768 Sep 16 21:20 /app/sd/normal/SP_0041.dng
+-rwxr-xr-x    1 0        0         28198130 Sep 16 21:24 /app/sd/normal/SP_0042.dng
+-rwxr-xr-x    1 0        0         28347328 Sep 16 21:53 /app/sd/normal/SP_0043.dng
+-rwxr-xr-x    1 0        0         28542645 Sep 16 21:54 /app/sd/normal/SP_0044.dng
+-rwxr-xr-x    1 0        0         28367021 Sep 16 22:08 /app/sd/normal/SP_0045.dng
+-rwxr-xr-x    1 0        0         28525099 Sep 16 22:08 /app/sd/normal/SP_0046.dng
+-rwxr-xr-x    1 0        0         28570691 Sep 16 22:09 /app/sd/normal/SP_0047.dng
+-rwxr-xr-x    1 0        0         28378325 Sep 16 22:09 /app/sd/normal/SP_0048.dng
+-rwxr-xr-x    1 0        0         28525329 Sep 16 22:10 /app/sd/normal/SP_0049.dng
+-rwxr-xr-x    1 0        0         28531815 Sep 16 22:10 /app/sd/normal/SP_0050.dng
+-rwxr-xr-x    1 0        0         28385516 Sep 16 22:12 /app/sd/normal/SP_0051.dng
+-rwxr-xr-x    1 0        0         28444933 Sep 17 01:21 /app/sd/normal/SP_0052.dng
+RADIO_AFTER=1204
+USB=1
+ 7936 root       0:38 /app/lib/stage2/pgphoto.stage2ondisk
+TEST_END=2026-09-17T01:22:12+01:00

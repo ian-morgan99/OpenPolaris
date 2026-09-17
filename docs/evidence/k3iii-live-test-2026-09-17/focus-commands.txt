@@ -1,0 +1,14 @@
+RADIO_BEFORE=1030
+FRAME 1&311&1&mode:1;adj:-1;#
+311@ret:0;#
+FRAME 1&311&1&mode:1;adj:1;#
+311@ret:0;#
+FRAME 1&262&1&mod:1;f:2;#
+262@mod:1;f:2;ret:0;#
+FRAME 1&262&1&mod:0;f:0;#
+
+FRAME 1&262&1&mod:1;f:6;#
+525@Tempa509ca361e0000275a ;#262@mod:0;f:0;ret:0;#262@mod:1;f:6;ret:0;#
+FRAME 1&262&1&mod:0;f:0;#
+
+RADIO_AFTER=1082

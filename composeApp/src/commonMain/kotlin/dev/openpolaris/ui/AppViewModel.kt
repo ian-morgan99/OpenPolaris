@@ -388,6 +388,14 @@ class AppViewModel(
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
+    /**
+     * Persistent multi-star alignment session (code 530). Owned by the VM so
+     * the firmware receives a monotonically increasing `num` index across
+     * submissions — constructing a fresh [AlignmentController] per button
+     * press was the repeated-`num:0` defect (ASTRO-WORKFLOW-HANDOVER §1).
+     * Created in [connect] / [connectDemo], cleared in [disconnect].
+     */
+    private var alignmentController: AlignmentController? = null
     private var autoLevelController: AutoLevelController? = null
     private val autoLevelJobs: MutableList<Job> = mutableListOf()
     // The 3 helper-state collectors (dither/settling/limits) launched by
@@ -769,6 +777,7 @@ class AppViewModel(
         session = s
         controller = TrackingController(s)
         cameraController = CameraController(s)
+        alignmentController = AlignmentController(s)
         wireHelpers(s)
         startAutoLevel(s)
         // 3c.5: capture the launched coroutine so [cancelReconnect] can
@@ -1037,6 +1046,7 @@ class AppViewModel(
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = CameraController(sim.session)
+        alignmentController = AlignmentController(sim.session)
         wireHelpers(sim.session)
 
         startAutoLevel(sim.session)
@@ -1098,6 +1108,7 @@ class AppViewModel(
         session = null
         controller = null
         cameraController = null
+        alignmentController = null
         helpersController = null
         ditherEnabled = null
         settlingSeconds = null
@@ -1544,6 +1555,31 @@ class AppViewModel(
 
     // ---- alignment ---------------------------------------------------------
 
+    /**
+     * Identity of the catalog star currently being aligned on. The record
+     * action (code 530) sends the mount's current pointing (yaw/pitch) plus
+     * observer location — the firmware builds its pointing model from the
+     * `num`-indexed submissions — but the *chosen* star's identity is what
+     * the operator needs to see: which star was centred, at what RA/Dec.
+     * Retained here so a multi-star run keeps an explicit, visible history
+     * (ASTRO-WORKFLOW-HANDOVER §2) instead of an anonymous counter.
+     */
+    data class AlignmentStarRecord(
+        val designation: String,
+        val raDeg: Double,
+        val decDeg: Double,
+        /** Az/alt the mount was pointing at when the star was recorded. */
+        val azDeg: Double,
+        val altDeg: Double,
+    )
+
+    var selectedAlignmentStar by mutableStateOf<AlignmentStarRecord?>(null)
+        private set
+
+    /** Recorded alignment stars, in submission order (index = firmware `num`). */
+    private val _recordedAlignmentStars = mutableListOf<AlignmentStarRecord>()
+    val recordedAlignmentStars: List<AlignmentStarRecord> get() = _recordedAlignmentStars
+
     var alignmentStars by mutableStateOf(0)
         private set
 
@@ -1674,6 +1710,9 @@ class AppViewModel(
      */
     internal fun testInstallSession(s: MountSession) {
         this.session = s
+        // Mirror connect(): the alignment session must exist for
+        // submitAlignmentStar() to have a persistent controller.
+        this.alignmentController = AlignmentController(s)
     }
 
     /**
@@ -1709,19 +1748,79 @@ class AppViewModel(
         preview.publishForTest(jpeg)
     }
 
-    /** Record current pointing as alignment star [alignmentStars] (code 530). */
+    /**
+     * Test seam: set the last observed gimbal position without waiting for a
+     * 517 poll. Used by alignment tests that need [submitAlignmentStar] to
+     * have a position to record.
+     */
+    internal fun testSetPosition(pos: GimbalPosition?) {
+        position = pos
+    }
+
+    /**
+     * Set the identity of the catalog star currently centred in the view.
+     * Called from the UI (star chooser / plate-solve result) before
+     * [submitAlignmentStar] so the recorded history carries a name and
+     * RA/Dec, not just an anonymous index.
+     */
+    fun selectAlignmentStar(designation: String, raDeg: Double, decDeg: Double) {
+        selectedAlignmentStar = AlignmentStarRecord(
+            designation = designation,
+            raDeg = raDeg,
+            decDeg = decDeg,
+            azDeg = 0.0,
+            altDeg = 0.0,
+        )
+    }
+
+    /**
+     * Record the current pointing as the next alignment star (code 530).
+     *
+     * Uses the persistent [alignmentController] so the firmware receives a
+     * monotonically increasing `num` index (0, 1, 2, …) across submissions.
+     * The pre-fix code constructed a fresh controller per call, so every
+     * frame carried `num:0` while the UI counter showed 1, 2, 3 — the
+     * repeated-`num:0` defect (ASTRO-WORKFLOW-HANDOVER §1).
+     */
     fun submitAlignmentStar() {
         val s = session ?: run { statusMessage = "Not connected"; return }
+        val c = alignmentController ?: run { statusMessage = "Not connected"; return }
         val pos = position ?: run { statusMessage = "No mount position yet"; return }
         val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
         scope.launch {
-            AlignmentController(s).submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
-            alignmentStars++
-            statusMessage = "Alignment star ${alignmentStars} recorded"
+            c.submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
+            // Record the selected star's identity (if any) with the az/alt
+            // it was centred on, so the history is explicit and visible.
+            val rec = selectedAlignmentStar?.copy(
+                azDeg = pos.yaw.toDouble(),
+                altDeg = pos.pitch.toDouble(),
+            ) ?: AlignmentStarRecord(
+                designation = "star-${c.starCount - 1}",
+                raDeg = 0.0,
+                decDeg = 0.0,
+                azDeg = pos.yaw.toDouble(),
+                altDeg = pos.pitch.toDouble(),
+            )
+            _recordedAlignmentStars.add(rec)
+            alignmentStars = c.starCount
+            statusMessage = "Alignment star ${c.starCount} recorded (${rec.designation})"
         }
     }
 
-    fun resetAlignment() { alignmentStars = 0; statusMessage = "Alignment reset" }
+    /**
+     * Reset the alignment run: clears the persistent controller's index so
+     * the next submission starts at `num:0` again, and drops the recorded
+     * star history. The firmware has no dedicated 530-reset opcode (the
+     * stock app simply starts a fresh calibration), so abandoning an
+     * incomplete run is safe: the next `num:0` begins a new model.
+     */
+    fun resetAlignment() {
+        alignmentController?.reset()
+        _recordedAlignmentStars.clear()
+        selectedAlignmentStar = null
+        alignmentStars = 0
+        statusMessage = "Alignment reset"
+    }
 
     // ---- auto-level ----------------------------------------------------------
 

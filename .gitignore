@@ -33,3 +33,6 @@ androidApp/key.properties
 # Local scratch / tool state — per-machine, not source.
 .lmstudio/
 test_output.txt
+
+# agent conversation state (LM Studio bridge)
+.lmstudio-context/

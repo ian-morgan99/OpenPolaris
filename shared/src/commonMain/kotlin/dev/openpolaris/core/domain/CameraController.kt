@@ -400,9 +400,10 @@ class CameraController(private val session: MountSession) {
         sendBenroParamQuery(Codes.BenroCamera.GET_EX_TIME, "ExTime", subtype = 2)
 
     /**
-     * Set the camera exposure-time index (299), `ExTime:<v>;` with subtype 2. The value is a
-     * camera-specific index whose valid range is model-dependent (enumerate under #63); we
-     * accept any non-negative int rather than hard-coding a range.
+     * Set the camera exposure time (299), `ExTime:<v>;` with subtype 2. Benro Connect sends
+     * the value in **milliseconds** (`minute*60*1000 + second*1000 + millisecond`, see
+     * ParameterItemLayout.updateCableReleaseShutterTime); we accept any non-negative int so
+     * callers can pass either a model-dependent index or a millisecond duration.
      */
     suspend fun setExposureTime(index: Int): CameraParamResult {
         if (index < 0) return CameraParamResult(
@@ -544,6 +545,45 @@ class CameraController(private val session: MountSession) {
                 error = reply.message, raw = "ERROR: ${reply.message}", requestedState = requestedState,
             )
         }
+    }
+
+    /**
+     * Trigger a bulb exposure with the requested duration (issue #120).
+     *
+     * Benro Connect sequences a bulb shot as **two** commands: it first sets the exposure
+     * duration via `SP_SET_EX_TIME` (cmd 299, value in **milliseconds** — see
+     * ParameterItemLayout.updateCableReleaseShutterTime: `minute*60*1000 + second*1000 +
+     * millisecond`), and only then triggers the 264 photo-record with `bulb:<sec>`. The
+     * firmware's delay scheduler reads EX_TIME for the actual shutter-open duration; when it
+     * is left at its default (as OpenPolaris did, sending only the 264 `bulb:` field), the
+     * bulb value is instead consumed as a pre-shot pause and the exposure falls back to a
+     * short default — the observed "countdown, then a ~1 s shot" symptom.
+     *
+     * This method mirrors that sequencing: set EX_TIME to `bulbSeconds * 1000` ms, then send
+     * the 264 trigger with the same bulb seconds. The EX_TIME set is best-effort (a failure
+     * there must not block the capture), but its result is surfaced in [exposureTime] so a
+     * caller can log it.
+     */
+    suspend fun captureBulb(
+        bulbSeconds: Int,
+        continuationCount: Int = -1,
+    ): PhotoRecordResult {
+        if (bulbSeconds < 0 || continuationCount < -1) return PhotoRecordResult(
+            code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
+            sent = false,
+            error = "Unsupported bulb capture bulb=$bulbSeconds c=$continuationCount",
+            requestedState = "1",
+        )
+        // Set the exposure duration (ms) first, matching Benro Connect's sequencing.
+        // Best-effort: a failed EX_TIME set must not block the capture — the 264 trigger
+        // still carries the bulb seconds, so the shot proceeds even if the firmware rejects
+        // the EX_TIME write (e.g. a model that does not implement cmd 299).
+        setExposureTime(bulbSeconds * 1000)
+        return setPhotoRecordStatus(
+            recording = true,
+            bulbSeconds = bulbSeconds,
+            continuationCount = continuationCount,
+        )
     }
 
     private suspend fun sendBenroParamQuery(code: Int, key: String, subtype: Int): CameraParamResult {

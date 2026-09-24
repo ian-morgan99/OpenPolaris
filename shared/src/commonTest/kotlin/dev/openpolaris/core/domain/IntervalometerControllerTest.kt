@@ -59,6 +59,24 @@ class IntervalometerControllerTest {
     }
 
     @Test
+    fun `pre-delay elapses before first shutter`() = runTest {
+        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        session.connect()
+        assertTrue(c.start(IntervalometerController.SequencePlan(1, intervalMs = 0, preDelayMs = 5_000)))
+
+        runCurrent()
+        assertEquals(0, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
+        advanceTimeBy(4_999)
+        assertEquals(0, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(1, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
+
+        c.stop()
+        session.disconnect()
+    }
+
+    @Test
     fun `start runs all shots and reaches Completed`() = runTest {
         val (conn, session, c) = newRig(backgroundScope, backgroundScope)
         session.connect()

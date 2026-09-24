@@ -17,7 +17,7 @@ import java.util.UUID
  * Flow this class supports:
  *   1. [discover] — one-shot LE scan for a device whose name matches
  *      [namePattern] (default `polaris_` or `theta_` prefixes used by Benro);
- *   2. [wake] — pair + trust + connect + settle + disconnect, the wake pulse;
+ *   2. [wake] — connect + disconnect, the wake pulse;
  *   3. caller hands off to [WifiBridge] (or `nmcli`) to bring up the AP link.
  *
  * [startAp] is kept as a **vendor-extension escape hatch** for firmware
@@ -30,13 +30,13 @@ class BluetoothProbe(
     private val runner: ProcessRunner = SystemProcessRunner,
     private val namePattern: String = "polaris_",
     /**
-     * Time in ms to wait between the BT `connect` and `disconnect` so the
-     * gimbal's firmware has time to bring its AP up. The Benro firmware
-     * appears to need ~1s; 2s is a safe default.
+     * Optional time in ms to wait after the connect/disconnect wake pulse.
+     * The normal handoff starts Wi-Fi association immediately, so the default
+     * is zero; callers that cannot retry association may request a delay.
      */
-    private val wakeSettleMs: Int = 2_000,
-    /** Keep the wake-producing GATT link open while Wi-Fi comes up. */
-    private val retainGattConnection: Boolean = true,
+    private val wakeSettleMs: Int = 0,
+    /** Keep the wake-producing GATT link open instead of matching the normal handoff. */
+    private val retainGattConnection: Boolean = false,
     /**
      * GATT characteristic handle UUID that toggles the gimbal's Wi-Fi AP,
      * for firmware revisions that require a GATT write. Format:
@@ -110,8 +110,8 @@ class BluetoothProbe(
      *   1. `bluetoothctl connect` — open GATT immediately (this IS the wake pulse)
      *   2. on failure, try pair/trust as best-effort cache improvements
      *   3. retry `connect`; pair/trust failures never suppress this attempt
-     *   4. wait [wakeSettleMs] for the AP
-     *   5. retain GATT by default; callers may explicitly opt out
+     *   4. close the GATT link, matching the normal BLE-to-Wi-Fi handoff
+     *   5. optionally wait [wakeSettleMs] for callers that need a post-pulse delay
      *
      * After this returns, the gimbal's AP should be visible to NetworkManager
      * (or any wifi scanner). The caller should then bring up the
@@ -136,11 +136,11 @@ class BluetoothProbe(
                 )
             }
         }
-        if (wakeSettleMs > 0) {
-            Thread.sleep(wakeSettleMs.toLong())
-        }
         if (!retainGattConnection) {
             runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
+        }
+        if (wakeSettleMs > 0) {
+            Thread.sleep(wakeSettleMs.toLong())
         }
     }
 

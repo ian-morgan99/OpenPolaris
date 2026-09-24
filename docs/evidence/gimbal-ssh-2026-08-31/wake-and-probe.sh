@@ -9,8 +9,8 @@
 # `shared/src/jvmMain/kotlin/dev/openpolaris/core/net/BluetoothProbe.kt`,
 # `wake()` at line 120, comment "Benro Polaris wakes on a bare GATT
 # connect") that a bare `bluetoothctl connect <MAC>` is the wake pulse
-# once the polaris is powered up. The connect settles ~2s and then the
-# AP and SSH come up.
+# once the polaris is powered up. The normal handoff closes the GATT link
+# immediately after connection and then joins the AP; no BLE pairing is needed.
 #
 # If BT wake does not work, the polaris MAC may not yet be known to
 # bluez — try the second-stage scan loop. As a final fallback, watch
@@ -37,14 +37,13 @@ POLARIS_SSH="root@192.168.0.1"
 AP_SSID_RE='polaris_d13e86'
 
 echo "== stage 1: BT wake pulse =="
-# In a single bluetoothctl session, power on, pair, trust, connect.
-# The connect IS the wake — after 2s settle, the AP should come up.
+# In a single bluetoothctl session, power on, connect, then release GATT.
+# The connect IS the wake; pairing, service discovery and a characteristic
+# write are not part of the normal Wi-Fi wake path.
 timeout 30 bluetoothctl <<EOF
 power on
-scan on
-pair ${POLARIS_BT}
-trust ${POLARIS_BT}
 connect ${POLARIS_BT}
+disconnect ${POLARIS_BT}
 quit
 EOF
 BT_RC=$?

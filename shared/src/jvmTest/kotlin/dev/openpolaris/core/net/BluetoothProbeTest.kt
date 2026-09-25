@@ -28,7 +28,7 @@ class BluetoothProbeTest {
         DiscoveredDevice(addr, name)
 
     @Test
-    fun `wake connects directly then releases GATT by default`() {
+    fun `wake connects directly and retains GATT by default`() {
         val fake = FakeRunner()
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         probe.wake(dev())
@@ -38,9 +38,19 @@ class BluetoothProbeTest {
         assertEquals(
             listOf(
                 listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF"),
-                listOf("bluetoothctl", "disconnect", "AA:BB:CC:DD:EE:FF"),
             ),
             bt,
+        )
+    }
+
+    @Test
+    fun `release disconnects after the caller completes handoff`() {
+        val fake = FakeRunner()
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        probe.release(dev())
+        assertEquals(
+            listOf(listOf("bluetoothctl", "disconnect", "AA:BB:CC:DD:EE:FF")),
+            fake.calls,
         )
     }
 

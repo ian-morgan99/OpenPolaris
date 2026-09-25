@@ -17,7 +17,7 @@ import java.util.UUID
  * Flow this class supports:
  *   1. [discover] — one-shot LE scan for a device whose name matches
  *      [namePattern] (default `polaris_` or `theta_` prefixes used by Benro);
- *   2. [wake] — connect + disconnect, the wake pulse;
+ *   2. [wake] — connect and retain GATT through the Wi-Fi/control handoff;
  *   3. caller hands off to [WifiBridge] (or `nmcli`) to bring up the AP link.
  *
  * [startAp] is kept as a **vendor-extension escape hatch** for firmware
@@ -35,8 +35,8 @@ class BluetoothProbe(
      * is zero; callers that cannot retry association may request a delay.
      */
     private val wakeSettleMs: Int = 0,
-    /** Keep the wake-producing GATT link open instead of matching the normal handoff. */
-    private val retainGattConnection: Boolean = false,
+    /** Keep GATT until the caller has established a durable Wi-Fi control owner. */
+    private val retainGattConnection: Boolean = true,
     /**
      * GATT characteristic handle UUID that toggles the gimbal's Wi-Fi AP,
      * for firmware revisions that require a GATT write. Format:
@@ -110,7 +110,7 @@ class BluetoothProbe(
      *   1. `bluetoothctl connect` — open GATT immediately (this IS the wake pulse)
      *   2. on failure, try pair/trust as best-effort cache improvements
      *   3. retry `connect`; pair/trust failures never suppress this attempt
-     *   4. close the GATT link, matching the normal BLE-to-Wi-Fi handoff
+     *   4. retain GATT by default while the caller starts Wi-Fi association
      *   5. optionally wait [wakeSettleMs] for callers that need a post-pulse delay
      *
      * After this returns, the gimbal's AP should be visible to NetworkManager
@@ -142,6 +142,11 @@ class BluetoothProbe(
         if (wakeSettleMs > 0) {
             Thread.sleep(wakeSettleMs.toLong())
         }
+    }
+
+    /** Release the wake link after Wi-Fi and its persistent control owner exist. */
+    fun release(device: DiscoveredDevice) {
+        runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
     }
 
     /**

@@ -58,6 +58,13 @@ fun main() = application {
             wakeProbe = { progress ->
                 bridge.wakeOnly(progress = progress)
             },
+            teardownBridge = { progress ->
+                bridge.tearDown(
+                    profile = POLARIS_WIFI_PROFILE,
+                    ifname = POLARIS_WIFI_IFNAME,
+                    progress = progress,
+                )
+            },
         )
     }
 }

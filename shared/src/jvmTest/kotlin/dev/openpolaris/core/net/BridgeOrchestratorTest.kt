@@ -244,6 +244,74 @@ class BridgeOrchestratorTest {
     }
 
     /**
+     * A [ProcessRunner] whose `bluetoothctl scan on` returns a single Polaris
+     * device so [BluetoothProbe.discover] finds it and the orchestrator records
+     * the woken address. Every other call returns an empty string (success).
+     */
+    private class ScanningRunner : ProcessRunner {
+        val calls = mutableListOf<List<String>>()
+        override fun run(argv: List<String>): String {
+            calls += argv
+            return if (argv.contains("scan")) "Device AA:BB:CC:DD:EE:FF polaris_d13e86\n" else ""
+        }
+    }
+
+    @Test
+    fun `tearDown releases the retained GATT link after a wake`() = runBlocking {
+        val fake = ScanningRunner()
+        val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
+
+        // Wake first: discover finds the device and the orchestrator records the
+        // woken address so the retained GATT link can be released later.
+        val woke = orch.wakeOnly()
+        assertTrue(woke, "wakeOnly should succeed when a Polaris device is discovered")
+
+        val messages = mutableListOf<String>()
+        orch.tearDown(
+            profile = "polaris_d13e86",
+            ifname = "wlp8s0",
+            progress = { messages += it },
+        )
+
+        // The retained GATT link must be dropped after the Wi-Fi profile is down.
+        val disconnect = fake.calls.filter {
+            it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect"
+        }
+        assertEquals(
+            listOf(listOf("bluetoothctl", "disconnect", "AA:BB:CC:DD:EE:FF")),
+            disconnect,
+            "expected the retained GATT link to be released on teardown, got: " + fake.calls.toString(),
+        )
+        // The release happens after the Wi-Fi profile is brought down.
+        val nmDownIdx = fake.calls.indexOfFirst {
+            it.firstOrNull() == "nmcli" && it.getOrNull(1) == "connection" && it.getOrNull(2) == "down"
+        }
+        val disconnectIdx = fake.calls.indexOfFirst {
+            it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect"
+        }
+        assertTrue(nmDownIdx < disconnectIdx, "GATT release should happen after the Wi-Fi profile is down")
+        assertTrue(messages.any { it.contains("Releasing retained BLE wake link") })
+    }
+
+    @Test
+    fun `tearDown does not release GATT when no device was woken`() = runBlocking {
+        val fake = FakeRunner()
+        val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
+        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
+
+        // No wake happened this session, so teardown must not issue a disconnect.
+        orch.tearDown(profile = "polaris_d13e86", ifname = "wlp8s0")
+
+        val disconnect = fake.calls.filter {
+            it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect"
+        }
+        assertEquals(0, disconnect.size, "no GATT release expected when nothing was woken: $disconnect")
+    }
+
+    /**
      * #52 — cancellation must propagate out of [BridgeOrchestrator.bridgeToMount]
      * and [BridgeOrchestrator.wakeOnly] rather than being folded into a normal
      * `false` result. The injected [ProcessRunner] throws the same

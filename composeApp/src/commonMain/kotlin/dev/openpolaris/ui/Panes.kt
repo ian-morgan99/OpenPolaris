@@ -73,6 +73,10 @@ import kotlinx.coroutines.launch
  * gimbal's Wi-Fi AP up without doing the full bridge. The Benro app
  * exposes this as the first tap on a cold start (the gimbal sleeps to
  * save battery; nothing answers on Wi-Fi until the pulse has fired).
+ * [onBridgeDown], when provided, surfaces a "Tear down bridge" button that
+ * reverses [onBridgeWifi]: removes the policy route, brings the saved Wi-Fi
+ * profile down, and releases the retained BLE GATT wake link. Desktop-only;
+ * Android has no bridge to tear down so it leaves this null.
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -83,6 +87,7 @@ fun ConnectionPane(
     onBridgeWifi: (() -> Unit)? = null,
     onWake: (() -> Unit)? = null,
     onMountWifiScan: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    onBridgeDown: (() -> Unit)? = null,
 ) {
     Card(modifier = modifier.padding(8.dp)) {
         val scope = rememberCoroutineScope()
@@ -167,6 +172,11 @@ fun ConnectionPane(
             if (onBridgeWifi != null) {
                 OutlinedButton(onClick = onBridgeWifi) {
                     Text("Bridge to mount Wi-Fi…")
+                }
+            }
+            if (onBridgeDown != null) {
+                OutlinedButton(onClick = onBridgeDown) {
+                    Text("Tear down bridge")
                 }
             }
             if (onMountWifiScan != null) {

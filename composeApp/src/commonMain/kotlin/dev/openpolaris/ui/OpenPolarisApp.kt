@@ -85,6 +85,15 @@ fun OpenPolarisApp(
      */
     wakeProbe: (suspend (suspend (String) -> Unit) -> Unit)? = null,
     /**
+     * Optional bridge teardown. When supplied, the Connection pane shows a
+     * "Tear down bridge" button that reverses [connectWifi]: removes the
+     * policy route, brings the saved Wi-Fi profile down, and releases the
+     * retained BLE GATT wake link (the keep-alive change). Desktop-only;
+     * Android has no bridge to tear down so it leaves this null. Mirrors
+     * the constructor parameter on [AppViewModel].
+     */
+    teardownBridge: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    /**
      * Optional platform "find & wake Polaris" flow that mirrors the
      * Benro app's first tap on a cold start: send a BT wake pulse to
      * the gimbal, then scan for any `polaris*` access point and offer
@@ -116,6 +125,7 @@ fun OpenPolarisApp(
             connectionFactory = connectionFactory,
             connectWifi = connectWifi ?: {},
             wakeProbe = wakeProbe ?: {},
+            teardownBridge = teardownBridge ?: {},
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
@@ -167,6 +177,7 @@ fun OpenPolarisApp(
                         onBridgeWifi = if (connectWifi != null) ({ vm.connectWifi() }) else null,
                         onWake = if (wakeProbe != null) ({ vm.wake() }) else null,
                         onMountWifiScan = onMountWifiScan,
+                        onBridgeDown = if (teardownBridge != null) ({ vm.teardownBridge() }) else null,
                     )
                 }
                 Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }

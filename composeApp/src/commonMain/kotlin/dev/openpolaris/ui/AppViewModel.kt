@@ -116,6 +116,16 @@ class AppViewModel(
      * The [ConnectionPane] "Wake" button is shown when this is wired.
      */
     private val wakeProbe: suspend (suspend (String) -> Unit) -> Unit = {},
+    /**
+     * Bridge teardown. The reverse of [connectWifi]: removes the policy route,
+     * brings the saved Wi-Fi profile down, and releases the retained BLE GATT
+     * wake link (the keep-alive change). The lambda receives a
+     * `progress: (String) -> Unit` callback it calls from a background
+     * dispatcher; the default is a no-op so callers without a bridge
+     * implementation (e.g. the Android build) can construct the VM without it.
+     * The [ConnectionPane] "Tear down bridge" button is shown when this is wired.
+     */
+    private val teardownBridge: suspend (suspend (String) -> Unit) -> Unit = {},
     private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
     private val starDetector: StarDetector = NullStarDetector,
     private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
@@ -913,6 +923,29 @@ class AppViewModel(
                 statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false
+            }
+        }
+    }
+
+    /**
+     * Tear down the segregated Wi-Fi bridge (policy route → NM down → release
+     * the retained BLE GATT wake link). The reverse of [connectWifi]. Each
+     * phase posts to [statusMessage] as it runs. No-op when the host has no
+     * bridge implementation (the default no-op lambda), so Android callers can
+     * invoke it harmlessly.
+     */
+    fun teardownBridge() {
+        // Capture the injected lambda property up front. Inside the launch block
+        // `this` is the coroutine-scope receiver, so a bare `teardownBridge`
+        // would resolve to this method (infinite recursion) rather than the
+        // injected lambda property.
+        val teardown = teardownBridge
+        scope.launch {
+            try {
+                statusMessage = "Tearing down mount Wi-Fi…"
+                teardown { msg -> statusMessage = msg }
+            } catch (e: Throwable) {
+                statusMessage = "Wi-Fi bridge teardown failed: ${e.message ?: e::class.simpleName}"
             }
         }
     }

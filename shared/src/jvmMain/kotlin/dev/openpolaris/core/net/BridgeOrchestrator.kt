@@ -38,6 +38,20 @@ class BridgeOrchestrator(
 ) {
 
     /**
+     * The BLE address of the last device we woke via [wakeOverBluetooth].
+     *
+     * Since the keep-alive change, [BluetoothProbe.wake] retains the GATT link
+     * by default so the gimbal's AP stays up while a Wi-Fi control owner is
+     * attached. That means nothing drops the link on its own — the caller must
+     * release it once the Wi-Fi control owner goes away. We remember the address
+     * here so [tearDown] can drop the retained GATT link (best-effort) after the
+     * Wi-Fi profile is brought down. The desktop holds a single orchestrator
+     * instance across `bridgeToMount` → `tearDown`, so this instance state is
+     * the right seam.
+     */
+    private var lastWokenAddress: String? = null
+
+    /**
      * Run the full bring-up. [progress] is invoked from the IO dispatcher
      * with short, human-readable status strings suitable for direct display.
      */
@@ -145,8 +159,16 @@ class BridgeOrchestrator(
 
     /**
      * Tear-down. The reverse of [bridgeToMount]: policy route first, then NM
-     * down. Safe to call even if the link isn't up; every step is wrapped
-     * in `runCatching`.
+     * down, then release the retained BLE GATT wake link. Safe to call even if
+     * the link isn't up; every step is wrapped in `runCatching`.
+     *
+     * The final step drops the GATT link that [wakeOverBluetooth] retained (the
+     * keep-alive change). It only runs when we actually woke a device this
+     * session, and it is best-effort — a missing/already-gone device must not
+     * fail the teardown. Releasing after the Wi-Fi profile is down matches the
+     * "release only once a durable control owner exists" contract: by the time
+     * we get here the Wi-Fi session is being torn down, so the keep-alive link
+     * can go with it.
      */
     suspend fun tearDown(
         profile: String,
@@ -157,6 +179,12 @@ class BridgeOrchestrator(
         runCatching { wifi.removePolicyRoute(ifname) }
         progress("Bringing $profile down")
         runCatching { wifi.disconnectByProfile(profile) }
+        val woken = lastWokenAddress
+        if (woken != null) {
+            progress("Releasing retained BLE wake link for $woken")
+            runCatching { bt.release(BluetoothProbe.DiscoveredDevice(woken, "known Polaris")) }
+            lastWokenAddress = null
+        }
         progress("Mount Wi-Fi torn down")
     }
 
@@ -168,6 +196,7 @@ class BridgeOrchestrator(
             progress("Trying known Polaris Bluetooth address $knownBleAddress…")
             try {
                 bt.wake(BluetoothProbe.DiscoveredDevice(knownBleAddress, "known Polaris"))
+                lastWokenAddress = knownBleAddress
                 progress("Known-address GATT wake connected")
                 return
             } catch (e: Exception) {
@@ -183,6 +212,7 @@ class BridgeOrchestrator(
         }
         progress("Waking ${device.name} via Bluetooth…")
         bt.wake(device)
+        lastWokenAddress = device.address
         // Brief settle so the firmware has time to bring the AP up after the
         // BT connect pulse. wakeSettleMs inside BluetoothProbe handles the
         // primary wait; this gives a little extra for slow firmware.

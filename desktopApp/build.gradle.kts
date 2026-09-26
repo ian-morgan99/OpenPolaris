@@ -59,6 +59,19 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = appPackageName
             packageVersion = appPackageVersion
+            // Branded application icon (jpackage --icon). Per-platform formats:
+            // Windows .ico, macOS .icns, Linux .png. Source of truth is the
+            // 256px brand art in src/jvmMain/resources/META-INF/.
+            val iconDir = layout.projectDirectory.dir("src/jvmMain/resources/META-INF")
+            windows {
+                iconFile.set(iconDir.file("openpolaris.ico").asFile)
+            }
+            macOS {
+                iconFile.set(iconDir.file("openpolaris.icns").asFile)
+            }
+            linux {
+                iconFile.set(iconDir.file("openpolaris.png").asFile)
+            }
         }
     }
 }
@@ -113,8 +126,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\compose\binaries\main\app\{#MyAppName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; IconFilename: "{app}\\openpolaris.ico"
+Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; IconFilename: "{app}\\openpolaris.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
@@ -124,9 +137,28 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
     }
 }
 
+// The Inno [Icons] section points the desktop/Start-Menu shortcuts at
+// {app}\openpolaris.ico, so the branded icon must sit at the app-image root.
+// jpackage does not copy it there on its own — drop it in after createDistributable.
+val appImageDir = layout.buildDirectory.dir("compose/binaries/main/app/$appPackageName")
+tasks.register("copyIconToAppImage") {
+    dependsOn("createDistributable")
+    val iconSource = layout.projectDirectory.file("src/jvmMain/resources/META-INF/openpolaris.ico")
+    val iconTarget = appImageDir.map { it.file("openpolaris.ico") }
+    inputs.file(iconSource)
+    // Track the single copied file (not the whole app-image dir, which is owned
+    // by createDistributable) so up-to-date checks stay correct.
+    outputs.file(iconTarget)
+    doLast {
+        val target = iconTarget.get().asFile
+        target.parentFile.mkdirs()
+        iconSource.asFile.copyTo(target, overwrite = true)
+    }
+}
+
 tasks.register("createExeInstaller") {
     val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-    dependsOn("createDistributable", "generateInnoScript")
+    dependsOn("copyIconToAppImage", "generateInnoScript")
     onlyIf {
         if (!isWindows) logger.lifecycle(":desktopApp:createExeInstaller skipped (not a Windows host)")
         isWindows

@@ -2,6 +2,9 @@ package dev.openpolaris.desktop
 
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -12,6 +15,7 @@ import dev.openpolaris.core.net.BridgeOrchestrator
 import dev.openpolaris.ui.OpenPolarisApp
 import java.io.File
 import java.util.Properties
+import javax.imageio.ImageIO
 
 // Default mount AP profile name. The Benro Polaris broadcasts an open
 // `polaris_<id>` SSID; the trailing id is the gimbal's last-three-of-MAC
@@ -79,13 +83,31 @@ private fun readProperties(): Properties? {
     }.getOrNull()
 }
 
+// Branded window icon (taskbar / title bar). Shipped on the classpath by
+// jvmProcessResources from src/jvmMain/resources/META-INF/openpolaris.png.
+// Returns null when the resource is absent so the window falls back to the
+// platform default instead of failing to start.
+private fun loadWindowIcon(): Painter? = runCatching {
+    val stream = object {}.javaClass.getResourceAsStream("/META-INF/openpolaris.png")
+        ?: return@runCatching null
+    val awt = ImageIO.read(stream) ?: return@runCatching null
+    BitmapPainter(awt.toComposeImageBitmap())
+}.getOrNull()
+
 @OptIn(androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi::class)
 fun main() = application {
     val state = rememberWindowState()
     val orchestrator = BridgeOrchestrator()
     val profile = resolveProfile()
     val ifname = resolveIfname()
-    Window(onCloseRequest = ::exitApplication, title = "Open Polaris", state = state) {
+    // Branded taskbar / title-bar icon; null falls back to the platform default.
+    val windowIcon = loadWindowIcon()
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "Open Polaris",
+        state = state,
+        icon = windowIcon,
+    ) {
         // Compact threshold: treat narrow windows as phone layout for testing.
         val widthClass =
             if (state.size.width < 700.dp) WindowWidthSizeClass.Compact

@@ -48,6 +48,7 @@ import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.TrackingController
+import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -1491,7 +1492,16 @@ class AppViewModel(
 
     // ---- user actions -------------------------------------------------
 
-    fun startTracking() = scope.launch { controller?.start() }
+    /**
+     * The tracking rate to send with code 531. Defaults to [TrackingRate.SIDEREAL]
+     * (the correct rate for star imaging). The Benro app always sends an explicit
+     * `speed:` index; the pre-fix UI sent a bare `state:1;` and let the firmware
+     * pick its default — the "tracking rate is implicit" gap
+     * (docs/ASTRO-WORKFLOW-HANDOVER §5).
+     */
+    var trackingRate by mutableStateOf(TrackingRate.DEFAULT)
+
+    fun startTracking() = scope.launch { controller?.start(trackingRate) }
     fun stopTracking() = scope.launch { controller?.stop() }
     fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
@@ -1799,6 +1809,10 @@ class AppViewModel(
         // Mirror connect(): the alignment session must exist for
         // submitAlignmentStar() to have a persistent controller.
         this.alignmentController = AlignmentController(s)
+        // Also wire the tracking controller so startTracking()/stopTracking()
+        // (and the explicit-rate 531 payload) work in tests without going
+        // through connect(). Mirrors the controller wiring in connect().
+        this.controller = TrackingController(s)
     }
 
     /**

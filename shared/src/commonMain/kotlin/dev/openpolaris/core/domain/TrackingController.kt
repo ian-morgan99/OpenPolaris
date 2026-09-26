@@ -24,6 +24,16 @@ class TrackingController(private val session: MountSession) {
         session.send(Codes.SET_TRACK_AU_STATE, payload)
     }
 
+    /**
+     * Start tracking at an explicit [rate]. Always includes the `speed:` field
+     * so the firmware does not fall back to its default rate — the Benro app
+     * always sends an explicit index (docs/ASTRO-WORKFLOW-HANDOVER §5: "send
+     * an explicit sidereal rate" rather than relying on the implicit default).
+     */
+    suspend fun start(rate: TrackingRate) {
+        session.send(Codes.SET_TRACK_AU_STATE, "state:1;speed:${rate.speedIndex};")
+    }
+
     suspend fun stop() {
         session.send(Codes.SET_TRACK_AU_STATE, "state:0;")
     }

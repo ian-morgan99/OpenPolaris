@@ -71,7 +71,7 @@ workflow; **UNQUALIFIED** lacks adequate physical evidence.
 | Reset alignment | BROKEN / misleading | Only the Compose counter resets | Reset controller/firmware state or clearly restart the entire alignment lifecycle |
 | Choose imaging target | WORKING PRIMITIVE | Tonight catalog/search exists | Retain target in the session model instead of fire-and-forget slew |
 | Goto imaging target | PARTIAL | UI sends 519 and immediately reports slewing | Use arrival polling, timeout/cancel and optional plate-solve refinement |
-| Start tracking | PARTIAL | Track chip sends 531 `state:1;` | Send explicit sidereal rate, confirm state and gate on successful goto/alignment |
+| Start tracking | ADDRESSED (rate) | Track chip now sends an explicit rate: 531 `state:1;speed:<n>;` via a `TrackingRate` selector (sidereal default, lunar option) in the Position readout | Confirm rate indices physically and gate on successful goto/alignment |
 | Dither/settling | PARTIAL | Individual controls exist | Integrate with the capture plan and settling waits |
 | Camera parameters | PARTIAL | ISO/WB/EV/shutter/aperture qualification surface | Promote physically verified settings; add format, focus and capture-mode contracts |
 | Intervalometer | MISSING | 306/307 domain methods only; no production caller | Add interval, exposure/bulb, count/duration, delay, storage and validation |
@@ -127,6 +127,15 @@ write completed.
 only `state:1;`. The astro workflow needs an explicit sidereal rate and a
 separate lunar option. Confirm rate indices physically and verify resulting
 state rather than treating write success as tracking success.
+
+**Status (addressed):** the UI path now sends an explicit rate. A new
+`TrackingRate` enum (`SIDEREAL` = index 0, `LUNAR` = index 2) is exposed in the
+Position readout; `AppViewModel.startTracking()` threads the selected rate into
+`TrackingController.start(rate)`, which always emits `state:1;speed:<n>;`.
+Sidereal (the correct star-imaging rate) is the default. Covered by
+`TrackingControllerTest.startWithRateSendsExplicitSpeedIndex` and
+`AppViewModelTrackingRateTest`. Remaining: physically confirm the indices on a
+real mount and gate tracking/shooting on confirmed state, not write success.
 
 ### 6. Intervalometer methods are orphaned
 

@@ -223,6 +223,26 @@ class TrackingControllerTest {
     }
 
     @Test
+    fun startWithRateSendsExplicitSpeedIndex() = runTest {
+        val conn = FakeConnection()
+        val (s, t) = newSession(conn, backgroundScope)
+        s.connect()
+        // Sidereal is the default rate for star imaging.
+        t.start(TrackingRate.SIDEREAL)
+        // Lunar rate uses index 2 (~0.966× sidereal).
+        t.start(TrackingRate.LUNAR)
+        val frames = conn.written
+            .map { String(it, Charsets.US_ASCII) }
+            .filter { it.contains("&531&") }
+        assertEquals(
+            listOf("1&531&2&state:1;speed:0;#", "1&531&2&state:1;speed:2;#"),
+            frames,
+            "each start(rate) must carry an explicit speed index",
+        )
+        s.disconnect()
+    }
+
+    @Test
     fun stopSendsTrackOff() = runTest {
         val conn = FakeConnection()
         val (s, t) = newSession(conn, backgroundScope)

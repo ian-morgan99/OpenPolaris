@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.defaultSessionPath
@@ -372,6 +373,21 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }, label = { Text("Track") })
                 FilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
                 FilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
+            }
+
+            // Explicit tracking rate (code 531 `speed:` field). The Benro app
+            // always sends an explicit index; sidereal is correct for star
+            // imaging, lunar (~0.966× sidereal) for the Moon. Selecting a rate
+            // takes effect on the next Track start (docs/ASTRO-WORKFLOW-HANDOVER §5).
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Rate", style = MaterialTheme.typography.labelSmall)
+                TrackingRate.entries.forEach { rate ->
+                    FilterChip(
+                        selected = vm.trackingRate == rate,
+                        onClick = { vm.trackingRate = rate },
+                        label = { Text(rate.label) },
+                    )
+                }
             }
         }
     }

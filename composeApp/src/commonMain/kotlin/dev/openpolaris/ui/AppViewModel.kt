@@ -428,6 +428,11 @@ class AppViewModel(
     private var captureWatchdogJob: Job? = null
     private var captureSawLifecycle = false
     private var captureSawFile = false
+    // §6: true while an intervalometer sequence is driving captures. The
+    // capture-event observer uses this to route a correlated completion into
+    // [intervalometer].markShotDone() so the engine advances to the next shot
+    // instead of stalling on its in-flight shutter.
+    private var sequenceActive = false
     private var captureWorkloadsSuspended = false
     private var cameraPollingSuspended = false
     private var restorePreviewAfterCapture = false
@@ -788,6 +793,7 @@ class AppViewModel(
         session = s
         controller = TrackingController(s)
         cameraController = CameraController(s)
+        intervalometer = createIntervalometer()
         alignmentController = AlignmentController(s)
         wireHelpers(s)
         startAutoLevel(s)
@@ -1080,6 +1086,7 @@ class AppViewModel(
         session = sim.session
         controller = TrackingController(sim.session)
         cameraController = CameraController(sim.session)
+        intervalometer = createIntervalometer()
         alignmentController = AlignmentController(sim.session)
         wireHelpers(sim.session)
 
@@ -1142,6 +1149,14 @@ class AppViewModel(
         session = null
         controller = null
         cameraController = null
+        // §6: a sequence in flight at disconnect time is abandoned — stop the
+        // engine (cancels its shot loop), drop the reference, and reset the
+        // mirrored state so a stale "Running" doesn't linger into the next
+        // session. The engine's job lives on [scope], so stop() before nulling.
+        intervalometer?.stop()
+        intervalometer = null
+        sequenceActive = false
+        sequenceState = dev.openpolaris.core.domain.IntervalometerController.State.Idle
         alignmentController = null
         helpersController = null
         ditherEnabled = null
@@ -1336,7 +1351,22 @@ class AppViewModel(
         if (!captureSawLifecycle || !captureSawFile) return
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
-        capturePhase = CapturePhase.Completed
+        // §6: while a sequence is driving captures, this correlated completion
+        // confirms the current shot. Release the engine's in-flight shutter so
+        // it advances to the next shot (or completes). A single-shot capture
+        // has no engine, so markShotDone() is a harmless no-op there.
+        if (sequenceActive) {
+            intervalometer?.markShotDone()
+            // Keep the capture-event observer active for the *next* shot: reset
+            // the per-shot evidence flags and return the phase to Requested so
+            // the next shutter's 264/773 frames are still processed. The engine
+            // paces shots by its interval, so no per-shot watchdog is needed.
+            captureSawLifecycle = false
+            captureSawFile = false
+            capturePhase = CapturePhase.Requested
+        } else {
+            capturePhase = CapturePhase.Completed
+        }
         statusMessage = "Capture completed"
         restoreCaptureWorkloads()
     }
@@ -1816,6 +1846,19 @@ class AppViewModel(
     }
 
     /**
+     * §6 test seam: install a [CameraController] and a bound
+     * [dev.openpolaris.core.domain.IntervalometerController] on this viewmodel
+     * without going through [connect]. Mirrors the controller wiring in
+     * connect()/connectDemo() so tests can drive [startSequence] and correlate
+     * shots via [testOnCaptureFrame] on a known (fake) session. The engine runs
+     * on [scope], so under `runTest` its shot loop advances with virtual time.
+     */
+    internal fun testInstallCameraAndIntervalometer(s: MountSession) {
+        this.cameraController = CameraController(s)
+        this.intervalometer = createIntervalometer()
+    }
+
+    /**
      * Test seam: install an [AutoLevelController] on this viewmodel
      * without going through [connect] / [startAutoLevel]. Lets tests
      * drive [runAutoLevel] with a controller wired to a known
@@ -2113,6 +2156,111 @@ class AppViewModel(
 
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
 
+    // §6 (handover step 7): the typed intervalometer / capture-sequence engine.
+    // Owned by the VM so its shot loop runs on the same scope as the rest of
+    // the app (and, in tests, on the virtual-time test scope). Created per
+    // session in connect()/connectDemo(), torn down in disconnect(). The UI
+    // drives it via [startSequence]/[pauseSequence]/[resumeSequence]/
+    // [stopSequence]; shot completion is correlated by the capture-event
+    // observer (see [completeCaptureIfCorrelated]) which calls
+    // [dev.openpolaris.core.domain.IntervalometerController.markShotDone].
+    private var intervalometer: dev.openpolaris.core.domain.IntervalometerController? = null
+
+    /** Live intervalometer state for the UI (mirrors [intervalometer].state). */
+    var sequenceState: dev.openpolaris.core.domain.IntervalometerController.State by mutableStateOf(
+        dev.openpolaris.core.domain.IntervalometerController.State.Idle
+    )
+        private set
+
+    /**
+     * Build a fresh [dev.openpolaris.core.domain.IntervalometerController] bound
+     * to the current session's camera controller. Its shot loop runs on [scope]
+     * (the app scope in production, the virtual-time test scope in tests), and
+     * every state transition is mirrored into [sequenceState] so the Camera
+     * pane can render live progress without polling.
+     */
+    private fun createIntervalometer(): dev.openpolaris.core.domain.IntervalometerController? {
+        val cam = cameraController ?: return null
+        return dev.openpolaris.core.domain.IntervalometerController(
+            camera = cam,
+            scope = scope,
+            onStateChange = { s ->
+                sequenceState = s
+                // A shutter may still be in flight while Running (between shots)
+                // or Paused (a resume waits for the unconfirmed shutter). Only
+                // terminal states clear it so a late file event is not routed
+                // into markShotDone() after the sequence has ended.
+                sequenceActive = when (s) {
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Running,
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Paused -> true
+                    else -> false
+                }
+            },
+        )
+    }
+
+    /**
+     * §6: start a capture sequence (count + interval + optional pre-delay).
+     * Each shot is fired by the engine and confirmed by the capture-event
+     * observer correlating the 264 lifecycle + 773 file events, which calls
+     * [dev.openpolaris.core.domain.IntervalometerController.markShotDone].
+     * Returns false (and reports why) when no session / camera is attached.
+     */
+    fun startSequence(shotCount: Int, intervalMs: Long, preDelayMs: Long = 0L): Boolean {
+        val engine = intervalometer
+        if (engine == null || cameraController == null) {
+            statusMessage = "Not connected"
+            return false
+        }
+        val plan = dev.openpolaris.core.domain.IntervalometerController.SequencePlan(
+            shotCount = shotCount,
+            intervalMs = intervalMs,
+            preDelayMs = preDelayMs,
+        )
+        if (!engine.start(plan)) {
+            statusMessage = "Sequence already running"
+            return false
+        }
+        // sequenceActive is set by the engine's onStateChange callback (Running).
+        // Put the capture-event observer in its active state so the first shot's
+        // 264/773 frames are processed; [completeCaptureIfCorrelated] keeps it
+        // active between subsequent shots.
+        captureSawLifecycle = false
+        captureSawFile = false
+        capturePhase = CapturePhase.Requested
+        statusMessage = "Sequence started: $shotCount shots @ ${intervalMs} ms"
+        return true
+    }
+
+    /** §6: pause the running sequence at the next shot boundary. */
+    fun pauseSequence() {
+        intervalometer?.pause()
+    }
+
+    /** §6: resume a paused sequence from the next unshot index. */
+    fun resumeSequence() {
+        // Re-arm the capture-event observer for the next shot (a pause may have
+        // left the phase in a terminal state after the last completed shot).
+        captureSawLifecycle = false
+        captureSawFile = false
+        capturePhase = CapturePhase.Requested
+        intervalometer?.resume()
+    }
+
+    /** §6: stop the sequence early (terminal [Stopped] state). */
+    fun stopSequence() {
+        val engine = intervalometer ?: return
+        engine.stop()
+        if (engine.state is dev.openpolaris.core.domain.IntervalometerController.State.Stopped) {
+            statusMessage = "Sequence stopped"
+        }
+    }
+
+    /** §6 test seam: reset the sequence-active flag between scripted scenarios. */
+    internal fun testResetSequenceActive() {
+        sequenceActive = false
+    }
+
     fun refreshCamera() {
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
@@ -2198,6 +2346,12 @@ class AppViewModel(
      */
     fun capture() {
         if (cameraController == null) { statusMessage = "Not connected"; return }
+        // §6: a running/paused sequence owns the shutter — a manual single-shot
+        // press would race the engine's next trigger. Stop the sequence first.
+        if (sequenceActive) {
+            statusMessage = "Capture sequence in progress — stop it before a single shot"
+            return
+        }
         // Debounce: ignore a second shutter press while a capture is pending,
         // busy, or still settling from the previous one. Only Idle and
         // terminal states (Completed/Failed) accept a new request.

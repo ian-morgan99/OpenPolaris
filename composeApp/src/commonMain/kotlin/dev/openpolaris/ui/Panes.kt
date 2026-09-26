@@ -556,7 +556,101 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
             }
+            // §6: client-driven capture sequence (intervalometer). The engine
+            // fires one shutter per shot at the planned interval; each shot is
+            // confirmed by the capture-event observer correlating the 264
+            // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
+            IntervalometerSection(vm)
         }
+    }
+}
+
+/**
+ * §6: plan inputs (shot count / interval / pre-delay) plus start, pause,
+ * resume and stop controls for the client-driven capture sequence, with a
+ * live progress line driven by [AppViewModel.sequenceState].
+ */
+@Composable
+private fun IntervalometerSection(vm: AppViewModel) {
+    var shotCountText by remember { mutableStateOf("10") }
+    var intervalSecText by remember { mutableStateOf("5") }
+    var preDelaySecText by remember { mutableStateOf("0") }
+
+    val state = vm.sequenceState
+    val running = state is dev.openpolaris.core.domain.IntervalometerController.State.Running
+    val paused = state is dev.openpolaris.core.domain.IntervalometerController.State.Paused
+    val active = running || paused
+    val canStart = !active
+
+    HorizontalDivider()
+    Text("Capture sequence", style = MaterialTheme.typography.titleSmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = shotCountText,
+            onValueChange = { shotCountText = it },
+            label = { Text("Shots") },
+            singleLine = true,
+            enabled = canStart,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.weight(1f),
+        )
+        OutlinedTextField(
+            value = intervalSecText,
+            onValueChange = { intervalSecText = it },
+            label = { Text("Interval (s)") },
+            singleLine = true,
+            enabled = canStart,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.weight(1f),
+        )
+        OutlinedTextField(
+            value = preDelaySecText,
+            onValueChange = { preDelaySecText = it },
+            label = { Text("Pre-delay (s)") },
+            singleLine = true,
+            enabled = canStart,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(
+            onClick = {
+                val count = shotCountText.trim().toIntOrNull() ?: 0
+                val intervalMs = (intervalSecText.trim().toDoubleOrNull()?.times(1000.0))?.toLong() ?: 0L
+                val preDelayMs = (preDelaySecText.trim().toDoubleOrNull()?.times(1000.0))?.toLong() ?: 0L
+                vm.startSequence(count, intervalMs, preDelayMs)
+            },
+            enabled = canStart,
+        ) { Text("Start") }
+        OutlinedButton(onClick = vm::pauseSequence, enabled = running) { Text("Pause") }
+        OutlinedButton(onClick = vm::resumeSequence, enabled = paused) { Text("Resume") }
+        OutlinedButton(onClick = vm::stopSequence, enabled = active) { Text("Stop") }
+    }
+    when (state) {
+        is dev.openpolaris.core.domain.IntervalometerController.State.Idle ->
+            Text("Idle", style = MaterialTheme.typography.labelMedium)
+        is dev.openpolaris.core.domain.IntervalometerController.State.Running ->
+            Text(
+                "Running: shot ${state.completedShots} of ${state.plan.shotCount}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        is dev.openpolaris.core.domain.IntervalometerController.State.Paused ->
+            Text(
+                "Paused: shot ${state.completedShots} of ${state.plan.shotCount}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        is dev.openpolaris.core.domain.IntervalometerController.State.Completed ->
+            Text("Completed: ${state.completedShots} shots", style = MaterialTheme.typography.labelMedium)
+        is dev.openpolaris.core.domain.IntervalometerController.State.Stopped ->
+            Text(
+                "Stopped: ${state.completedShots} of ${state.plan.shotCount}",
+                style = MaterialTheme.typography.labelMedium,
+            )
+        is dev.openpolaris.core.domain.IntervalometerController.State.Failed ->
+            Text("Failed: ${state.reason}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
     }
 }
 

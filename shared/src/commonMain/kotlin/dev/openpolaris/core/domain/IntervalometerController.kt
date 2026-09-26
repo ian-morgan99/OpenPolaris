@@ -32,6 +32,14 @@ import kotlinx.coroutines.launch
 class IntervalometerController(
     private val camera: CameraController,
     private val scope: CoroutineScope,
+    /**
+     * Optional observer invoked on every [state] transition (start, each shot
+     * boundary, pause/resume/stop, completion, failure). The production
+     * [AppViewModel] uses this to mirror progress into its Compose state so
+     * the UI updates as shots complete. Defaults to a no-op, which keeps the
+     * engine's existing unit tests (which read [state] directly) unchanged.
+     */
+    private val onStateChange: ((State) -> Unit)? = null,
 ) {
 
     /** A validated capture plan. */
@@ -64,6 +72,12 @@ class IntervalometerController(
     var state: State = State.Idle
         private set
 
+    /** Single write path for [state]: assigns, then notifies the observer. */
+    private fun setState(next: State) {
+        state = next
+        onStateChange?.invoke(next)
+    }
+
     /** True while a shutter trigger is in flight (not yet confirmed done). */
     private var shotInFlight = false
     private val shotCompleted = Channel<Unit>(capacity = Channel.CONFLATED)
@@ -77,7 +91,7 @@ class IntervalometerController(
     fun start(plan: SequencePlan): Boolean {
         if (state is State.Running || state is State.Paused) return false
         shotInFlight = false
-        state = State.Running(plan, 0)
+        setState(State.Running(plan, 0))
         job = scope.launch { runShots(plan, fromShot = 1, preDelay = plan.preDelayMs) }
         return true
     }
@@ -96,7 +110,7 @@ class IntervalometerController(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    state = State.Failed(e.message ?: "capture command failed")
+                    setState(State.Failed(e.message ?: "capture command failed"))
                     return
                 }
             }
@@ -106,10 +120,10 @@ class IntervalometerController(
             // markShotDone(). This prevents overlapping exposures (#90).
             shotCompleted.receive()
             shotInFlight = false
-            state = State.Running(plan, i)
+            setState(State.Running(plan, i))
             if (i < plan.shotCount && plan.intervalMs > 0L) delay(plan.intervalMs)
         }
-        state = State.Completed(plan, plan.shotCount)
+        setState(State.Completed(plan, plan.shotCount))
     }
 
     /**
@@ -122,7 +136,7 @@ class IntervalometerController(
         if (s !is State.Running) return
         job?.cancel()
         job = null
-        state = State.Paused(s.plan, s.completedShots)
+        setState(State.Paused(s.plan, s.completedShots))
     }
 
     /**
@@ -136,10 +150,10 @@ class IntervalometerController(
         if (next > s.plan.shotCount) {
             // Nothing left to shoot.
             shotInFlight = false
-            state = State.Completed(s.plan, s.plan.shotCount)
+            setState(State.Completed(s.plan, s.plan.shotCount))
             return
         }
-        state = State.Running(s.plan, s.completedShots)
+        setState(State.Running(s.plan, s.completedShots))
         job = scope.launch { runShots(s.plan, fromShot = next, preDelay = 0L) }
     }
 
@@ -152,11 +166,11 @@ class IntervalometerController(
         job?.cancel()
         job = null
         shotInFlight = false
-        state = when (s) {
+        setState(when (s) {
             is State.Running -> State.Stopped(s.plan, s.completedShots)
             is State.Paused -> State.Stopped(s.plan, s.completedShots)
             else -> s
-        }
+        })
     }
 
     /**

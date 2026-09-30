@@ -23,9 +23,9 @@ against the real gimbal so we can hardware-verify the divergent codes in
 - `~/android-sdk/platform-tools/adb` and `~/android-sdk/emulator/emulator`
   on PATH (the script uses absolute paths to avoid PATH races).
 - One Benro Connect APK at
-  `/home/ian/Downloads/BenroConnect_1727595281455.apk` (148 MB, package
+  `$HOME/Downloads/BenroConnect_1727595281455.apk` (148 MB, package
   `com.snoppa.libra`). Verify with:
-  `sha256sum /home/ian/Downloads/BenroConnect_1727595281455.apk`.
+  `sha256sum $HOME/Downloads/BenroConnect_1727595281455.apk`.
 - An AVD named `polaris` already created via Android Studio's AVD Manager
   (we used Android 34, x86_64, 4 cores, 2 GB RAM, swiftshader_indirect GPU,
   no skin). `emulator -list-avds` should show it.
@@ -39,7 +39,7 @@ and stdin redirected from `/dev/null`, otherwise the launcher session
 holds the tty and the emulator dies the moment the launcher returns.
 
 ```bash
-setsid /home/ian/android-sdk/emulator/emulator \
+setsid $HOME/android-sdk/emulator/emulator \
   -avd polaris \
   -no-window -no-audio -no-boot-anim -no-snapshot \
   -accel auto \
@@ -60,7 +60,7 @@ disown
 Verify the emulator is up:
 
 ```bash
-ADB="/home/ian/android-sdk/platform-tools/adb"
+ADB="$HOME/android-sdk/platform-tools/adb"
 $ADB devices                 # expect "emulator-5554   device"
 $ADB shell getprop sys.boot_completed   # expect "1"
 ```
@@ -71,8 +71,8 @@ Boot takes ~17 s on this hardware. The emulator's log goes to
 ## 2. Install Benro Connect and grant every permission
 
 ```bash
-ADB="/home/ian/android-sdk/platform-tools/adb -s emulator-5554"
-$ADB install -r /home/ian/Downloads/BenroConnect_1727595281455.apk
+ADB="$HOME/android-sdk/platform-tools/adb -s emulator-5554"
+$ADB install -r $HOME/Downloads/BenroConnect_1727595281455.apk
 # Confirm the package
 $ADB shell pm list packages | grep snoppa
 # Grant the standard perms in one go. Benro Connect uses the regular

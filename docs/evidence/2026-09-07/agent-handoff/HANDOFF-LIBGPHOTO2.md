@@ -55,7 +55,7 @@ The two open issues that are yours are **#48 (K-1 II -6)** and **#49
 
 **The cleanest reproduction recipe from the OpenPolaris side**:
 
-1. **Build environment** — `/home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2` is the local clone, HEAD is `6aa3e4e66240d4b4d68a65b75631e0f6aadf308a` (`ptp2/pentax: fix K-3 III capture and setting verification`). This is the same SHA the patcher is using on the gimbal.
+1. **Build environment** — `$HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2` is the local clone, HEAD is `6aa3e4e66240d4b4d68a65b75631e0f6aadf308a` (`ptp2/pentax: fix K-3 III capture and setting verification`). This is the same SHA the patcher is using on the gimbal.
 2. **K-3 III specific code paths** — `camlibs/ptp2/pentax-utils.{c,h}` (the refactored capture/reconcile helpers, PR #43), `camlibs/ptp2/library.c` (Pentax vendor mode), `camlibs/ptp2/cameras/pentaxmodern.c` (modern Pentax DSLRs). These are what run when the gimbal's ptp2.so is the K-3 III driver.
 3. **K-1 II specific code paths** — the same files, but the d02c code path is gated by `8e9560ca9 ptp2/pentax: gate d02c cross process on k3iii family`. K-1 II takes a different path because the `k3iii family` gate excludes it.
 4. **Test infrastructure** — `tests/test-pentax-utils.c` has a `MockTransfer` that simulates PTP responses, including error injection for the short-block (issue #35) and zero-block (issue #34) regressions.
@@ -97,7 +97,7 @@ PASS result so the patcher team has a confirmed-clean reference build.
 ## Tooling we have ready for you
 
 The OpenPolaris workspace has the cli-probe binary at
-`/home/ian/Documents/VSCodeProjects/OpenPolaris/tools/cli-probe/build/install/cli-probe/bin/cli-probe`
+`$HOME/Documents/VSCodeProjects/OpenPolaris/tools/cli-probe/build/install/cli-probe/bin/cli-probe`
 that can do read-only protocol probes against the live gimbal
 (`192.168.0.1:9090`). If you need a baseline of what the gimbal
 firmware currently reports, that tool will give you a definitive

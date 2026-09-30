@@ -91,7 +91,7 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes root@192.168.0.1
 ```
 
 The cli-probe is at:
-`/home/ian/Documents/VSCodeProjects/OpenPolaris/tools/cli-probe/build/install/cli-probe/bin/cli-probe`
+`$HOME/Documents/VSCodeProjects/OpenPolaris/tools/cli-probe/build/install/cli-probe/bin/cli-probe`
 
 Or via gradle:
 `./gradlew :tools:cli-probe:liveBurst -q` (canonical pre-camera burst)

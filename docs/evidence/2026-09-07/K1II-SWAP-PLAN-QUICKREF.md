@@ -77,7 +77,7 @@ tools/cli-probe/build/install/cli-probe/bin/cli-probe 291 "state:1;" 2 127.0.0.1
 1. **Do not flash any firmware.** The user explicitly said
    the SD card is expendable, the PC is not. Don't even build
    a new FwPkt.zip — the previous session's zip
-   (`/home/ian/Downloads/FwPkt(1).zip`) is the one in use.
+   (`$HOME/Downloads/FwPkt(1).zip`) is the one in use.
 2. **Do not `cp`, `mv`, `rm`, `pkill`, or write to any file
    on the gimbal** unless plan §5 explicitly says to (the
    warm-plug workaround is the only exception, and even that

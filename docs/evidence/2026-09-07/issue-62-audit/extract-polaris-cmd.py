@@ -3,13 +3,15 @@ logging.disable(logging.CRITICAL)
 import sys
 from androguard.core.apk import APK
 from androguard.core.dex import DEX
+from pathlib import Path
 
-apk = APK('/home/ian/Downloads/BenroConnect_1727595281455.apk')
+apk_path = Path.home() / 'Downloads/BenroConnect_1727595281455.apk'
+apk = APK(str(apk_path))
 all_dex_names = list(apk.get_dex_names())
 print(f'All dex names: {all_dex_names}', file=sys.stderr)
 # get_dex() returns bytes for classes.dex; for others we need to read the file
 import zipfile
-z = zipfile.ZipFile('/home/ian/Downloads/BenroConnect_1727595281455.apk')
+z = zipfile.ZipFile(apk_path)
 for name in all_dex_names:
     print(f'=== {name} ===', file=sys.stderr)
     if name == 'classes.dex':

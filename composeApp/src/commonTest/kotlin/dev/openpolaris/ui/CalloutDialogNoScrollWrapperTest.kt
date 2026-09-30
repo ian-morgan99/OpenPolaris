@@ -65,13 +65,13 @@ class CalloutDialogNoScrollWrapperTest {
     )
 
     private fun sourceText(relativePath: String): String {
-        val candidates = listOf(
-            java.io.File(relativePath),
-            java.io.File("/home/ian/Documents/VSCodeProjects/OpenPolaris/$relativePath"),
-        )
-        return candidates.firstOrNull { it.exists() }
-            ?.readText(Charsets.UTF_8)
-            ?: error("Cannot read $relativePath - test must run from the repo root or a known absolute path")
+        var directory: java.io.File? = java.io.File(".").canonicalFile
+        repeat(8) {
+            val candidate = directory?.let { java.io.File(it, relativePath) }
+            if (candidate?.isFile == true) return candidate.readText(Charsets.UTF_8)
+            directory = directory?.parentFile
+        }
+        error("Cannot read $relativePath - searched current directory and its parents")
     }
 
     /**

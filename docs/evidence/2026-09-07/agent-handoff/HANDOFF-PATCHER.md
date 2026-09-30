@@ -169,10 +169,10 @@ The open issues that are yours:
 
 The provenance-verified inputs are:
 
-- **`/home/ian/Downloads/FwPkt(1).zip`** — the **stock 4.0.0.32
+- **`$HOME/Downloads/FwPkt(1).zip`** — the **stock 4.0.0.32
   baseline** (md5 `90bdad51...`, appfs `47f2ae68...`). This is the
   BASE the user explicitly asked to keep using.
-- **`/home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2`** —
+- **`$HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2`** —
   the Pentax fork at commit `6aa3e4e66240d4b4d68a65b75631e0f6aadf308a`
   (the provenanced commit).
 
@@ -180,15 +180,15 @@ Pre-flight checks:
 
 ```bash
 # 1. zip provenance
-md5sum /home/ian/Downloads/FwPkt\(1\).zip
+md5sum $HOME/Downloads/FwPkt\(1\).zip
 # expected: 90bdad511f556f25a2904ae9d2980102
 
 # 2. zip appfs MD5
-unzip -p /home/ian/Downloads/FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
+unzip -p $HOME/Downloads/FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
 # expected: appfs MD5:47f2ae680be3a5f5d69aa20e20a2397b
 
 # 3. libgphoto2 source SHA
-git -C /home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2 rev-parse HEAD
+git -C $HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2 rev-parse HEAD
 # expected: 6aa3e4e66240d4b4d68a65b75631e0f6aadf308a
 ```
 
@@ -196,10 +196,10 @@ Build command (use the existing docker image
 `polaris-patcher-c2`):
 
 ```bash
-cd /home/ian/Documents/VSCodeProjects/BenroPolarisPatcher.worktrees/libgphoto2-only-fork
+cd $HOME/Documents/VSCodeProjects/BenroPolarisPatcher.worktrees/libgphoto2-only-fork
 ./patch-polaris.sh \
-  --fwpkt /home/ian/Downloads/FwPkt\(1\).zip \
-  --libgphoto2-source /home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2 \
+  --fwpkt $HOME/Downloads/FwPkt\(1\).zip \
+  --libgphoto2-source $HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2 \
   --allow-dirty-source \
   --out /tmp/patcher-out-next \
   --image polaris-patcher-c2
@@ -216,10 +216,10 @@ the flag.
 After the build, validate the package:
 
 ```bash
-/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher/container/test_polaris_pentax_build_package.sh \
+$HOME/Documents/VSCodeProjects/BenroPolarisPatcher/container/test_polaris_pentax_build_package.sh \
   polaris-patcher-c2 \
-  /home/ian/Downloads/FwPkt\(1\).zip \
-  /home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2
+  $HOME/Downloads/FwPkt\(1\).zip \
+  $HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2
 ```
 
 This should produce a FwPkt.zip whose appfs MD5 is the same as

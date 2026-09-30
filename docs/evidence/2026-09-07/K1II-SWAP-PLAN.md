@@ -14,7 +14,7 @@ plan. No firmware is flashed.
 
 | # | Check | Expected result | If wrong |
 |---|---|---|---|
-| 0.1 | `pwd` | `/home/ian/Documents/VSCodeProjects/OpenPolaris` | `cd` to it |
+| 0.1 | `pwd` | `$HOME/Documents/VSCodeProjects/OpenPolaris` | `cd` to it |
 | 0.2 | `git status` | clean working tree | commit/stash, then proceed |
 | 0.3 | `git log --oneline -1` | `bc8f4b5 docs(livelog): K-3 III handoff docs complete — 4 design docs published` | `git pull` |
 | 0.4 | `ssh root@192.168.0.1 cat /app/FwVer` | `FwVer:4.0.0.32;date:2025.05.09;` | STOP — gimbal not in expected state |
@@ -47,7 +47,7 @@ with the step you're about to do (start at "step 2 of 7").
 Commit + push this change BEFORE touching the gimbal:
 
 ```sh
-cd /home/ian/Documents/VSCodeProjects/OpenPolaris
+cd $HOME/Documents/VSCodeProjects/OpenPolaris
 git add LIVE-PROGRESS.md
 git -c user.name="<your git user.name>" \
     -c user.email="<your git user.email>" \
@@ -276,7 +276,7 @@ Fill in PASS/FAIL/NOT TESTED based on the §6 results.
 Commit + push:
 
 ```sh
-cd /home/ian/Documents/VSCodeProjects/OpenPolaris
+cd $HOME/Documents/VSCodeProjects/OpenPolaris
 git add LIVE-PROGRESS.md docs/evidence/2026-09-07/ 2>/dev/null
 git -c user.name="<your git user.name>" \
     -c user.email="<your git user.email>" \
@@ -287,7 +287,7 @@ git push origin main
 ## 8. Build the cli-probe (if it doesn't exist)
 
 ```sh
-cd /home/ian/Documents/VSCodeProjects/OpenPolaris
+cd $HOME/Documents/VSCodeProjects/OpenPolaris
 ls tools/cli-probe/build/install/cli-probe/bin/cli-probe
 # If present, skip
 # If not present:
@@ -338,7 +338,7 @@ STOPped for an unexpected behavior):
 4. Commit + push:
 
 ```sh
-cd /home/ian/Documents/VSCodeProjects/OpenPolaris
+cd $HOME/Documents/VSCodeProjects/OpenPolaris
 git add LIVE-PROGRESS.md docs/evidence/2026-09-07/
 git -c user.name="<your git user.name>" \
     -c user.email="<your git user.email>" \
@@ -369,7 +369,7 @@ git push origin main
 ## 12. Reference docs to read before starting
 
 These are all in the OpenPolaris repo, paths relative to
-`/home/ian/Documents/VSCodeProjects/OpenPolaris/`:
+`$HOME/Documents/VSCodeProjects/OpenPolaris/`:
 
 - [LIVE-PROGRESS.md](LIVE-PROGRESS.md) — the coordination ledger (670+ lines)
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) — protocol spec

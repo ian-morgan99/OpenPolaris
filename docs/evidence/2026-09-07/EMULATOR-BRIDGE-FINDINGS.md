@@ -2,7 +2,7 @@
 
 ## Goal
 
-Run Benro Connect (148 MB APK at `/home/ian/Downloads/BenroConnect_1727595281455.apk`)
+Run Benro Connect (148 MB APK at `$HOME/Downloads/BenroConnect_1727595281455.apk`)
 on a fully-detached Android emulator (AVD `polaris`, Android 34, swiftshader_indirect)
 and capture the official-app wire traffic so we can hardware-verify the divergent
 codes listed in [PROTOCOL.md §7](../PROTOCOL.md) and the

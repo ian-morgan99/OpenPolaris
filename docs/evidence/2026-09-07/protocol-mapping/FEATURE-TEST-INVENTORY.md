@@ -204,8 +204,8 @@ These run the patcher's own test suite, which validates the
 
 ```
 container/test_polaris_pentax_build_package.sh polaris-patcher-c2 \
-  /home/ian/Downloads/FwPkt\(1\).zip \
-  /home/ian/Documents/VSCodeProjects/LibGphoto2/libgphoto2
+  $HOME/Downloads/FwPkt\(1\).zip \
+  $HOME/Documents/VSCodeProjects/LibGphoto2/libgphoto2
 ```
 
 This was the script that produced the 2026-09-07-k1ii-k3iii-candidate

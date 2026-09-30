@@ -72,11 +72,12 @@ sensitive-content handling this bundle applies.
 |---|---|---|
 | `etc-passwd.txt` | All `/etc/passwd` password-hash fields (the second `:`-delimited field) replaced with `[REDACTED]`. | A leaked `$6$` (SHA-512) hash, even one of an empty account, is sufficient for offline dictionary attack if the password is short or guessable. |
 | `etc-passwd.txt` | The entire `/etc/shadow` block was **removed** (replaced with an explanatory comment block). | A single root hash is the highest-sensitivity item; we do not commit any of the shadow content. |
-| `dmesg.txt` | Two client-device MACs (`a6:cf:f9:ea:ea:49`, `4c:23:38:c8:7b:6f`) replaced with `[REDACTED:client-mac]`. | These are user devices (phones/PCs) that connected to the gimbal's AP — they leak the user's network info and have no analytical value. |
+| `dmesg.txt` | Two client-device MACs replaced with `[REDACTED:client-mac]`. | These are user devices (phones/PCs) that connected to the gimbal's AP — they leak the user's network info and have no analytical value. |
 | `dmesg.txt` | The gimbal's own MAC `48:e7:da:d4:b5:73` is **retained** (it appears in many lines). | It is the device-under-test identifier; researchers correlating findings to this specific Polaris need it. |
-| `probes-20260901-112625/01-first-look.txt`, `live-probe-2026-09-01-11-26/01-first-look.txt` | Same client-MAC replacement applied to the dmesg-equivalent content these probe bundles re-emit (`4c:23:38:c8:7b:6f` → `[REDACTED:client-mac]`). | The probe subdirectory of this bundle and the sibling `live-probe-2026-09-01-11-26/` bundle were captured from the same gimbal and contain the same dmesg output, so the same redaction had to be applied to keep the lint coverage honest. The original `dmesg.txt` redaction entry above was the seed; the audit (`2026-09-01`) found the two probe files were missed at the original redaction pass. |
+| `probes-20260901-112625/01-first-look.txt`, `live-probe-2026-09-01-11-26/01-first-look.txt` | Same client-MAC replacement applied to dmesg-equivalent content re-emitted by these probe bundles. | The probe subdirectory and sibling live-probe bundle came from the same gimbal and contain the same dmesg output; this keeps redaction coverage consistent. |
+| `../k3iii-live-test-2026-09-17/active-clients.txt` | Two client-device MACs replaced with `[REDACTED:client-mac]`; IPs, ports and process names retained. | The MACs identify user devices and are unnecessary to interpret the active-client evidence. |
 | `hostkeys.txt` | Replaced `sh: ssh-keygen: not found` (4×) with an explanatory note. | No actual key material leaked (the gimbal's PATH did not include `ssh-keygen`), but the file is now a clear negative result rather than four cryptic errors. |
-| `README.md`, `HANDOVER-2026-08-31.md` | Removed `polaris-re-results.md` link that pointed into a per-machine `.copilot/session-state/...` path. Removed two absolute `/home/ian/...` build-tree references. Narrowed "authoritative ground truth" / "entire firmware-analysis pipeline" over-claims to "observed evidence from this device/firmware" and itemised which static RE predictions were checked. | The bundle should not leak user filesystem layout, link into a per-machine session state, or make over-broad claims that the evidence does not support. |
+| `README.md`, `HANDOVER-2026-08-31.md` | Removed the per-machine `.copilot/session-state/...` link and normalized local build-tree references to `$HOME/...`. Narrowed over-claims to the observations actually established. | Avoids leaking a machine-specific filesystem layout or overstating the evidence. |
 
 The redaction list in this table is **exhaustive**: no other content was
 modified. If a future reader finds an additional pattern in this bundle
@@ -136,6 +137,7 @@ refresh, so its own hash also changes (see the new value below).
 57a3de9150c5a393a37373d88c1b08a39884b7986f3b2d6f130395da81b90110  dev.txt
 91fbbcdd158089fc22bc65e701a89f2f0d76f459e442014930430cea58fac3ab  MANIFEST.md  (sealed 2026-09-01; re-hash after this point would change the file itself — see "Hash-of-the-manifest" note below)
 53ac663c1360168ef2b3eea16f241e375dc43e22e69721c2a47ae1d049712f2d  MANIFEST.md  (re-hashed 2026-09-15 after production-grade over-claim fix in README.md; canonical once the next audit pass seals)
+2d51fe3b644fcc061eb4da90e44a547340954720605a79324a70095d4620c4b9  MANIFEST.md  (re-hashed 2026-09-30 after local-path and client-MAC audit)
 59ce4d00e35643e013859a2d0a0aa8f6f0f81bb2a6eeb3df55d4c3aa5b5d03d7  usb.txt
 6ed938505a52b17752af96391a2fd7005cb110d474f92421eeeaec325c35524b  probes-20260901-112625/02-version.txt
 74500a25669c4f666be23b36c4d6de1fddde4e9b55d4623c9f6ff7df114fb397  probes-20260901-112625/01-first-look.txt

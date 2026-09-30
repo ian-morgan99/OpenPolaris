@@ -48,6 +48,10 @@
 
 ## Evidence files
 
+In `active-clients.txt`, client hardware MAC addresses are replaced with
+`[REDACTED:client-mac]`; IP addresses, ports, and process ownership remain so
+the concurrency evidence is still interpretable.
+
 - `baseline-device.txt`
 - `read-only-smoke.txt`
 - `camera-read-matrix.txt`

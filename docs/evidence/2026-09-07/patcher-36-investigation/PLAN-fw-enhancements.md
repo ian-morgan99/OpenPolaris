@@ -11,12 +11,12 @@ enhancements are based on the same base as that file".
 
 ## 1. The "new zip" — provenance confirmed
 
-`/home/ian/Downloads/FwPkt(1).zip`
+`$HOME/Downloads/FwPkt(1).zip`
 - md5: `90bdad511f556f25a2904ae9d2980102`
 - appfs MD5: `47f2ae680be3a5f5d69aa20e20a2397b` (per firmwareInfo)
 - date inside zip: 2025-05-09
 - byte-identical to:
-  - `/home/ian/Downloads/FwPkt.zip` (md5 90bdad51…) — same file
+  - `$HOME/Downloads/FwPkt.zip` (md5 90bdad51…) — same file
   - `BenroPolarisPatcher/builds/2026-08-30_test-cards/FwPkt_TEST_A_STOCK_BASELINE_2026-08-30.zip`
   - This is the patcher's "stock 4.0.0.32" reference baseline.
 
@@ -67,10 +67,10 @@ matches the deployed `openpolaris-libgphoto2-provenance.txt`:
 
 Pre-flight before any build:
 ```
-md5sum /home/ian/Downloads/FwPkt\(1\).zip
+md5sum $HOME/Downloads/FwPkt\(1\).zip
 # expected: 90bdad511f556f25a2904ae9d2980102
 
-unzip -p /home/ian/Downloads/FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
+unzip -p $HOME/Downloads/FwPkt\(1\).zip FwPkt/firmwareInfo | grep appfs
 # expected: appfs MD5:47f2ae680be3a5f5d69aa20e20a2397b
 ```
 

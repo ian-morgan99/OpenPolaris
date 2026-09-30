@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Typed intervalometer / capture-sequence engine (handover §6, "Required
@@ -32,6 +33,8 @@ import kotlinx.coroutines.launch
 class IntervalometerController(
     private val camera: CameraController,
     private val scope: CoroutineScope,
+    /** Acquires the shared camera workload before each shutter (idempotent). */
+    private val beforeCapture: suspend () -> Unit = {},
     /**
      * Optional observer invoked on every [state] transition (start, each shot
      * boundary, pause/resume/stop, completion, failure). The production
@@ -67,6 +70,8 @@ class IntervalometerController(
         data class Completed(val plan: SequencePlan, val completedShots: Int) : State
         data class Stopped(val plan: SequencePlan, val completedShots: Int) : State
         data class Failed(val reason: String) : State
+        /** A shutter was sent but positive completion evidence never arrived. */
+        data class OutcomeUnknown(val reason: String, val plan: SequencePlan, val completedShots: Int) : State
     }
 
     var state: State = State.Idle
@@ -89,7 +94,7 @@ class IntervalometerController(
      * Returns true when a new sequence was started.
      */
     fun start(plan: SequencePlan): Boolean {
-        if (state is State.Running || state is State.Paused) return false
+        if (state is State.Running || state is State.Paused || state is State.OutcomeUnknown) return false
         shotInFlight = false
         setState(State.Running(plan, 0))
         job = scope.launch { runShots(plan, fromShot = 1, preDelay = plan.preDelayMs) }
@@ -105,12 +110,15 @@ class IntervalometerController(
                 while (shotCompleted.tryReceive().isSuccess) Unit
                 shotInFlight = true
                 try {
+                    beforeCapture()
                     plan.exposureIndex?.let { camera.setExposureTime(it) }
                     camera.capture()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    setState(State.Failed(e.message ?: "capture command failed"))
+                    // Transport failure after dispatch has ambiguous shutter
+                    // outcome. Never resume the sequence by repeating it.
+                    setState(State.OutcomeUnknown("capture command failed: ${e.message ?: "unknown transport error"}; shutter was not repeated", plan, i - 1))
                     return
                 }
             }
@@ -118,12 +126,24 @@ class IntervalometerController(
             // Command acceptance and elapsed time are not completion proof.
             // The owner correlates the lifecycle and file events, then calls
             // markShotDone(). This prevents overlapping exposures (#90).
-            shotCompleted.receive()
+            val completed = withTimeoutOrNull(shotTimeoutMs(plan)) { shotCompleted.receive() }
+            if (completed == null) {
+                setState(State.OutcomeUnknown("no correlated completion within ${shotTimeoutMs(plan)} ms; shutter was not repeated", plan, i - 1))
+                return
+            }
             shotInFlight = false
             setState(State.Running(plan, i))
             if (i < plan.shotCount && plan.intervalMs > 0L) delay(plan.intervalMs)
         }
         setState(State.Completed(plan, plan.shotCount))
+    }
+
+    private fun shotTimeoutMs(plan: SequencePlan): Long = maxOf(DEFAULT_SHOT_TIMEOUT_MS, plan.intervalMs)
+
+    private companion object {
+        // Generous for long integrations and transfer, while still ensuring a
+        // lost terminal event cannot leave an intervalometer coroutine hung forever.
+        const val DEFAULT_SHOT_TIMEOUT_MS = 300_000L
     }
 
     /**

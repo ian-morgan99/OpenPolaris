@@ -76,6 +76,20 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun cameraAttachmentIsReadOnceOnConnectNotEveryFiveSeconds() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            assertEquals(1, conn.count(286), "connect may take one identity snapshot")
+            advanceTimeBy(20_000)
+            assertEquals(1, conn.count(286), "OpenPolaris must not keep querying camera state every five seconds")
+            vm.refreshCameraAttachment()
+            runCurrent()
+            assertEquals(2, conn.count(286), "refresh is explicit and bounded")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
     fun lifecycleAndPositiveFileEventCompleteCapture() = runTest(UnconfinedTestDispatcher()) {
         val conn = FakeConnection(); val vm = vm(this, conn)
         try {
@@ -148,6 +162,8 @@ class AppViewModelCapturePhaseTest {
 
             // Shot 1: the engine fires the first shutter immediately (no pre-delay).
             runCurrent()
+            advanceTimeBy(850) // let the shared poll window drain before shutter admission
+            runCurrent()
             assertEquals(1, conn.count(264), "first shutter should be in flight")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0001.dng;size:1;#"))
@@ -179,6 +195,29 @@ class AppViewModelCapturePhaseTest {
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
 
+    @Test
+    fun sequenceOutcomeUnknownKeepsCameraWorkQuiescedAndNeverSendsNextShutter() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            assertTrue(vm.startSequence(shotCount = 2, intervalMs = 100))
+            runCurrent()
+            advanceTimeBy(850)
+            runCurrent()
+            assertEquals(1, conn.count(264), "only the first shutter may be sent before positive completion")
+
+            advanceTimeBy(300_000)
+            runCurrent()
+            assertIs<dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown>(vm.sequenceState)
+            assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
+            assertEquals(1, conn.count(264), "timeout must not automatically trigger a second exposure")
+            val pollsAtTimeout = conn.count(286)
+            advanceTimeBy(15_000)
+            assertEquals(pollsAtTimeout, conn.count(286), "286 polling must remain stopped until session recovery")
+            assertTrue(!vm.startSequence(shotCount = 1, intervalMs = 0), "an unknown shutter must block another sequence")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
     /** §6: a paused sequence resumes from the next unshot index and completes. */
     @Test
     fun pausedSequenceResumesFromNextShot() = runTest(UnconfinedTestDispatcher()) {
@@ -188,6 +227,8 @@ class AppViewModelCapturePhaseTest {
             assertTrue(vm.startSequence(shotCount = 3, intervalMs = 1_000))
 
             // Complete shot 1, then pause before the interval elapses.
+            runCurrent()
+            advanceTimeBy(850)
             runCurrent()
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0001.dng;size:1;#"))

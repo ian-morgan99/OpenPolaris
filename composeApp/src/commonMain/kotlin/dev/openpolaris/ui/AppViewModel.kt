@@ -244,7 +244,9 @@ class AppViewModel(
     var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
-    /** 286 — camera-attachment info (manufacturer/model/state). Polled every 5 s
+    /** 286 — camera-attachment info (manufacturer/model/state). Read once on
+     * connect and refreshed only on explicit user request to avoid a periodic
+     * second-client camera query while Benro Connect is active.
      *  so the Camera pane can show "no camera detected" (state -5) instead of a
      *  wall of "unavailable" steppers, and the Preview pane can explain a dead
      *  MJPEG stream. Live-verified 2026-09-16: with no camera the firmware
@@ -1367,7 +1369,7 @@ class AppViewModel(
             capturePhase = CapturePhase.Completed
         }
         statusMessage = "Capture completed"
-        restoreCaptureWorkloads()
+        if (!sequenceActive) restoreCaptureWorkloads()
     }
 
     /** Open preview only while the user is in the Preview workflow. */
@@ -1414,27 +1416,28 @@ class AppViewModel(
     }
 
     /**
-     * 5 s poll for code 286 (CAM_INFO / camera attachment). Kept off the 1 Hz
-     * pose poll and the capture-event observer so a slow/missing 286 reply
-     * cannot stall either. The firmware only re-detects a USB camera on its
-     * own schedule, so this is a read-only status poll: it tells the UI
-     * whether the mount sees a camera at all (state -5 = none), which
-     * explains both the "unavailable" camera steppers and a dead 8080 MJPEG
-     * stream.
+     * One code-286 snapshot on connect. Repeating it every five seconds made
+     * OpenPolaris a continuous second camera client (and differs from the
+     * otherwise stable Benro-Connect-only workload). The mount re-detects USB
+     * on its own schedule; let the user request a fresh snapshot explicitly.
      */
     private fun startCameraAttachmentPolling(s: MountSession) {
         cameraAttachmentPollJob?.cancel()
         cameraAttachmentPollJob = scope.launch {
-            while (isActive) {
-                if (!cameraPollingSuspended) {
-                    when (val r = s.request(Codes.CAM_INFO) { CommandTable.CAM_INFO.parse!!(it) }) {
-                        is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
-                        else -> {} // Timeout / ProtocolError: keep last good value
-                    }
+            if (!cameraPollingSuspended) {
+                when (val r = s.request(Codes.CAM_INFO, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { CommandTable.CAM_INFO.parse!!(it) }) {
+                    is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
+                    else -> {} // Timeout / ProtocolError: keep last good value
                 }
-                delay(5000)
             }
         }
+    }
+
+    /** Explicitly refresh the camera identity after the user changes its power/USB state. */
+    fun refreshCameraAttachment() {
+        val s = session ?: return
+        if (cameraPollingSuspended) return
+        startCameraAttachmentPolling(s)
     }
 
     // ---- post-connect burst --------------------------------------------
@@ -2197,6 +2200,7 @@ class AppViewModel(
         return dev.openpolaris.core.domain.IntervalometerController(
             camera = cam,
             scope = scope,
+            beforeCapture = { suspendCaptureWorkloads() },
             onStateChange = { s ->
                 sequenceState = s
                 // A shutter may still be in flight while Running (between shots)
@@ -2205,8 +2209,27 @@ class AppViewModel(
                 // into markShotDone() after the sequence has ended.
                 sequenceActive = when (s) {
                     is dev.openpolaris.core.domain.IntervalometerController.State.Running,
-                    is dev.openpolaris.core.domain.IntervalometerController.State.Paused -> true
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Paused,
+                    is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown -> true
                     else -> false
+                }
+                when (s) {
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Completed -> {
+                        capturePhase = CapturePhase.Completed
+                        restoreCaptureWorkloads()
+                    }
+                    is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown -> {
+                        capturePhase = CapturePhase.OutcomeUnknown(s.reason)
+                        statusMessage = "Sequence outcome unknown — check the card and reconnect before another shutter"
+                    }
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Failed -> {
+                        statusMessage = "Sequence failed: ${s.reason}"
+                        if (capturePhase !is CapturePhase.Requested && capturePhase !is CapturePhase.Busy) restoreCaptureWorkloads()
+                    }
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Stopped -> {
+                        if (capturePhase !is CapturePhase.Requested && capturePhase !is CapturePhase.Busy) restoreCaptureWorkloads()
+                    }
+                    else -> Unit
                 }
             },
         )
@@ -2225,12 +2248,21 @@ class AppViewModel(
             statusMessage = "Not connected"
             return false
         }
+        if (capturePhase !is CapturePhase.Idle && capturePhase !is CapturePhase.Completed && capturePhase !is CapturePhase.Failed) {
+            statusMessage = "Capture outcome is not clear — reconnect before another shutter"
+            return false
+        }
         val plan = dev.openpolaris.core.domain.IntervalometerController.SequencePlan(
             shotCount = shotCount,
             intervalMs = intervalMs,
             preDelayMs = preDelayMs,
         )
+        val previousPhase = capturePhase
+        captureSawLifecycle = false
+        captureSawFile = false
+        capturePhase = CapturePhase.Requested
         if (!engine.start(plan)) {
+            capturePhase = previousPhase
             statusMessage = "Sequence already running"
             return false
         }
@@ -2238,9 +2270,6 @@ class AppViewModel(
         // Put the capture-event observer in its active state so the first shot's
         // 264/773 frames are processed; [completeCaptureIfCorrelated] keeps it
         // active between subsequent shots.
-        captureSawLifecycle = false
-        captureSawFile = false
-        capturePhase = CapturePhase.Requested
         statusMessage = "Sequence started: $shotCount shots @ ${intervalMs} ms"
         return true
     }

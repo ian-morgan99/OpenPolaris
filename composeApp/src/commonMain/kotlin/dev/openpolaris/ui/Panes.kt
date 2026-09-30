@@ -474,13 +474,13 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
-            // 286 camera-attachment status (polled every 5 s). Without this the
+            // 286 camera-attachment status (one connect-time snapshot). Without this the
             // pane shows a wall of "unavailable" steppers with no explanation —
             // the firmware's `state:-5` sentinel is the reason. Live-verified
             // 2026-09-16: no camera → `manufacturer:none;model:none;state:-5`.
             when {
                 attachment == null -> Text(
-                    "Camera detection: unknown (waiting for first 286 poll…)",
+                    "Camera detection: unknown (read on connect)",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 !attachment.isAttached -> Text(
@@ -495,6 +495,9 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         " (state ${attachment.state})",
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+            TextButton(onClick = vm::refreshCameraAttachment) {
+                Text("Refresh camera status")
             }
             Text(
                 if (qualificationEnabled)
@@ -580,7 +583,8 @@ private fun IntervalometerSection(vm: AppViewModel) {
     val running = state is dev.openpolaris.core.domain.IntervalometerController.State.Running
     val paused = state is dev.openpolaris.core.domain.IntervalometerController.State.Paused
     val active = running || paused
-    val canStart = !active
+    val outcomeUnknown = state is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown
+    val canStart = !active && !outcomeUnknown
 
     HorizontalDivider()
     Text("Capture sequence", style = MaterialTheme.typography.titleSmall)
@@ -651,6 +655,8 @@ private fun IntervalometerSection(vm: AppViewModel) {
             )
         is dev.openpolaris.core.domain.IntervalometerController.State.Failed ->
             Text("Failed: ${state.reason}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown ->
+            Text("Outcome unknown: ${state.reason}. Reconnect before another shutter.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
     }
 }
 

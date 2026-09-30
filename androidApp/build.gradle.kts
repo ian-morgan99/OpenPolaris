@@ -98,6 +98,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // Allow the regression-test build to coexist with the stable
+            // release installation. This avoids uninstalling the user's app
+            // and preserves its settings/data during physical A/B testing.
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+        }
         release {
             if (keystorePropsFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")

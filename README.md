@@ -31,6 +31,19 @@ All protocol facts were derived from live gimbal captures and string-corpus anal
 vendor's WiFi/BT control channel — see `../docs/FIRMWARE-ANALYSIS-ALPACA.md`. No proprietary
 code is copied; this is a clean-room implementation against documented behavior.
 
+## Desktop release and local testing
+
+The Linux desktop shortcut installed by `scripts/install-desktop-launcher.sh` launches through
+`scripts/launch-desktop-image.sh`. That entry point checks the packaged app's embedded full Git
+commit against the current clean checkout; if stale, it runs the JVM regression tests, rebuilds,
+and verifies the image before opening it. It refuses to replace a currently running app image.
+For a deliberate manual refresh, close OpenPolaris and run `scripts/update-desktop-launcher.sh`.
+
+Pull requests and pushes to `main` run the shared/UI tests and build a Linux app-image candidate
+with its source commit and SHA-256 recorded. Version-tag releases publish the verified Linux
+desktop package alongside the other platform releases. A CI package or a clean build proves
+which source was packaged; it does not prove live Polaris hardware behavior.
+
 ## License
 
 TBD — recommend GPL-3.0 or Apache-2.0 before first public release (decide in Phase 0 review).

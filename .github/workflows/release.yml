@@ -39,6 +39,50 @@ permissions:
   contents: write
 
 jobs:
+  linux-desktop:
+    name: Build verified Linux desktop release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    needs: [windows]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Run shared and desktop UI regression tests
+        run: ./gradlew :shared:jvmTest :composeApp:jvmTest --rerun-tasks --console=plain
+
+      - name: Build and verify Linux desktop app image
+        run: |
+          ./gradlew :desktopApp:createDistributable --console=plain
+          ./gradlew :desktopApp:verifyDesktopAppImage --console=plain
+
+      - name: Archive app image and generate checksums
+        run: |
+          set -euo pipefail
+          APP_IMAGE=desktopApp/build/compose/binaries/main/app/OpenPolaris
+          tar -czf OpenPolaris-linux-x64.tar.gz -C "$(dirname "$APP_IMAGE")" OpenPolaris
+          sha256sum OpenPolaris-linux-x64.tar.gz > OpenPolaris-linux-x64.tar.gz.sha256
+          printf 'source_commit=%s\n' "$GITHUB_SHA" > OpenPolaris-build-provenance.txt
+          cat OpenPolaris-linux-x64.tar.gz.sha256 >> OpenPolaris-build-provenance.txt
+
+      - name: Publish Linux desktop assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            OpenPolaris-linux-x64.tar.gz
+            OpenPolaris-linux-x64.tar.gz.sha256
+            OpenPolaris-build-provenance.txt
+          fail_on_unmatched_files: true
+
   build:
     name: Build signed Android APK
     runs-on: ubuntu-24.04
@@ -141,6 +185,9 @@ jobs:
       # OpenPolaris.exe) via jpackage. No WiX required for this step.
       - name: Build Windows app-image
         run: .\gradlew.bat :desktopApp:createDistributable --console=plain
+
+      - name: Verify Windows app image source identity
+        run: .\gradlew.bat :desktopApp:verifyDesktopAppImage --console=plain
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y

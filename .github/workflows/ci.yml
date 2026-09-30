@@ -1,8 +1,9 @@
 name: CI
 
 on:
-  # Manual trigger only — push/PR triggers disabled to conserve GitHub
-  # Actions minutes. Run from the Actions tab when CI evidence is needed.
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 # Cancel in-flight runs for the same ref when new commits land.
@@ -46,8 +47,8 @@ jobs:
       - name: Compile JVM sources
         run: ./gradlew :shared:compileKotlinJvm :shared:compileTestKotlinJvm :composeApp:compileKotlinJvm
 
-      - name: Run shared JVM tests (rerun to surface ordering issues)
-        run: ./gradlew :shared:jvmTest --rerun-tasks
+      - name: Run shared and desktop UI JVM tests (rerun to surface ordering issues)
+        run: ./gradlew :shared:jvmTest :composeApp:jvmTest --rerun-tasks
 
       - name: Run tools tests (bridge + stub-server + cli-probe)
         run: ./gradlew :tools:bridge:test :tools:stub-server:test :tools:cli-probe:test --rerun-tasks
@@ -102,6 +103,45 @@ jobs:
         run: |
           echo "## ❌ JVM test job failed" >> "$GITHUB_STEP_SUMMARY"
           echo "See the *junit-results* artifact for the failing tests." >> "$GITHUB_STEP_SUMMARY"
+
+  linux-desktop-candidate:
+    name: Linux desktop package and source-provenance gate
+    needs: [jvm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build Linux desktop app image
+        run: ./gradlew :desktopApp:createDistributable --console=plain
+
+      - name: Verify embedded source commit and clean-tree identity
+        run: ./gradlew :desktopApp:verifyDesktopAppImage --console=plain
+
+      - name: Archive package with SHA-256 manifest
+        run: |
+          set -euo pipefail
+          APP_IMAGE=desktopApp/build/compose/binaries/main/app/OpenPolaris
+          mkdir -p out
+          tar -czf out/OpenPolaris-linux-x64.tar.gz -C "$(dirname "$APP_IMAGE")" OpenPolaris
+          sha256sum out/OpenPolaris-linux-x64.tar.gz > out/OpenPolaris-linux-x64.tar.gz.sha256
+          printf 'source_commit=%s\n' "$GITHUB_SHA" > out/build-provenance.txt
+          cat out/OpenPolaris-linux-x64.tar.gz.sha256 >> out/build-provenance.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenPolaris-linux-x64-${{ github.sha }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30
 
   lint:
     name: Lint (ktlint-detekt placeholder + evidence-bundle check)

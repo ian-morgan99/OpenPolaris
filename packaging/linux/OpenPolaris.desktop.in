@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Open Polaris
+Comment=Full control panel for the Benro Polaris EQ-G mount
+Exec="@OPENPOLARIS_LAUNCHER@"
+Icon=@OPENPOLARIS_ICON@
+Terminal=false
+Categories=Science;Astronomy;
+StartupNotify=true

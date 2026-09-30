@@ -11,14 +11,20 @@
 # Run this after every `git pull` / release you intend to test on the desktop:
 #   ./scripts/update-desktop-launcher.sh
 #
-# If the app is currently running, close it first (or pass --force to kill it),
-# because jpackage rewrites the files in place.
+# If the app is currently running, close it first. Pass --force only when it is
+# acceptable to terminate that local UI process; it does not affect Polaris.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_IMAGE="desktopApp/build/compose/binaries/main/app/OpenPolaris"
 BIN="${APP_IMAGE}/bin/OpenPolaris"
+
+if ! git diff --quiet HEAD --; then
+    echo "ERROR: refusing a release-style desktop build from a tracked dirty tree." >&2
+    echo "Commit or discard the source changes, then launch the desktop shortcut again." >&2
+    exit 1
+fi
 
 if [[ "${1:-}" == "--force" ]]; then
     pids=$(pgrep -f "OpenPolaris/bin/OpenPolaris" || true)
@@ -30,15 +36,15 @@ if [[ "${1:-}" == "--force" ]]; then
 else
     pids=$(pgrep -f "OpenPolaris/bin/OpenPolaris" || true)
     if [[ -n "$pids" ]]; then
-        echo "WARNING: OpenPolaris is running (pid $pids)."
-        echo "Close it before rebuilding, or re-run with --force."
-        read -r -p "Continue anyway? [y/N] " ans
-        [[ "$ans" == "y" || "$ans" == "Y" ]] || exit 1
+        echo "ERROR: OpenPolaris is running (pid $pids); refusing to replace its app image." >&2
+        echo "Close it first, or pass --force if terminating the local UI is intended." >&2
+        exit 1
     fi
 fi
 
-echo "Rebuilding desktop app image (includes :composeApp + :shared)..."
-./gradlew :desktopApp:createDistributable --console=plain
+echo "Running desktop regression tests and rebuilding the app image..."
+./gradlew :shared:jvmTest :composeApp:jvmTest :desktopApp:createDistributable --rerun-tasks --console=plain
+./gradlew :desktopApp:verifyDesktopAppImage --console=plain
 
 echo
 echo "Launcher target: $BIN"

@@ -846,7 +846,7 @@ class AppViewModel(
                     statusMessage = "Connected"
                     // 3e E2: catch any throw from the post-connect bootstrap
                     // (saveMarker / startPolling / startCaptureEventObserver /
-                    // startPreview) so a single failing bootstrap step surfaces
+                    // camera attachment poll) so a failing setup step surfaces
                     // as a status message instead of killing the launched
                     // coroutine and leaving the UI in a half-connected state.
                     // Pre-fix the success branch was bare; an NPE in the

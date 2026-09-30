@@ -396,8 +396,9 @@ The implementation lives in `androidApp/.../VRActivity.kt` and
 |---|---|---|
 | `Connect` returns `Connection refused` | Wrong host or port, or the gimbal AP isn't joined. | Tap **Connect mount Wi-Fi…** (Android) or the bridge button (desktop). |
 | `Connect` returns `timeout` | The gimbal is on the tplink subnet, not the `polaris_*` AP. | Re-join the gimbal AP. From a tplink subnet, `192.168.0.1` is the AP's admin page. |
-| Status line says `crash: …` after `Connected` | A post-connect step threw (camera poll, capture poll, preview start). | The app has already called `disconnect()`. Tap **Connect** again — if the symptom persists, file an issue with the crash text. |
-| Preview pane says `Stream unavailable: …` | Camera is off, USB is unplugged, or the mount isn't on. | Tap **Connect** again. If preview is still down after a clean reconnect, the mount is in a state where the camera transport won't open — power-cycle the gimbal. |
+| Status line says `crash: …` after `Connected` | A post-connect setup step threw (camera poll or capture-event observer). | The app has already called `disconnect()`. Tap **Connect** again — if the symptom persists, file an issue with the crash text. |
+| Preview is not streaming | OpenPolaris now starts 8080 only while the Preview pane is open, so it does not compete with another camera-control app by default. | Open the **Preview** pane. Leaving it closes OpenPolaris' stream. |
+| Preview pane says `Stream unavailable: …` | Camera is off, USB is unplugged, or the mount isn't on. | Confirm the mount connection and camera attachment; do not reconnect solely to start preview. If preview remains unavailable, record the status and file an issue. |
 | Helpers card shows a red banner | Both `advancedAstro` and `autoLevel` are off. | Edit your config and re-launch. |
 | Firmware card is red and `Upload` is disabled | The `firmwareUpload` flag is off. | Edit your config and re-launch. |
 | Jog pad presses do nothing | Connected but in **Slewing** mode. | Wait for the slew to complete, or tap **Cancel slew** in the Slew dialog. |

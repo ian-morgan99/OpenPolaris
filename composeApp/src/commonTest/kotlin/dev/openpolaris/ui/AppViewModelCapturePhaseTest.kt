@@ -122,8 +122,10 @@ class AppViewModelCapturePhaseTest {
         val conn = FakeConnection(); val vm = vm(this, conn)
         try {
             connect(this, vm)
+            val attachmentPollsBeforeCapture = conn.count(286)
             vm.capture(); advanceTimeBy(20_000)
             assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
+            assertEquals(attachmentPollsBeforeCapture, conn.count(286), "camera attachment polling must stay quiesced after an unknown outcome")
             vm.capture(); advanceTimeBy(100)
             assertEquals(1, conn.count(264), "unknown outcome requires operator recovery")
             assertTrue(vm.statusMessage.contains("in progress"))

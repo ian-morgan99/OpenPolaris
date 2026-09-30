@@ -709,6 +709,10 @@ private fun StepperRow(
  */
 @Composable
 fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    androidx.compose.runtime.DisposableEffect(vm) {
+        vm.enterPreview()
+        onDispose { vm.leavePreview() }
+    }
     val frame = vm.previewFrame
     val state = vm.previewState
     Card(modifier = modifier.padding(8.dp)) {

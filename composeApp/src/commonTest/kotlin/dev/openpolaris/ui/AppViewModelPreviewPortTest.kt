@@ -105,13 +105,12 @@ class AppViewModelPreviewPortTest {
             assertEquals(9090, vm.port)
 
             vm.connect()
-            // Bounded advance: a successful connect starts the 284/517 poll
-            // loop and the 266 capture poll; advanceTimeBy lets the connect
-            // settle (including startPreview) without running those loops
-            // forever.
+            // Connecting must not claim the separate 8080 camera preview.
             advanceTimeBy(10_000)
 
             assertEquals("Connected", vm.statusMessage)
+            assertEquals(0, recording.startCount, "connect alone must not open a competing preview stream")
+            vm.enterPreview()
             assertEquals(1, recording.startCount, "preview transport should have started exactly once")
             assertEquals("192.168.0.1", recording.lastHost)
             // The regression assertion: 8080, not the control port.
@@ -138,6 +137,7 @@ class AppViewModelPreviewPortTest {
             advanceTimeBy(10_000)
 
             assertEquals("Connected", vm.statusMessage)
+            vm.enterPreview()
             assertEquals(8081, recording.lastPort, "explicit preview port override must reach the transport")
         } finally {
             vm.disconnect()

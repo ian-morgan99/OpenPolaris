@@ -859,7 +859,6 @@ class AppViewModel(
                         startPolling(s)
                         startCaptureEventObserver(s)
                         startCameraAttachmentPolling(s)
-                        startPreview()
                     } catch (e: Throwable) {
                         // Make sure the half-built session is torn down so a
                         // retry starts from a clean slate. The next connect()
@@ -1371,6 +1370,18 @@ class AppViewModel(
         restoreCaptureWorkloads()
     }
 
+    /** Open preview only while the user is in the Preview workflow. */
+    fun enterPreview() {
+        if (session == null || captureWorkloadsSuspended) return
+        startPreview()
+    }
+
+    /** Release this app's preview connection when leaving the Preview workflow. */
+    fun leavePreview() {
+        preview.stop()
+        previewFrame = null
+    }
+
     private suspend fun suspendCaptureWorkloads() {
         if (captureWorkloadsSuspended) return
         captureWorkloadsSuspended = true
@@ -1415,9 +1426,11 @@ class AppViewModel(
         cameraAttachmentPollJob?.cancel()
         cameraAttachmentPollJob = scope.launch {
             while (isActive) {
-                when (val r = s.request(Codes.CAM_INFO) { CommandTable.CAM_INFO.parse!!(it) }) {
-                    is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
-                    else -> {} // Timeout / ProtocolError: keep last good value
+                if (!cameraPollingSuspended) {
+                    when (val r = s.request(Codes.CAM_INFO) { CommandTable.CAM_INFO.parse!!(it) }) {
+                        is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
+                        else -> {} // Timeout / ProtocolError: keep last good value
+                    }
                 }
                 delay(5000)
             }
@@ -2378,7 +2391,8 @@ class AppViewModel(
                         "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
                     )
                     statusMessage = "Capture outcome unknown — check the card before another shutter"
-                    restoreCaptureWorkloads()
+                    // Keep camera-backed work suspended until explicit session
+                    // recovery; the camera may still be processing the shot.
                 }
             }
         }

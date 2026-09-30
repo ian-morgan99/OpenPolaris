@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
  * 2 user/argument error). Separated from [main] so unit tests can assert the
  * code without touching JVM SecurityManager.
  */
-fun runMain(args: Array<String>): Int {
+fun runMain(args: Array<String>, bt: BluetoothProbe = BluetoothProbe()): Int {
     var mode: String? = null
     var profile: String? = null
     var ifname: String? = "wlp8s0"
@@ -53,7 +53,6 @@ fun runMain(args: Array<String>): Int {
     val m = mode ?: run { usage(); return 2 }
     val printer: (String) -> Unit = { if (json) println("{\"ok\":true,\"msg\":\"$it\"}") else println(it) }
     val bridge = WifiBridge()
-    val bt = BluetoothProbe()
     return when (m) {
         "probe" -> {
             val dev = bt.discover()

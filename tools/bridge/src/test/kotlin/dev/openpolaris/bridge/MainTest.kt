@@ -3,6 +3,8 @@ package dev.openpolaris.bridge
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import dev.openpolaris.core.net.BluetoothProbe
+import dev.openpolaris.core.net.ProcessRunner
 
 /**
  * Tests for the bridge tool's arg shape. We do not shell out in tests —
@@ -80,7 +82,7 @@ class MainTest {
             // On the test host there is no polaris-named BT device, so the
             // scan will return no rows. With the 0-ms settle default the
             // function returns quickly.
-            val code = runMain(arrayOf("--wake"))
+            val code = runMain(arrayOf("--wake"), noBluetoothDevices())
             assertEquals(1, code)
             val out = buf.toString()
             assertTrue(
@@ -103,7 +105,7 @@ class MainTest {
         try {
             System.setOut(java.io.PrintStream(buf))
             System.setErr(java.io.PrintStream(errBuf))
-            val code = runMain(arrayOf("--wake", "--json"))
+            val code = runMain(arrayOf("--wake", "--json"), noBluetoothDevices())
             assertEquals(1, code)
             val out = buf.toString()
             assertTrue(
@@ -115,4 +117,6 @@ class MainTest {
             System.setErr(realErr)
         }
     }
+
+    private fun noBluetoothDevices() = BluetoothProbe(runner = ProcessRunner { "" })
 }

@@ -2465,7 +2465,15 @@ class AppViewModel(
             captureSawLifecycle = false
             captureSawFile = false
             suspendCaptureWorkloads()
-            cameraController?.captureBulb(seconds)
+            val controller = cameraController ?: return@launch
+            statusMessage = "Reconnecting camera for Bulb mode…"
+            if (!controller.rebindForModeTransition()) {
+                capturePhase = CapturePhase.Failed("Bulb camera rebind failed")
+                statusMessage = "Bulb camera rebind failed"
+                restoreCaptureWorkloads()
+                return@launch
+            }
+            controller.captureBulb(seconds)
             statusMessage = "Bulb capture sent (${seconds}s)"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {

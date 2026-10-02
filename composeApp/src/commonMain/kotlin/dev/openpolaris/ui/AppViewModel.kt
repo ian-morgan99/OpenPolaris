@@ -2451,6 +2451,33 @@ class AppViewModel(
         }
     }
 
+    /** Trigger a Benro-compatible Bulb exposure from the Manual camera pane. */
+    fun captureBulb(seconds: Int) {
+        if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
+        if (cameraController == null) { statusMessage = "Not connected"; return }
+        if (sequenceActive) { statusMessage = "Capture sequence in progress — stop it first"; return }
+        val phase = capturePhase
+        if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
+            statusMessage = "Capture in progress — wait for it to finish"; return
+        }
+        scope.launch {
+            capturePhase = CapturePhase.Requested
+            captureSawLifecycle = false
+            captureSawFile = false
+            suspendCaptureWorkloads()
+            cameraController?.captureBulb(seconds)
+            statusMessage = "Bulb capture sent (${seconds}s)"
+            captureWatchdogJob?.cancel()
+            captureWatchdogJob = scope.launch {
+                delay(maxOf(CAPTURE_TIMEOUT_MS, seconds * 1000L + 15_000L))
+                if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
+                    capturePhase = CapturePhase.OutcomeUnknown("timeout: missing correlated Bulb lifecycle/file event")
+                    statusMessage = "Bulb outcome unknown — check the card before another shutter"
+                }
+            }
+        }
+    }
+
     /** #90 test seam: drive a parsed unsolicited frame without a live device. */
     internal fun testOnCaptureFrame(frame: ResponseParser.Frame) = onCaptureFrame(frame)
 

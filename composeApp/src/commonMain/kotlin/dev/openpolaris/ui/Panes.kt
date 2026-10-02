@@ -471,6 +471,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val attachment = vm.cameraAttachment
     val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
     var qualificationArmed by remember { mutableStateOf(false) }
+    var bulbSecondsText by remember { mutableStateOf("5") }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
@@ -558,6 +559,19 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     else -> {}
                 }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = bulbSecondsText,
+                    onValueChange = { if (it.all(Char::isDigit)) bulbSecondsText = it },
+                    label = { Text("Bulb seconds") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(150.dp),
+                )
+                Button(onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) }) {
+                    Text("Bulb capture")
+                }
             }
             // §6: client-driven capture sequence (intervalometer). The engine
             // fires one shutter per shot at the planned interval; each shot is

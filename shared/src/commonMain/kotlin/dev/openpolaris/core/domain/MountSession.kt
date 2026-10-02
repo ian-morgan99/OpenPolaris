@@ -778,6 +778,19 @@ class MountSession(
     }
 
     /**
+     * Rebuild the mount/control connection without destroying this session
+     * object. This is used for camera mode transitions whose firmware state
+     * is refreshed by Benro Connect's disconnect/reconnect sequence.
+     * Callers must stop preview and polling before invoking this method.
+     */
+    suspend fun rebind(): Boolean {
+        val wasWanted = wantConnected
+        disconnect()
+        if (!wasWanted) return false
+        return connect()
+    }
+
+    /**
      * Terminal operation: permanently tear down the [MountSession] and
      * release the [readerScope] itself (not just its children, which is
      * what [disconnect] does). After [shutdown]:

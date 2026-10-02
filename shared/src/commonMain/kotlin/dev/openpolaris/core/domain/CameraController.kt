@@ -107,6 +107,9 @@ class CameraController(private val session: MountSession) {
     suspend fun setColor(index: Int) = session.send(Codes.CAM_SET_COLOR, "color:$index;")
     suspend fun queryShutter(): Int? = queryIndex(Codes.CAM_GET_SHUTTER, "shutter")
     suspend fun setShutter(index: Int) = session.send(Codes.CAM_SET_SHUTTER, "shutter:$index;")
+
+    /** Rebind the mount session before a mode-dependent camera transition. */
+    suspend fun rebindForModeTransition(): Boolean = session.rebind()
     suspend fun queryCaptureMode(): Int? = queryIndex(Codes.CAM_GET_CAPTURE_MODE, "captureMode")
     suspend fun setCaptureMode(index: Int) = session.send(Codes.CAM_SET_CAPTURE_MODE, "captureMode:$index;")
 

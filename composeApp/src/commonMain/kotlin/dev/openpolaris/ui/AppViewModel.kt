@@ -2346,14 +2346,31 @@ class AppViewModel(
     fun setImgSize(index: Int) = rejectUnverifiedCameraWrite()
     fun setImgFmt(index: Int) = rejectUnverifiedCameraWrite()
     fun setColor(index: Int) = rejectUnverifiedCameraWrite()
-    fun setShutter(index: Int) = qualifyCameraSetting("Shutter", Codes.BenroCamera.GET_SHUTTER_INFO, Codes.BenroCamera.SET_SHUTTER, "shutter", index)
+    fun setShutter(index: Int) {
+        val option = camera.shutterOptions.getOrNull(index)?.trim()?.lowercase()
+        qualifyCameraSetting(
+            "Shutter",
+            Codes.BenroCamera.GET_SHUTTER_INFO,
+            Codes.BenroCamera.SET_SHUTTER,
+            "shutter",
+            index,
+            rebindForBulb = option == "bulb" || option == "b",
+        )
+    }
     fun setCaptureMode(index: Int) = rejectUnverifiedCameraWrite()
     fun setIso(index: Int) = qualifyCameraSetting("ISO", Codes.BenroCamera.GET_ISO_INFO, Codes.BenroCamera.SET_ISO, "iso", index)
     fun setWb(index: Int) = qualifyCameraSetting("WB", Codes.BenroCamera.GET_WB_INFO, Codes.BenroCamera.SET_WB, "wb", index)
     fun setFNum(index: Int) = qualifyCameraSetting("Aperture", Codes.BenroCamera.GET_FNUM_INFO, Codes.BenroCamera.SET_FNUM, "fNum", index)
     fun setEv(index: Int) = qualifyCameraSetting("EV", Codes.BenroCamera.GET_EV_INFO, Codes.BenroCamera.SET_EV, "ev", index)
 
-    private fun qualifyCameraSetting(label: String, infoCode: Int, setCode: Int, key: String, index: Int) {
+    private fun qualifyCameraSetting(
+        label: String,
+        infoCode: Int,
+        setCode: Int,
+        key: String,
+        index: Int,
+        rebindForBulb: Boolean = false,
+    ) {
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
         if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
@@ -2361,6 +2378,13 @@ class AppViewModel(
             return
         }
         scope.launch {
+            if (rebindForBulb) {
+                statusMessage = "Reconnecting camera for Bulb mode…"
+                if (!controller.rebindForModeTransition()) {
+                    statusMessage = "Bulb mode rebind failed; shutter write blocked"
+                    return@launch
+                }
+            }
             val result = controller.qualifyBenroSetting(label, infoCode, setCode, key, index)
             if (result.verified) {
                 camera = when (label) {

@@ -83,6 +83,23 @@ class CameraRecordStatusContractTest {
     }
 
     @Test
+    fun `bulb capture returns rejected photo result when 264 does not echo state one`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&299&2&ret:0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&264&2&state:0;#".toByteArray(Charsets.US_ASCII)
+        val (session, controller) = newSession(conn, backgroundScope)
+        session.connect()
+
+        val result = controller.captureBulb(8)
+
+        assertFalse(result.accepted)
+        assertEquals("0", result.state)
+        assertEquals("1&299&2&ExTime:8000;#", String(conn.written[conn.written.size - 2], Charsets.US_ASCII))
+        assertEquals("1&264&2&state:1;bulb:8;c:-1;#", String(conn.written.last(), Charsets.US_ASCII))
+        session.disconnect()
+    }
+
+    @Test
     fun `invalid bulb or continuation values fail before writing`() = runTest {
         val conn = FakeConnection()
         val (session, controller) = newSession(conn, backgroundScope)

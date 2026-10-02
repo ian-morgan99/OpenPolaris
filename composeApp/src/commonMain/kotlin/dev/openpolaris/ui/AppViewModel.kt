@@ -2473,7 +2473,14 @@ class AppViewModel(
                 restoreCaptureWorkloads()
                 return@launch
             }
-            controller.captureBulb(seconds)
+            val result = controller.captureBulb(seconds)
+            if (!result.accepted) {
+                val reason = result.error ?: result.raw ?: "no explicit state:1 acknowledgement"
+                capturePhase = CapturePhase.Failed("Bulb command rejected: $reason")
+                statusMessage = "Bulb command rejected: $reason"
+                restoreCaptureWorkloads()
+                return@launch
+            }
             statusMessage = "Bulb capture sent (${seconds}s)"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {

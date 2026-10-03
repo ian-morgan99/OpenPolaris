@@ -85,7 +85,7 @@ class CameraRecordStatusContractTest {
     @Test
     fun `bulb capture returns rejected photo result when 264 does not echo state one`() = runTest {
         val conn = FakeConnection()
-        conn.responses += "1&299&2&ret:0;#".toByteArray(Charsets.US_ASCII)
+        conn.responses += "1&268&2&V:1;R:1/100,B;#".toByteArray(Charsets.US_ASCII)
         conn.responses += "1&264&2&state:0;#".toByteArray(Charsets.US_ASCII)
         val (session, controller) = newSession(conn, backgroundScope)
         session.connect()
@@ -94,8 +94,40 @@ class CameraRecordStatusContractTest {
 
         assertFalse(result.accepted)
         assertEquals("0", result.state)
-        assertEquals("1&299&2&ExTime:8000;#", String(conn.written[conn.written.size - 2], Charsets.US_ASCII))
+        assertEquals("1&268&2&-100#", String(conn.written[conn.written.size - 2], Charsets.US_ASCII))
         assertEquals("1&264&2&state:1;bulb:8;c:-1;#", String(conn.written.last(), Charsets.US_ASCII))
+        session.disconnect()
+    }
+
+    @Test
+    fun `bulb capture refuses to trigger unless shutter readback is B`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&268&2&V:2;R:1/100,1/10;#".toByteArray(Charsets.US_ASCII)
+        val (session, controller) = newSession(conn, backgroundScope)
+        session.connect()
+
+        val result = controller.captureBulb(8)
+
+        assertFalse(result.sent)
+        assertTrue(result.error.orEmpty().contains("not in Bulb"))
+        assertEquals("1&268&2&-100#", String(conn.written.last(), Charsets.US_ASCII))
+        assertTrue(conn.written.none {
+            String(it, Charsets.US_ASCII).startsWith("1&264&")
+        })
+        session.disconnect()
+    }
+
+    @Test
+    fun `bulb stop sends the matching 264 state zero edge`() = runTest {
+        val conn = FakeConnection()
+        conn.responses += "1&264&2&state:0;#".toByteArray(Charsets.US_ASCII)
+        val (session, controller) = newSession(conn, backgroundScope)
+        session.connect()
+
+        val result = controller.stopBulb()
+
+        assertTrue(result.accepted)
+        assertEquals("1&264&2&state:0;bulb:0;c:-1;#", String(conn.written.last(), Charsets.US_ASCII))
         session.disconnect()
     }
 

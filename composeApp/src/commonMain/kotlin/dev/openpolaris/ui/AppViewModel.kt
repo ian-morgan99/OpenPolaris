@@ -2466,13 +2466,6 @@ class AppViewModel(
             captureSawFile = false
             suspendCaptureWorkloads()
             val controller = cameraController ?: return@launch
-            statusMessage = "Reconnecting camera for Bulb mode…"
-            if (!controller.rebindForModeTransition()) {
-                capturePhase = CapturePhase.Failed("Bulb camera rebind failed")
-                statusMessage = "Bulb camera rebind failed"
-                restoreCaptureWorkloads()
-                return@launch
-            }
             val result = controller.captureBulb(seconds)
             if (!result.accepted) {
                 val reason = result.error ?: result.raw ?: "no explicit state:1 acknowledgement"
@@ -2489,6 +2482,32 @@ class AppViewModel(
                     capturePhase = CapturePhase.OutcomeUnknown("timeout: missing correlated Bulb lifecycle/file event")
                     statusMessage = "Bulb outcome unknown — check the card before another shutter"
                 }
+            }
+        }
+    }
+
+    /** Request the matching 264 state-0 edge for an active Bulb capture. */
+    fun stopBulb() {
+        val phase = capturePhase
+        if (phase !is CapturePhase.Requested && phase !is CapturePhase.Busy) {
+            statusMessage = "No Bulb capture is active"
+            return
+        }
+        val controller = cameraController
+        if (controller == null) {
+            capturePhase = CapturePhase.OutcomeUnknown("camera disconnected while stopping Bulb")
+            statusMessage = "Bulb outcome unknown — camera disconnected"
+            return
+        }
+        scope.launch {
+            val result = controller.stopBulb()
+            if (result.accepted) {
+                statusMessage = "Bulb stop sent; waiting for the image"
+            } else {
+                capturePhase = CapturePhase.OutcomeUnknown(
+                    "Bulb stop was not acknowledged: ${result.error ?: result.raw ?: "unknown"}"
+                )
+                statusMessage = "Bulb stop not confirmed — check the card before another shutter"
             }
         }
     }

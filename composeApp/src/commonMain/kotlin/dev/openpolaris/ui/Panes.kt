@@ -561,6 +561,8 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                val bulbInFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
+                    phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
                 OutlinedTextField(
                     value = bulbSecondsText,
                     onValueChange = { if (it.all(Char::isDigit)) bulbSecondsText = it },
@@ -569,8 +571,14 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(150.dp),
                 )
-                Button(onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) }) {
+                Button(
+                    onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
+                    enabled = !bulbInFlight,
+                ) {
                     Text("Bulb capture")
+                }
+                if (bulbInFlight) {
+                    OutlinedButton(onClick = vm::stopBulb) { Text("Stop Bulb") }
                 }
             }
             // §6: client-driven capture sequence (intervalometer). The engine

@@ -561,34 +561,50 @@ class CameraController(private val session: MountSession) {
      *
      * The #120 symptom ("countdown, then a ~1 s shot") is therefore a firmware
      * misinterpretation of the 264 `bulb:` field as a pre-shot delay rather than the
-     * exposure duration. This method is a **workaround**: it additionally sets EX_TIME to
-     * `bulbSeconds * 1000` ms before the 264 trigger, hedging against firmware builds that
-     * read EX_TIME for the shutter-open duration. The EX_TIME set is best-effort (a failure
-     * must not block the capture — the 264 still carries the bulb seconds). This is
-     * speculative until hardware-verified; the durable fix is a firmware patch so the 264
-     * `bulb:` field is used as the exposure duration directly.
+     * exposure duration. The Polaris firmware patch removes that redundant app-side
+     * delay, so the camera's Bulb timer remains the owner of shutter-open duration.
+     * This method deliberately does not write EX_TIME as a second, competing timer;
+     * it mirrors Benro Connect's wire contract and avoids racing or overwriting the
+     * selected Bulb duration.
      */
     suspend fun captureBulb(
         bulbSeconds: Int,
         continuationCount: Int = -1,
     ): PhotoRecordResult {
-        if (bulbSeconds < 0 || continuationCount < -1) return PhotoRecordResult(
+        if (bulbSeconds <= 0 || continuationCount < -1) return PhotoRecordResult(
             code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
             sent = false,
             error = "Unsupported bulb capture bulb=$bulbSeconds c=$continuationCount",
             requestedState = "1",
         )
-        // Set the exposure duration (ms) first, matching Benro Connect's sequencing.
-        // Best-effort: a failed EX_TIME set must not block the capture — the 264 trigger
-        // still carries the bulb seconds, so the shot proceeds even if the firmware rejects
-        // the EX_TIME write (e.g. a model that does not implement cmd 299).
-        setExposureTime(bulbSeconds * 1000)
+
+        // Benro Connect's Bulb path assumes the camera is already in B and sends
+        // only 264/state:1.  Do not send the separate 299 exposure-time write here:
+        // it is a different control path, and on some firmware it can race the
+        // shutter transition or overwrite the camera's Bulb timer.
+        val shutter = queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
+        val shutterLabel = shutter.index?.let { shutter.options.getOrNull(it) }
+            ?.trim()?.lowercase()
+        if (shutterLabel != "b" && shutterLabel != "bulb") return PhotoRecordResult(
+            code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
+            sent = false,
+            error = "Camera is not in Bulb shutter mode (reported ${shutter.raw.ifBlank { "unknown" }})",
+            raw = shutter.raw,
+            requestedState = "1",
+        )
         return setPhotoRecordStatus(
             recording = true,
             bulbSeconds = bulbSeconds,
             continuationCount = continuationCount,
         )
     }
+
+    /** Stop an active Benro Bulb exposure using the matching 264 state-0 edge. */
+    suspend fun stopBulb(): PhotoRecordResult = setPhotoRecordStatus(
+        recording = false,
+        bulbSeconds = 0,
+        continuationCount = -1,
+    )
 
     private suspend fun sendBenroParamQuery(code: Int, key: String, subtype: Int): CameraParamResult {
         val reply = session.request(

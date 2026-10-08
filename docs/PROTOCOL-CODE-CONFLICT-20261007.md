@@ -67,13 +67,11 @@ publish the wrong pairing (276/277 as shutter get/set).
 
 ## Why this matters beyond naming
 
-The patcher canary historically sent **277 with `shutter:`** — an aperture setter
-with a shutter payload. A `ret:0` from that exchange looks like success and is
-not: the shutter was never set. That specific bug is fixed —
-`scripts/canary-probe.py` now uses 261/268 and cites the evidence — but the
-wrong map is still live in this repo's `Codes.kt` and `CommandTable.kt`, so any
-*new* client written against `Codes.CAM_SET_SHUTTER` reintroduces it. This is the
-mechanism behind the long-running "shutter does not stick" class of report, and
+The canary historically sent **277 with `shutter:`** — an aperture setter with a
+shutter payload. A `ret:0` from that exchange looks like success and is not:
+the shutter was never set. Any test that "sets shutter" via 277 and then judges
+the shot by file existence has been measuring the wrong thing. This is the
+mechanism behind the long-running "shutter does not stick" class of report and
 it is a client bug, not a camera one.
 
 ## Required fix

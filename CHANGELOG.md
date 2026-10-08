@@ -16,6 +16,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   icon at runtime. Source art lives in
   `desktopApp/src/jvmMain/resources/META-INF/`.
 ### Fixed
+- **The desktop app can wake a sleeping mount again.** The Bluetooth wake had
+  become unreachable in practice: the GATT wake pulse was gated on first
+  *discovering* the mount by scan, but the Polaris is not advertisable in
+  either state it needs waking from — asleep its BLE radio is powered down
+  with the AP, and awake it stops advertising once a client is connected. Both
+  were measured on 2026-10-08 (an 8 s scan returned no `polaris_` device while
+  its AP was up and associated). Discovery therefore always failed, the pulse
+  was never sent, and the bridge fell through to a saved profile a sleeping
+  mount cannot satisfy — while Benro Connect, which simply connects to a known
+  address, woke it instantly. Wake now resolves the address from configuration,
+  then a persisted last-known-good address (`~/.config/openpolaris/known-ble-address`,
+  written after a successful wake), then the BlueZ device cache, and scans only
+  when none of those know the mount; `tools/bridge --wake` follows the same
+  order. A BlueZ `le-connection-abort-by-local` is now treated as an issued
+  pulse, because the link really is opened and it does wake the AP.
+- **Waking no longer gives up before the mount's AP has had time to appear.**
+  The AP was measured taking ~31 s to come on the air after the wake pulse
+  (the repo's own hardware-verified `wake-and-probe.sh` polls for 60 s), but
+  the bridge allowed a 2 s settle plus a fixed 15 s link wait, so a healthy
+  wake was reported as "Link never came up — is the gimbal powered on?". After
+  a wake the bridge now retries profile activation — which cannot succeed while
+  the SSID is not yet broadcast — and waits up to 90 s for the link. The short
+  single-attempt path is kept when nothing needed waking.
 - **Wi-Fi bridge policy route no longer fails with "Operation not permitted".**
   `ip rule add/del` and `ip route add/del` need `CAP_NET_ADMIN`, which the
   desktop app does not run with, so the "Installing policy route" step of the
@@ -29,9 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in `/etc/iproute2/rt_tables` no longer aborts the bridge (the numeric table
   id is used for every real `ip` call).
 - **Desktop Bluetooth and Wi-Fi bridge errors are now reported accurately.**
-  A Bluetooth wake that cannot discover or connect to the Polaris no longer
-  claims success; bridge activation also stops on saved-profile or policy-route
-  failure rather than reporting the mount Wi-Fi as ready.
+  A Bluetooth wake that cannot connect to the Polaris no longer claims success;
+  bridge activation also stops on saved-profile or policy-route failure rather
+  than reporting the mount Wi-Fi as ready. (Its companion change also made an
+  undetected device a hard wake failure, which turned out to make the wake
+  pulse unreachable — corrected by the first entry above.)
 - **Firmware uploads no longer hang indefinitely after SSH progress stops.**
   The upload now fails after 30 seconds without reported byte progress,
   terminates the stalled transfer, explains that the Wi-Fi link should be

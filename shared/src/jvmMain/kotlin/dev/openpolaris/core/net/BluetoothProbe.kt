@@ -1,6 +1,7 @@
 package dev.openpolaris.core.net
 
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 
 /**
  * Bluetooth control plane for the gimbal.
@@ -15,10 +16,24 @@ import java.util.UUID
  * to the device and immediately closes it. See `polaris-re-results.md` §8.5.
  *
  * Flow this class supports:
- *   1. [discover] — one-shot LE scan for a device whose name matches
+ *   1. [knownDevices] — the BlueZ device cache, which needs no scan and is the
+ *      only source that reliably knows the mount in both of its radio states
+ *      (see its KDoc);
+ *   2. [discover] — one-shot LE scan for a device whose name matches
  *      [namePattern] (default `polaris_` or `theta_` prefixes used by Benro);
- *   2. [wake] — connect and retain GATT through the Wi-Fi/control handoff;
- *   3. caller hands off to [WifiBridge] (or `nmcli`) to bring up the AP link.
+ *   3. [wake] — connect and retain GATT through the Wi-Fi/control handoff;
+ *   4. caller hands off to [WifiBridge] (or `nmcli`) to bring up the AP link.
+ *
+ * Why [knownDevices] comes first and [discover] is only a fallback: the mount
+ * is never advertisable at the moment we most need it. Verified live on
+ * `beast` / firmware 6.0.0.54 on 2026-10-08:
+ *   - asleep: the BLE radio sleeps with the AP, so a scan finds nothing;
+ *   - awake: it stops advertising once a client is connected, so a scan finds
+ *     nothing either (an 8s scan while its AP was up and associated returned
+ *     zero `polaris_` devices, while an unrelated advertiser was picked up —
+ *     the adapter scans fine, the mount simply is not advertising).
+ * [discover] therefore cannot be a precondition for [wake]; it can only ever
+ * supply an address we do not already have.
  *
  * [startAp] is kept as a **vendor-extension escape hatch** for firmware
  * revisions that actually do require a GATT characteristic write to start
@@ -74,6 +89,15 @@ class BluetoothProbe(
         val rssi: Int? = null,       // dBm, if reported
     )
 
+    companion object {
+        /**
+         * BlueZ's error for tearing down a link it had already established
+         * locally. The GATT connection *was* opened, which is all the wake
+         * pulse requires, so [wake] treats it as success.
+         */
+        const val LOCAL_ABORT = "le-connection-abort-by-local"
+    }
+
     /**
      * Runs a single, time-bounded LE scan, returns the first device whose
      * advertised name matches [namePattern] (case-insensitive contains).
@@ -82,16 +106,46 @@ class BluetoothProbe(
      */
     fun discover(timeoutMs: Int = 8000): DiscoveredDevice? {
         val out = runner.run(listOf("bluetoothctl", "--timeout", (timeoutMs / 1000).coerceAtLeast(1).toString(), "scan", "on"))
-        val addressRegex = Regex("""Device\s+([0-9A-Fa-f:]{17})\s+(.+)""")
-        val needle = namePattern.lowercase()
-        for (match in addressRegex.findAll(out)) {
-            val addr = match.groupValues[1]
-            val name = match.groupValues[2].trim()
-            if (name.lowercase().contains(needle)) {
-                return DiscoveredDevice(addr, name)
-            }
+        return parseDevices(out).firstOrNull { it.name.lowercase().contains(namePattern.lowercase()) }
+    }
+
+    /**
+     * Reads the BlueZ device cache (`bluetoothctl devices`) for entries whose
+     * name matches [namePattern]. Unlike [discover] this issues no scan, so it
+     * is cheap, it cannot disturb the adapter, and — the reason it exists — it
+     * still returns the mount when the mount is not advertisable, which is
+     * every state we actually wake it from.
+     *
+     * Returns every match, most-recently-listed first as BlueZ prints them.
+     * An empty list means BlueZ has never seen the device, which is the only
+     * case where a scan is worth attempting.
+     */
+    fun knownDevices(): List<DiscoveredDevice> {
+        val out = try {
+            runner.run(listOf("bluetoothctl", "devices"))
+        } catch (e: CancellationException) {
+            // Not an operational failure: the caller's scope was cancelled, and
+            // swallowing it here would turn a cancel into "no devices known"
+            // and let the wake continue. See #52.
+            throw e
+        } catch (e: Exception) {
+            // No adapter, bluetoothctl missing, BlueZ down: all mean "nothing
+            // cached", which is a normal answer and has safe fallbacks.
+            return emptyList()
         }
-        return null
+        return parseDevices(out).filter { it.name.lowercase().contains(namePattern.lowercase()) }
+    }
+
+    /**
+     * Parses `Device <MAC> <name>` lines out of `bluetoothctl devices` or scan
+     * output. Shared by [discover] and [knownDevices] so both agree on what a
+     * device line looks like.
+     */
+    private fun parseDevices(output: String): List<DiscoveredDevice> {
+        val addressRegex = Regex("""Device\s+([0-9A-Fa-f:]{17})\s+(.+)""")
+        return addressRegex.findAll(output).map { match ->
+            DiscoveredDevice(match.groupValues[1], match.groupValues[2].trim())
+        }.toList()
     }
 
     /**
@@ -121,20 +175,36 @@ class BluetoothProbe(
      */
     fun wake(device: DiscoveredDevice) {
         val connect = listOf("bluetoothctl", "connect", device.address)
+        // True once a GATT connection attempt has actually reached the mount.
+        // `le-connection-abort-by-local` counts: BlueZ tears the link down a
+        // moment after `Connected: yes`, so the command exits non-zero even
+        // though the connection was genuinely opened and then dropped.
+        // Re-measured live on 2026-10-08 — that exact abort still brought the
+        // AP up (~31 s later, host auto-associated, 192.168.0.1 answering).
+        // The pulse is the *act of connecting*, not a held link.
+        var pulseIssued = false
         try {
             runner.run(connect)
+            pulseIssued = true
         } catch (firstFailure: BridgeException) {
+            if (firstFailure.isLocalAbort()) pulseIssued = true
+        }
+        if (!pulseIssued) {
             runCatching { runner.run(listOf("bluetoothctl", "pair", device.address)) }
             runCatching { runner.run(listOf("bluetoothctl", "trust", device.address)) }
             try {
                 runner.run(connect)
+                pulseIssued = true
             } catch (retryFailure: BridgeException) {
-                throw BridgeException(
-                    "bluetoothctl connect ${device.address}",
-                    retryFailure.exitCode,
-                    "direct connect failed (${firstFailure.message}); retry failed (${retryFailure.message})",
-                )
+                if (retryFailure.isLocalAbort()) pulseIssued = true
             }
+        }
+        if (!pulseIssued) {
+            throw BridgeException(
+                "bluetoothctl connect ${device.address}",
+                1,
+                "no GATT connection could be opened to ${device.address}",
+            )
         }
         if (!retainGattConnection) {
             runCatching { runner.run(listOf("bluetoothctl", "disconnect", device.address)) }
@@ -143,6 +213,10 @@ class BluetoothProbe(
             Thread.sleep(wakeSettleMs.toLong())
         }
     }
+
+    /** True iff [this] is BlueZ aborting a link it had already established. */
+    private fun BridgeException.isLocalAbort(): Boolean =
+        message?.contains(LOCAL_ABORT) == true
 
     /** Release the wake link after Wi-Fi and its persistent control owner exist. */
     fun release(device: DiscoveredDevice) {

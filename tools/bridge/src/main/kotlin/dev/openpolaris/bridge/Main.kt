@@ -67,16 +67,21 @@ fun runMain(args: Array<String>, bt: BluetoothProbe = BluetoothProbe()): Int {
             }
         }
         "wake" -> {
-            val dev = bt.discover()
+            // Same ordering as BridgeOrchestrator: the BlueZ cache first, a
+            // scan only if nothing is known. A scan cannot find the mount in
+            // either state we wake it from (asleep: radio down with the AP;
+            // awake: not advertising while connected), so gating the pulse on
+            // discovery meant `--wake` could never actually wake anything.
+            val dev = bt.knownDevices().firstOrNull() ?: bt.discover()
             if (dev == null) {
                 if (json) println("{\"ok\":false,\"err\":\"no device matched\"}")
-                else println("no Polaris-named BT device found — nothing to wake")
+                else println("no Polaris-named BT device known or found — nothing to wake")
                 1
             } else {
-                if (!json) println("found ${dev.name} (${dev.address}); pulsing BT wake…")
+                if (!json) println("waking ${dev.name} (${dev.address})…")
                 bt.wake(dev)
                 if (json) println("""{"ok":true,"address":"${dev.address}","name":"${dev.name}","msg":"woke"}""")
-                else println("woke ${dev.name} (${dev.address}); AP should be up in ~2s")
+                else println("woke ${dev.name} (${dev.address}); AP typically appears within ~30s")
                 0
             }
         }

@@ -86,7 +86,7 @@ class MainTest {
             assertEquals(1, code)
             val out = buf.toString()
             assertTrue(
-                out.contains("no Polaris-named BT device found") ||
+                out.contains("no Polaris-named BT device known or found") ||
                     out.contains("\"ok\":false"),
                 "expected not-found message, got: $out",
             )
@@ -119,4 +119,37 @@ class MainTest {
     }
 
     private fun noBluetoothDevices() = BluetoothProbe(runner = ProcessRunner { "" })
+
+    /**
+     * `--wake` must use the BlueZ cache before scanning. A scan cannot see the
+     * mount while it is asleep (its BLE radio is down with the AP) or while it
+     * is connected, which is exactly when a wake is wanted — so a scan-first
+     * `--wake` could never wake anything.
+     */
+    @Test
+    fun `--wake uses the BlueZ cache instead of requiring a scan hit`() {
+        val calls = mutableListOf<List<String>>()
+        val runner = ProcessRunner { args ->
+            calls += args
+            if (args == listOf("bluetoothctl", "devices")) "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n" else ""
+        }
+        val realOut = System.out
+        val buf = java.io.ByteArrayOutputStream()
+        try {
+            System.setOut(java.io.PrintStream(buf))
+            val code = runMain(arrayOf("--wake", "--json"), BluetoothProbe(runner = runner, wakeSettleMs = 0))
+            assertEquals(0, code, "a cached address must be enough to wake, got: $buf")
+            assertTrue(buf.toString().contains("48:E7:DA:D4:B5:72"), "expected the cached address, got: $buf")
+            assertTrue(
+                calls.contains(listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72")),
+                "expected a GATT connect, got: $calls",
+            )
+            assertTrue(
+                calls.none { "scan" in it },
+                "a cache hit must not fall through to a scan: $calls",
+            )
+        } finally {
+            System.setOut(realOut)
+        }
+    }
 }

@@ -2,7 +2,9 @@ package dev.openpolaris.core.net
 
 import dev.openpolaris.core.net.BluetoothProbe.DiscoveredDevice
 import kotlin.test.Test
+import kotlinx.coroutines.CancellationException
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -165,5 +167,108 @@ class BluetoothProbeTest {
         val fake = FakeRunner()
         val probe = BluetoothProbe(runner = fake)
         assertNull(probe.discover())
+    }
+
+    // ---------------------------------------------------------------------
+    // knownDevices(): the address source that works when scanning cannot.
+    //
+    // Measured live on 2026-10-08: the mount is not advertisable while asleep
+    // (BLE radio down with the AP) and stops advertising once a client is
+    // connected, so `scan on` returns no polaris_ device in either state. The
+    // BlueZ cache does. These tests keep knownDevices() usable as the primary
+    // source so a future refactor cannot quietly make wake depend on a scan
+    // again — the regression that broke the desktop "Wake" button.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun `knownDevices reads the BlueZ cache without issuing a scan`() {
+        val fake = FakeRunner(
+            cannedPerCommand = mapOf(
+                "bluetoothctl devices" to
+                    """
+                    Device 48:E7:DA:D4:B5:72 polaris_d13e86
+                    Device 11:22:33:44:55:66 some_other_gadget
+                    """.trimIndent(),
+            ),
+        )
+        val probe = BluetoothProbe(runner = fake)
+
+        val found = probe.knownDevices()
+
+        assertEquals(listOf("48:E7:DA:D4:B5:72"), found.map { it.address })
+        assertEquals(listOf("polaris_d13e86"), found.map { it.name })
+        // No scan: this path must stay cheap and must not disturb the adapter.
+        assertEquals(listOf(listOf("bluetoothctl", "devices")), fake.calls)
+    }
+
+    @Test
+    fun `knownDevices is empty when BlueZ has never seen the device`() {
+        val fake = FakeRunner()
+        val probe = BluetoothProbe(runner = fake)
+        assertEquals(emptyList(), probe.knownDevices())
+    }
+
+    @Test
+    fun `knownDevices does not throw when bluetoothctl is unavailable`() {
+        val throwing = ProcessRunner { throw BridgeException("bluetoothctl", -1, "adapter down") }
+        val probe = BluetoothProbe(runner = throwing)
+        assertEquals(emptyList(), probe.knownDevices())
+    }
+
+    @Test
+    fun `knownDevices propagates cancellation instead of reporting no devices`() {
+        // #52: an empty list is a meaningful answer ("nothing cached, go on"),
+        // so a cancellation must not be disguised as one.
+        val cancelling = ProcessRunner { throw CancellationException("test cancellation") }
+        val probe = BluetoothProbe(runner = cancelling)
+        assertFailsWith<CancellationException> { probe.knownDevices() }
+    }
+
+    @Test
+    fun `wake treats a BlueZ local abort as an issued pulse`() {
+        // `Connected: yes` followed by `le-connection-abort-by-local` is the
+        // normal outcome on this host, and it still wakes the AP. Treating it
+        // as a failure caused pointless pair/trust retries and, before that,
+        // hid whether a pulse had been sent at all.
+        val fake = object : ProcessRunner {
+            val calls = mutableListOf<List<String>>()
+            override fun run(args: List<String>): String {
+                calls += args
+                if (args.getOrNull(1) == "connect") {
+                    throw BridgeException("bluetoothctl", 1, "org.bluez.Error.Failed le-connection-abort-by-local")
+                }
+                return ""
+            }
+        }
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+
+        probe.wake(dev())
+
+        val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }
+        assertEquals(
+            listOf(listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF")),
+            bt,
+            "a local abort must not trigger pair/trust retries",
+        )
+    }
+
+    @Test
+    fun `wake still retries via pair and trust for a genuine connect failure`() {
+        val fake = object : ProcessRunner {
+            val calls = mutableListOf<List<String>>()
+            override fun run(args: List<String>): String {
+                calls += args
+                if (args.getOrNull(1) == "connect") {
+                    throw BridgeException("bluetoothctl", 1, "org.bluez.Error.ConnectionAttemptFailed")
+                }
+                return ""
+            }
+        }
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+
+        assertFailsWith<BridgeException> { probe.wake(dev()) }
+
+        val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }.map { it[1] }
+        assertEquals(listOf("connect", "pair", "trust", "connect"), bt)
     }
 }

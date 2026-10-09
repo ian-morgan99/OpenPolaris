@@ -96,6 +96,25 @@ class BluetoothProbe(
          * pulse requires, so [wake] treats it as success.
          */
         const val LOCAL_ABORT = "le-connection-abort-by-local"
+
+        /**
+         * The only reliable positive signal that a GATT link was established.
+         * `bluetoothctl` prints this on stdout when the connection succeeds,
+         * and — unlike the exit status — it does not lie: an unreachable mount
+         * exits 0 without ever printing it.
+         */
+        const val CONNECTED_YES = "Connected: yes"
+
+        /**
+         * Seconds to let `bluetoothctl` wait for the connection result.
+         *
+         * Without `--timeout`, `bluetoothctl connect` returns as soon as the
+         * request is *issued*, before the link resolves, so `Connected: yes`
+         * would never be observed and success could not be detected at all.
+         * Bounded well inside the bridge's link budget; a mount that is awake
+         * and in range answers in about a second.
+         */
+        const val CONNECT_TIMEOUT_SECONDS = 15
     }
 
     /**
@@ -174,36 +193,24 @@ class BluetoothProbe(
      * Throws [BridgeException] if any bluetoothctl call fails.
      */
     fun wake(device: DiscoveredDevice) {
-        val connect = listOf("bluetoothctl", "connect", device.address)
-        // True once a GATT connection attempt has actually reached the mount.
-        // `le-connection-abort-by-local` counts: BlueZ tears the link down a
-        // moment after `Connected: yes`, so the command exits non-zero even
-        // though the connection was genuinely opened and then dropped.
-        // Re-measured live on 2026-10-08 — that exact abort still brought the
-        // AP up (~31 s later, host auto-associated, 192.168.0.1 answering).
-        // The pulse is the *act of connecting*, not a held link.
-        var pulseIssued = false
-        try {
-            runner.run(connect)
-            pulseIssued = true
-        } catch (firstFailure: BridgeException) {
-            if (firstFailure.isLocalAbort()) pulseIssued = true
-        }
+        // A pulse counts only if the link actually opened. Measured on
+        // 2026-10-09: `bluetoothctl connect` on an unreachable mount prints
+        // "Attempting to connect to …" and then exits **0** without ever
+        // reaching `Connected: yes`, so the exit status cannot be the signal —
+        // treating it as success made wake report "woke <device>" for a pulse
+        // that was never delivered. The textual marker is authoritative.
+        var pulseIssued = attemptConnect(device)
         if (!pulseIssued) {
             runCatching { runner.run(listOf("bluetoothctl", "pair", device.address)) }
             runCatching { runner.run(listOf("bluetoothctl", "trust", device.address)) }
-            try {
-                runner.run(connect)
-                pulseIssued = true
-            } catch (retryFailure: BridgeException) {
-                if (retryFailure.isLocalAbort()) pulseIssued = true
-            }
+            pulseIssued = attemptConnect(device)
         }
         if (!pulseIssued) {
             throw BridgeException(
                 "bluetoothctl connect ${device.address}",
                 1,
-                "no GATT connection could be opened to ${device.address}",
+                "no GATT connection could be opened to ${device.address}; " +
+                    "the mount is out of range, powered down, or in deep sleep",
             )
         }
         if (!retainGattConnection) {
@@ -211,6 +218,34 @@ class BluetoothProbe(
         }
         if (wakeSettleMs > 0) {
             Thread.sleep(wakeSettleMs.toLong())
+        }
+    }
+
+    /**
+     * Issues one GATT connect and reports whether the link was actually
+     * established, which is the only thing that wakes the AP.
+     *
+     * Success is read from the command's output rather than its exit status,
+     * for two reasons measured on this host:
+     *  - an unreachable mount exits 0 having only printed "Attempting to
+     *    connect", and
+     *  - the normal success path then aborts locally (`le-connection-abort-by-
+     *    local`) and exits *non-zero*, even though the link did open and does
+     *    wake the AP.
+     * So `Connected: yes` in stdout, or the abort marker in stderr, are the
+     * two forms of a delivered pulse.
+     */
+    private fun attemptConnect(device: DiscoveredDevice): Boolean {
+        // --timeout makes bluetoothctl wait for the connection result instead
+        // of returning immediately; without it the process can exit before the
+        // link is even attempted.
+        val connect = listOf("bluetoothctl", "--timeout", CONNECT_TIMEOUT_SECONDS.toString(), "connect", device.address)
+        return try {
+            runner.run(connect).contains(CONNECTED_YES)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: BridgeException) {
+            e.isLocalAbort() || (e.message?.contains(CONNECTED_YES) == true)
         }
     }
 

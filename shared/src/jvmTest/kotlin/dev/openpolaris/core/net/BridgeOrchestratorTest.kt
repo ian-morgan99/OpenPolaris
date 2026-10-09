@@ -29,6 +29,18 @@ import kotlin.test.assertTrue
  * a developer machine holds the real mount's address; leaving it unset would
  * make these tests depend on whether this machine has ever woken a mount.
  */
+/**
+ * `bluetoothctl connect` reports a successful link only on stdout. Its exit
+ * status is not a usable signal: an unreachable mount exits 0, and the normal
+ * success path then aborts locally and exits non-zero. Fakes that want a wake
+ * to succeed must return this.
+ */
+private const val CONNECTED_YES_OUTPUT = "[CHG] Device 48:E7:DA:D4:B5:72 Connected: yes\n"
+
+/** True if a GATT connect was issued to [address], whatever timeout was used. */
+private fun woke(calls: List<List<String>>, address: String): Boolean =
+    calls.any { it.contains("connect") && it.contains(address) }
+
 class BridgeOrchestratorTest {
 
     private val serviceOk = PolarisServiceIdentityProbe { _, _ -> Result.success("ports 22+9090/284") }
@@ -36,10 +48,18 @@ class BridgeOrchestratorTest {
     /** A store with nothing recorded, so no address comes from persistence. */
     private fun emptyStore(): KnownBleAddressStore = KnownBleAddressStore.inMemory()
 
+/** True if a GATT connect was issued to [address], whatever timeout was used. */
+    private fun FakeRunner.wakeCall(address: String): Boolean =
+        calls.any { it.contains("connect") && it.contains(address) }
+
     private class FakeRunner : ProcessRunner {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
             calls += argv
+            // A GATT connect only counts as delivered if stdout carried
+            // `Connected: yes`; the exit status proves nothing. Waking tests
+            // therefore need the marker, or wake() correctly reports failure.
+            if (argv.contains("connect")) return "[CHG] Device 48:E7:DA:D4:B5:72 Connected: yes\n"
             return ""
         }
     }
@@ -150,7 +170,7 @@ class BridgeOrchestratorTest {
 
         assertTrue(orch.wakeOnly())
         assertEquals(
-            listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72"),
+            listOf("bluetoothctl", "--timeout", "15", "connect", "48:E7:DA:D4:B5:72"),
             fake.calls.first(),
         )
         assertFalse(fake.calls.any { "scan" in it })
@@ -264,7 +284,11 @@ class BridgeOrchestratorTest {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
             calls += argv
-            return if (argv.contains("scan")) "Device AA:BB:CC:DD:EE:FF polaris_d13e86\n" else ""
+            return when {
+                argv.contains("scan") -> "Device AA:BB:CC:DD:EE:FF polaris_d13e86\n"
+                argv.contains("connect") -> CONNECTED_YES_OUTPUT
+                else -> ""
+            }
         }
     }
 
@@ -387,7 +411,11 @@ class BridgeOrchestratorTest {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
             calls += argv
-            return if (argv == listOf("bluetoothctl", "devices")) cache else ""
+            return when {
+                argv == listOf("bluetoothctl", "devices") -> cache
+                argv.contains("connect") -> CONNECTED_YES_OUTPUT
+                else -> ""
+            }
         }
     }
 
@@ -402,7 +430,7 @@ class BridgeOrchestratorTest {
 
         assertTrue(orch.wakeOnly(), "a cached address must be enough to wake")
         assertTrue(
-            fake.calls.contains(listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72")),
+            woke(fake.calls, "48:E7:DA:D4:B5:72"),
             "expected a GATT connect from the cached address, got: ${fake.calls}",
         )
         assertFalse(
@@ -424,7 +452,7 @@ class BridgeOrchestratorTest {
 
         assertTrue(orch.wakeOnly())
         assertEquals(
-            listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72"),
+            listOf("bluetoothctl", "--timeout", "15", "connect", "48:E7:DA:D4:B5:72"),
             fake.calls.first(),
             "the last known-good address must win, and cost no subprocess to find",
         )
@@ -442,7 +470,7 @@ class BridgeOrchestratorTest {
             "with no cached address a scan is the correct last resort",
         )
         assertTrue(
-            fake.calls.contains(listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF")),
+            woke(fake.calls, "AA:BB:CC:DD:EE:FF"),
             "a scanned address must still be woken, got: ${fake.calls}",
         )
     }
@@ -464,6 +492,7 @@ class BridgeOrchestratorTest {
                     nmcliUpAttempts++
                     if (nmcliUpAttempts < 3) throw BridgeException("nmcli", 7, "No network with this SSID")
                 }
+                if (argv.contains("connect")) return CONNECTED_YES_OUTPUT
                 return ""
             }
         }

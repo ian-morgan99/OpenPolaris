@@ -14,24 +14,54 @@ import kotlin.test.assertTrue
  * live-verified wake rule: connect first; pairing is only a fallback.
  * so future refactors can't accidentally drop a step or change the order.
  */
+/**
+ * What `bluetoothctl --timeout N connect <addr>` prints on stdout when the link
+ * really was established. The exit status is *not* a usable signal here — see
+ * the tests around [BluetoothProbe.CONNECTED_YES].
+ */
+private const val CONNECTED_OK =
+    "Attempting to connect to AA:BB:CC:DD:EE:FF\n[CHG] Device AA:BB:CC:DD:EE:FF Connected: yes\n"
+
 class BluetoothProbeTest {
 
     private class FakeRunner(
         private val cannedPerCommand: Map<String, String> = emptyMap(),
+        private val failuresPerCommand: Map<String, BridgeException> = emptyMap(),
     ) : ProcessRunner {
         val calls = mutableListOf<List<String>>()
+
+        /**
+         * Keys match as a *prefix* of the invoked command, so a test can pin
+         * behaviour for `bluetoothctl connect` without restating the timeout
+         * the probe happens to pass today.
+         */
+        private fun <T> lookup(table: Map<String, T>): T? {
+            val cmd = calls.last().joinToString(" ")
+            return table.entries.firstOrNull { cmd.startsWith(it.key) }?.value
+        }
+
         override fun run(args: List<String>): String {
             calls += args
-            return cannedPerCommand[args.joinToString(" ")] ?: ""
+            lookup(failuresPerCommand)?.let { throw it }
+            return lookup(cannedPerCommand) ?: ""
         }
     }
 
     private fun dev(addr: String = "AA:BB:CC:DD:EE:FF", name: String = "polaris_d13e86") =
         DiscoveredDevice(addr, name)
 
+    /**
+     * `bluetoothctl` subcommands are not at a fixed index: `connect` and
+     * `disconnect` are preceded by `--timeout N`, while `pair`/`trust` are not.
+     */
+    private fun subcommandOf(args: List<String>): String =
+        args.firstOrNull { it in setOf("connect", "disconnect", "pair", "trust") } ?: args.getOrNull(1).orEmpty()
+
     @Test
     fun `wake connects directly and retains GATT by default`() {
-        val fake = FakeRunner()
+        val fake = FakeRunner(
+            cannedPerCommand = mapOf("bluetoothctl --timeout 15 connect" to CONNECTED_OK),
+        )
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         probe.wake(dev())
 
@@ -39,7 +69,7 @@ class BluetoothProbeTest {
         val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }
         assertEquals(
             listOf(
-                listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF"),
+                listOf("bluetoothctl", "--timeout", "15", "connect", "AA:BB:CC:DD:EE:FF"),
             ),
             bt,
         )
@@ -58,7 +88,7 @@ class BluetoothProbeTest {
 
     @Test
     fun `wake can add a post-pulse settle delay`() {
-        val fake = FakeRunner()
+        val fake = FakeRunner(cannedPerCommand = mapOf("bluetoothctl --timeout 15 connect" to CONNECTED_OK))
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0, retainGattConnection = false)
         val start = System.nanoTime()
         probe.wake(dev())
@@ -73,10 +103,10 @@ class BluetoothProbeTest {
             val calls = mutableListOf<List<String>>()
             override fun run(args: List<String>): String {
                 calls += args
-                if (args.getOrNull(1) == "disconnect") {
+                if (args.getOrNull(2) == "disconnect") {
                     throw BridgeException("bluetoothctl", 1, "not connected")
                 }
-                return ""
+                return CONNECTED_OK
             }
         }
         val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0, retainGattConnection = false)
@@ -84,7 +114,7 @@ class BluetoothProbeTest {
         probe.wake(dev())
         // Disconnect was attempted.
         assertTrue(
-            fake.calls.any { it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect" },
+            fake.calls.any { it.firstOrNull() == "bluetoothctl" && it.contains("disconnect") },
             "disconnect must still be attempted, got: " + fake.calls.toString(),
         )
     }
@@ -94,11 +124,12 @@ class BluetoothProbeTest {
         val fake = object : ProcessRunner {
             var connects = 0
             override fun run(args: List<String>): String {
-                if (args.getOrNull(1) == "connect") {
+                if (args.contains("connect")) {
                     connects++
                     if (connects == 1) throw BridgeException("bluetoothctl", 1, "not cached")
+                    return CONNECTED_OK
                 }
-                if (args.getOrNull(1) == "pair") {
+                if (args.contains("pair")) {
                     throw BridgeException("bluetoothctl", 1, "pair rejected")
                 }
                 return ""
@@ -234,7 +265,9 @@ class BluetoothProbeTest {
             val calls = mutableListOf<List<String>>()
             override fun run(args: List<String>): String {
                 calls += args
-                if (args.getOrNull(1) == "connect") {
+                if (args.contains("connect")) {
+                    // The link came up (stdout carried `Connected: yes`), then
+                    // BlueZ dropped it and exited non-zero with this on stderr.
                     throw BridgeException("bluetoothctl", 1, "org.bluez.Error.Failed le-connection-abort-by-local")
                 }
                 return ""
@@ -246,7 +279,7 @@ class BluetoothProbeTest {
 
         val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }
         assertEquals(
-            listOf(listOf("bluetoothctl", "connect", "AA:BB:CC:DD:EE:FF")),
+            listOf(listOf("bluetoothctl", "--timeout", "15", "connect", "AA:BB:CC:DD:EE:FF")),
             bt,
             "a local abort must not trigger pair/trust retries",
         )
@@ -268,7 +301,70 @@ class BluetoothProbeTest {
 
         assertFailsWith<BridgeException> { probe.wake(dev()) }
 
-        val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }.map { it[1] }
+        val bt = fake.calls.filter { it.firstOrNull() == "bluetoothctl" }.map { subcommandOf(it) }
         assertEquals(listOf("connect", "pair", "trust", "connect"), bt)
+    }
+
+    // ---------------------------------------------------------------------
+    // Success must be read from the output, never from the exit status.
+    //
+    // Measured live on 2026-10-09 with the mount powered off: `bluetoothctl
+    // --timeout 15 connect <addr>` printed only "Attempting to connect to …"
+    // and exited 0. A previous version of wake() treated a zero exit as a
+    // delivered pulse, so the desktop reported "woke polaris_d13e86" for a
+    // pulse that was never sent, and the bridge then waited out its whole
+    // link budget for an AP that had never been woken.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun `wake does not claim success when connect exits zero without connecting`() {
+        // The exact output of a connect to an unreachable mount: exit 0, no
+        // `Connected: yes`.
+        val fake = FakeRunner(
+            cannedPerCommand = mapOf(
+                "bluetoothctl --timeout 15 connect" to "Attempting to connect to AA:BB:CC:DD:EE:FF\n",
+            ),
+        )
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+
+        assertFailsWith<BridgeException> { probe.wake(dev()) }
+
+        // And it must have tried the pair/trust recovery rather than stopping
+        // at the first silent failure.
+        assertEquals(
+            listOf("connect", "pair", "trust", "connect"),
+            fake.calls.filter { it.firstOrNull() == "bluetoothctl" }.map { subcommandOf(it) },
+        )
+    }
+
+    @Test
+    fun `wake reports the mount is unreachable rather than a bare failure`() {
+        val fake = FakeRunner(
+            cannedPerCommand = mapOf(
+                "bluetoothctl --timeout 15 connect" to "Attempting to connect to AA:BB:CC:DD:EE:FF\n",
+            ),
+        )
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+
+        val error = assertFailsWith<BridgeException> { probe.wake(dev()) }
+        assertTrue(
+            error.message!!.contains("deep sleep"),
+            "the message should name the likely cause, got: " + error.message,
+        )
+    }
+
+    @Test
+    fun `wake bounds the connect so a slow adapter cannot stall the bridge`() {
+        val fake = FakeRunner(cannedPerCommand = mapOf("bluetoothctl --timeout 15 connect" to CONNECTED_OK))
+        val probe = BluetoothProbe(runner = fake, wakeSettleMs = 0)
+
+        probe.wake(dev())
+
+        val connect = fake.calls.first { it.contains("connect") }
+        val timeout = connect[connect.indexOf("--timeout") + 1].toInt()
+        assertTrue(
+            timeout in 1..30,
+            "connect must be bounded, and well inside the bridge link budget, got ${timeout}s",
+        )
     }
 }

@@ -1,6 +1,7 @@
 package dev.openpolaris.bridge
 
 import dev.openpolaris.core.net.BluetoothProbe
+import dev.openpolaris.core.net.BridgeException
 import dev.openpolaris.core.net.WifiBridge
 
 /**
@@ -79,10 +80,27 @@ fun runMain(args: Array<String>, bt: BluetoothProbe = BluetoothProbe()): Int {
                 1
             } else {
                 if (!json) println("waking ${dev.name} (${dev.address})…")
-                bt.wake(dev)
-                if (json) println("""{"ok":true,"address":"${dev.address}","name":"${dev.name}","msg":"woke"}""")
-                else println("woke ${dev.name} (${dev.address}); AP typically appears within ~30s")
-                0
+                val reason = try {
+                    bt.wake(dev)
+                    null
+                } catch (e: BridgeException) {
+                    // A mount that is powered down or in deep sleep is an
+                    // expected outcome, not a crash. `wake` only returns once a
+                    // GATT link has actually been observed, so getting here
+                    // means no wake pulse was delivered — report it plainly and
+                    // exit like the not-found path above rather than dumping a
+                    // stack trace for a normal condition.
+                    e.message ?: "wake failed"
+                }
+                if (reason != null) {
+                    if (json) println("""{"ok":false,"address":"${jsonEscape(dev.address)}","name":"${jsonEscape(dev.name)}","err":"${jsonEscape(reason)}"}""")
+                    else println(reason)
+                    1
+                } else {
+                    if (json) println("""{"ok":true,"address":"${dev.address}","name":"${dev.name}","msg":"woke"}""")
+                    else println("woke ${dev.name} (${dev.address}); AP typically appears within ~30s")
+                    0
+                }
             }
         }
         "up" -> {
@@ -135,6 +153,18 @@ private fun usage() {
         |default ifname is wlp8s0.
         """.trimMargin()
     )
+}
+
+/** Minimal JSON string escaping; error text from BlueZ can contain quotes. */
+private fun jsonEscape(value: String): String = buildString {
+    for (c in value) when (c) {
+        '"' -> append("\\\"")
+        '\\' -> append("\\\\")
+        '\n' -> append("\\n")
+        '\r' -> append("\\r")
+        '\t' -> append("\\t")
+        else -> if (c < ' ') append("\\u%04x".format(c.code)) else append(c)
+    }
 }
 
 private fun err(msg: String): Int {

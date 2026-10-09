@@ -131,7 +131,13 @@ class MainTest {
         val calls = mutableListOf<List<String>>()
         val runner = ProcessRunner { args ->
             calls += args
-            if (args == listOf("bluetoothctl", "devices")) "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n" else ""
+            when {
+                args == listOf("bluetoothctl", "devices") -> "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n"
+                // `Connected: yes` on stdout is the only proof a GATT link came
+                // up; the exit status is not one (see BluetoothProbe.CONNECTED_YES).
+                args.contains("connect") -> "[CHG] Device 48:E7:DA:D4:B5:72 Connected: yes\n"
+                else -> ""
+            }
         }
         val realOut = System.out
         val buf = java.io.ByteArrayOutputStream()
@@ -141,13 +147,73 @@ class MainTest {
             assertEquals(0, code, "a cached address must be enough to wake, got: $buf")
             assertTrue(buf.toString().contains("48:E7:DA:D4:B5:72"), "expected the cached address, got: $buf")
             assertTrue(
-                calls.contains(listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72")),
+                calls.any { it.contains("connect") && it.contains("48:E7:DA:D4:B5:72") },
                 "expected a GATT connect, got: $calls",
             )
             assertTrue(
                 calls.none { "scan" in it },
                 "a cache hit must not fall through to a scan: $calls",
             )
+        } finally {
+            System.setOut(realOut)
+        }
+    }
+
+    /**
+     * A mount that is powered off or in deep sleep is a normal condition, so
+     * `--wake` must report it as a message with a non-zero exit rather than
+     * letting the exception escape as a stack trace.
+     */
+    @Test
+    fun `--wake reports an unreachable mount instead of throwing`() {
+        val runner = ProcessRunner { args ->
+            when {
+                args == listOf("bluetoothctl", "devices") -> "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n"
+                // Exactly what bluetoothctl prints for an unreachable mount:
+                // exit 0, and no `Connected: yes`.
+                args.contains("connect") -> "Attempting to connect to 48:E7:DA:D4:B5:72\n"
+                else -> ""
+            }
+        }
+        val realOut = System.out
+        val buf = java.io.ByteArrayOutputStream()
+        try {
+            System.setOut(java.io.PrintStream(buf))
+            val code = runMain(arrayOf("--wake"), BluetoothProbe(runner = runner, wakeSettleMs = 0))
+            assertEquals(1, code)
+            val out = buf.toString()
+            assertTrue(
+                out.contains("deep sleep"),
+                "expected the unreachable-mount explanation, got: $out",
+            )
+            assertTrue(
+                !out.contains("woke polaris"),
+                "must not claim a pulse that was never delivered: $out",
+            )
+        } finally {
+            System.setOut(realOut)
+        }
+    }
+
+    @Test
+    fun `--wake --json reports an unreachable mount as valid JSON`() {
+        val runner = ProcessRunner { args ->
+            when {
+                args == listOf("bluetoothctl", "devices") -> "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n"
+                args.contains("connect") -> "Attempting to connect to 48:E7:DA:D4:B5:72\n"
+                else -> ""
+            }
+        }
+        val realOut = System.out
+        val buf = java.io.ByteArrayOutputStream()
+        try {
+            System.setOut(java.io.PrintStream(buf))
+            val code = runMain(arrayOf("--wake", "--json"), BluetoothProbe(runner = runner, wakeSettleMs = 0))
+            assertEquals(1, code)
+            val out = buf.toString().trim()
+            assertTrue(out.startsWith("{") && out.endsWith("}"), "expected one JSON object, got: $out")
+            assertTrue(out.contains("\"ok\":false"), "expected ok:false, got: $out")
+            assertTrue(out.contains("\"err\":"), "expected an err field, got: $out")
         } finally {
             System.setOut(realOut)
         }

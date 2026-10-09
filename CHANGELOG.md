@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **A failed wake no longer reports success.** `bluetoothctl connect` exits
+  `0` for a mount it never reached: measured on 2026-10-09 against a powered-off
+  mount, it printed only `Attempting to connect to …` and exited `0`. The wake
+  path judged the pulse by that exit status, so it reported `woke
+  polaris_d13e86` for a pulse that was never delivered, and the bridge then
+  waited out its entire link budget for an access point that had never been
+  woken — which is what "the desktop shortcut didn't connect" looked like from
+  the outside. Success is now read from the `Connected: yes` marker on stdout,
+  the only signal that does not lie in both directions (the *successful* path
+  then aborts locally and exits non-zero). The connect is also bounded by
+  `--timeout`, without which `bluetoothctl` returns before the link resolves and
+  the marker could never be observed.
+- **`bridge --wake` no longer dumps a stack trace for a sleeping mount.** A
+  powered-down or deep-sleeping mount is an expected outcome; it now prints the
+  reason and exits `1`, in plain and `--json` output alike.
 
 ## [0.1.18] - 2026-10-09
 ### Added

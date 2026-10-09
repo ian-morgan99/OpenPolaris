@@ -66,9 +66,21 @@ tasks.register("verifyDesktopAppImage") {
     inputs.dir(imageDir)
     doLast {
         val appDir = imageDir.get().asFile
-        val jars = appDir.resolve("lib/app").listFiles()
-            ?.filter { it.extension == "jar" }
-            ?: throw GradleException("Desktop app image missing lib/app: $appDir")
+        // jpackage does not put the app jars in one place across platforms:
+        //   Linux   <image>/lib/app/*.jar
+        //   Windows <image>/app/*.jar
+        //   macOS   <image>/Contents/app/*.jar
+        // Hardcoding lib/app made this task pass on Linux and the local
+        // launcher while failing every Windows release job with "missing
+        // lib/app" since it was wired into that job (dda884c). Probe the
+        // per-platform locations instead.
+        val appJarDir = listOf("lib/app", "app", "Contents/app")
+            .map { appDir.resolve(it) }
+            .firstOrNull { dir -> dir.isDirectory && dir.listFiles()?.any { it.extension == "jar" } == true }
+            ?: throw GradleException(
+                "Desktop app image has no jar directory (tried lib/app, app, Contents/app) under: $appDir",
+            )
+        val jars = appJarDir.listFiles()!!.filter { it.extension == "jar" }
         val buildInfoEntries = jars.mapNotNull { jar ->
             val props = JarFile(jar).use { jf ->
                 jf.getEntry("openpolaris-build.properties")?.let { entry ->

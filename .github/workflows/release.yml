@@ -137,8 +137,15 @@ jobs:
           test -f "${APK}" || { echo "::error::APK not found at ${APK}"; exit 1; }
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "${APK}"
           sha256sum "${APK}" > apk-sha256.txt
+          # apksigner labels the signer digest differently depending on the
+          # signing scheme: v1 (JAR) uses "Signer #1 certificate SHA-256
+          # digest", while v2-only APKs use "V2 Signer: certificate SHA-256
+          # digest" (note the colon after "V2 Signer"). The release APK is
+          # v2-only, so matching the v1 label alone yields an empty file and
+          # `test -s` fails a perfectly well-signed build. Match the common
+          # substring instead. Regression of b299670, reverted by 8dfa1d7.
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --print-certs "${APK}" \
-            | awk -F': *' '/Signer #1 certificate SHA-256 digest/ {print $2}' | head -1 > apk-signer-sha256.txt
+            | awk -F': *' '/certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
           test -s apk-sha256.txt
           test -s apk-signer-sha256.txt
 

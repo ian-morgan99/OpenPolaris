@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.1.19] - 2026-10-09
 ### Fixed
 - **A failed wake no longer reports success.** `bluetoothctl connect` exits
   `0` for a mount it never reached: measured on 2026-10-09 against a powered-off

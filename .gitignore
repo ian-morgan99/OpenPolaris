@@ -1,6 +1,7 @@
 local.properties
 .gradle/
 build/
+bin/
 .kotlin/
 
 # Android release signing — never commit passwords.

@@ -1,0 +1,24 @@
+--- Clog locations ---
+ls: /app/sd/Clog.txt: No such file or directory
+-rw-r--r--    1 root     root         22776 Sep 29 12:38 /app/Clog.txt
+--- /app/Clog.txt last 20 ---
+[stage2] dlopen port ok
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64
+[stage2] mmap slot page @0x30000000 ok (fresh RW anon page, 4096 B)
+[stage2] init: stubbed 64 slots (fail-closed baseline; slot base 0x30000000)
+[stage2] on-disk loader: CAMLIBS=/app/lib/stage2/libgphoto2/2.5.34 IOLIBS=/app/lib/stage2/libgphoto2_port/0.12.2
+[stage2] dlopen core via abs /app/lib/stage2/libgphoto2.so.6
+[stage2] dlopen core ok
+[stage2] dlopen port via abs /app/lib/stage2/libgphoto2_port.so.12
+[stage2] dlopen port ok
+[stage2] preview-backoff: gp_camera_capture_preview slot -> shim (real core fn cached for pass-through)
+[stage2] storage: gp_camera_init slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_config slot -> shim (real core fn cached for pass-through)
+[stage2] capturetarget: gp_camera_set_single_config slot -> shim (real core fn cached for pass-through)
+[stage2] resolved 64/64
+[stage2] slots filled 64/64

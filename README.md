@@ -16,6 +16,7 @@ but disabled for v2.
 | [SPEC.md](docs/SPEC.md) | Functional specification: feature inventory mirroring the stock app, screen map, behavioral rules, v1 acceptance criteria |
 | [PROTOCOL.md](docs/PROTOCOL.md) | Complete protocol reference: transport, framing, all command codes/payloads, session lifecycle, known quirks (inverted halfSpeed, AHRS gating) |
 | [ASTRO-RATE-ADJUST-CONTROL.md](docs/ASTRO-RATE-ADJUST-CONTROL.md) | Design for the gated per-axis Astro fine-rate control beside Sidereal/Lunar, ½ speed and AHRS |
+| [REMOTE-DESKTOP.md](docs/REMOTE-DESKTOP.md) | Safe desktop launch behavior for GNOME Remote Desktop (3389/Wayland) and xrdp (3391/X11) |
 | [CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md](docs/CAMERA-PARITY-JUNIOR-AGENT-GUIDE.md) | One-feature-at-a-time handoff for deriving camera contracts from the local Benro APK, implementing them safely, testing them, and qualifying both camera bodies |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech stack (Kotlin Multiplatform + Compose), module layout, key design decisions, testing strategy |
 | [PLAN.md](docs/PLAN.md) | Phased project plan with hardware-validated gates G0–G3, effort estimates, risk register |

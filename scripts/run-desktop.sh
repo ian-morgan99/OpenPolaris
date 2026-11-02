@@ -19,10 +19,7 @@
 #   OPENPOLARIS_LOG=path.log ./scripts/run-desktop.sh  # tee gradle output
 set -euo pipefail
 cd "$(dirname "$0")/.."
-
-if [[ "${OPENPOLARIS_GPU:-0}" != "1" ]]; then
-  export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dskiko.renderApi=SOFTWARE_FAST -Dprism.order=sw -Dprism.text=t2k"
-fi
+source scripts/desktop-display.sh
 
 # By default the wrapper logs the Compose JVM's stdout to /tmp/openpolaris-desktop.log
 # (in addition to the calling terminal, if any) and stays attached for the full
@@ -55,8 +52,8 @@ run_with_tee() {
 }
 
 if [[ "$LOG_TARGET" == "-" ]]; then
-  exec ./gradlew :composeApp:run "$@"
+  openpolaris_with_display ./gradlew :composeApp:run "$@"
 else
   echo "Logging desktop UI startup to: $LOG_TARGET (wrapper stays attached until JVM exits)" >&2
-  run_with_tee "$LOG_TARGET" ./gradlew :composeApp:run "$@"
+  run_with_tee "$LOG_TARGET" openpolaris_with_display ./gradlew :composeApp:run "$@"
 fi

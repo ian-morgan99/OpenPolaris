@@ -2,8 +2,7 @@
 # Desktop shortcut entry point: never silently launch a stale app image.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export SKIKO_RENDER_API="${SKIKO_RENDER_API:-SOFTWARE_FAST}"
-export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+source scripts/desktop-display.sh
 
 APP_BIN="desktopApp/build/compose/binaries/main/app/OpenPolaris/bin/OpenPolaris"
 if ! ./gradlew :desktopApp:verifyDesktopAppImage --console=plain; then
@@ -17,4 +16,4 @@ if ! ./gradlew :desktopApp:verifyDesktopAppImage --console=plain; then
     ./gradlew :desktopApp:verifyDesktopAppImage --console=plain
 fi
 
-exec "$APP_BIN" "$@"
+openpolaris_with_display "$APP_BIN" "$@"

@@ -3,7 +3,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export DISPLAY="${DISPLAY:-:0}"
-export SKIKO_RENDER_API=SOFTWARE_FAST
-export LIBGL_ALWAYS_SOFTWARE=1
+source scripts/desktop-display.sh
 
-exec ./gradlew :desktopApp:run --console=plain
+openpolaris_with_display ./gradlew :desktopApp:run --console=plain

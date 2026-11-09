@@ -9,8 +9,8 @@
 # `shared/src/jvmMain/kotlin/dev/openpolaris/core/net/BluetoothProbe.kt`,
 # `wake()` at line 120, comment "Benro Polaris wakes on a bare GATT
 # connect") that a bare `bluetoothctl connect <MAC>` is the wake pulse
-# once the polaris is powered up. The normal handoff closes the GATT link
-# immediately after connection and then joins the AP; no BLE pairing is needed.
+# once the polaris is powered up. Keep that link until the Wi-Fi/SSH handoff
+# is confirmed, then release it; no BLE pairing is needed for the wake pulse.
 #
 # If BT wake does not work, the polaris MAC may not yet be known to
 # bluez — try the second-stage scan loop. As a final fallback, watch
@@ -36,14 +36,23 @@ POLARIS_BT="48:E7:DA:D4:B5:72"
 POLARIS_SSH="root@192.168.0.1"
 AP_SSID_RE='polaris_d13e86'
 
+BT_RETAINED=1
+release_bt() {
+  if [ "${BT_RETAINED}" -eq 1 ]; then
+    bluetoothctl disconnect "${POLARIS_BT}" >/dev/null 2>&1 || true
+    BT_RETAINED=0
+  fi
+}
+trap release_bt EXIT
+
 echo "== stage 1: BT wake pulse =="
-# In a single bluetoothctl session, power on, connect, then release GATT.
-# The connect IS the wake; pairing, service discovery and a characteristic
-# write are not part of the normal Wi-Fi wake path.
+# In a single bluetoothctl session, power on and connect. The connect IS the
+# wake; pairing, service discovery and a characteristic write are not part of
+# the normal Wi-Fi wake path. Retain the link through AP/SSH confirmation so a
+# failed association cannot accidentally drop the wake owner early.
 timeout 30 bluetoothctl <<EOF
 power on
 connect ${POLARIS_BT}
-disconnect ${POLARIS_BT}
 quit
 EOF
 BT_RC=$?
@@ -94,6 +103,9 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+echo
+echo "== release retained GATT wake link =="
+release_bt
 echo
 echo "== stage 5: first-look probe =="
 # Resolve evidence dir relative to this script so the same capture works

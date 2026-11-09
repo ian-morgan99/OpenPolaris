@@ -543,5 +543,13 @@ class BridgeOrchestratorTest {
             messages.any { it.contains("Link never came up") },
             "expected the link-failure message once the budget is exhausted, got: $messages",
         )
+        val disconnect = fake.calls.filter {
+            it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect"
+        }
+        assertEquals(
+            listOf(listOf("bluetoothctl", "disconnect", "48:E7:DA:D4:B5:72")),
+            disconnect,
+            "failed bridge validation must release the retained GATT link",
+        )
     }
 }

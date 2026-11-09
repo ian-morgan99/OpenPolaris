@@ -149,6 +149,7 @@ class BridgeOrchestrator(
         }
         if (!linkUp) {
             progress("Link never came up on $ifname — is the gimbal powered on?")
+            releaseFailedWakeLink()
             return@withContext false
         }
 
@@ -159,6 +160,7 @@ class BridgeOrchestrator(
             throw e
         } catch (e: Exception) {
             progress("Policy route failed: ${e.message ?: e::class.simpleName}")
+            releaseFailedWakeLink()
             return@withContext false
         }
 
@@ -166,12 +168,14 @@ class BridgeOrchestrator(
         val identity = wifi.verifyPolarisIdentity(ifname).getOrElse { error ->
             progress("Polaris identity check failed: ${error.message ?: error::class.simpleName}")
             runCatching { wifi.removePolicyRoute(ifname) }
+            releaseFailedWakeLink()
             return@withContext false
         }
         progress("Verifying ports 22 and 9090…")
         val serviceIdentity = serviceProbe.verify("192.168.0.1", 9090).getOrElse { error ->
             progress("Polaris service identity failed: ${error.message ?: error::class.simpleName}")
             runCatching { wifi.removePolicyRoute(ifname) }
+            releaseFailedWakeLink()
             return@withContext false
         }
 
@@ -368,6 +372,18 @@ class BridgeOrchestrator(
     } catch (e: Exception) {
         progress("Could not read $source: ${e.message ?: e::class.simpleName}")
         null
+    }
+
+    /**
+     * A retained GATT link is useful only while it protects a live Wi-Fi
+     * control owner. If bridge validation fails, release it immediately so a
+     * failed attempt cannot strand BlueZ state or keep the mount awake after
+     * the caller has been told that no bridge exists.
+     */
+    private fun releaseFailedWakeLink() {
+        val woken = lastWokenAddress ?: return
+        runCatching { bt.release(BluetoothProbe.DiscoveredDevice(woken, "known Polaris")) }
+        lastWokenAddress = null
     }
 
     /** Persist a successful wake address so the next wake skips discovery. */

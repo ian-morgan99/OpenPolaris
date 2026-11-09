@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.path.defaultSessionPath
 
@@ -185,6 +186,11 @@ fun OpenPolarisApp(
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Tonight -> if (FeatureFlags.isEnabled("catalog")) {
+                    CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
+                } else {
+                    dialog = null
+                }
                 Callout.Firmware -> CalloutDialog("Firmware update", { dialog = null }) { FirmwarePane(vm, Modifier.fillMaxWidth()) }
                 // VR is launched in two stages: the rail click handler
                 // (CalloutRail.handle, below) calls `onLaunchVr?.invoke()`
@@ -226,7 +232,7 @@ fun OpenPolarisApp(
 // Each callout's rail label. Full words instead of cryptic acronyms so
 // a first-time user can read the rail without hovering for tooltips.
 // The 4 most-used entries form the "Operate" group on phones; the
-// remaining 5 live in the "More" overflow menu so the visible rail
+// remaining 6 live in the "More" overflow menu so the visible rail
 // always fits a 320 dp wide phone in portrait AND landscape.
 private enum class Callout(val glyph: String) {
     Connection("Wi-Fi"),
@@ -234,6 +240,7 @@ private enum class Callout(val glyph: String) {
     Camera("Camera"),
     Preview("Preview"),
     Helpers("Helpers"),
+    Tonight("Tonight"),
     Firmware("Firmware"),
     VR("3D view"),
     Readme("Guide"),
@@ -241,7 +248,7 @@ private enum class Callout(val glyph: String) {
 }
 
 // Operate group: 4 items shown in the always-visible rail. The
-// remaining 5 items (Helpers, Firmware, VR, Readme, Settings) live in
+// remaining 6 items (Helpers, Tonight, Firmware, VR, Readme, Settings) live in
 // the "More" overflow menu.
 private val OperateItems: List<Callout> = listOf(
     Callout.Connection,
@@ -252,6 +259,7 @@ private val OperateItems: List<Callout> = listOf(
 
 private val MoreItems: List<Callout> = listOf(
     Callout.Helpers,
+    Callout.Tonight,
     Callout.Firmware,
     Callout.VR,
     Callout.Readme,
@@ -260,7 +268,7 @@ private val MoreItems: List<Callout> = listOf(
 
 /**
  * Phone layout: an Operate row (4 items) + a "More…" button that
- * drops down the remaining 5 items. Replaces the v0.1.7 9-item
+ * drops down the remaining 6 items. Replaces the v0.1.7 10-item
  * horizontal rail which clipped icons to glyph-sized labels at 320
  * dp / 568 dp widths.
  */
@@ -275,7 +283,7 @@ private fun CalloutRail(
         if (c == Callout.VR) onLaunchVr?.invoke() else onSelect(c)
     }
     if (vertical) {
-        // Tablet layout: full 9-item vertical rail.
+        // Tablet layout: full 10-item vertical rail.
         Column(
             modifier,
             verticalArrangement = Arrangement.spacedBy(4.dp),

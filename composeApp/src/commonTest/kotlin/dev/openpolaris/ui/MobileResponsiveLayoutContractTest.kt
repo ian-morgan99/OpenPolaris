@@ -85,10 +85,10 @@ class MobileResponsiveLayoutContractTest {
         val operateRefs = Regex("""Callout\.\w+""").findAll(operateMatch!!.groupValues[1]).map { it.value }.toList()
         val moreRefs = Regex("""Callout\.\w+""").findAll(moreMatch!!.groupValues[1]).map { it.value }.toList()
         assertEquals(4, operateRefs.size, "OperateItems must be 4 entries. Found: $operateRefs")
-        assertEquals(5, moreRefs.size, "MoreItems must be 5 entries. Found: $moreRefs")
+        assertEquals(6, moreRefs.size, "MoreItems must be 6 entries. Found: $moreRefs")
         assertEquals(0, operateRefs.intersect(moreRefs.toSet()).size, "OperateItems and MoreItems must be disjoint")
         val total = (operateRefs + moreRefs).toSet()
-        assertEquals(9, total.size, "OperateItems + MoreItems must cover all 9 Callout entries. Found: $total")
+        assertEquals(10, total.size, "OperateItems + MoreItems must cover all 10 Callout entries. Found: $total")
     }
 
     @Test

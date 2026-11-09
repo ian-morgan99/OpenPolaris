@@ -11,7 +11,11 @@ event-correlated and fail-closed.
 2. Gate new 284/517 polls and allow the current bounded poll window to drain.
 3. Close this process's 8080 preview transport. If preview was active, request
    camera preview off (291).
-4. Send one 264 subtype-4 shutter command.
+4. Send one 264 shutter command. Normal stills use subtype 4 with
+   `state:1;bulb:0;c:-1;`. Benro-compatible Bulb uses subtype 2 with
+   `state:1;bulb:<seconds>;c:-1;`, and a manual stop uses the matching subtype-2
+   `state:0;bulb:0;c:-1;` edge. The Bulb path does not send 299; that is a
+   separate cable-release exposure-time control in Benro Connect.
 5. Observe unsolicited frames received after the request began:
    - a post-request, non-idle 264 `state` is lifecycle evidence and makes the
      capture busy (an idle event by itself cannot identify this shutter);

@@ -3,8 +3,10 @@
 ## Current position
 
 - OpenPolaris now has a Manual-pane Bulb duration control. It sends the existing
-  Benro-compatible `264` payload with `bulb:<seconds>` and sets the exposure
-  time first through the existing controller path.
+  Benro-compatible `264` payload with `state:1;bulb:<seconds>;c:-1;` after
+  confirming that the camera reports Bulb shutter mode. It deliberately does
+  not send `299`: Benro Connect uses that code for its separate cable-release
+  exposure-time control, not for the Bulb trigger.
 - The current K-3 III evidence shows normal capture completing through the
   firmware/libgphoto2 stack. Bulb still needs a live test through this control.
 - K-1 II support is not qualified. The decisive USB identity is `25fb:0183`
@@ -23,7 +25,8 @@
    image and lifecycle events exist but the UI remains busy, fix OpenPolaris
    state handling only.
 5. Add a regression test for the exact observed event sequence before claiming
-   Bulb support.
+   Bulb support. The existing wire contract already pins the 264 start/stop
+   shapes; physical completion evidence is still required.
 
 ## K-1 II work
 

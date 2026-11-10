@@ -903,3 +903,13 @@ The current implementation slice must not send a new motor frame, alter firmware
   cannot start over an active SLOW lease. The full shared/Compose JVM, Android
   compilation, desktop packaging and APK build passed. No live camera, Astro
   WebUI, mount or physical SLOW operation was exercised.
+
+- **2026-11-10 - WBS-01.1/01.3/09.1 ACTIVE (semantic mobile navigation):**
+  replaced the phone shell's cramped weighted text row with a standard labelled
+  NavigationBar. Mission, Control, Camera, Astro, Gallery and More now have
+  stable semantic/test targets and readable labels at compact widths; the
+  desktop rail and advanced overflow destinations remain unchanged.
+- **2026-11-10 - verification:** the responsive-layout contract now pins
+  NavigationBar semantics and primary/overflow targets. Full shared/Compose
+  JVM tests, Android compilation, desktop packaging and APK assembly passed.
+  No live mount, camera, Bluetooth or Astro WebUI operation was exercised.

@@ -468,3 +468,4 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** Compose JVM compilation and UI contract tests
   passed after converting the primary shell from modal-only routing to inline
   destination content.
+- **2026-11-10 - WBS-04.3 ACTIVE (Astro WebUI shutter hardening):** M/B dispatch now has an immediate in-flight gate, transport exceptions become explicit failed outcomes, and a Bulb stop can be posted only once until lifecycle/file evidence settles. The UI distinguishes dispatching and queued-stop states; source-aligned M/B payloads and evidence-gated completion remain intact.

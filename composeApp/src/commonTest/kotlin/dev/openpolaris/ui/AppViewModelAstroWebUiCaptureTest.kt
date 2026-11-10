@@ -142,12 +142,17 @@ class AppViewModelAstroWebUiCaptureTest {
             vm.stopAstroWebUiBulb()
             runCurrent()
             assertEquals("cmd=264&args=state%3A0%3Bbulb%3A0%3Bc%3A-1%3B&confirm=1", transport.requests[1].body)
+            assertTrue(vm.astroWebUiBulbStopQueued)
+            vm.stopAstroWebUiBulb()
+            runCurrent()
+            assertEquals(2, transport.requests.size, "a second Bulb stop must not be posted")
             assertIs<AppViewModel.CapturePhase.Requested>(vm.capturePhase)
 
             vm.testOnCaptureFrame(frame("264@state:1;bulb:12;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/ASTRO_B_0001.dng;size:42;#"))
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals(false, vm.astroWebUiBulbActive)
+            assertEquals(false, vm.astroWebUiBulbStopQueued)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

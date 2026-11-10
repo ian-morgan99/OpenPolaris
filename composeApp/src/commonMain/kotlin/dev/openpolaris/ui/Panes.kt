@@ -1937,7 +1937,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val astroActive = vm.astroWebUiCaptureActive
+                val astroActive = vm.astroWebUiCaptureActive || vm.astroWebUiCaptureDispatching
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Button(
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.MANUAL) },
@@ -1947,8 +1947,11 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.BULB, bulbSecondsText.toIntOrNull() ?: 0) },
                         enabled = !astroActive && !inFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
                     ) { Text("Astro B") }
-                    if (vm.astroWebUiBulbActive) {
+                    if (vm.astroWebUiBulbActive && !vm.astroWebUiBulbStopQueued) {
                         OutlinedButton(onClick = vm::stopAstroWebUiBulb) { Text("Stop Astro B") }
+                    }
+                    if (vm.astroWebUiBulbStopQueued) {
+                        Text("Astro B stop queued; waiting for capture evidence", style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 vm.astroWebUiCaptureStatus?.let {

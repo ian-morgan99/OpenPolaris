@@ -1656,7 +1656,9 @@ class AppViewModel(
         lastCapturePublication = null
         captureTimeline = emptyList()
         astroWebUiCaptureActive = false
+        astroWebUiCaptureDispatching = false
         astroWebUiBulbActive = false
+        astroWebUiBulbStopQueued = false
         astroWebUiCaptureStatus = null
         fileList = null
         astroMediaJob?.cancel()
@@ -1917,7 +1919,9 @@ class AppViewModel(
         pendingCapturePublication = null
         appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file evidence")
         astroWebUiCaptureActive = false
+        astroWebUiCaptureDispatching = false
         astroWebUiBulbActive = false
+        astroWebUiBulbStopQueued = false
         captureWatchdogJob = null
         // §6: while a sequence or observation programme is driving captures,
         // this correlated completion releases the current step without
@@ -4561,7 +4565,13 @@ class AppViewModel(
     /** True while a feature-gated Astro WebUI shutter is awaiting evidence. */
     var astroWebUiCaptureActive by mutableStateOf(false)
         private set
+    /** True while the M/B HTTP bridge request is being dispatched. */
+    var astroWebUiCaptureDispatching by mutableStateOf(false)
+        private set
     var astroWebUiBulbActive by mutableStateOf(false)
+        private set
+    /** Prevents a second B stop write while the first stop awaits evidence. */
+    var astroWebUiBulbStopQueued by mutableStateOf(false)
         private set
     var astroWebUiCaptureStatus by mutableStateOf<String?>(null)
         private set
@@ -4606,16 +4616,27 @@ class AppViewModel(
             statusMessage = "Capture in progress — wait for it to finish"
             return
         }
+        astroWebUiCaptureDispatching = true
+        capturePhase = CapturePhase.Requested
+        captureEvidence.begin()
+        pendingCapturePublication = null
+        astroWebUiCaptureActive = false
+        astroWebUiBulbActive = false
+        astroWebUiBulbStopQueued = false
         scope.launch {
-            capturePhase = CapturePhase.Requested
-            captureEvidence.begin()
-            pendingCapturePublication = null
-            astroWebUiCaptureActive = false
-            astroWebUiBulbActive = false
             beginCaptureTimeline("Astro WebUI ${mode.label} release queued")
             suspendCaptureWorkloads()
-            when (val result = astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)) {
+            val result = runCatching {
+                astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)
+            }.getOrElse { error ->
+                AstroWebUiCaptureResult.Failed(
+                    "Astro WebUI dispatch failed: " +
+                        (error.message ?: error::class.simpleName ?: "unknown error"),
+                )
+            }
+            when (result) {
                 is AstroWebUiCaptureResult.Queued -> {
+                    astroWebUiCaptureDispatching = false
                     astroWebUiCaptureActive = true
                     astroWebUiBulbActive = mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB
                     astroWebUiCaptureStatus = "HTTP bridge accepted 264; waiting for camera lifecycle and file evidence"
@@ -4630,7 +4651,9 @@ class AppViewModel(
                             captureEvidence.unknown(reason)
                             capturePhase = CapturePhase.OutcomeUnknown(reason)
                             astroWebUiCaptureActive = false
+                            astroWebUiCaptureDispatching = false
                             astroWebUiBulbActive = false
+                            astroWebUiBulbStopQueued = false
                             appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
                             statusMessage = "Astro WebUI outcome unknown — check the card before another shutter"
                         }
@@ -4639,7 +4662,11 @@ class AppViewModel(
                 is AstroWebUiCaptureResult.Failed -> {
                     captureEvidence.fail(result.reason)
                     capturePhase = CapturePhase.Failed(result.reason)
-                    astroWebUiCaptureStatus = "Astro WebUI dispatch failed: ${result.reason}"
+                    astroWebUiCaptureActive = false
+                    astroWebUiCaptureDispatching = false
+                    astroWebUiBulbActive = false
+                    astroWebUiBulbStopQueued = false
+                    astroWebUiCaptureStatus = "Astro WebUI dispatch failed: " + result.reason
                     appendCaptureTimeline(CaptureTimelineStage.FAILED, result.reason)
                     statusMessage = astroWebUiCaptureStatus.orEmpty()
                     restoreCaptureWorkloads()
@@ -4654,20 +4681,33 @@ class AppViewModel(
             statusMessage = "No Astro WebUI Bulb capture is active"
             return
         }
+        if (astroWebUiBulbStopQueued) {
+            statusMessage = "Astro WebUI Bulb stop already queued; waiting for evidence"
+            return
+        }
+        astroWebUiBulbStopQueued = true
         scope.launch {
-            when (val result = astroWebUiCaptureClient.stop(host, previewPort)) {
+            val result = runCatching {
+                astroWebUiCaptureClient.stop(host, previewPort)
+            }.getOrElse { error ->
+                AstroWebUiCaptureResult.Failed(
+                    error.message ?: error::class.simpleName ?: "unknown stop error",
+                )
+            }
+            when (result) {
                 is AstroWebUiCaptureResult.Stopped -> {
                     astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for file evidence"
                     statusMessage = astroWebUiCaptureStatus.orEmpty()
                 }
                 is AstroWebUiCaptureResult.Failed -> {
-                    val reason = "Astro WebUI Bulb stop failed: ${result.reason}"
+                    val reason = "Astro WebUI Bulb stop failed: " + result.reason
                     captureEvidence.unknown(reason)
                     capturePhase = CapturePhase.OutcomeUnknown(reason)
                     astroWebUiCaptureActive = false
+                    astroWebUiCaptureDispatching = false
                     astroWebUiBulbActive = false
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                    statusMessage = "Astro WebUI stop outcome unknown — check the card"
+                    statusMessage = "Astro WebUI stop outcome unknown  check the card"
                 }
                 is AstroWebUiCaptureResult.Queued -> Unit
             }

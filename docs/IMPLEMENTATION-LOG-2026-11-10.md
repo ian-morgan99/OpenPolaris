@@ -566,3 +566,27 @@ Verification passed:
 
 The shell safety contract and Compose JVM compilation passed. No live mount or
 hardware was exercised.
+
+### WBS-04.3 - Astro WebUI shutter reliability hardening
+
+Tightened the source-aligned resident WebUI shutter path for both M and B
+modes:
+
+- Admission marks the request as dispatching before the coroutine yields, so
+  rapid taps cannot queue two 264 writes.
+- HTTP bridge exceptions become an explicit failed capture outcome rather than
+  an unobserved coroutine failure.
+- Bulb stop is lease-like at the UI boundary: exactly one state-0 stop may be
+  posted while the first stop awaits lifecycle/file evidence. The UI shows
+  "stop queued" and does not expose a second stop action.
+- Disconnect, confirmed evidence, timeout and failed dispatch clear the new
+  transient state.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiCaptureTest :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiCaptureTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The source-aligned M/B payload tests and ViewModel capture lifecycle tests
+passed. No live Astro WebUI, camera or hardware was exercised.

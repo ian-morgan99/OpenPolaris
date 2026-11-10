@@ -299,4 +299,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** preview-port and endpoint lifecycle regressions passed, including reset-to-disconnected and no-frame preview remaining unknown.
 - **2026-11-10 — WBS-03.2 ACTIVE (contract only):** added a fast-jog dead-man lease seam for duration-style 513–516 commands with 400 ms expiry, 50 ms repeat pacing, release/disconnect stop, ambiguous-result blocking and explicit recovery; no live adapter is connected.
 - **2026-11-10 — verification:** focused FastJogController tests passed for single ownership, repeat pacing, expiry, release ordering, invalid input and no-retry after ambiguity.
+- **2026-11-10 — WBS-01.2 ACTIVE (parity complete for current signals):** extended the readiness model and summary to cover connection, mount, camera, preview, storage, alignment, tracking, capture and motion ownership with separate unknown/blocked/attention states.
+- **2026-11-10 — verification:** focused MissionReadiness and mobile-layout tests passed after adding storage/alignment boundaries.
 - **Next:** expand the summary into the adaptive Mission destination and add explicit session ownership/readiness controls for connection, camera and preview.

@@ -21,6 +21,8 @@ data class MissionReadinessInput(
     val mountConnected: Boolean,
     val cameraAttached: Boolean?,
     val preview: EndpointService,
+    val storageReady: Boolean?,
+    val alignmentReady: Boolean?,
     val tracking: Boolean?,
     val captureInProgress: Boolean,
     val activeMotionOwner: MotionOwner? = null,
@@ -40,6 +42,8 @@ object MissionReadiness {
         mount(input),
         camera(input),
         preview(input),
+        storage(input),
+        alignment(input),
         tracking(input),
         capture(input),
         motion(input),
@@ -134,6 +138,51 @@ object MissionReadiness {
             level = ReadinessLevel.ATTENTION,
             summary = "Preview unavailable",
             actionLabel = "Open preview",
+        )
+    }
+
+    private fun storage(input: MissionReadinessInput): ReadinessCard = when (input.storageReady) {
+        true -> ReadinessCard(
+            id = "storage",
+            label = "Storage",
+            level = ReadinessLevel.READY,
+            summary = "Storage available",
+        )
+        false -> ReadinessCard(
+            id = "storage",
+            label = "Storage",
+            level = ReadinessLevel.BLOCKED,
+            summary = "No writable storage reported",
+            actionLabel = "Check storage",
+        )
+        null -> ReadinessCard(
+            id = "storage",
+            label = "Storage",
+            level = ReadinessLevel.UNKNOWN,
+            summary = "Storage status not read",
+            actionLabel = "Refresh device status",
+        )
+    }
+
+    private fun alignment(input: MissionReadinessInput): ReadinessCard = when (input.alignmentReady) {
+        true -> ReadinessCard(
+            id = "alignment",
+            label = "Alignment",
+            level = ReadinessLevel.READY,
+            summary = "Alignment evidence available",
+        )
+        false -> ReadinessCard(
+            id = "alignment",
+            label = "Alignment",
+            level = ReadinessLevel.ATTENTION,
+            summary = "Alignment not established",
+            actionLabel = "Open alignment",
+        )
+        null -> ReadinessCard(
+            id = "alignment",
+            label = "Alignment",
+            level = ReadinessLevel.UNKNOWN,
+            summary = "Alignment state not read",
         )
     }
 

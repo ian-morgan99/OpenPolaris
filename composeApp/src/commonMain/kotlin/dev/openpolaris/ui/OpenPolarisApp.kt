@@ -361,6 +361,8 @@ private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
             mountConnected = s.connected,
             cameraAttached = vm.cameraAttachment?.isAttached,
             preview = endpoint.preview,
+            storageReady = vm.sdStatus?.present,
+            alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
             tracking = s.tracking,
             captureInProgress = captureInProgress,
         ),

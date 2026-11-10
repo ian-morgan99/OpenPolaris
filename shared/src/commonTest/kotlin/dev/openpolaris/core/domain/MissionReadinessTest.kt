@@ -10,6 +10,8 @@ class MissionReadinessTest {
         mountConnected: Boolean = true,
         cameraAttached: Boolean? = true,
         preview: EndpointService = EndpointService.REACHABLE,
+        storageReady: Boolean? = true,
+        alignmentReady: Boolean? = true,
         tracking: Boolean? = true,
         captureInProgress: Boolean = false,
         activeMotionOwner: MotionOwner? = null,
@@ -18,6 +20,8 @@ class MissionReadinessTest {
         mountConnected = mountConnected,
         cameraAttached = cameraAttached,
         preview = preview,
+        storageReady = storageReady,
+        alignmentReady = alignmentReady,
         tracking = tracking,
         captureInProgress = captureInProgress,
         activeMotionOwner = activeMotionOwner,
@@ -28,7 +32,7 @@ class MissionReadinessTest {
         val cards = MissionReadiness.evaluate(input())
 
         assertEquals(
-            listOf("connection", "mount", "camera", "preview", "tracking", "capture", "motion"),
+            listOf("connection", "mount", "camera", "preview", "storage", "alignment", "tracking", "capture", "motion"),
             cards.map { it.id },
         )
         assertTrue(cards.all { it.level == ReadinessLevel.READY })
@@ -54,6 +58,16 @@ class MissionReadinessTest {
         assertEquals(ReadinessLevel.UNKNOWN, byId.getValue("camera").level)
         assertEquals(ReadinessLevel.UNKNOWN, byId.getValue("preview").level)
         assertEquals(ReadinessLevel.UNKNOWN, byId.getValue("tracking").level)
+    }
+
+    @Test
+    fun storageAndAlignmentRemainSeparateReadinessBoundaries() {
+        val cards = MissionReadiness.evaluate(input(storageReady = null, alignmentReady = false))
+        val byId = cards.associateBy { it.id }
+
+        assertEquals(ReadinessLevel.UNKNOWN, byId.getValue("storage").level)
+        assertEquals(ReadinessLevel.ATTENTION, byId.getValue("alignment").level)
+        assertEquals("Open alignment", byId.getValue("alignment").actionLabel)
     }
 
     @Test

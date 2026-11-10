@@ -565,3 +565,35 @@ the known libandroidx.graphics.path.so strip warning and Gradle 9
 deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
 qualification was performed. This is host-side build evidence, not hardware
 qualification.
+
+
+## Latest committed verification - 76af9a6
+
+Commit under test: 76af9a6 (fix: cancel queued goto on disconnect).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests
+passed, including the queued GoTo/cancel/disconnect regression, fast-jog
+release ownership, session lifecycle and cancellation regressions, capture
+lifecycle, bridge/Bluetooth lifecycle, SLOW transport/controller and wire
+replay, Astro WebUI and support-bundle tests. Android debug Kotlin
+compilation and APK assembly passed, and the Linux x64 desktop distributable
+was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: ce23b65b3bf21614012bfd8d093309472b910cb3363b3bef4a6ef39122db769b
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-76af9a6.tar.gz
+  SHA-256: 3a5e8c0d9a11045074919df96a11ec46f6bf5c789caa746dddd53459c2aa4edf
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9
+deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
+qualification was performed. This is host-side build evidence, not hardware
+qualification.

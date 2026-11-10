@@ -2,7 +2,7 @@
 
 This record covers the owner-driven Demo SLOW milestone and the platform
 artifacts built from source commit
-9535fd903615ca288589ecd2c0f2a11fbaceafe1.
+14690e411dc3ececdd40568a9d39b515551e8dfb.
 
 ## Verified source and tests
 
@@ -14,7 +14,7 @@ artifacts built from source commit
 - Compose UI JVM tests passed:
   :composeApp:jvmTest
 - Astro WebUI media parser and AppViewModel gallery tests passed:
-  AstroWebUiMediaTest, AppViewModelAstroWebUiMediaTest
+  AstroWebUiMediaTest, AppViewModelAstroWebUiMediaTest, category-filter coverage
 - Desktop JVM compilation passed:
   :composeApp:compileKotlinJvm
 - Android debug Kotlin compilation passed:
@@ -32,8 +32,8 @@ different source commit.
 
 | Artifact | Build path | SHA-256 |
 |---|---|---|
-| Android debug APK | androidApp/build/outputs/apk/debug/androidApp-debug.apk | 736dda7d9d634c4ba78b4454c436421abef1985fd683e9f672fa07131cb2f382 |
-| Linux x64 app-image archive | /tmp/OpenPolaris-linux-x64-9535fd903615ca288589ecd2c0f2a11fbaceafe1.tar.gz | 6d01eb580811a1729531f05e04408eb3f20d5d025dc31d35b14e6f0fe85de678 |
+| Android debug APK | androidApp/build/outputs/apk/debug/androidApp-debug.apk | adea4838e0855cb7f3acaacc674bcab8d6c26dc8e34042c7c27fc126cadd15d1 |
+| Linux x64 app-image archive | /tmp/OpenPolaris-linux-x64-14690e411dc3ececdd40568a9d39b515551e8dfb.tar.gz | 50c961695c92fe28454a2c0368fe060974ffeb65b01c477375431e6dce3ae0c |
 
 The Linux archive was made from
 desktopApp/build/compose/binaries/main/app/OpenPolaris and the embedded build

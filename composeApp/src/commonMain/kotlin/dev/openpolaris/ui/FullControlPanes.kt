@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
@@ -24,12 +25,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.AstroMediaPolicy
 import dev.openpolaris.core.domain.AstroMediaState
 import dev.openpolaris.core.domain.AstroMediaTransferKind
 import dev.openpolaris.core.domain.MediaPolicy
@@ -492,8 +495,31 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
-            val items = vm.astroMediaItems.orEmpty()
-            if (items.isNotEmpty()) {
+            val allItems = vm.astroMediaItems.orEmpty()
+            if (allItems.isNotEmpty()) {
+                val categories = allItems.map { it.category }.distinct().sorted()
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    TextButton(
+                        onClick = { vm.selectAstroMediaCategory(null) },
+                        enabled = vm.astroMediaCategory != null,
+                    ) { Text("All (${allItems.size})") }
+                    categories.forEach { category ->
+                        TextButton(
+                            onClick = { vm.selectAstroMediaCategory(category) },
+                            enabled = vm.astroMediaCategory != category,
+                        ) { Text("${AstroMediaPolicy.labelFor(category)} (${allItems.count { it.category == category }})") }
+                    }
+                }
+                val items = vm.astroMediaCategory?.let { category ->
+                    allItems.filter { it.category == category }
+                } ?: allItems
+                Text(
+                    "Showing ${vm.astroMediaCategory?.let(AstroMediaPolicy::labelFor) ?: "all media"} · ${items.size} item(s)",
+                    style = MaterialTheme.typography.labelSmall,
+                )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     items.take(40).forEach { item ->
                         Row(

@@ -64,6 +64,17 @@ object AstroMediaPolicy {
     }
 
     fun categoryFor(path: String): String? = path.substringBefore('/').takeIf { it in categories }
+
+    fun labelFor(category: String): String = when (category) {
+        "normal" -> "Photos"
+        "starskyStack" -> "Astro"
+        "HDR" -> "HDR"
+        "panorama" -> "Panorama"
+        "focusStack" -> "Focus stack"
+        "sun" -> "Solar"
+        "Lapse" -> "Timelapse"
+        else -> category
+    }
 }
 
 private object AstroMediaJson {

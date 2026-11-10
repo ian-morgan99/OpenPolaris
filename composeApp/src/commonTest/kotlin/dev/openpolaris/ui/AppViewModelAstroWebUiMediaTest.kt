@@ -86,6 +86,8 @@ class AppViewModelAstroWebUiMediaTest {
             assertEquals(1, client.listCalls)
             assertEquals(8080, client.lastPort)
             assertEquals(1, vm.astroMediaItems?.size)
+            vm.selectAstroMediaCategory("normal")
+            assertEquals("normal", vm.astroMediaCategory)
 
             vm.loadAstroMedia("normal/IMG_0001.jpg", AstroMediaTransferKind.THUMBNAIL)
             advanceUntilIdle()

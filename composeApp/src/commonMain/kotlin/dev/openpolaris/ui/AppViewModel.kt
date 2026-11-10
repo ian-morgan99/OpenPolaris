@@ -1464,6 +1464,7 @@ class AppViewModel(
         astroMediaJob = null
         astroMediaItems = null
         astroMediaPreview = null
+        astroMediaCategory = null
         astroMediaState = AstroMediaState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
@@ -3459,7 +3460,13 @@ class AppViewModel(
         private set
     var astroMediaPreview by mutableStateOf<AstroMediaPreview?>(null)
         private set
+    var astroMediaCategory by mutableStateOf<String?>(null)
+        private set
     private var astroMediaJob: Job? = null
+
+    fun selectAstroMediaCategory(category: String?) {
+        astroMediaCategory = category
+    }
 
     fun setFileType(t: Int) { fileListType = t }
     fun setFilePage(p: Int) { fileListPage = p.coerceAtLeast(0) }

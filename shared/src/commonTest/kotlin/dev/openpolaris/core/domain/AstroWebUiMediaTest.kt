@@ -22,6 +22,8 @@ class AstroWebUiMediaTest {
         assertEquals(2, success.reportedCount)
         assertEquals("normal/IMG_0001.jpg", success.items.first().path)
         assertEquals("Lapse", success.items.last().category)
+        assertEquals("Photos", AstroMediaPolicy.labelFor("normal"))
+        assertEquals("Timelapse", AstroMediaPolicy.labelFor("Lapse"))
     }
 
     @Test

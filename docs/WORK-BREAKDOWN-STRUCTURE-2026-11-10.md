@@ -971,3 +971,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-04.1/04.3/09.1 ACTIVE (Demo camera readiness and M/B mode rehearsal):** Demo now performs the five source-aligned Benro camera INFO readbacks (265/266/267/268/275) after connect, exposes a verified M/B shutter option list, and allows Demo-only SET 261 round trips to switch modes without touching hardware. The Camera pane explains the local simulation and the existing experimentalCamera gate remains closed by default.
 - **2026-11-10 - verification:** AppViewModelCapturePhaseTest.demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication now verifies B readback, M transition, M capture, B transition and Bulb capture. Focused and full cross-platform builds passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.
+
+
+- **2026-11-10 - WBS-04.2/09.1 ACTIVE (Demo preview rehearsal):** Demo preview now uses a bounded local synthetic PNG, feeds the same PreviewController collector and local pixel-analysis path, and labels the frame as rehearsal-only. Demo never opens the MJPEG transport; live preview still keeps its dedicated endpoint, frame-age and empty-stream evidence boundaries.
+- **2026-11-10 - verification:** PreviewControllerTest and AppViewModelPreviewPortTest cover synthetic streaming and the no-network Demo branch. Focused and full cross-platform builds passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.

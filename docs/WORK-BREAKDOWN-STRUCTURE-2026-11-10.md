@@ -86,11 +86,26 @@
 - Define owner, preemption, stop priority and `OutcomeUnknown` states.
 - Exit: simulator proves only one owner drives at a time; emergency stop wins over queued work.
 
+### WBS-03.1  Typed motion arbitration  P0  ACTIVE (SLOW owner wired)
+
+- **2026-11-10  WBS-03.1 progress:** SlowMotionController now accepts the
+  shared MotionSupervisor. Demo SLOW acquires MotionOwner.SLOW_MOVE, is
+  blocked by an active GoTo/fast-jog/programme owner, routes emergency/release/
+  disconnect stops through the shared stop boundary, and uses lease-scoped
+  recovery so it cannot clear another owner. Live owners still need to migrate
+  before this package is complete.
+
 ### WBS-03.2 — Fast jog dead-man contract — P0
 
 - Preserve 513/514/521 semantics separately from slow/fine rate.
 - Implement pointer capture, lease renewal, release/cancel/background stop and explicit active feedback.
 - Exit: UI and controller tests cover touch cancellation, keyboard release, disconnect and stop ordering.
+
+- **2026-11-10  WBS-03.1/03.2 progress:** FastJogController now accepts
+  the same shared MotionSupervisor. Cross-owner acquisition, owner-specific
+  stop delegation and lease-scoped recovery are covered by deterministic tests.
+  The AppViewModel's existing live jog button remains outside this seam until
+  its physical stop/acknowledgement contract is qualified.
 
 ### WBS-03.3 — Slow-motion abstract model — P0 — DONE (contract only)
 

@@ -195,6 +195,36 @@ No programme write route, resident Astro WebUI, camera, mount or physical
 hardware was exercised. The Compose composer/two-tap controls and named-head
 qualification remain the next UX/field slices.
 
+### WBS-03.1/03.2 - Fast-jog ownership seam
+
+FastJogController now accepts the shared MotionSupervisor. A verified duration
+hold can be blocked by SLOW, GoTo or another owner, and its release/expiry/
+disconnect stop is routed through the owner-specific shared boundary. Existing
+live JogPane dispatch remains unchanged because the physical stop and positive
+acknowledgement contract for that UI path still needs qualification.
+
+Verification is included in the combined FastJogController, SlowMotionController
+and MotionSupervisor test run.
+
+### WBS-03.1/03.5 - Shared motion ownership for SLOW
+
+The demo SLOW controller now participates in the shared MotionSupervisor
+rather than owning an isolated lease. It cannot acquire while another motion
+owner is active; emergency, release and disconnect stops pass through the
+supervisor's owner-specific stop transport; and recovery is lease-scoped so a
+stale SLOW controller cannot clear another owner's motion.
+
+The new deterministic tests cover cross-owner blocking, stop delegation,
+supervisor idle recovery and stale lease recovery. The demo stop transport still
+records logical events only. Fast jog, GoTo, programme and live SLOW adapters
+remain separate migration/qualification work.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --tests dev.openpolaris.core.domain.MotionSupervisorTest --rerun-tasks --console=plain --no-daemon
+~~~
+
 ### WBS-06.3/08.2 - Astro WebUI programme composer
 
 Added the cross-platform Mission composer for the new source-aligned client:

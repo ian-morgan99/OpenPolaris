@@ -86,8 +86,11 @@ import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
+import dev.openpolaris.core.domain.MotionOwner
 import dev.openpolaris.core.domain.MotionStopReason
 import dev.openpolaris.core.domain.MotionStopResult
+import dev.openpolaris.core.domain.MotionStopTransport
+import dev.openpolaris.core.domain.MotionSupervisor
 import dev.openpolaris.core.domain.RateAxis
 import dev.openpolaris.core.domain.SlowMotionActionResult
 import dev.openpolaris.core.domain.SlowMotionAcquireResult
@@ -527,9 +530,24 @@ class AppViewModel(
     // dead-man renewal contract as the future live adapter, but its transport
     // records logical commands only and never emits a firmware frame.
     private val demoSlowMotionTransport = DemoSlowMotionTransport()
+    // Keep ownership separate from the SLOW scheduler. The supervisor is the
+    // shared boundary that future fast-jog, GoTo and programme adapters must
+    // use; a SLOW hold cannot acquire while another owner is active.
+    private val motionSupervisor = MotionSupervisor(
+        stopTransport = object : MotionStopTransport {
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
+                when (owner) {
+                    MotionOwner.SLOW_MOVE -> demoSlowMotionTransport.stop(reason)
+                    else -> MotionStopResult.Unknown(
+                        "no demo stop adapter for " + owner.name,
+                    )
+                }
+        },
+    )
     private val demoSlowMotion = SlowMotionController(
         transport = demoSlowMotionTransport,
         planner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
+        motionSupervisor = motionSupervisor,
     )
     private var demoSlowMotionLease: SlowMotionLease? = null
     private var demoSlowMotionJob: Job? = null

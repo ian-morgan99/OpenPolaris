@@ -100,8 +100,19 @@ class MotionSupervisor(
      * Explicitly clears a fault after the caller has re-established the mount
      * session and made any required physical recovery. This is not automatic.
      */
-    suspend fun recoverAfterReconnect() = lock.withLock {
-        mutableState.value = MotionState.Idle
+    suspend fun recoverAfterReconnect(lease: MotionLease? = null) = lock.withLock {
+        val currentLease = when (val current = mutableState.value) {
+            is MotionState.Owned -> current.lease
+            is MotionState.Faulted -> current.lease
+            MotionState.Idle -> null
+        }
+        // A controller may only clear the owner it established. The no-arg
+        // form remains the explicit session-wide recovery boundary used after
+        // a full reconnect; passing a lease prevents one controller from
+        // clearing another owner's motion during a local recovery attempt.
+        if (lease == null || currentLease == lease) {
+            mutableState.value = MotionState.Idle
+        }
     }
 
     private suspend fun stopAndSettle(lease: MotionLease, reason: MotionStopReason): MotionStopResult {

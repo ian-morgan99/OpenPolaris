@@ -62,6 +62,23 @@ class MotionSupervisorTest {
     }
 
     @Test
+    fun lease_scoped_recovery_cannot_clear_a_different_owner() = runTest {
+        val transport = FakeStopTransport()
+        val supervisor = MotionSupervisor(transport)
+        val first = assertIs<MotionAcquireResult.Granted>(
+            supervisor.acquire(MotionOwner.SLOW_MOVE),
+        ).lease
+
+        assertEquals(MotionStopResult.Stopped, supervisor.stop(first))
+        val second = assertIs<MotionAcquireResult.Granted>(
+            supervisor.acquire(MotionOwner.GOTO),
+        ).lease
+
+        supervisor.recoverAfterReconnect(first)
+        assertEquals(MotionState.Owned(second), supervisor.state.value)
+    }
+
+    @Test
     fun failed_stop_blocks_new_owners_until_explicit_recovery() = runTest {
         val transport = FakeStopTransport().also {
             it.next = MotionStopResult.Unknown("link disappeared")

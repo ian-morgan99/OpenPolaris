@@ -21,11 +21,14 @@ interface FastJogTransport {
 data class FastJogLease(
     val code: Int,
     val token: Long,
+    /** Shared physical-motion lease, when this controller participates in arbitration. */
+    val supervisorLease: MotionLease? = null,
 )
 
 sealed interface FastJogAcquireResult {
     data class Granted(val lease: FastJogLease) : FastJogAcquireResult
-    data class Busy(val lease: FastJogLease) : FastJogAcquireResult
+    /** [lease] is present for a local competing hold and null for another owner. */
+    data class Busy(val lease: FastJogLease? = null, val owner: MotionOwner? = null) : FastJogAcquireResult
     data class Blocked(val reason: String) : FastJogAcquireResult
 }
 
@@ -55,6 +58,7 @@ class FastJogController(
     private val leaseWindowMs: Long = 400L,
     private val repeatIntervalMs: Long = 50L,
     private val commandDurationMs: Int = 500,
+    private val motionSupervisor: MotionSupervisor? = null,
 ) {
     init {
         require(leaseWindowMs > 0L)
@@ -71,7 +75,19 @@ class FastJogController(
         requireValidCode(code)
         when (val current = mutableState.value) {
             FastJogState.Idle -> {
-                val lease = FastJogLease(code, nextToken++)
+                val supervisorLease = when (val supervisor = motionSupervisor) {
+                    null -> null
+                    else -> when (val acquired = supervisor.acquire(MotionOwner.FAST_JOG)) {
+                        is MotionAcquireResult.Granted -> acquired.lease
+                        is MotionAcquireResult.Busy -> {
+                            return@withLock FastJogAcquireResult.Busy(owner = acquired.active.owner)
+                        }
+                        is MotionAcquireResult.Blocked -> {
+                            return@withLock FastJogAcquireResult.Blocked(acquired.reason)
+                        }
+                    }
+                }
+                val lease = FastJogLease(code, nextToken++, supervisorLease)
                 mutableState.value = FastJogState.Armed(lease)
                 FastJogAcquireResult.Granted(lease)
             }
@@ -132,8 +148,17 @@ class FastJogController(
             is FastJogState.Armed -> {
                 if (current.lease != lease) FastJogActionResult.Rejected
                 else {
-                    mutableState.value = FastJogState.Idle
-                    FastJogActionResult.Stopped
+                    val supervisorResult = releaseSupervisor(lease, MotionStopReason.RELEASE)
+                    if (supervisorResult != MotionStopResult.Stopped) {
+                        mutableState.value = FastJogState.Faulted(
+                            "jog ownership release was not confirmed",
+                            lease,
+                        )
+                        mapStopResult(supervisorResult)
+                    } else {
+                        mutableState.value = FastJogState.Idle
+                        FastJogActionResult.Stopped
+                    }
                 }
             }
             is FastJogState.Holding -> {
@@ -151,12 +176,19 @@ class FastJogController(
     }
 
     suspend fun recoverAfterReconnect() = lock.withLock {
+        val sharedLease = when (val current = mutableState.value) {
+            is FastJogState.Armed -> current.lease.supervisorLease
+            is FastJogState.Holding -> current.lease.supervisorLease
+            is FastJogState.Faulted -> current.lease?.supervisorLease
+            FastJogState.Idle -> null
+        }
+        motionSupervisor?.recoverAfterReconnect(sharedLease)
         mutableState.value = FastJogState.Idle
     }
 
     private suspend fun stopLocked(lease: FastJogLease, reason: MotionStopReason): FastJogActionResult {
         return try {
-            when (val result = transport.stop(lease.code, reason)) {
+            when (val result = releaseSupervisor(lease, reason)) {
                 MotionStopResult.Stopped -> {
                     mutableState.value = FastJogState.Idle
                     FastJogActionResult.Stopped
@@ -175,6 +207,21 @@ class FastJogController(
             mutableState.value = FastJogState.Faulted(reasonText, lease)
             FastJogActionResult.Unknown(reasonText)
         }
+    }
+
+    private suspend fun releaseSupervisor(
+        lease: FastJogLease,
+        reason: MotionStopReason,
+    ): MotionStopResult = lease.supervisorLease?.let { sharedLease ->
+        motionSupervisor?.stop(sharedLease, reason) ?: MotionStopResult.Unknown(
+            "shared motion supervisor disappeared",
+        )
+    } ?: transport.stop(lease.code, reason)
+
+    private fun mapStopResult(result: MotionStopResult): FastJogActionResult = when (result) {
+        MotionStopResult.Stopped -> FastJogActionResult.Stopped
+        MotionStopResult.Rejected -> FastJogActionResult.Rejected
+        is MotionStopResult.Unknown -> FastJogActionResult.Unknown(result.reason)
     }
 
     private fun requireValidCode(code: Int) {

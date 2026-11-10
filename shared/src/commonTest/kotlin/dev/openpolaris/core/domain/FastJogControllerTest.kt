@@ -38,6 +38,58 @@ class FastJogControllerTest {
     }
 
     @Test
+    fun sharedSupervisorBlocksFastJogBehindSlowMotion() = kotlinx.coroutines.test.runTest {
+        val transport = FakeTransport()
+        val stopTransport = object : MotionStopTransport {
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
+                MotionStopResult.Stopped
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val slowLease = assertIs<MotionAcquireResult.Granted>(
+            supervisor.acquire(MotionOwner.SLOW_MOVE),
+        ).lease
+        val controller = FastJogController(
+            transport = transport,
+            motionSupervisor = supervisor,
+        )
+
+        val blocked = assertIs<FastJogAcquireResult.Busy>(
+            controller.acquire(Codes.GIMBAL_HADJ_SPEED),
+        )
+        assertEquals(MotionOwner.SLOW_MOVE, blocked.owner)
+        assertEquals(null, blocked.lease)
+
+        supervisor.stop(slowLease)
+        assertIs<FastJogAcquireResult.Granted>(controller.acquire(Codes.GIMBAL_HADJ_SPEED))
+    }
+
+    @Test
+    fun sharedSupervisorReceivesFastJogStop() = kotlinx.coroutines.test.runTest {
+        val transport = FakeTransport()
+        val stopTransport = object : MotionStopTransport {
+            val stops = mutableListOf<Pair<MotionOwner, MotionStopReason>>()
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult {
+                stops += owner to reason
+                return MotionStopResult.Stopped
+            }
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val controller = FastJogController(
+            transport = transport,
+            motionSupervisor = supervisor,
+        )
+        val lease = assertIs<FastJogAcquireResult.Granted>(
+            controller.acquire(Codes.GIMBAL_HADJ_SPEED),
+        ).lease
+        assertEquals(FastJogActionResult.Accepted, controller.start(lease, 0L))
+
+        assertEquals(FastJogActionResult.Stopped, controller.release(lease))
+        assertEquals(MotionState.Idle, supervisor.state.value)
+        assertEquals(listOf(MotionOwner.FAST_JOG to MotionStopReason.RELEASE), stopTransport.stops)
+        assertEquals(emptyList(), transport.stops)
+    }
+
+    @Test
     fun tickDoesNotSpamBeforeRepeatIntervalAndExpiresAtLeaseWindow() = kotlinx.coroutines.test.runTest {
         val transport = FakeTransport()
         val controller = FastJogController(transport, leaseWindowMs = 400L, repeatIntervalMs = 50L)

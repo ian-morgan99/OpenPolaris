@@ -52,6 +52,54 @@ class SlowMotionControllerTest {
     }
 
     @Test
+    fun sharedSupervisorBlocksSlowMotionBehindAnotherMotionOwner() = runTest {
+        val transport = FakeTransport()
+        val stopTransport = object : MotionStopTransport {
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
+                MotionStopResult.Stopped
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val controller = SlowMotionController(
+            transport = transport,
+            motionSupervisor = supervisor,
+        )
+        val gotoLease = assertIs<MotionAcquireResult.Granted>(
+            supervisor.acquire(MotionOwner.GOTO),
+        ).lease
+
+        val blocked = assertIs<SlowMotionAcquireResult.Busy>(controller.acquire())
+        assertEquals(MotionOwner.GOTO, blocked.owner)
+        assertEquals(null, blocked.lease)
+
+        assertEquals(MotionStopResult.Stopped, supervisor.stop(gotoLease))
+        assertIs<SlowMotionAcquireResult.Granted>(controller.acquire())
+    }
+
+    @Test
+    fun sharedSupervisorReceivesSlowStopAndReturnsToIdle() = runTest {
+        val transport = FakeTransport()
+        val stopTransport = object : MotionStopTransport {
+            val stops = mutableListOf<Pair<MotionOwner, MotionStopReason>>()
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult {
+                stops += owner to reason
+                return MotionStopResult.Stopped
+            }
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val controller = SlowMotionController(
+            transport = transport,
+            motionSupervisor = supervisor,
+        )
+        val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(), 0L))
+
+        assertEquals(SlowMotionActionResult.Stopped, controller.emergencyStop(lease))
+        assertEquals(MotionState.Idle, supervisor.state.value)
+        assertEquals(listOf(MotionOwner.SLOW_MOVE to MotionStopReason.EMERGENCY), stopTransport.stops)
+        assertEquals(emptyList(), transport.stops)
+    }
+
+    @Test
     fun schedulerTicksDoNotRenewTheDeadManLease() = runTest {
         val (controller, lease, transport) = ready()
         assertEquals(SlowMotionActionResult.Applied(3), controller.tick(lease, 75L))

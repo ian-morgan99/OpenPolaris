@@ -24,11 +24,16 @@ interface SlowMotionTransport {
     suspend fun stop(reason: MotionStopReason): MotionStopResult
 }
 
-data class SlowMotionLease(val token: Long)
+data class SlowMotionLease(
+    val token: Long,
+    /** Shared physical-motion lease, when this controller participates in arbitration. */
+    val supervisorLease: MotionLease? = null,
+)
 
 sealed interface SlowMotionAcquireResult {
     data class Granted(val lease: SlowMotionLease) : SlowMotionAcquireResult
-    data class Busy(val lease: SlowMotionLease) : SlowMotionAcquireResult
+    /** [lease] is present for a local competing hold and null for another owner. */
+    data class Busy(val lease: SlowMotionLease? = null, val owner: MotionOwner? = null) : SlowMotionAcquireResult
     data class Blocked(val reason: String) : SlowMotionAcquireResult
 }
 
@@ -67,6 +72,7 @@ class SlowMotionController(
     private val planner: SlowMotionPlanner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
     private val scheduler: SlowMotionScheduler = SlowMotionScheduler(),
     private val leaseWindowMs: Long = 400L,
+    private val motionSupervisor: MotionSupervisor? = null,
 ) {
     init {
         require(leaseWindowMs > 0L)
@@ -80,7 +86,19 @@ class SlowMotionController(
     suspend fun acquire(): SlowMotionAcquireResult = lock.withLock {
         when (val current = mutableState.value) {
             SlowMotionState.Idle -> {
-                val lease = SlowMotionLease(nextToken++)
+                val supervisorLease = when (val supervisor = motionSupervisor) {
+                    null -> null
+                    else -> when (val acquired = supervisor.acquire(MotionOwner.SLOW_MOVE)) {
+                        is MotionAcquireResult.Granted -> acquired.lease
+                        is MotionAcquireResult.Busy -> {
+                            return@withLock SlowMotionAcquireResult.Busy(owner = acquired.active.owner)
+                        }
+                        is MotionAcquireResult.Blocked -> {
+                            return@withLock SlowMotionAcquireResult.Blocked(acquired.reason)
+                        }
+                    }
+                }
+                val lease = SlowMotionLease(nextToken++, supervisorLease)
                 mutableState.value = SlowMotionState.Armed(lease)
                 SlowMotionAcquireResult.Granted(lease)
             }
@@ -163,8 +181,17 @@ class SlowMotionController(
             is SlowMotionState.Armed -> {
                 if (current.lease != lease) SlowMotionActionResult.Rejected
                 else {
-                    mutableState.value = SlowMotionState.Idle
-                    SlowMotionActionResult.Stopped
+                    val supervisorResult = releaseSupervisor(lease, MotionStopReason.RELEASE)
+                    if (supervisorResult != MotionStopResult.Stopped) {
+                        mutableState.value = SlowMotionState.Faulted(
+                            "slow-motion ownership release was not confirmed",
+                            lease,
+                        )
+                        mapStopResult(supervisorResult)
+                    } else {
+                        mutableState.value = SlowMotionState.Idle
+                        SlowMotionActionResult.Stopped
+                    }
                 }
             }
             is SlowMotionState.Holding -> {
@@ -192,6 +219,13 @@ class SlowMotionController(
     }
 
     suspend fun recoverAfterReconnect() = lock.withLock {
+        val sharedLease = when (val current = mutableState.value) {
+            is SlowMotionState.Armed -> current.lease.supervisorLease
+            is SlowMotionState.Holding -> current.lease.supervisorLease
+            is SlowMotionState.Faulted -> current.lease?.supervisorLease
+            SlowMotionState.Idle -> null
+        }
+        motionSupervisor?.recoverAfterReconnect(sharedLease)
         mutableState.value = SlowMotionState.Idle
     }
 
@@ -200,7 +234,7 @@ class SlowMotionController(
         reason: MotionStopReason,
     ): SlowMotionActionResult {
         return try {
-            when (val result = transport.stop(reason)) {
+            when (val result = releaseSupervisor(lease, reason)) {
                 MotionStopResult.Stopped -> {
                     mutableState.value = SlowMotionState.Idle
                     SlowMotionActionResult.Stopped
@@ -219,6 +253,21 @@ class SlowMotionController(
             mutableState.value = SlowMotionState.Faulted(reasonText, lease)
             SlowMotionActionResult.Unknown(reasonText)
         }
+    }
+
+    private suspend fun releaseSupervisor(
+        lease: SlowMotionLease,
+        reason: MotionStopReason,
+    ): MotionStopResult = lease.supervisorLease?.let { sharedLease ->
+        motionSupervisor?.stop(sharedLease, reason) ?: MotionStopResult.Unknown(
+            "shared motion supervisor disappeared",
+        )
+    } ?: transport.stop(reason)
+
+    private fun mapStopResult(result: MotionStopResult): SlowMotionActionResult = when (result) {
+        MotionStopResult.Stopped -> SlowMotionActionResult.Stopped
+        MotionStopResult.Rejected -> SlowMotionActionResult.Rejected
+        is MotionStopResult.Unknown -> SlowMotionActionResult.Unknown(result.reason)
     }
 
     private fun requireTime(nowMs: Long) {

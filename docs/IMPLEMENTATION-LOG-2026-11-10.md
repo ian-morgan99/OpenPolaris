@@ -290,3 +290,18 @@ Verification passed:
 ~~~text
 ./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --rerun-tasks --console=plain --no-daemon
 ~~~
+
+### WBS-02.1 - Inline endpoint health
+
+The Mission workspace and Connection pane now share one read-only endpoint-health
+section. It reports endpoint kind/identity, control and preview addresses
+independently, route phase age and last failure, with a stable connection action
+from the Mission workspace. The phase-age calculation clamps clock rollback to
+zero; no connection, Bluetooth, Wi-Fi or preview transport is started by the
+presentation layer.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.EndpointHealthTest :composeApp:jvmTest --tests dev.openpolaris.ui.UiAccessibilityContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~

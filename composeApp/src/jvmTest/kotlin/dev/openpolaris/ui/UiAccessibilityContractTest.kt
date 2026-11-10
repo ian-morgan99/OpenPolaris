@@ -41,6 +41,10 @@ class UiAccessibilityContractTest {
         assertTrue("\"alignment\", \"tracking\", \"motion\", \"target\" -> openDestination(AppDestination.CONTROL)" in shell)
         assertTrue("\"storage\" -> openDestination(AppDestination.GALLERY)" in shell)
         assertTrue("\"connection\", \"mount\" -> openAdvanced(Callout.Connection)" in shell)
+        assertTrue("testTag(\"endpoint-health\")" in text)
+        assertTrue("testTag(\"endpoint-control-service\")" in text)
+        assertTrue("testTag(\"endpoint-preview-service\")" in text)
+        assertTrue("onOpenConnection = onAction?.let" in text)
     }
     @Test
     fun `ambiguous camera glyph controls have spoken labels`() {

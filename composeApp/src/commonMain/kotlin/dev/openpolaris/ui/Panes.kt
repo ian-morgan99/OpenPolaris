@@ -57,6 +57,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -375,20 +376,7 @@ fun ConnectionPane(
                 }
             }
             HorizontalDivider()
-            vm.endpointHealth.profile?.let { profile ->
-                Text(
-                    "${profile.label} · ${profile.address.host}:${profile.address.controlPort} / preview ${profile.address.previewPort}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            } ?: Text("No endpoint selected", style = MaterialTheme.typography.bodySmall)
-            Text("Phase: ${vm.endpointHealth.phase}", style = MaterialTheme.typography.bodySmall)
-            Text(
-                "Control: ${vm.endpointHealth.control} · Preview: ${vm.endpointHealth.preview}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            vm.endpointHealth.lastFailure?.let { failure ->
-                Text("Last failure: $failure", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
+            EndpointHealthSection(vm)
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -486,6 +474,89 @@ fun PasswordDialog(
 // visible via the StatusStrip / PositionReadout chrome in OpenPolarisApp.
 
 /**
+ * Shared route-health section used by the Mission dashboard and Connection
+ * workspace. It keeps control and preview evidence visibly separate and never
+ * derives one service's state from the other.
+ */
+@Composable
+private fun EndpointHealthSection(
+    vm: AppViewModel,
+    onOpenConnection: (() -> Unit)? = null,
+) {
+    val endpoint = vm.endpointHealth
+    var clockMs by remember { mutableStateOf(vm.nowMs().coerceAtLeast(0L)) }
+    LaunchedEffect(endpoint.phase, endpoint.phaseSinceMs) {
+        if (endpoint.phaseSinceMs == null) {
+            clockMs = vm.nowMs().coerceAtLeast(0L)
+            return@LaunchedEffect
+        }
+        while (true) {
+            clockMs = vm.nowMs().coerceAtLeast(0L)
+            delay(1_000L)
+        }
+    }
+    val ageText = endpoint.phaseAgeMs(clockMs)?.let { age ->
+        when {
+            age < 1_000L -> "<1 s"
+            age < 60_000L -> "${age / 1_000L} s"
+            else -> "${age / 60_000L} min"
+        }
+    } ?: "unknown"
+
+    Column(
+        modifier = Modifier.testTag("endpoint-health"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text("Connection health", style = MaterialTheme.typography.titleMedium)
+        endpoint.profile?.let { profile ->
+            Text(
+                "${profile.label} - ${profile.kind.name.lowercase().replace('_', ' ')}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("endpoint-route"),
+            )
+            Text(
+                "Control ${profile.address.host}:${profile.address.controlPort} - Preview ${profile.address.host}:${profile.address.previewPort}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } ?: Text(
+            "No endpoint selected",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.testTag("endpoint-route"),
+        )
+        Text(
+            "Route ${endpoint.phase.name.lowercase()} - phase age $ageText",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            "Control service: ${endpoint.control.name.lowercase()}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.testTag("endpoint-control-service"),
+        )
+        Text(
+            "Preview service: ${endpoint.preview.name.lowercase()}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.testTag("endpoint-preview-service"),
+        )
+        endpoint.lastFailure?.let { failure ->
+            Text(
+                "Last failure: $failure",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("endpoint-last-failure"),
+            )
+        }
+        onOpenConnection?.let { open ->
+            TextButton(
+                onClick = open,
+                modifier = Modifier.testTag("open-connection"),
+            ) {
+                Text("Open connection")
+            }
+        }
+    }
+}
+
+/**
  * Full Mission readiness sheet opened from the always-visible status strip.
  * It is deliberately read-only: each row explains the evidence currently
  * known and the next safe action, but does not silently start a connection,
@@ -520,12 +591,10 @@ fun MissionDashboardPane(
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            endpoint.profile?.let { profile ->
-                Text(
-                    "${profile.label} · ${profile.address.host}:${profile.address.controlPort} · ${endpoint.phase}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            } ?: Text("No endpoint selected", style = MaterialTheme.typography.bodySmall)
+            EndpointHealthSection(
+                vm = vm,
+                onOpenConnection = onAction?.let { action -> { action("connection") } },
+            )
             HorizontalDivider()
             Text("Astro mission", style = MaterialTheme.typography.titleMedium)
             AstroMissionFlow.evaluate(

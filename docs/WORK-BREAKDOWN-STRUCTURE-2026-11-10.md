@@ -66,6 +66,12 @@
 - Show endpoint, route, age, link phase and last failure.
 - Exit: no pane invents host/port state; endpoint health is simulator-tested.
 
+- **2026-11-10 - WBS-02.1 progress:** added a shared read-only connection-health
+  section to the inline Mission workspace and Connection pane. It shows
+  endpoint kind/identity, the distinct control and preview addresses, route
+  phase age and last failure, with a safe action back to the Connection owner.
+  Phase-age calculation is clock-safe and covered by the shared domain test.
+
 ### WBS-02.2 — Single session owner — P0
 
 - Audit all controllers for connection ownership, reconnect and teardown ordering.

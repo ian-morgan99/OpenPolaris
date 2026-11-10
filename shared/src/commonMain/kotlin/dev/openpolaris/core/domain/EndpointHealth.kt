@@ -88,6 +88,13 @@ data class EndpointHealth(
     val isUsable: Boolean
         get() = controlReady
 
+    /**
+     * Age of the current phase at an observed clock value. A clock that moved
+     * backwards is treated as zero age so the UI cannot display a negative
+     * freshness value.
+     */
+    fun phaseAgeMs(atMs: Long): Long? = phaseSinceMs?.let { (atMs - it).coerceAtLeast(0L) }
+
     companion object {
         fun disconnected(): EndpointHealth = EndpointHealth(
             profile = null,

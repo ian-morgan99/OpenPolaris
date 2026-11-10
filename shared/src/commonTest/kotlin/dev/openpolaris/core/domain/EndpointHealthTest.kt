@@ -79,6 +79,19 @@ class EndpointHealthTest {
     }
 
     @Test
+    fun phaseAgeIsFreshnessOnlyAndNeverNegative() {
+        val health = EndpointHealth(
+            profile = profile,
+            phase = EndpointPhase.READY,
+            phaseSinceMs = 900L,
+        )
+
+        assertEquals(100L, health.phaseAgeMs(1_000L))
+        assertEquals(0L, health.phaseAgeMs(800L))
+        assertEquals(null, EndpointHealth.disconnected().phaseAgeMs(1_000L))
+    }
+
+    @Test
     fun profileKeepsRouteKindAndPortsTogether() {
         val bridge = EndpointProfile(
             id = "pc-bridge",

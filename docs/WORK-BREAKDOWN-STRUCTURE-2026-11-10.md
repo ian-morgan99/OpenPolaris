@@ -148,7 +148,7 @@
   fault-blocked state separately from its logical scheduler trace; the state is
   read-only and does not open a live motor path.
 
-- **2026-11-10 - WBS-03.5/03.6 ACTIVE (named SLOW capability allow-list):** replaced the UI's anonymous transport boolean with an immutable capability record requiring exact firmware/gimbal/source-app identity, route and unit, signs, measured envelope, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence. The default record is unqualified; the Motion surface now lists the missing gates and remains live-disabled.
+- **2026-11-10 - WBS-03.5/03.6 ACTIVE (named SLOW capability allow-list):** paired the UI's hard live-transport gate with an immutable capability record requiring exact firmware/gimbal/source-app identity, route and unit, signs, measured envelope, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence. The default record is unqualified; the Motion surface now lists the missing gates and remains live-disabled.
 
 ### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
 

@@ -1223,8 +1223,10 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
     // This hard gate is intentionally not configuration-controlled: a flag
     // cannot imply that the target firmware transport is qualified.
-    val liveTransportQualified = SlowMotionCapabilities.current.liveReady
-    val liveControlsEnabled = gateOpen && liveTransportQualified && vm.mount.connected
+    // Keep the source-level hard gate until a named physical qualification record is installed.
+    val liveTransportQualified = false
+    val capabilityRecord = SlowMotionCapabilities.current
+    val liveControlsEnabled = gateOpen && liveTransportQualified && capabilityRecord.liveReady && vm.mount.connected
     val demoControlsEnabled = vm.demoMode
     val controlsEnabled = liveControlsEnabled || demoControlsEnabled
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
@@ -1271,7 +1273,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             if (!liveTransportQualified) {
                 Text(
                     "Live qualification blockers: " +
-                        SlowMotionCapabilities.current.blockers.joinToString(", ") + ".",
+                        capabilityRecord.blockers.joinToString(", ") + ".",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

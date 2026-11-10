@@ -417,7 +417,7 @@ No solve, alignment, mount or camera write route was exercised.
 
 ### WBS-03.5/03.6 - Named SLOW capability allow-list
 
-Replaced the anonymous live-transport boolean in the Motion workspace with an
+Paired the hard live-transport gate in the Motion workspace with an
 immutable SlowMotionCapabilityRecord. A live SLOW adapter cannot become
 eligible until the record carries named firmware, gimbal and source-app
 provenance plus route/unit, signs, measured envelope, acknowledgement,

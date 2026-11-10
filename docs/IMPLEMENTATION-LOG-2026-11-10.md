@@ -1304,3 +1304,10 @@ This makes the runtime route installable from one evidence-backed capability rec
 Commit `96f8eac` removes the permanent `false` live branch from the Motion pane without weakening safety. Live availability now requires both the feature flag and `SlowMotionCapabilities.current.liveReady`; the current immutable record remains unqualified. The AppViewModel's SLOW controller selects the no-wire Demo transport in Demo mode and the existing `QualifiedSlowMotionTransport` otherwise. Pointer/key release, lease renewal, emergency stop, disconnect and owner arbitration are shared by both paths.
 
 This is an integration improvement, not a qualification claim: a named firmware/gimbal/source-app record with route, units, signs, envelope, acknowledgement, watchdog, physical stop, disconnect recovery and limits evidence is still required before any live frame can be sent.
+
+
+### WBS-03.5/03.6 — Single-source SLOW evidence provenance
+
+Commit `d5c9ff4` injects the SLOW capability record into AppViewModel. Production still defaults to the immutable unqualified record, while tests or a future release can supply one exact evidence-backed record. The Motion pane, `QualifiedSlowMotionTransport`, live readiness check and support-bundle snapshot now read that same object. This prevents a future qualified transport from being enabled in the runtime while the UI or diagnostics report a different record.
+
+No live capability was promoted.

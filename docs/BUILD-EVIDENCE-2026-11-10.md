@@ -1532,3 +1532,29 @@ Artifacts:
   SHA-256: `8b810bc8c02819d2d2f09c447aba9b882688dc3399ea1c4706797f5f3e416782`
 
 No live SLOW command, Bluetooth, bridge, camera, mount or physical stop qualification was exercised.
+
+
+## Latest committed verification - d5c9ff4
+
+Commit under test: `d5c9ff4` (`feat: inject slow capability evidence`).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFineRateDemoTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --tests dev.openpolaris.ui.AppViewModelFastJogTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+  SHA-256: `281ed68b235813fc1eee16434eea8e6e965bc2eff762ffda7939740ecb4fe71f`
+- Linux x64 desktop archive: `/tmp/OpenPolaris-linux-x64-d5c9ff4.tar.gz`
+  SHA-256: `5250fae163914774e90a82739d6602b2fc45b2e8aadae9bb8b0ca85487af0648`
+
+No live SLOW command, Bluetooth, bridge, camera, mount or physical stop qualification was exercised.

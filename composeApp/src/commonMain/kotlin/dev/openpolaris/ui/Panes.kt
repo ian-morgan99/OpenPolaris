@@ -3616,6 +3616,14 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                     modifier = Modifier.semantics { contentDescription = "Run Demo observation programme" },
                 ) { Text("Run Demo programme") }
                 OutlinedButton(
+                    onClick = vm::pauseObservationProgramme,
+                    enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running,
+                ) { Text("Pause") }
+                OutlinedButton(
+                    onClick = { vm.resumeObservationProgramme() },
+                    enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused,
+                ) { Text("Resume") }
+                OutlinedButton(
                     onClick = vm::stopObservationProgramme,
                     enabled = programmeActive,
                 ) { Text("Stop") }

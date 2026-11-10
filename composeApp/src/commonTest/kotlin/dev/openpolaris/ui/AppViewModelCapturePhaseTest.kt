@@ -203,6 +203,40 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun demoHdrProgrammeSupportsPauseAndResumeAtCaptureBoundary() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection())
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            val plan = ObservationProgrammePlanner.plan(
+                ObservationProgrammePlanner.Request.Hdr(
+                    baseExposureIndex = 20,
+                    bracketOffsets = listOf(-1, 0, 1),
+                    intervalMs = 1_000L,
+                ),
+            )
+
+            assertTrue(vm.startObservationProgramme(plan))
+            runCurrent()
+            vm.pauseObservationProgramme()
+            advanceTimeBy(2_000)
+            runCurrent()
+
+            val paused = vm.observationProgrammeState
+            assertIs<ObservationProgrammeExecutor.State.Paused>(paused)
+            assertEquals(1, paused.completedSteps)
+            assertTrue(vm.resumeObservationProgramme())
+            advanceTimeBy(5_000)
+            runCurrent()
+            val completed = assertIs<ObservationProgrammeExecutor.State.Completed>(vm.observationProgrammeState)
+            assertEquals(3, completed.completedSteps)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun demoFocusAndVideoRehearsalUsesAcknowledgedSourceAlignedRoutes() = runTest(UnconfinedTestDispatcher()) {
         val vm = vm(this, FakeConnection())
         try {

@@ -94,6 +94,7 @@ import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.MotionOwner
+import dev.openpolaris.core.domain.MotionAcquireResult
 import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.MotionStopReason
 import dev.openpolaris.core.domain.MotionStopResult
@@ -558,8 +559,26 @@ class AppViewModel(
             override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
                 when (owner) {
                     MotionOwner.SLOW_MOVE -> demoSlowMotionTransport.stop(reason)
+                    MotionOwner.GOTO -> {
+                        val activeSession = session
+                        if (activeSession == null) {
+                            MotionStopResult.Unknown("mount session unavailable for GoTo stop")
+                        } else {
+                            try {
+                                GoToController(
+                                    activeSession,
+                                    controller ?: TrackingController(activeSession),
+                                ).cancelGoto()
+                                MotionStopResult.Stopped
+                            } catch (error: Throwable) {
+                                MotionStopResult.Unknown(
+                                    "GoTo stop failed: ${error.message ?: error::class.simpleName ?: "unknown error"}",
+                                )
+                            }
+                        }
+                    }
                     else -> MotionStopResult.Unknown(
-                        "no demo stop adapter for " + owner.name,
+                        "no live stop adapter for " + owner.name,
                     )
                 }
         },
@@ -1491,6 +1510,14 @@ class AppViewModel(
         previewFrameReceivedAtMs = null
         endpointHealth = EndpointHealth.disconnected()
 
+        val activeGotoLease = gotoMotionLease
+        if (activeGotoLease != null) {
+            runBlocking { motionSupervisor.stop(activeGotoLease, MotionStopReason.DISCONNECT) }
+            gotoMotionLease = null
+            slewJob?.cancel()
+            slewJob = null
+            slewInProgress = false
+        }
         session?.let { runBlocking { it.disconnect() } }
         session = null
         controller = null
@@ -2233,6 +2260,8 @@ class AppViewModel(
 
     /** Handle to the in-flight arrival-aware slew coroutine, for [cancelSlew]. */
     private var slewJob: Job? = null
+    /** Shared owner lease for a live GoTo operation. */
+    private var gotoMotionLease: dev.openpolaris.core.domain.MotionLease? = null
 
     /**
      * Slew to entered coordinates and await arrival (code 519 + 517 poll).
@@ -2246,30 +2275,18 @@ class AppViewModel(
         if (slewInProgress) return
         val s = session ?: run { statusMessage = "Not connected"; return }
         val c = GoToController(s, controller ?: TrackingController(s))
+        val target: Pair<Double, Double>
+        val targetLabel: String
         if (raDecMode) {
             val loc = parsedLocation() ?: run { statusMessage = "Invalid latitude/longitude"; return }
             val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA (use HH MM SS or H.h)"; return }
-            val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use ±DD MM SS or ±D.d)"; return }
+            val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use DD MM SS or D.d)"; return }
             val altAz = AstroMath.toHorizontalAt(ra, dec, loc.first, loc.second, AstroMath.julianDateNow())
-            targetSelected = true
-            slewInProgress = true
-            slewJob = scope.launch {
-                try {
-                    val arrived = c.goToAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)
-                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
-                        statusMessage = if (arrived) {
-                            "Arrived at RA $gotoRa Dec $gotoDec (az %.1f°, alt %.1f°)".format(
-                                altAz.azimuthDeg, altAz.altitudeDeg,
-                            )
-                        } else {
-                            "Slew to RA $gotoRa Dec $gotoDec timed out — mount not yet at target"
-                        }
-                    }
-                } finally {
-                    slewInProgress = false
-                    slewJob = null
-                }
-            }
+            target = altAz.azimuthDeg to altAz.altitudeDeg
+            targetLabel = "RA $gotoRa Dec $gotoDec (az %.1f deg, alt %.1f deg)".format(
+                altAz.azimuthDeg,
+                altAz.altitudeDeg,
+            )
         } else {
             val az = gotoAz.toDoubleOrNull()
             val alt = gotoAlt.toDoubleOrNull()
@@ -2277,22 +2294,47 @@ class AppViewModel(
                 statusMessage = "Invalid coordinates"
                 return
             }
-            targetSelected = true
-            slewInProgress = true
-            slewJob = scope.launch {
-                try {
-                    val arrived = c.goToAzAlt(az, alt)
-                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
-                        statusMessage = if (arrived) {
-                            "Arrived at az $az°, alt $alt°"
-                        } else {
-                            "Slew to az $az°, alt $alt° timed out — mount not yet at target"
-                        }
-                    }
-                } finally {
+            target = az to alt
+            targetLabel = "az $az deg, alt $alt deg"
+        }
+        targetSelected = true
+        slewInProgress = true
+        slewJob = scope.launch {
+            val acquired = motionSupervisor.acquire(MotionOwner.GOTO)
+            val lease = when (acquired) {
+                is MotionAcquireResult.Granted -> acquired.lease
+                is MotionAcquireResult.Busy -> {
+                    statusMessage = "Slew blocked by ${acquired.active.owner.name.lowercase().replace('_', ' ')}"
                     slewInProgress = false
                     slewJob = null
+                    return@launch
                 }
+                is MotionAcquireResult.Blocked -> {
+                    statusMessage = "Slew blocked: ${acquired.reason}"
+                    slewInProgress = false
+                    slewJob = null
+                    return@launch
+                }
+            }
+            gotoMotionLease = lease
+            var terminalMessage: String? = null
+            try {
+                val arrived = c.goToAzAlt(target.first, target.second)
+                terminalMessage = if (arrived) {
+                    "Arrived at $targetLabel"
+                } else {
+                    "Slew to $targetLabel timed out - mount not yet at target"
+                }
+            } finally {
+                val stopResult = motionSupervisor.stop(lease, MotionStopReason.RELEASE)
+                if (gotoMotionLease == lease) gotoMotionLease = null
+                if (stopResult is MotionStopResult.Unknown) {
+                    statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
+                } else if (isActive && terminalMessage != null) {
+                    statusMessage = terminalMessage
+                }
+                slewInProgress = false
+                slewJob = null
             }
         }
     }
@@ -2303,14 +2345,21 @@ class AppViewModel(
      * "Slew cancelled" line. Idempotent when no slew is in flight.
      */
     fun cancelSlew() = scope.launch {
-        val s = session
-        if (s != null) {
-            runCatching { GoToController(s, controller ?: TrackingController(s)).cancelGoto() }
+        val lease = gotoMotionLease
+        if (lease != null) {
+            val stopResult = motionSupervisor.stop(lease, MotionStopReason.EMERGENCY)
+            if (stopResult is MotionStopResult.Unknown) {
+                statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
+            } else {
+                statusMessage = "Slew cancelled"
+            }
+        } else {
+            statusMessage = "Slew cancelled"
         }
-        slewJob?.cancel()
+        slewJob?.cancelAndJoin()
+        gotoMotionLease = null
         slewJob = null
         slewInProgress = false
-        statusMessage = "Slew cancelled"
     }
 
     // ---- session persistence + reconnect prompt (issue #27) ----------------

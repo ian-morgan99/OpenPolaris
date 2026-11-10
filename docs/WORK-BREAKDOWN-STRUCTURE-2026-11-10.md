@@ -101,6 +101,8 @@
   recovery so it cannot clear another owner. Live owners still need to migrate
   before this package is complete.
 
+- **2026-11-10 - WBS-03.1 progress (GoTo owner wired):** the arrival-aware 519/517 GoTo path now acquires the shared `MotionOwner.GOTO` lease, reports contention or a blocked recovery state, routes cancel and disconnect through the shared stop boundary, and releases the lease only after the stop result is observed.
+
 ### WBS-03.2 — Fast jog dead-man contract — P0
 
 - Preserve 513/514/521 semantics separately from slow/fine rate.

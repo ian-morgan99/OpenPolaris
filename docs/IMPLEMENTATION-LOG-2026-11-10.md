@@ -432,3 +432,19 @@ Verification passed:
 ~~~text
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SlowMotionCapabilityTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
 ~~~
+
+### WBS-03.1 - GoTo owner integration
+
+Moved the live arrival-aware GoTo operation behind the shared MotionSupervisor:
+
+- 519/517 GoTo acquires `MotionOwner.GOTO` before it starts and reports the active owner when another motion workload holds the lease.
+- The existing 519 `state:0` cancel path is the GoTo stop adapter; cancel, normal completion, disconnect and session teardown all pass through the same stop boundary.
+- A failed or ambiguous stop remains a supervisor fault and is not silently converted into an idle/ready state.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+This validates the UI safety contract and Compose compilation. No live GoTo, mount or hardware was exercised in this environment.

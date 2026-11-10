@@ -32,6 +32,7 @@ class AndroidBluetoothWakeContractTest {
             "androidApp/src/androidMain/kotlin/dev/openpolaris/android/MountWifiScan.kt",
         )
         assertTrue("MountBluetoothWake(context).wake" in wifi)
+        assertTrue("BT wake failed:" in wifi)
         assertFalse("startDiscovery" in wifi)
 
         val activity = source(

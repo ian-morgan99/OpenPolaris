@@ -93,19 +93,39 @@ The status line under the buttons updates:
 The Connect button is double-tap-safe; the second tap is ignored while the
 first connect is in flight.
 
+### 2.3 Choose the network route
+
+The Connection dialog has two explicit modes:
+
+- **Direct AP**: join the Polaris access point. The usual control address is
+  192.168.0.1:9090; Android's Find & wake flow and the desktop bridge belong
+  to this mode.
+- **Home Wi-Fi (LAN)**: keep the phone or computer on the trusted home Wi-Fi
+  and enter the Polaris station-mode IP address. OpenPolaris uses ordinary LAN
+  routing; it does not join the Polaris_* AP, run the AP bridge, or expose
+  the mount to the public Internet.
+
+In either mode, **Connect** only proves the configured control TCP endpoint and
+the source-aligned handshake. Preview (8080) and Astro WebUI HTTP health are
+reported separately. A station IP, DHCP reservation/hostname, and the actual
+firmware listener binding must be verified on the local network; configuring
+the Astro WebUI's second Internet connection alone is not proof that TCP
+9090 is reachable.
+
 ## 3. The Connection dialog
 
 A modal card titled **Connection**.
 
 | Control | Effect |
 |---|---|
-| Mount host | Text field; the gimbal's IP (default `192.168.0.1`). |
-| Port | Numeric field; default `9090`. |
+| Connection mode | **Direct AP** or **Home Wi-Fi (LAN)**. The selection is persisted as a user preference and does not change network routing by itself. |
+| Mount host / Station host/IP | Text field; the gimbal's IP (default 192.168.0.1 in Direct AP mode). |
+| Port | Numeric field; default 9090. |
 | **Connect** | Opens the TCP socket and starts the post-connect bootstrap. |
 | **Demo mode** | Spins up the in-process simulator — no network. |
 | **Disconnect** | Tears down the session, stops the preview, shuts down the simulator. |
 | **Bridge to mount Wi-Fi…** | *(Desktop only.)* One-tap bridge: wakes the gimbal over Bluetooth, brings the segregated Wi-Fi interface up with `NetworkManager`, installs a low-metric policy route so general traffic still flows, then opens the TCP socket. See §3.1. |
-| **Connect mount Wi-Fi…** | *(Android only.)* Opens the system Wi-Fi picker pre-filtered to `Polaris_*` APs. |
+| **Connect mount Wi-Fi…** | *(Android only, Direct AP mode.)* Opens the system Wi-Fi picker pre-filtered to Polaris_* APs. |
 | Status line | Last action result — `Connecting…`, `Connected`, or a failure reason. |
 
 ### 3.1 The desktop Wi-Fi bridge
@@ -394,8 +414,9 @@ The implementation lives in `androidApp/.../VRActivity.kt` and
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Connect` returns `Connection refused` | Wrong host or port, or the gimbal AP isn't joined. | Tap **Connect mount Wi-Fi…** (Android) or the bridge button (desktop). |
-| `Connect` returns `timeout` | The gimbal is on the tplink subnet, not the `polaris_*` AP. | Re-join the gimbal AP. From a tplink subnet, `192.168.0.1` is the AP's admin page. |
+| Connect returns Connection refused in Direct AP mode | Wrong host or port, or the gimbal AP isn't joined. | Tap **Connect mount Wi-Fi…** (Android) or the bridge button (desktop). |
+| Connect returns Connection refused in Home Wi-Fi (LAN) mode | The station IP is wrong, or the Polaris control daemon is not listening on its station interface. | Verify the router lease and test station-IP:9090 from the same home network. Do not assume the Astro WebUI setup proves TCP control reachability. |
+| Connect returns timeout | The client and Polaris may be on isolated VLANs/subnets, or the route is wrong. | Check ordinary LAN routing and client isolation; do not open a port on the public Internet. |
 | Status line says `crash: …` after `Connected` | A post-connect step threw (camera poll, capture poll, preview start). | The app has already called `disconnect()`. Tap **Connect** again — if the symptom persists, file an issue with the crash text. |
 | Preview pane says `Stream unavailable: …` | Camera is off, USB is unplugged, or the mount isn't on. | Tap **Connect** again. If preview is still down after a clean reconnect, the mount is in a state where the camera transport won't open — power-cycle the gimbal. |
 | Helpers card shows a red banner | Both `advancedAstro` and `autoLevel` are off. | Edit your config and re-launch. |

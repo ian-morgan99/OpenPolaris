@@ -84,7 +84,7 @@ class MountWifiScan(private val context: Context) {
         withContext(Dispatchers.IO) {
             val wake = btWakePulse(progress)
             if (!wake.success) {
-                progress("Bluetooth wake not confirmed: ${wake.detail}; continuing with Wi-Fi scan")
+                progress("BT wake failed: ${wake.detail}; continuing with Wi-Fi scan")
             }
             // Give the gimbal a beat to actually bring up the AP after the
             // GATT state=2 wake pulse lands. 2.5s is the empirically-observed

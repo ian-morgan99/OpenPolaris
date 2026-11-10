@@ -168,6 +168,9 @@ fun OpenPolarisApp(
         }
 
     LaunchedEffect(preferenceStore, vm) {
+        vm.setConnectionModePersistence { mode ->
+            persistPreferences(preferences.copy(connectionMode = mode))
+        }
         vm.setObserverLocationPersistence { latitude, longitude ->
             persistPreferences(
                 preferences.copy(
@@ -181,6 +184,7 @@ fun OpenPolarisApp(
             if (loaded != null) {
                 preferences = loaded
                 dimMode = loaded.dimMode
+                vm.restoreConnectionMode(loaded.connectionMode)
                 vm.restoreObserverLocation(
                     loaded.observerLatitudeDeg,
                     loaded.observerLongitudeDeg,

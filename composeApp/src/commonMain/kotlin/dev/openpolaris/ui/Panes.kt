@@ -70,6 +70,7 @@ import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.CameraController
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.CameraReleaseMode
+import dev.openpolaris.core.domain.ConnectionMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.AstroMissionFlow
 import dev.openpolaris.core.domain.AstroMissionInput
@@ -337,6 +338,29 @@ fun ConnectionPane(
     Card(modifier = modifier.padding(8.dp)) {
         val scope = rememberCoroutineScope()
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Connection mode", style = MaterialTheme.typography.labelMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = vm.connectionMode == ConnectionMode.DIRECT_AP,
+                    onClick = { vm.selectConnectionMode(ConnectionMode.DIRECT_AP) },
+                    label = { Text("Direct AP") },
+                    modifier = Modifier.testTag("connection-mode-direct-ap"),
+                )
+                FilterChip(
+                    selected = vm.connectionMode == ConnectionMode.HOME_LAN,
+                    onClick = { vm.selectConnectionMode(ConnectionMode.HOME_LAN) },
+                    label = { Text("Home Wi-Fi (LAN)") },
+                    modifier = Modifier.testTag("connection-mode-home-lan"),
+                )
+            }
+            Text(
+                if (vm.connectionMode == ConnectionMode.DIRECT_AP) {
+                    "Join the Polaris_* access point; the usual mount address is 192.168.0.1."
+                } else {
+                    "Stay on your trusted home Wi-Fi and enter the Polaris station IP. No AP join or bridge is performed."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
             // No header — the Benro Connect aesthetic is a flat, full-width
             // form; the app name is already in the launcher icon, not the
             // content area. The status line beneath the form acts as the
@@ -344,7 +368,7 @@ fun ConnectionPane(
             OutlinedTextField(
                 value = vm.host,
                 onValueChange = vm::updateHost,
-                label = { Text("Mount host") },
+                label = { Text(if (vm.connectionMode == ConnectionMode.HOME_LAN) "Station host/IP" else "Mount host") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -380,9 +404,15 @@ fun ConnectionPane(
                 if (onWake != null) {
                     OutlinedButton(
                         onClick = onWake,
-                        enabled = !vm.waking.value,
+                        enabled = !vm.waking.value && vm.connectionMode == ConnectionMode.DIRECT_AP,
                     ) {
-                        Text(if (vm.waking.value) "Waking…" else "Wake")
+                        Text(
+                            when {
+                                vm.waking.value -> "Waking…"
+                                vm.connectionMode == ConnectionMode.HOME_LAN -> "Wake (Direct AP only)"
+                                else -> "Wake"
+                            }
+                        )
                     }
                 }
                 OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
@@ -415,7 +445,10 @@ fun ConnectionPane(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (onBridgeWifi != null) {
-                OutlinedButton(onClick = onBridgeWifi) {
+                OutlinedButton(
+                    onClick = onBridgeWifi,
+                    enabled = vm.connectionMode == ConnectionMode.DIRECT_AP,
+                ) {
                     Text("Bridge to mount Wi-Fi…")
                 }
             }
@@ -438,13 +471,22 @@ fun ConnectionPane(
                             onMountWifiScan { msg -> vm.notifyStatus(msg) }
                         }
                     },
-                    enabled = !vm.scanning.value,
+                    enabled = !vm.scanning.value && vm.connectionMode == ConnectionMode.DIRECT_AP,
                 ) {
-                    Text(if (vm.scanning.value) "Scanning…" else "Find & wake Polaris…")
+                    Text(
+                        when {
+                            vm.scanning.value -> "Scanning…"
+                            vm.connectionMode == ConnectionMode.HOME_LAN -> "Find & wake (Direct AP only)"
+                            else -> "Find & wake Polaris…"
+                        }
+                    )
                 }
             }
             if (onFindWifi != null) {
-                OutlinedButton(onClick = onFindWifi) {
+                OutlinedButton(
+                    onClick = onFindWifi,
+                    enabled = vm.connectionMode == ConnectionMode.DIRECT_AP,
+                ) {
                     Text("Open system Wi-Fi…")
                 }
             }

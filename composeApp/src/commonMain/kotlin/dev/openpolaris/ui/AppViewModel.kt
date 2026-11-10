@@ -119,6 +119,7 @@ import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.ConnectionMode
 import dev.openpolaris.core.domain.BluetoothWakePhase
 import dev.openpolaris.core.domain.BluetoothWakeState
 import dev.openpolaris.core.domain.DeviceInfo
@@ -412,6 +413,29 @@ class AppViewModel(
 
     var host by mutableStateOf("192.168.0.1")
         private set
+
+    /** Network intent shown in the Connection workspace and endpoint health. */
+    var connectionMode by mutableStateOf(ConnectionMode.DIRECT_AP)
+        private set
+    private var connectionModePersistence: ((ConnectionMode) -> Unit)? = null
+
+    fun setConnectionModePersistence(persistence: (ConnectionMode) -> Unit) {
+        connectionModePersistence = persistence
+    }
+
+    /** Restore presentation/routing intent without writing preferences again. */
+    fun restoreConnectionMode(mode: ConnectionMode) {
+        connectionMode = mode
+    }
+
+    fun selectConnectionMode(mode: ConnectionMode) {
+        if (connectionMode == mode) return
+        connectionMode = mode
+        connectionModePersistence?.invoke(mode)
+        if (session != null) {
+            statusMessage = "Connection mode changed to ${mode.name.lowercase().replace('_', ' ')}; reconnect to apply"
+        }
+    }
 
     // 3b.5-BUG: live (committed) port, read by MountSession() and the
     // persisted marker. Defaults to 9090 to match prior hard-coded
@@ -1101,7 +1125,11 @@ class AppViewModel(
         EndpointProfile(
             id = if (demoMode) "demo" else "current-mount",
             label = if (demoMode) "Demo mount" else "Current mount",
-            kind = if (demoMode) EndpointKind.DEMO else EndpointKind.HOME_LAN,
+            kind = when {
+                demoMode -> EndpointKind.DEMO
+                connectionMode == ConnectionMode.HOME_LAN -> EndpointKind.HOME_LAN
+                else -> EndpointKind.DIRECT_AP
+            },
             address = EndpointAddress(host, controlPort = port, previewPort = previewPort),
         )
     }.getOrNull()

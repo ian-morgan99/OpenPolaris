@@ -1,5 +1,6 @@
 package dev.openpolaris.core.session
 
+import dev.openpolaris.core.domain.ConnectionMode
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -20,6 +21,7 @@ data class UserPreferences(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val dimMode: Boolean = false,
     val reducedMotion: Boolean = false,
+    val connectionMode: ConnectionMode = ConnectionMode.DIRECT_AP,
     val observerLatitudeDeg: Double? = null,
     val observerLongitudeDeg: Double? = null,
 ) {

@@ -11,6 +11,12 @@ enum class EndpointKind {
     DEMO,
 }
 
+/** User-selected network intent; selecting it never changes host networking by itself. */
+enum class ConnectionMode {
+    DIRECT_AP,
+    HOME_LAN,
+}
+
 data class EndpointAddress(
     val host: String,
     val controlPort: Int = 9090,

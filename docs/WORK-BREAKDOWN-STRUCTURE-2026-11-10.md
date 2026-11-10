@@ -955,3 +955,15 @@ The current implementation slice must not send a new motor frame, alter firmware
   published files through refreshFileList and confirms SD presence. The full
   cross-platform build passed. No live camera, SD card, Astro WebUI, Bluetooth,
   mount or physical SLOW qualification was performed.
+
+
+- **2026-11-10 - WBS-01.2/04.3/07.1/09.1 ACTIVE (capture review affordance):**
+  added a direct Review in Gallery action to the shared Camera destination after
+  a lifecycle-correlated publication. The callback is wired through the typed
+  phone/tablet/PC destination workspace, while the compact callout remains
+  compatible. This shortens the safe path from shutter confirmation to media
+  review without implying that HTTP acceptance or a file path alone is success.
+- **2026-11-10 - verification:** CameraCaptureSafetyContractTest, responsive
+  navigation/layout tests and the full cross-platform build passed. No live
+  camera, SD card, Astro WebUI, Bluetooth, mount or physical SLOW qualification
+  was performed.

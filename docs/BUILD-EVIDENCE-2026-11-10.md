@@ -1844,3 +1844,35 @@ Artifacts:
 The capture-to-gallery path is simulator/package evidence only. No live Astro
 WebUI, Bluetooth, bridge, camera, SD card, mount or physical SLOW qualification
 was exercised.
+
+
+## Latest committed verification - 15dd8c2
+
+Commit under test: 15dd8c2 (feat: link capture review to gallery).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.CameraCaptureSafetyContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM test reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 3761dd1256e229b7d1424324eb5963446b9f12d2f6b43be58ce4a519d602a18a
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-capture-review.tar.gz
+  SHA-256: 418af98ea08860880ebfd66219028bac8b0fe6eef052dff9e8bcc38c20479b44
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The review affordance is simulator/package evidence only. No live Astro WebUI,
+Bluetooth, bridge, camera, SD card, mount or physical SLOW qualification was
+exercised.

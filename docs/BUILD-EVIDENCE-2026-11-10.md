@@ -2004,3 +2004,35 @@ Artifacts:
 The HDR observation-programme rehearsal is simulator/package evidence only.
 Live non-lapse programme execution, Astro WebUI, Bluetooth, bridge, camera, SD
 card, mount and physical SLOW qualification remain unverified.
+
+
+## Latest committed verification - af41a23
+
+Commit under test: af41a23 (feat: add demo programme pause controls).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest.demoHdrProgrammeSupportsPauseAndResumeAtCaptureBoundary --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: a98159bdc92920300bfa2dc5f322d00be8ac2910b183b8fc07b6439d70285299
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-programme-controls.tar.gz
+  SHA-256: 32195ee777d518ddf622b14dda0add44049870927da0e5e985dcfed354b61d78
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The programme pause/resume controls are simulator/package evidence only.
+Live Astro WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
+qualification remain unverified.

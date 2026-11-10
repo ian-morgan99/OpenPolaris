@@ -164,6 +164,24 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun disconnectCancelsQueuedCaptureDispatch() = runTest {
+        val conn = FakeConnection()
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.capture()
+            vm.disconnect()
+            runCurrent()
+
+            assertIs<AppViewModel.CapturePhase.Idle>(vm.capturePhase)
+            assertEquals(0, conn.count(264), "a queued capture must not reach the shutter after disconnect")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun lifecycleAndPositiveFileEventCompleteCapture() = runTest(UnconfinedTestDispatcher()) {
         val conn = FakeConnection(); val vm = vm(this, conn)
         try {

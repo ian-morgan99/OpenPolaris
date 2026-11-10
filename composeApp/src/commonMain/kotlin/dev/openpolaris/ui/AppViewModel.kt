@@ -712,6 +712,11 @@ class AppViewModel(
     // fires, the capture is reported as Failed("timeout") instead of hanging
     // on Busy.
     private var captureWatchdogJob: Job? = null
+    // User-triggered capture dispatch is session-owned. Without an explicit
+    // handle, a queued Compose action could repopulate Requested after
+    // disconnect has already cleared the capture evidence.
+    private var captureDispatchJob: Job? = null
+    private var bulbStopJob: Job? = null
     /** Shared lifecycle + publication correlation for single shots and programmes. */
     private val captureEvidence = CaptureEvidenceGate()
     private var pendingCapturePublication: CapturePublication? = null
@@ -1692,6 +1697,10 @@ class AppViewModel(
         // #60: a capture in flight at disconnect time is abandoned — drop the
         // watchdog and reset the phase so a stale "Busy" / "Failed" doesn't
         // linger into the next session.
+        captureDispatchJob?.cancel()
+        captureDispatchJob = null
+        bulbStopJob?.cancel()
+        bulbStopJob = null
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
@@ -3712,7 +3721,7 @@ class AppViewModel(
             statusMessage = "Capture in progress — wait for it to finish"
             return
         }
-        scope.launch {
+        captureDispatchJob = scope.launch {
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
@@ -3750,7 +3759,7 @@ class AppViewModel(
         if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
             statusMessage = "Capture in progress — wait for it to finish"; return
         }
-        scope.launch {
+        captureDispatchJob = scope.launch {
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
@@ -3796,7 +3805,7 @@ class AppViewModel(
             statusMessage = "Bulb outcome unknown — camera disconnected"
             return
         }
-        scope.launch {
+        bulbStopJob = scope.launch {
             val result = controller.stopBulb()
             if (result.accepted) {
                 statusMessage = "Bulb stop sent; waiting for the image"

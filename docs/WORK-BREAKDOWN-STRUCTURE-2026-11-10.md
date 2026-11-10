@@ -484,3 +484,13 @@ The current implementation slice must not send a new motor frame, alter firmware
   in-flight bridge and Bluetooth wake are both cancelled by disconnect and
   their visible progress flags clear. No live network or Bluetooth operation
   was exercised.
+
+- **2026-11-10 - WBS-02.2/04.3 ACTIVE (capture command ownership):** queued
+  still, Bulb and Bulb-stop dispatch now have explicit session-owned jobs.
+  Disconnect cancels them before clearing capture evidence, preventing a
+  delayed UI action from repopulating Requested or sending a shutter after
+  the session has ended.
+- **2026-11-10 - verification:** AppViewModelCapturePhaseTest proves a queued
+  capture is cancelled before any 264 shutter write; the existing correlated
+  M/B lifecycle, timeout, sequence and publication tests remain green. No
+  live camera was exercised.

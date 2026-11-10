@@ -658,3 +658,21 @@ Verification passed:
 
 Result: BUILD SUCCESSFUL; both lifecycle cancellation tests passed. No live
 network, Bluetooth, mount or camera operation was exercised.
+
+### WBS-02.2/04.3 - Capture command lifecycle ownership
+
+Made still, Bulb and Bulb-stop dispatch session-owned. A capture request that
+is queued on the Compose scope is now cancelled by disconnect before it can
+recreate capture evidence or reach the shutter; the watchdog and stop command
+are cancelled at the same boundary.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the full capture phase suite passed, including the
+new queued-dispatch regression and the existing M/B lifecycle/publication,
+timeout, sequence and read-only focus/video checks. No live camera operation
+was exercised.

@@ -39,8 +39,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.openpolaris.core.domain.BatteryAwareness
+import dev.openpolaris.core.domain.BatterySeverity
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
@@ -676,13 +681,26 @@ private fun StatusStrip(
                         modifier = Modifier.testTag("night-dim-toggle"),
                     ) { Text(if (dimMode) "Bright" else "Dim") }
                 }
+                val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
+                Text(
+                    battery.compactLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (battery.severity) {
+                        BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
+                        BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier
+                        .testTag("battery-status")
+                        .semantics {
+                            contentDescription = battery.contentDescription
+                            stateDescription = battery.severity.label
+                        },
+                )
                 Text(
                     buildString {
-                        append(s.batteryPercent?.toString() ?: "—")
-                        append("%")
-                        if (s.charging) append("+")
-                        if (s.tracking == true) append("  TRK")
-                        if (s.halfSpeed) append("  ½×")
+                        if (s.tracking == true) append("TRK")
+                        if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )

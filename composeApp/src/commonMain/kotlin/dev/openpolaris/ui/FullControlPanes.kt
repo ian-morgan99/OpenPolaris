@@ -399,6 +399,21 @@ private fun ShutdownRow(vm: AppViewModel) {
 // =============================================================================
 
 @Composable
+fun CaptureTimelinePane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val entries = vm.captureTimeline.takeLast(8)
+    if (entries.isEmpty()) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Capture timeline", style = MaterialTheme.typography.titleSmall)
+        entries.forEach { entry ->
+            Text(
+                "${entry.stage.label}: ${entry.detail}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
 fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Card(Modifier.fillMaxWidth()) {
@@ -429,6 +444,7 @@ fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
+        CaptureTimelinePane(vm, Modifier.fillMaxWidth())
         FilesPane(vm, Modifier.fillMaxWidth())
     }
 }

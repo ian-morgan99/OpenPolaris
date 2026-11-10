@@ -729,6 +729,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            CaptureTimelinePane(vm, Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 val bulbInFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                     phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy

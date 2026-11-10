@@ -2534,7 +2534,16 @@ class AppViewModel(
     fun emergencyStopMotion() {
         fastJogJob?.cancel()
         fastJogJob = null
+        val motionSession = session
         scope.launch {
+            // A queued STOP ALL from a torn-down session must not inspect the
+            // replacement/idle supervisor and publish a misleading terminal
+            // status. Disconnect itself owns the synchronous lease boundary.
+            if (motionSession != null &&
+                (session !== motionSession || sessionTearingDown)
+            ) {
+                return@launch
+            }
             when (val state = motionSupervisor.state.value) {
                 MotionState.Idle -> statusMessage = "No active motion owner"
                 is MotionState.Faulted -> {

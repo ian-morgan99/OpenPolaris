@@ -765,3 +765,21 @@ Verification passed:
 Result: BUILD SUCCESSFUL; the session-marker suite passed, including the Demo
 SLOW disconnect regression. Live SLOW remains gated and no hardware operation
 was exercised.
+
+
+### WBS-03.1/02.2 - Queued emergency-stop status ownership
+
+Made the common STOP ALL action session-aware at dispatch. It captures the
+session that owned the motion request and drops a queued action after
+disconnect, preventing the reset MotionSupervisor from producing a misleading
+"No active motion owner" or emergency completion message. The disconnect path
+continues to own synchronous lease cleanup.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionMarkerTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the session-marker suite passed, including the
+queued STOP ALL regression. No live motion command was exercised.

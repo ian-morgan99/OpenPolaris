@@ -820,6 +820,32 @@ class AppViewModelSessionMarkerTest {
     }
 
     @Test
+    fun disconnectDropsQueuedEmergencyStopStatus() = runTest {
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.connectDemo(startPolling = false)
+            advanceUntilIdle()
+            vm.demoSlowMotionStart(RateAxis.M1_PAN, direction = 1, level = 1)
+            runCurrent()
+            assertTrue(vm.slowMotionDemoState.running, "precondition: Demo SLOW should be active")
+
+            vm.emergencyStopMotion()
+            vm.disconnect()
+            runCurrent()
+
+            assertFalse(
+                vm.statusMessage.contains("No active motion owner") ||
+                    vm.statusMessage.contains("Emergency stop"),
+                "a queued STOP ALL must not publish a post-disconnect status",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun connectDemoWritesNullRollAndPitchWhenPositionIsNull() = runTest(UnconfinedTestDispatcher()) {
         // 3d D1: when the mount never reported a 517 frame before disconnect,
         // the marker must record null for roll/pitch, not 0.0. Recording 0.0

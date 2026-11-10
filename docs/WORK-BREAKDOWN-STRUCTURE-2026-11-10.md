@@ -543,3 +543,13 @@ The current implementation slice must not send a new motor frame, alter firmware
   queued Demo SLOW stop cannot publish its completion status after disconnect.
   Live SLOW remains disabled pending firmware, acknowledgement and physical
   qualification evidence.
+
+
+- **2026-11-10 - WBS-03.1/02.2 ACTIVE (queued emergency-stop status):**
+  STOP ALL now captures the owning session before dispatch. A queued stop from
+  a disconnected session is discarded rather than inspecting the reset
+  supervisor and reporting a false idle/emergency result; disconnect remains
+  the synchronous lease-stop boundary.
+- **2026-11-10 - verification:** AppViewModelSessionMarkerTest covers a queued
+  Demo SLOW STOP ALL followed by disconnect and proves no post-disconnect
+  emergency/idle status is published. No live motion command was exercised.

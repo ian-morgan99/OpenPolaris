@@ -110,6 +110,8 @@
 - Keep alternative `AC 4A` route isolated until its receiver/units are proven.
 - Exit: exact app/gimbal hashes, fake-head fault suite, no-camera physical stop/reconnect/rate matrix.
 
+- **2026-11-10 — WBS-03.5 ACTIVE (transport-neutral owner):** added a SLOW controller seam with exclusive ownership, separate dead-man renewal, scheduler ticks, explicit release/emergency/disconnect stops, and terminal unknown/recovery states. It sends no wire frame; exact firmware mapping remains blocked.
+
 ### WBS-03.6 — Motion UX — P1 — ACTIVE (disabled surface)
 
 - Add mobile Motion dock, PC control panel, speed ladder, axis legend, owner state and emergency stop.

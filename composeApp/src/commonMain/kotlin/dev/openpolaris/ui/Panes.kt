@@ -399,15 +399,21 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
+    // The planner/scheduler is deliberately host-only today. Keep this second
+    // gate in the UI so a test/config override cannot imply that 532/533/534
+    // is safe to send before a firmware-bound adapter exists.
+    val liveTransportQualified = false
+    val liveControlsEnabled = gateOpen && liveTransportQualified && vm.mount.connected
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
             Text(
-                if (gateOpen) {
-                    "Qualified slow-motion controls are ready for this build."
-                } else {
-                    "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
+                when {
+                    !gateOpen -> "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
+                    !liveTransportQualified -> "Host planner is implemented, but no firmware-bound slow-motion transport is enabled in this build."
+                    !vm.mount.connected -> "Connect to a mount before using slow motion."
+                    else -> "Qualified slow-motion controls are ready for this build."
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -425,7 +431,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     FilterChip(
                         selected = false,
                         onClick = {},
-                        enabled = gateOpen,
+                        enabled = liveControlsEnabled,
                         label = { Text("$level") },
                     )
                 }
@@ -433,6 +439,11 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Text(
                 "Levels are calibration steps, not degrees per second. The host planner selects adjacent measured points and time-shares them; it never uses state 0 as a running point.",
                 style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Text("Safety behaviour", style = MaterialTheme.typography.labelLarge)

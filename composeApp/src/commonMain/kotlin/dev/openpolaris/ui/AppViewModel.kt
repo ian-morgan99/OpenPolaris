@@ -162,6 +162,7 @@ import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
+import dev.openpolaris.core.domain.QualifiedSlowMotionTransport
 import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.MotionOwner
 import dev.openpolaris.core.domain.MotionAcquireResult
@@ -674,7 +675,40 @@ class AppViewModel(
     // records logical commands only and never emits a firmware frame.
     private val demoSlowMotionTransport = DemoSlowMotionTransport()
     /**
-     * Demo-only fine-rate transport. It records a logical request and never
+     * The firmware-bound adapter is present as a qualification-gated seam, but
+     * the current immutable capability record is unqualified. The selector
+     * below keeps Demo and a future qualified session on the same controller
+     * and owner lifecycle without allowing a feature flag to open the route.
+     */
+    private val qualifiedSlowMotionTransport = QualifiedSlowMotionTransport(
+        capability = SlowMotionCapabilities.current,
+    ) { frame ->
+        val activeSession = session
+        if (activeSession == null) {
+            SlowMotionTransportResult.Unknown("mount session unavailable for SLOW transport")
+        } else {
+            try {
+                activeSession.sendOnly(frame.code, frame.payload)
+                SlowMotionTransportResult.Accepted
+            } catch (error: Throwable) {
+                SlowMotionTransportResult.Unknown(
+                    "SLOW frame dispatch failed: " +
+                        (error.message ?: error::class.simpleName ?: "unknown error"),
+                )
+            }
+        }
+    }
+    private val slowMotionTransport = object : SlowMotionTransport {
+        override suspend fun apply(command: SlowScheduleCommand): SlowMotionTransportResult =
+            if (demoMode) demoSlowMotionTransport.apply(command)
+            else qualifiedSlowMotionTransport.apply(command)
+
+        override suspend fun stop(reason: MotionStopReason): MotionStopResult =
+            if (demoMode) demoSlowMotionTransport.stop(reason)
+            else qualifiedSlowMotionTransport.stop(reason)
+    }
+    /**
+     * Demo-only fine-rate transport. It accepts logical requests and never
      * has access to a MountSession, so the rehearsal cannot emit a firmware
      * frame accidentally.
      */
@@ -741,7 +775,7 @@ class AppViewModel(
         stopTransport = object : MotionStopTransport {
             override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
                 when (owner) {
-                    MotionOwner.SLOW_MOVE -> demoSlowMotionTransport.stop(reason)
+                    MotionOwner.SLOW_MOVE -> slowMotionTransport.stop(reason)
                     MotionOwner.TRACKING_CORRECTION -> when (val result = demoFineRateTransport.stop()) {
                         is RateCommandResult.Accepted -> MotionStopResult.Stopped
                         is RateCommandResult.Rejected -> MotionStopResult.Rejected
@@ -799,7 +833,7 @@ class AppViewModel(
     private var fastJogLease: FastJogLease? = null
     private var fastJogJob: Job? = null
     private val demoSlowMotion = SlowMotionController(
-        transport = demoSlowMotionTransport,
+        transport = slowMotionTransport,
         planner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
         motionSupervisor = motionSupervisor,
     )

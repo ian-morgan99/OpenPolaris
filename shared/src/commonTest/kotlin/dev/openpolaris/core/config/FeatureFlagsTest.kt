@@ -75,6 +75,7 @@ class FeatureFlagsTest {
         assertTrue(FeatureFlags.isEnabled("astroWebUiGuideStatus"), "Astro WebUI guide readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("astroWebUiAutofocusStatus"), "Astro WebUI autofocus progress readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("astroWebUiFocalStatus"), "Astro WebUI focal readback is safe and should remain visible")
+        assertTrue(FeatureFlags.isEnabled("astroWebUiLimitsStatus"), "Astro WebUI travel-limit readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("omsRead"), "OMS read (824/825) verified")
         assertTrue(FeatureFlags.isEnabled("wifiScan"), "WiFi scan (770) verified")
         assertTrue(FeatureFlags.isEnabled("fileManager"), "File list (702) verified")

@@ -37,6 +37,9 @@ import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiFocalClient
 import dev.openpolaris.core.domain.AstroWebUiFocalResult
 import dev.openpolaris.core.domain.AstroWebUiFocalUiState
+import dev.openpolaris.core.domain.AstroWebUiLimitsClient
+import dev.openpolaris.core.domain.AstroWebUiLimitsResult
+import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -166,6 +169,7 @@ import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiGuideClient
 import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
 import dev.openpolaris.core.domain.createAstroWebUiFocalClient
+import dev.openpolaris.core.domain.createAstroWebUiLimitsClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -309,6 +313,7 @@ class AppViewModel(
     private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
     private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
     private val astroWebUiFocalClient: AstroWebUiFocalClient = createAstroWebUiFocalClient(),
+    private val astroWebUiLimitsClient: AstroWebUiLimitsClient = createAstroWebUiLimitsClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1834,6 +1839,9 @@ class AppViewModel(
         astroWebUiFocalJob?.cancel()
         astroWebUiFocalJob = null
         astroWebUiFocal = AstroWebUiFocalUiState.Idle
+        astroWebUiLimitsJob?.cancel()
+        astroWebUiLimitsJob = null
+        astroWebUiLimits = AstroWebUiLimitsUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4214,6 +4222,8 @@ class AppViewModel(
         private set
     var astroWebUiFocal by mutableStateOf<AstroWebUiFocalUiState>(AstroWebUiFocalUiState.Idle)
         private set
+    var astroWebUiLimits by mutableStateOf<AstroWebUiLimitsUiState>(AstroWebUiLimitsUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4247,6 +4257,7 @@ class AppViewModel(
     private var astroWebUiAutofocusJob: Job? = null
     private var astroWebUiAutofocusPollJob: Job? = null
     private var astroWebUiFocalJob: Job? = null
+    private var astroWebUiLimitsJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4264,6 +4275,7 @@ class AppViewModel(
     private val astroWebUiGuideReadMutex = Mutex()
     private val astroWebUiAutofocusReadMutex = Mutex()
     private val astroWebUiFocalReadMutex = Mutex()
+    private val astroWebUiLimitsReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4460,6 +4472,44 @@ class AppViewModel(
                     statusMessage = result.reason
                 }
             }
+        }
+    }
+
+    private suspend fun readAstroWebUiLimits(announce: Boolean) {
+        astroWebUiLimitsReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiLimitsStatus")) {
+                astroWebUiLimits = AstroWebUiLimitsUiState.Failed(
+                    "Astro WebUI travel-limit status disabled by config",
+                )
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiLimits = AstroWebUiLimitsUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI travel-limit state",
+                )
+                return@withLock
+            }
+            astroWebUiLimits = AstroWebUiLimitsUiState.Loading
+            val result = astroWebUiLimitsClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiLimitsResult.Success -> {
+                    astroWebUiLimits = AstroWebUiLimitsUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI travel-limit state refreshed"
+                }
+                is AstroWebUiLimitsResult.Failure -> {
+                    astroWebUiLimits = AstroWebUiLimitsUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiLimits() {
+        astroWebUiLimitsJob?.cancel()
+        astroWebUiLimitsJob = scope.launch {
+            readAstroWebUiLimits(announce = true)
         }
     }
 

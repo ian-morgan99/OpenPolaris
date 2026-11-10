@@ -87,6 +87,7 @@ import dev.openpolaris.core.domain.AstroWebUiGuideUiState
 import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
 import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiFocalUiState
+import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -631,6 +632,7 @@ fun MissionDashboardPane(
         vm.startAstroWebUiGuidePolling()
         vm.startAstroWebUiAutofocusPolling()
         vm.refreshAstroWebUiFocal()
+        vm.refreshAstroWebUiLimits()
         vm.startAstroWebUiSolvePolling()
         vm.startAstroWebUiRunStatePolling()
         vm.startAstroWebUiProgrammePolling()
@@ -878,6 +880,61 @@ fun MissionDashboardPane(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            HorizontalDivider()
+            Text("Travel limits", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "This readback mirrors the resident safety state. Enforced is the safe default; released permits the head to enter restricted angles and remains a deliberate physical-clearance operation.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiLimitsStatus"),
+                    onClick = vm::refreshAstroWebUiLimits,
+                ) { Text("Refresh limits") }
+                when (val limits = vm.astroWebUiLimits) {
+                    AstroWebUiLimitsUiState.Idle -> Text(
+                        "Travel-limit state not checked.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    AstroWebUiLimitsUiState.Loading -> Text(
+                        "Reading travel-limit state…",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiLimitsUiState.Failed -> Text(
+                        limits.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    is AstroWebUiLimitsUiState.Ready -> Text(
+                        when (limits.state.released) {
+                            true -> "RELEASED — physical clearance must be watched"
+                            false -> "Enforced — safe restricted-angle state"
+                            null -> "Unknown — do not assume clearance or release"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (limits.state.released == true) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiLimitsStatus")) {
+                Text(
+                    "Travel-limit readback is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                "OpenPolaris does not expose limit release here: the Astro endpoint requires physical attestation and collision-clearance qualification.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             HorizontalDivider()
             Text("Resident guiding", style = MaterialTheme.typography.titleMedium)
             Text(

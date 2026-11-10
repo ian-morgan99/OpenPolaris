@@ -1437,3 +1437,16 @@ the Preview pane to the actual `vm.previewPort` rather than the control port
 
 The issue remains open only for installed-phone Guide/Tonight rendering and the
 requested screenshot/UI-dump re-capture.
+
+### WBS-10.3/01.2 - CI-safe Android asset generation dependencies
+
+Commit `9d42223` hardens the issue #87 packaging change for clean GitHub
+runners. The first rolling run after `16e487c` exposed a Gradle 8 validation
+failure: Android's release lint-model task consumed the generated common-asset
+directory without an explicit dependency. All Android asset and lint consumers
+now depend on `syncCommonRuntimeAssets`, while assemble tasks retain the real
+merged-assets verification finalizer.
+
+The corrected local matrix passed, including the previously failing
+`generateReleaseLintVitalReportModel`; the local machine has no release
+keystore, so signed release assembly remains CI-owned.

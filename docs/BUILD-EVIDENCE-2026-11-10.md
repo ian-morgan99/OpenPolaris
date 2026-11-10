@@ -2542,3 +2542,27 @@ Android debug APK:
 
 No installed-phone screenshot/UI-dump, mount, camera, Bluetooth, Astro WebUI or
 physical SLOW qualification was performed.
+
+## Latest committed verification - 9d42223
+
+Commit under test: `9d42223` (fix: wire generated assets into Android lint tasks).
+
+The first rolling run for the preceding packaging commit failed at
+`generateReleaseLintVitalReportModel` because Gradle detected an implicit
+dependency on `syncCommonRuntimeAssets`. The dependency was made explicit for
+all Android asset/lint consumers.
+
+Corrected local verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :androidApp:generateReleaseLintVitalReportModel :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+This includes `verifyCommonRuntimeAssets` for debug and release merged asset
+trees. Android debug APK SHA-256 remains:
+
+- `32d197fba745cb9b6b8a2bdb27bf7f494b4cd25bdce9bfdd16a48cb40cd896b8`
+
+The local machine cannot perform signed `assembleRelease` without the CI
+keystore; release signing and upload are verified by the next GitHub run.

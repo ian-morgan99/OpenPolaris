@@ -1368,3 +1368,17 @@ dispatch.
 
 Focused contract tests and the full cross-platform build passed. Android debug
 APK SHA-256: 0e326d22cba2f340992a0119ed27011ced5ac9ffce9dde05c74fdc188cb9454d.
+
+
+### WBS-03.6/09.1 - Mobile SLOW selector responsiveness
+
+The SLOW Motion dock now wraps its physical-axis and five-level speed selectors
+in horizontal touch scrolling with stable automation targets. This preserves
+the full axis and speed vocabulary on narrow phones instead of allowing the
+chip rows to clip or push the direction controls out of the viewport. The
+dead-man, owner arbitration and live-transport qualification gates are
+unchanged.
+
+Focused SLOW UI contract tests and the full cross-platform build passed.
+Android debug APK SHA-256:
+cca54d27ee7052b7712f1bd4cfae12114e7ca38a5faec3959f1442c1a5b17da8.

@@ -2410,3 +2410,28 @@ Android debug APK:
 The source/package result is ready for a phone UI check. Physical mount,
 camera, Bluetooth, Astro WebUI lifecycle, and live SLOW qualification remain
 separate evidence gates.
+
+
+## Latest committed verification - pending SLOW selector commit
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: cca54d27ee7052b7712f1bd4cfae12114e7ca38a5faec3959f1442c1a5b17da8
+
+This is source/package evidence. The SLOW selector layout is ready for a
+phone check; live firmware transport and physical stop qualification remain
+blocked on exact target evidence and supervised hardware tests.

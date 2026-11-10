@@ -1019,6 +1019,8 @@ The current implementation slice must not send a new motor frame, alter firmware
   required.
 
 
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (mobile selector responsiveness):** SLOW physical-axis and five-level speed selectors now use horizontal touch scrolling with stable test targets, so the full vocabulary remains reachable on narrow phones without clipping. Dead-man ownership and the live qualification gate are unchanged.
+- **2026-11-10 - verification:** SlowMotionPaneSafetyContractTest, shared/Compose JVM tests, Android compilation, desktop packaging and Android debug APK assembly passed.
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW hold cancellation UX):** hardened the shared pointer/key dead-man control so a cancelled pointer sequence releases the motion owner and clears the pending Button-click suppression flag. A later accessible or keyboard activation can no longer be swallowed after a pointer cancellation, and the held direction is visible in the button label as HOLDING. The live 532/533/534 transport remains qualification-gated.
 - **2026-11-10 - verification:** SlowMotionPaneSafetyContractTest now covers the cancellation branch and held-state feedback. The focused test and full shared/Compose JVM, Android compilation, desktop packaging and Android debug APK build passed. No live mount, Bluetooth, camera, Astro WebUI or physical SLOW operation was exercised.
 

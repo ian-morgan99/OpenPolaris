@@ -1,7 +1,9 @@
 package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import dev.openpolaris.core.protocol.Codes
@@ -2808,7 +2810,12 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Select an axis, then press and hold a direction in Demo or qualified mode; release stops the session. The same dead-man contract applies to both. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .testTag("slow-motion-axis-row"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 listOf("M1 · Pan / yaw", "M2 · Tilt / pitch", "M3 · Rotation / roll").forEach { axis ->
                     FilterChip(
                         selected = selectedAxis == axis,
@@ -2882,7 +2889,12 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
 
             Text("Speed rail", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .testTag("slow-motion-speed-row"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 (1..5).forEach { level ->
                     val levelLabel = when (level) {
                         1 -> level.toString() + " Precision"

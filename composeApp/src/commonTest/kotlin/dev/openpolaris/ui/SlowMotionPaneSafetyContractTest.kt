@@ -71,4 +71,13 @@ class SlowMotionPaneSafetyContractTest {
         assertTrue("startHeldMotion" in source)
         assertTrue("stopHeldMotion" in source)
     }
+
+    @Test
+    fun mobileMotionSelectorsRemainScrollable() {
+        val source = sourceText()
+        assertTrue("horizontalScroll(rememberScrollState())" in source)
+        assertTrue("testTag(\"slow-motion-axis-row\")" in source)
+        assertTrue("testTag(\"slow-motion-speed-row\")" in source)
+    }
+
 }

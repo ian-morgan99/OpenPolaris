@@ -142,6 +142,26 @@ class FastJogControllerTest {
     }
 
     @Test
+    fun rejectedStartRetainsFaultUntilExplicitStop() = kotlinx.coroutines.test.runTest {
+        val transport = FakeTransport().also { it.nextSend = FastJogSendResult.Rejected }
+        val stopTransport = object : MotionStopTransport {
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
+                MotionStopResult.Stopped
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val controller = FastJogController(transport, motionSupervisor = supervisor)
+        val lease = assertIs<FastJogAcquireResult.Granted>(
+            controller.acquire(Codes.GIMBAL_HADJ_SPEED),
+        ).lease
+
+        assertEquals(FastJogActionResult.Rejected, controller.start(lease, 0L))
+        assertIs<FastJogState.Faulted>(controller.state.value)
+        assertEquals(FastJogActionResult.Stopped, controller.release(lease))
+        assertEquals(FastJogState.Idle, controller.state.value)
+        assertEquals(MotionState.Idle, supervisor.state.value)
+    }
+
+    @Test
     fun invalidCodeAndTimeFailBeforeTransport() = kotlinx.coroutines.test.runTest {
         val transport = FakeTransport()
         val controller = FastJogController(transport)

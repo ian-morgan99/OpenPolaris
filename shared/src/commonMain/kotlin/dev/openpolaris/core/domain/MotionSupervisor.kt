@@ -51,6 +51,13 @@ sealed interface MotionState {
 /** Transport seam used by the arbitration tests and future motion adapters. */
 interface MotionStopTransport {
     suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult
+
+    /**
+     * Lease-aware stop hook. The default preserves transports that only need
+     * the owner; transports with per-operation wire state can use the lease.
+     */
+    suspend fun stop(lease: MotionLease, reason: MotionStopReason): MotionStopResult =
+        stop(lease.owner, reason)
 }
 
 /**
@@ -117,7 +124,7 @@ class MotionSupervisor(
 
     private suspend fun stopAndSettle(lease: MotionLease, reason: MotionStopReason): MotionStopResult {
         return try {
-            when (val result = stopTransport.stop(lease.owner, reason)) {
+            when (val result = stopTransport.stop(lease, reason)) {
                 MotionStopResult.Stopped -> {
                     mutableState.value = MotionState.Idle
                     result

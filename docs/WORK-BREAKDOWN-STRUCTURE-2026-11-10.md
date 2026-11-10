@@ -109,11 +109,14 @@
 - Implement pointer capture, lease renewal, release/cancel/background stop and explicit active feedback.
 - Exit: UI and controller tests cover touch cancellation, keyboard release, disconnect and stop ordering.
 
-- **2026-11-10  WBS-03.1/03.2 progress:** FastJogController now accepts
+- **2026-11-10 - WBS-03.1/03.2 progress:** FastJogController now accepts
   the same shared MotionSupervisor. Cross-owner acquisition, owner-specific
   stop delegation and lease-scoped recovery are covered by deterministic tests.
-  The AppViewModel's existing live jog button remains outside this seam until
-  its physical stop/acknowledgement contract is qualified.
+  The live 513-516 rocker now uses a hold-to-move/release-to-stop interaction,
+  sends source-aligned time:Nms beats and state:0 stop frames through sendOnly,
+  and the simulator proves shared-owner acquisition and release. A physical
+  stop observation and named-firmware evidence are still required before this
+  package is marked complete.
 
 ### WBS-03.3 — Slow-motion abstract model — P0 — DONE (contract only)
 

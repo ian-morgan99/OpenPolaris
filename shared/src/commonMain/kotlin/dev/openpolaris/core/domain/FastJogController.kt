@@ -69,6 +69,16 @@ class FastJogController(
     private val lock = Mutex()
     private val mutableState = MutableStateFlow<FastJogState>(FastJogState.Idle)
     val state: StateFlow<FastJogState> = mutableState.asStateFlow()
+
+    /** Active wire axis for a lease-aware supervisor stop. */
+    val activeCode: Int?
+        get() = when (val current = mutableState.value) {
+            is FastJogState.Armed -> current.lease.code
+            is FastJogState.Holding -> current.lease.code
+            is FastJogState.Faulted -> current.lease?.code
+            FastJogState.Idle -> null
+        }
+
     private var nextToken = 1L
 
     suspend fun acquire(code: Int): FastJogAcquireResult = lock.withLock {
@@ -107,7 +117,7 @@ class FastJogController(
                 FastJogActionResult.Accepted
             }
             FastJogSendResult.Rejected -> {
-                mutableState.value = FastJogState.Idle
+                mutableState.value = FastJogState.Faulted("jog start was rejected", lease)
                 FastJogActionResult.Rejected
             }
             is FastJogSendResult.Unknown -> {
@@ -165,7 +175,11 @@ class FastJogController(
                 if (current.lease != lease) FastJogActionResult.Rejected
                 else stopLocked(lease, MotionStopReason.RELEASE)
             }
-            else -> FastJogActionResult.Rejected
+            is FastJogState.Faulted -> {
+                if (current.lease != lease) FastJogActionResult.Rejected
+                else stopLocked(lease, MotionStopReason.RELEASE)
+            }
+            FastJogState.Idle -> FastJogActionResult.Rejected
         }
     }
 

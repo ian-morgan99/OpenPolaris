@@ -71,6 +71,13 @@ import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
+import dev.openpolaris.core.domain.FastJogActionResult
+import dev.openpolaris.core.domain.FastJogAcquireResult
+import dev.openpolaris.core.domain.FastJogController
+import dev.openpolaris.core.domain.FastJogSendResult
+import dev.openpolaris.core.domain.FastJogState
+import dev.openpolaris.core.domain.FastJogTransport
+import dev.openpolaris.core.domain.FastJogLease
 import dev.openpolaris.core.domain.FirmwareUpdateController
 import dev.openpolaris.core.domain.DeliveryMode
 import dev.openpolaris.core.domain.FirmwareDelivery
@@ -98,6 +105,7 @@ import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.MotionOwner
 import dev.openpolaris.core.domain.MotionAcquireResult
+import dev.openpolaris.core.domain.MotionLease
 import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.MotionStopReason
 import dev.openpolaris.core.domain.MotionStopResult
@@ -548,6 +556,39 @@ class AppViewModel(
     // dead-man renewal contract as the future live adapter, but its transport
     // records logical commands only and never emits a firmware frame.
     private val demoSlowMotionTransport = DemoSlowMotionTransport()
+    /**
+     * Source-aligned duration jog transport. 513-516 use time:Nms for a
+     * bounded beat and state:0 on the same code for an explicit stop.
+     * sendOnly is used so a failed write becomes an unknown stop state rather
+     * than a silent successful command.
+     */
+    private val fastJogTransport = object : FastJogTransport {
+        override suspend fun send(code: Int, durationMs: Int): FastJogSendResult {
+            val activeSession = session ?: return FastJogSendResult.Rejected
+            return try {
+                activeSession.sendOnly(code, "time:" + durationMs + "ms;")
+                FastJogSendResult.Sent
+            } catch (error: Throwable) {
+                FastJogSendResult.Unknown(
+                    "fast jog dispatch failed: " + (error.message ?: error::class.simpleName ?: "unknown error"),
+                )
+            }
+        }
+
+        override suspend fun stop(code: Int, reason: MotionStopReason): MotionStopResult {
+            val activeSession = session ?: return MotionStopResult.Unknown(
+                "mount session unavailable for fast jog stop",
+            )
+            return try {
+                activeSession.sendOnly(code, "state:0;")
+                MotionStopResult.Stopped
+            } catch (error: Throwable) {
+                MotionStopResult.Unknown(
+                    "fast jog stop failed: " + (error.message ?: error::class.simpleName ?: "unknown error"),
+                )
+            }
+        }
+    }
     // Keep ownership separate from the SLOW scheduler. The supervisor is the
     // shared boundary that future fast-jog, GoTo and programme adapters must
     // use; a SLOW hold cannot acquire while another owner is active.
@@ -559,11 +600,22 @@ class AppViewModel(
     val motionState: StateFlow<MotionState>
         get() = motionSupervisor.state
 
+    val fastJogState: StateFlow<FastJogState>
+        get() = fastJogController.state
+
     private val motionSupervisor = MotionSupervisor(
         stopTransport = object : MotionStopTransport {
             override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
                 when (owner) {
                     MotionOwner.SLOW_MOVE -> demoSlowMotionTransport.stop(reason)
+                    MotionOwner.FAST_JOG -> {
+                        val code = fastJogController.activeCode
+                        if (code == null) {
+                            MotionStopResult.Unknown("fast jog axis is not available for stop")
+                        } else {
+                            fastJogTransport.stop(code, reason)
+                        }
+                    }
                     MotionOwner.GOTO -> {
                         val activeSession = session
                         if (activeSession == null) {
@@ -586,8 +638,26 @@ class AppViewModel(
                         "no live stop adapter for " + owner.name,
                     )
                 }
+
+            override suspend fun stop(lease: MotionLease, reason: MotionStopReason): MotionStopResult =
+                if (lease.owner == MotionOwner.FAST_JOG) {
+                    val code = fastJogController.activeCode
+                    if (code == null) {
+                        MotionStopResult.Unknown("fast jog axis is not available for stop")
+                    } else {
+                        fastJogTransport.stop(code, reason)
+                    }
+                } else {
+                    stop(lease.owner, reason)
+                }
         },
     )
+    private val fastJogController: FastJogController = FastJogController(
+        transport = fastJogTransport,
+        motionSupervisor = motionSupervisor,
+    )
+    private var fastJogLease: FastJogLease? = null
+    private var fastJogJob: Job? = null
     private val demoSlowMotion = SlowMotionController(
         transport = demoSlowMotionTransport,
         planner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
@@ -1474,6 +1544,13 @@ class AppViewModel(
 
     fun disconnect() {
         stopDemoSlowMotionForDisconnect()
+        val activeFastJogLease = fastJogLease
+        fastJogLease = null
+        fastJogJob?.cancel()
+        fastJogJob = null
+        if (activeFastJogLease != null) {
+            runBlocking { fastJogController.release(activeFastJogLease) }
+        }
         sessionTearingDown = true
         programmeConfirmation?.complete(null)
         programmeConfirmation = null
@@ -2209,17 +2286,119 @@ class AppViewModel(
         slowMotionDemoState = SlowMotionDemoSnapshot()
     }
 
-    fun jog(code: Int) = scope.launch {
-        val c = controller ?: run { statusMessage = "Not connected"; return@launch }
-        // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513–516 jog
-        // commands are only honoured while tracking is running — with 531
-        // state:0 the firmware accepts the frame but the mount does not move,
-        // which is exactly Benro Connect's behaviour (its rocker operates in
-        // track mode). Surface that instead of a silent no-op.
-        if (mount.tracking == false) {
-            statusMessage = "Jog sent — tracking is off, so the mount will not move (start Tracking first)"
+    private suspend fun startFastJogInternal(code: Int): FastJogLease? {
+        if (controller == null || session == null) {
+            statusMessage = "Not connected"
+            return null
         }
-        c.jog(code)
+        // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513-516
+        // duration jog is honoured while tracking is running. Preserve the
+        // source behaviour but surface the condition instead of hiding it.
+        if (mount.tracking == false) {
+            statusMessage = "Jog sent - tracking is off, so the mount may not move"
+        }
+        return when (val acquired = fastJogController.acquire(code)) {
+            is FastJogAcquireResult.Granted -> {
+                fastJogLease = acquired.lease
+                when (val started = fastJogController.start(acquired.lease, nowMs())) {
+                    FastJogActionResult.Accepted -> acquired.lease
+                    FastJogActionResult.Rejected -> {
+                        when (val stop = fastJogController.release(acquired.lease)) {
+                            FastJogActionResult.Stopped -> statusMessage = "Fast jog start rejected and stopped"
+                            is FastJogActionResult.Unknown -> statusMessage = stop.reason
+                            else -> statusMessage = "Fast jog start rejected; stop outcome unknown"
+                        }
+                        fastJogLease = null
+                        null
+                    }
+                    is FastJogActionResult.Unknown -> {
+                        fastJogLease = acquired.lease
+                        statusMessage = started.reason
+                        null
+                    }
+                    else -> {
+                        fastJogLease = null
+                        statusMessage = "Fast jog did not start"
+                        null
+                    }
+                }
+            }
+            is FastJogAcquireResult.Busy -> {
+                statusMessage = "Motion busy: " + (acquired.owner?.name ?: "fast jog")
+                null
+            }
+            is FastJogAcquireResult.Blocked -> {
+                statusMessage = "Motion blocked: " + acquired.reason
+                null
+            }
+        }
+    }
+
+    fun startFastJog(code: Int) {
+        if (fastJogJob?.isActive == true) return
+        fastJogJob = scope.launch {
+            val lease = startFastJogInternal(code) ?: return@launch
+            while (isActive && fastJogLease == lease) {
+                delay(50L)
+                when (val result = fastJogController.tick(lease, nowMs())) {
+                    FastJogActionResult.Accepted,
+                    FastJogActionResult.NotDue -> Unit
+                    FastJogActionResult.Stopped -> {
+                        fastJogLease = null
+                        statusMessage = "Fast jog lease expired and stopped"
+                        break
+                    }
+                    FastJogActionResult.Rejected -> {
+                        fastJogLease = null
+                        statusMessage = "Fast jog beat rejected"
+                        break
+                    }
+                    is FastJogActionResult.Unknown -> {
+                        fastJogLease = null
+                        statusMessage = result.reason
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    fun stopFastJog() {
+        val lease = fastJogLease ?: return
+        fastJogLease = null
+        fastJogJob?.cancel()
+        fastJogJob = null
+        scope.launch {
+            when (val result = fastJogController.release(lease)) {
+                FastJogActionResult.Stopped -> statusMessage = "Fast jog stopped"
+                FastJogActionResult.Rejected -> statusMessage = "Fast jog stop rejected"
+                is FastJogActionResult.Unknown -> statusMessage = result.reason
+                else -> statusMessage = "Fast jog stop not confirmed"
+            }
+        }
+    }
+
+    /** Explicit operator recovery after the mount is reconnected and confirmed stopped. */
+    fun recoverFastJogAfterReconnect() {
+        if (session == null || !mount.connected) {
+            statusMessage = "Reconnect and confirm the mount is stopped before recovery"
+            return
+        }
+        scope.launch {
+            fastJogController.recoverAfterReconnect()
+            fastJogLease = null
+            fastJogJob = null
+            statusMessage = "Fast jog motion fault cleared after explicit recovery"
+        }
+    }
+
+    /** Compatibility one-shot: one bounded source beat followed by stop. */
+    fun jog(code: Int) {
+        startFastJog(code)
+        scope.launch {
+            delay(500L)
+            stopFastJog()
+        }
     }
 
     var gotoAz by mutableStateOf("0.0")

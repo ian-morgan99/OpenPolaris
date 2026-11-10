@@ -465,3 +465,28 @@ Verification passed:
 ~~~
 
 The focused ViewModel report contains three passing tests for preview-port routing, two-second polling without mount reads and explicit mount-position reads. No live Astro WebUI, mount or hardware was exercised.
+
+### WBS-03.1/03.2 - Fast-jog live owner integration
+
+Moved the existing 513-516 rocker behind the shared motion owner:
+
+- The ViewModel now sends the source-aligned duration payload time:Nms;
+  through sendOnly, repeats beats at the controller's 50 ms cadence and
+  sends state:0; on release, lease expiry, disconnect or stop.
+- The MotionSupervisor receives a lease-aware stop hook so the active axis is
+  retained through release and a failed write becomes an unknown/faulted stop
+  rather than an idle claim.
+- Jog buttons on the common mobile/PC surface now use pointer/keyboard
+  hold-to-move semantics with release-to-stop; the compatibility jog API
+  remains a bounded one-shot.
+- The default basic-controls path remains available because 513-516 are
+  existing verified commands, but this slice does not claim new physical
+  stop evidence for every named firmware build.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.FastJogControllerTest --tests dev.openpolaris.core.domain.MotionSupervisorTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFastJogTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The simulator and deterministic controller tests passed; no live mount or hardware was exercised.

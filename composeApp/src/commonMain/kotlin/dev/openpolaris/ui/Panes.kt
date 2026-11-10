@@ -1273,10 +1273,37 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
 @Composable
 fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val p = vm.position
+    val fastJogState by vm.fastJogState.collectAsState()
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Position", style = MaterialTheme.typography.titleMedium)
             Text("Az/Yaw: ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt/Pitch: ${p?.pitch?.toDouble()?.format2() ?: "—"}°")
+            Text(
+                "Fast jog: hold a direction and release to stop.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            when (fastJogState) {
+                dev.openpolaris.core.domain.FastJogState.Idle -> Unit
+                is dev.openpolaris.core.domain.FastJogState.Armed,
+                is dev.openpolaris.core.domain.FastJogState.Holding -> Text(
+                    "Fast jog active; release the direction to stop.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is dev.openpolaris.core.domain.FastJogState.Faulted -> {
+                    val fault = fastJogState as dev.openpolaris.core.domain.FastJogState.Faulted
+                    Text(
+                        "Fast jog fault: " + fault.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    OutlinedButton(
+                        onClick = vm::recoverFastJogAfterReconnect,
+                        enabled = vm.mount.connected,
+                    ) {
+                        Text("Recover after confirming stopped")
+                    }
+                }
+            }
             Spacer(Modifier.height(4.dp))
             JogPad(vm, Codes.GIMBAL_HADJ_SPEED, Codes.GIMBAL_HADJ_ANGLE, Codes.GIMBAL_VADJ_SPEED, Codes.GIMBAL_VADJ_ANGLE)
         }
@@ -1550,7 +1577,12 @@ private fun JogPad(vm: AppViewModel, yawUp: Int, yawDown: Int, pitchUp: Int, pit
 
 @Composable
 private fun JogButton(label: String, code: Int, vm: AppViewModel) {
-    OutlinedButton(onClick = { vm.jog(code) }) { Text(label) }
+    SlowDemoHoldButton(
+        label = label,
+        enabled = vm.mount.connected && FeatureFlags.isEnabled("basicControls"),
+        onPress = { vm.startFastJog(code) },
+        onRelease = vm::stopFastJog,
+    )
 }
 
 /** Goto pane: az/alt or RA/Dec entry, observer location, slew/cancel, alignment, auto-level. */

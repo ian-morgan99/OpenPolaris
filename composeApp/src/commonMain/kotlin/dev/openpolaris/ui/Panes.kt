@@ -2628,6 +2628,20 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
     var showShortcuts by remember { mutableStateOf(false) }
+    var heldControl by remember { mutableStateOf<String?>(null) }
+    val motionSelectionEnabled = controlsEnabled && heldControl == null
+    fun startHeldMotion(control: String, action: () -> Unit) {
+        if (heldControl == null || heldControl == control) {
+            heldControl = control
+            action()
+        }
+    }
+    fun stopHeldMotion(control: String) {
+        if (heldControl == control) {
+            heldControl = null
+            vm.demoSlowMotionStop()
+        }
+    }
     val solve = lastSolve
     val solveAgeMs = solve?.ageMs(nowMs)
     val fineRateChecks: List<Pair<String, Boolean>> = listOf(
@@ -2757,12 +2771,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     FilterChip(
                         selected = selectedAxis == axis,
                         onClick = { selectedAxis = axis },
-                        enabled = controlsEnabled,
+                        enabled = motionSelectionEnabled,
                         label = { Text(axis.substringBefore(" ·")) },
                     )
                 }
             }
             Text("Selected axis: " + selectedAxis, style = MaterialTheme.typography.bodySmall)
+            Text(
+                heldControl?.let { "Held input: $it — release to stop." } ?: "No direction held.",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (heldControl != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("slow-motion-held-state"),
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2771,22 +2791,33 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             ) {
                 SlowDemoHoldButton(
                     label = "Direction A",
-                    enabled = controlsEnabled,
-                    modifier = Modifier.weight(1f),
-                    onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel) },
-                    onRelease = vm::demoSlowMotionStop,
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "Direction A"),
+                    modifier = Modifier.weight(1f).testTag("slow-motion-direction-a"),
+                    onPress = {
+                        startHeldMotion("Direction A") {
+                            vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel)
+                        }
+                    },
+                    onRelease = { stopHeldMotion("Direction A") },
                 )
                 Button(
-                    onClick = vm::emergencyStopMotion,
+                    onClick = {
+                        heldControl = null
+                        vm.emergencyStopMotion()
+                    },
                     enabled = motionState is dev.openpolaris.core.domain.MotionState.Owned,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("slow-motion-stop-all"),
                 ) { Text("STOP ALL") }
                 SlowDemoHoldButton(
                     label = "Direction B",
-                    enabled = controlsEnabled,
-                    modifier = Modifier.weight(1f),
-                    onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel) },
-                    onRelease = vm::demoSlowMotionStop,
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "Direction B"),
+                    modifier = Modifier.weight(1f).testTag("slow-motion-direction-b"),
+                    onPress = {
+                        startHeldMotion("Direction B") {
+                            vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel)
+                        }
+                    },
+                    onRelease = { stopHeldMotion("Direction B") },
                 )
             }
             Text(
@@ -2819,7 +2850,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     FilterChip(
                         selected = selectedLevel == level,
                         onClick = { selectedLevel = level },
-                        enabled = controlsEnabled,
+                        enabled = motionSelectionEnabled,
                         label = { Text(levelLabel) },
                     )
                 }
@@ -2850,17 +2881,25 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SlowDemoHoldButton(
                     label = "A · rotate",
-                    enabled = controlsEnabled,
-                    modifier = Modifier.weight(1f),
-                    onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel) },
-                    onRelease = vm::demoSlowMotionStop,
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "A · rotate"),
+                    modifier = Modifier.weight(1f).testTag("slow-motion-rotate-a"),
+                    onPress = {
+                        startHeldMotion("A · rotate") {
+                            vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel)
+                        }
+                    },
+                    onRelease = { stopHeldMotion("A · rotate") },
                 )
                 SlowDemoHoldButton(
                     label = "B · rotate",
-                    enabled = controlsEnabled,
-                    modifier = Modifier.weight(1f),
-                    onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel) },
-                    onRelease = vm::demoSlowMotionStop,
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "B · rotate"),
+                    modifier = Modifier.weight(1f).testTag("slow-motion-rotate-b"),
+                    onPress = {
+                        startHeldMotion("B · rotate") {
+                            vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel)
+                        }
+                    },
+                    onRelease = { stopHeldMotion("B · rotate") },
                 )
             }
 

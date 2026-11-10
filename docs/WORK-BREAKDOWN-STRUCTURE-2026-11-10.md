@@ -631,3 +631,17 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** the focused Compose JVM suite and full
   cross-platform build remain the required checks; no transport or hardware
   behavior changed.
+
+
+- **2026-11-10 - WBS-08.1/05.1 ACTIVE (Astro WebUI site-write seam):**
+  added the source-aligned `POST /api/site` form contract for latitude and
+  longitude, strict acknowledgement validation, preview-port routing, and a
+  readback confirmation through the existing site reader. The user-facing
+  Save site action is explicitly default-off and reports that resident-site
+  mutation, persistence and recovery still require qualification. No mount-side
+  site was changed.
+- **2026-11-10 - verification:** AstroWebUiSiteControlTest,
+  AppViewModelAstroWebUiSiteWriteTest and FeatureFlagsTest cover form shape,
+  coordinate/host/ack validation, default blocking, enabled readback and
+  cancellation-insensitive disconnect ownership. No live Astro WebUI or
+  hardware operation was exercised.

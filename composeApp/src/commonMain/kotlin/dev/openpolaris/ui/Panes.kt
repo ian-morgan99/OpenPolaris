@@ -72,6 +72,7 @@ import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
@@ -980,6 +981,32 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                     is AstroWebUiSiteState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSiteWrite") &&
+                        vm.mount.connected &&
+                        vm.observerLocationReady,
+                    onClick = vm::saveAstroWebUiSite,
+                ) { Text("Save site to Astro WebUI") }
+                when (val state = vm.astroWebUiSiteWrite) {
+                    AstroWebUiSiteWriteState.Idle -> Text(
+                        "Resident-site saving is disabled until mutation and recovery are qualified.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiSiteWriteState.Working -> Text(
+                        "Saving lat=" + state.latitudeDeg + ", lon=" + state.longitudeDeg + "…",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiSiteWriteState.Accepted -> Text(
+                        "Save accepted; confirming by readback.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiSiteWriteState.Failed -> Text(
+                        state.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
             HorizontalDivider()

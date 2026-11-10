@@ -40,6 +40,10 @@ import dev.openpolaris.core.domain.AstroWebUiTrackRequest
 import dev.openpolaris.core.domain.AstroWebUiSiteClient
 import dev.openpolaris.core.domain.AstroWebUiSiteResult
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiSiteControlClient
+import dev.openpolaris.core.domain.AstroWebUiSiteWriteRequest
+import dev.openpolaris.core.domain.AstroWebUiSiteWriteResult
+import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
@@ -141,6 +145,7 @@ import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
+import dev.openpolaris.core.domain.createAstroWebUiSiteControlClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeStartClient
@@ -278,6 +283,7 @@ class AppViewModel(
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
+    private val astroWebUiSiteControlClient: AstroWebUiSiteControlClient = createAstroWebUiSiteControlClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
     private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
@@ -1799,6 +1805,9 @@ class AppViewModel(
         astroWebUiSiteJob?.cancel()
         astroWebUiSiteJob = null
         astroWebUiSite = AstroWebUiSiteState.Idle
+        astroWebUiSiteWriteJob?.cancel()
+        astroWebUiSiteWriteJob = null
+        astroWebUiSiteWrite = AstroWebUiSiteWriteState.Idle
         astroWebUiProgrammeJob?.cancel()
         astroWebUiProgrammeJob = null
         astroWebUiProgrammePollJob?.cancel()
@@ -2714,6 +2723,9 @@ class AppViewModel(
     fun setRaDecMode(on: Boolean) { raDecMode = on }
     fun updateRa(v: String) { gotoRa = v }
     fun updateDec(v: String) { gotoDec = v }
+
+    val observerLocationReady: Boolean
+        get() = parsedLocation() != null
 
     private fun parsedLocation(): Pair<Double, Double>? {
         val lat = latDeg.toDoubleOrNull() ?: return null
@@ -4159,6 +4171,8 @@ class AppViewModel(
         private set
     var astroWebUiSite by mutableStateOf<AstroWebUiSiteState>(AstroWebUiSiteState.Idle)
         private set
+    var astroWebUiSiteWrite by mutableStateOf<AstroWebUiSiteWriteState>(AstroWebUiSiteWriteState.Idle)
+        private set
     var astroWebUiProgramme by mutableStateOf<AstroWebUiProgrammeState>(AstroWebUiProgrammeState.Idle)
         private set
     var astroWebUiProgrammeStartState by mutableStateOf<AstroWebUiProgrammeStartState>(
@@ -4175,6 +4189,7 @@ class AppViewModel(
     private var astroWebUiRunStatePollJob: Job? = null
     private var astroWebUiSessionControlJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
+    private var astroWebUiSiteWriteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
     private var astroWebUiProgrammePollJob: Job? = null
     private var astroWebUiProgrammeControlJob: Job? = null
@@ -4491,6 +4506,61 @@ class AppViewModel(
                 }
                 is AstroWebUiSiteResult.Failure -> {
                     astroWebUiSite = AstroWebUiSiteState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun saveAstroWebUiSite() {
+        if (!FeatureFlags.isEnabled("astroWebUiSiteWrite")) {
+            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
+                "Astro WebUI site writes are disabled until mutation and recovery are qualified",
+            )
+            statusMessage = "Astro WebUI site save is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
+                "Connect to a mount before saving its Astro WebUI site",
+            )
+            statusMessage = "Connect to a mount before saving the Astro WebUI site"
+            return
+        }
+        val (latitude, longitude) = parsedLocation() ?: run {
+            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
+                "Enter a valid observer latitude and longitude first",
+            )
+            statusMessage = "Enter a valid observer latitude and longitude first"
+            return
+        }
+        if (astroWebUiSiteWriteJob?.isActive == true) return
+
+        astroWebUiSiteWriteJob = scope.launch {
+            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Working(latitude, longitude)
+            val result = try {
+                astroWebUiSiteControlClient.save(
+                    host,
+                    previewPort,
+                    AstroWebUiSiteWriteRequest(latitude, longitude),
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiSiteWriteResult.Failure(
+                    error.message ?: "Astro WebUI site save failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiSiteWriteResult.Accepted -> {
+                    astroWebUiSiteWrite = AstroWebUiSiteWriteState.Accepted(result.site)
+                    statusMessage = "Astro WebUI site save accepted; confirming by readback"
+                    refreshAstroWebUiSite()
+                }
+                is AstroWebUiSiteWriteResult.Failure -> {
+                    astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(result.reason)
                     statusMessage = result.reason
                 }
             }

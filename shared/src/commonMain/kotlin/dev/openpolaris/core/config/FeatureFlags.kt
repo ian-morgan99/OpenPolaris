@@ -121,6 +121,8 @@ object FeatureFlags {
     const val astroWebUiStatus: Boolean = true
     /** Optional read-only Astro WebUI observing-site status. */
     const val astroWebUiSite: Boolean = true
+    /** Astro WebUI observing-site save; disabled until mutation and recovery are qualified. */
+    const val astroWebUiSiteWrite: Boolean = false
     /** Optional read-only Astro WebUI target/last-frame solve state. */
     const val astroWebUiSolveStatus: Boolean = true
     /** Optional read-only Astro WebUI run state; mount position is explicit-only. */
@@ -247,6 +249,7 @@ object FeatureFlags {
         "astroWebUiMedia" -> astroWebUiMedia
         "astroWebUiStatus" -> astroWebUiStatus
         "astroWebUiSite" -> astroWebUiSite
+        "astroWebUiSiteWrite" -> astroWebUiSiteWrite
         "astroWebUiSolveStatus" -> astroWebUiSolveStatus
         "astroWebUiRunState" -> astroWebUiRunState
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus

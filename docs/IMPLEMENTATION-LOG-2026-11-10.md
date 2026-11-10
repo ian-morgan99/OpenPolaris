@@ -917,3 +917,25 @@ Android host-supplied ViewModel path.
 Verification is included in the focused preference/observer-location suite and
 the subsequent full JVM, Android and desktop build. No transport or hardware
 behavior changed.
+
+
+### WBS-08.1/05.1 - Gated Astro WebUI site-save seam
+
+Added the source-aligned resident Astro WebUI site mutation seam. The adapter
+posts `lat` and `lon` to `/api/site` as
+`application/x-www-form-urlencoded`, validates the JSON acknowledgement and
+returned coordinate ranges, and uses the Astro WebUI preview port. The
+ViewModel owns the write by MountSession, drops late results after disconnect,
+and confirms an accepted write by re-reading the resident site. The feature
+flag and UI action remain default-off because this mutates the resident Astro
+site and still needs named-head persistence and recovery qualification.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSiteControlTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteWriteTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; contract, feature-flag, read-site and site-write
+ViewModel tests passed. No live Astro WebUI, mount or camera operation was
+exercised.

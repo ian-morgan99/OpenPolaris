@@ -59,6 +59,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("astroWebUiProgrammeControls"), "Astro programme writes must remain off until route qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiSessionControls"), "Astro session writes must remain off until route and recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiProgrammeStarts"), "Astro programme starts must remain off until named-head qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiSiteWrite"), "Astro WebUI site writes must remain off until mutation and recovery qualification")
     }
 
     @Test

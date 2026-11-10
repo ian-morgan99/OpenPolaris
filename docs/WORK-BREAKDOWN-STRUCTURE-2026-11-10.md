@@ -995,3 +995,24 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-06.1/06.3/09.1 ACTIVE (Programme progress UX):** the shared lapse and Demo programme surfaces now show a bounded progress bar, confirmed/total count and the next planner step. The same state mapping covers Running, Paused, Completed, Stopped and OutcomeUnknown without turning an ambiguous result into completion; the indicator is shared by phone and PC layouts and has a stable accessibility/test tag.
 - **2026-11-10 - verification:** `ObservationProgrammePreviewContractTest` covers the progress semantics and Demo pause/resume discovery. Full shared/Compose JVM tests, Android compilation, desktop packaging and APK assembly passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.
+
+
+- **2026-11-10 - WBS-04.1/04.3/09.1 ACTIVE (camera readback and capture admission):**
+  hardened the dynamic Benro INFO path with explicit per-field status
+  classification, last-known-good preservation, refresh de-duplication, and
+  camera-specific timeout quarantine. Every native, Astro WebUI, intervalometer
+  and qualified programme shutter now performs a fresh 286 attachment plus 268
+  shutter preflight on the owning MountSession before dispatch. Native capture
+  ownership is explicitly NORMAL/BULB and NATIVE/ASTRO_WEB_UI, so ordinary
+  failures and Astro WebUI Bulb sessions cannot expose the native Stop Bulb
+  edge. The Camera pane shows whether each readback is current, unavailable,
+  timed out, protocol-error or stale.
+- **2026-11-10 - verification:** commit 84da9ff adds regressions for late
+  same-code frames, status classification, fresh camera disappearance,
+  ordinary-capture/native-Bulb separation, and the updated M/B Astro WebUI
+  preflight. Focused shared/Compose tests and the full cross-platform
+  shared:jvmTest, composeApp:jvmTest, JVM compilation, Android compilation,
+  desktop packaging and Android debug APK build passed. This remains
+  simulator/package evidence; live K-1 II/K-3 III shutter, camera mode
+  transition, Astro WebUI and physical hardware qualification are still
+  required.

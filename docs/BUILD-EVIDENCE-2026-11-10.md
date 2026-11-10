@@ -2100,3 +2100,31 @@ Artifacts:
 The programme progress UX is simulator/package evidence only. Live Astro
 WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
 qualification remain unverified.
+
+
+## Latest committed verification - 84da9ff
+
+Commit under test: 84da9ff (fix: harden camera readback and capture admission).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.CameraInfoContractTest --tests dev.openpolaris.core.domain.MountSessionReaderTest --no-daemon --console=plain
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiCaptureTest --tests dev.openpolaris.ui.AppViewModelCameraRefreshOwnershipTest --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+The authoritative shared and Compose JVM XML reports contained no failures.
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 3f12cd5dbe6aa4f9b8ea5048f5c5b9c1fca75a0bff557cc95337680fc2114e88
+
+The change is package/simulator evidence only. Live camera, Astro WebUI,
+Bluetooth, mount, SD-card and physical slow-motion qualification remain open.

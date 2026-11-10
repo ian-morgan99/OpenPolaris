@@ -57,6 +57,8 @@ object FeatureFlags {
     const val basicControls: Boolean = true
     /** Post-connect burst (808, 809, 802, 778, 779, 775, 824, 524, 543). */
     const val postConnectBurst: Boolean = true
+    /** Fine/SLOW rate control remains disabled until its firmware and stop contract is qualified. */
+    const val fineRateControl: Boolean = false
     /** Camera qualification surface. The Camera pane requires an additional
      * per-visit acknowledgement before any evidenced SET can be sent. */
     const val experimentalCamera: Boolean = false
@@ -200,6 +202,7 @@ object FeatureFlags {
     private fun defaultFor(flag: String): Boolean = when (flag) {
         "basicControls" -> basicControls
         "postConnectBurst" -> postConnectBurst
+        "fineRateControl" -> fineRateControl
         "experimentalCamera" -> experimentalCamera
         "catalog" -> catalog
         "alignment" -> alignment

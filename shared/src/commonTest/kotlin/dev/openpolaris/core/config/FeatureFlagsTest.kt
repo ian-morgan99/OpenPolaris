@@ -60,6 +60,7 @@ class FeatureFlagsTest {
     fun verifiedReadPathsDefaultToTrue() {
         FeatureFlags.reset()
         assertTrue(FeatureFlags.isEnabled("basicControls"), "Slew/track/AHRS verified")
+        assertFalse(FeatureFlags.isEnabled("fineRateControl"), "Fine correction must remain off until physically qualified")
         assertTrue(FeatureFlags.isEnabled("postConnectBurst"), "Post-connect burst verified")
         assertTrue(FeatureFlags.isEnabled("omsRead"), "OMS read (824/825) verified")
         assertTrue(FeatureFlags.isEnabled("wifiScan"), "WiFi scan (770) verified")

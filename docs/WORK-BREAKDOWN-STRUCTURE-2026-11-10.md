@@ -92,7 +92,7 @@
 - Implement pointer capture, lease renewal, release/cancel/background stop and explicit active feedback.
 - Exit: UI and controller tests cover touch cancellation, keyboard release, disconnect and stop ordering.
 
-### WBS-03.3 — Slow-motion abstract model — P0
+### WBS-03.3 — Slow-motion abstract model — P0 — DONE (contract only)
 
 - Add capability identity, physical axis names, signed targets, bounds, request versions and state flow.
 - Start with no live adapter and a deterministic simulator.
@@ -110,7 +110,7 @@
 - Keep alternative `AC 4A` route isolated until its receiver/units are proven.
 - Exit: exact app/gimbal hashes, fake-head fault suite, no-camera physical stop/reconnect/rate matrix.
 
-### WBS-03.6 — Motion UX — P1
+### WBS-03.6 — Motion UX — P1 — ACTIVE (disabled surface)
 
 - Add mobile Motion dock, PC control panel, speed ladder, axis legend, owner state and emergency stop.
 - Add disabled Fine correction sheet before live qualification.
@@ -277,3 +277,12 @@ The first implementation slice is deliberately safe and useful:
 5. only after those contracts are green, implement the rest of WBS-01/WBS-02 and the camera workspace.
 
 The first slice must not send a new motor frame, alter firmware, alter network configuration or claim hardware support.
+
+
+## Execution log
+
+- **2026-11-10 — WBS-00 DONE:** product UX parity plan and this WBS committed.
+- **2026-11-10 — WBS-03.3 DONE (contract only):** added the shared rate capability identity, physical-axis request model, qualified bounds, context gates, stale/no-retry state and transport seam in the shared domain.
+- **2026-11-10 — WBS-03.6 ACTIVE:** added the disabled Fine correction position control and an explicit explanation that the firmware rate/stop contract is not qualified.
+- **2026-11-10 — verification:** focused rate-control tests passed; the shared and Compose JVM suites passed before the final stale-context hardening, and the focused suite passed again afterward.
+- **Next:** build the pure SLOW planner/scheduler and MotionSupervisor tests. No live motor adapter is enabled.

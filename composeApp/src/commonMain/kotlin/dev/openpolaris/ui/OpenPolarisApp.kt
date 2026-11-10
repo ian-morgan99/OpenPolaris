@@ -381,6 +381,18 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }, label = { Text("Track") })
                 FilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
                 FilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
+                FilterChip(
+                    selected = false,
+                    onClick = {},
+                    enabled = FeatureFlags.isEnabled("fineRateControl"),
+                    label = { Text("Fine correction") },
+                )
+            }
+            if (!FeatureFlags.isEnabled("fineRateControl")) {
+                Text(
+                    "Fine correction unavailable — the firmware rate and physical stop contract is not qualified.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             // Explicit tracking rate (code 531 `speed:` field). The Benro app

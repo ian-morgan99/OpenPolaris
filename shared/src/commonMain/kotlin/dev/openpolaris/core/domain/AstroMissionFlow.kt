@@ -109,17 +109,12 @@ object AstroMissionFlow {
                 AstroMissionStage.CAPTURE,
                 when {
                     !target -> AstroMissionStageState.PENDING
-                    input.cameraAttached == false || input.storageReady == false -> AstroMissionStageState.BLOCKED
-                    input.cameraAttached == null || input.storageReady == null -> AstroMissionStageState.UNKNOWN
                     input.captureComplete -> AstroMissionStageState.COMPLETE
                     input.captureReady -> AstroMissionStageState.CURRENT
                     else -> AstroMissionStageState.BLOCKED
                 },
                 when {
                     !target -> "Complete target selection first"
-                    input.cameraAttached == false -> "Attach a camera before capture"
-                    input.storageReady == false -> "Make storage available before capture"
-                    input.cameraAttached == null || input.storageReady == null -> "Camera or storage status is not read"
                     input.captureComplete -> "Capture evidence is confirmed"
                     input.captureReady -> "Capture path is ready; take the next frame"
                     else -> "Capture readiness is not established"

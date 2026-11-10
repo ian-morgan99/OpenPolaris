@@ -69,6 +69,7 @@ class FeatureFlagsTest {
         assertTrue(FeatureFlags.isEnabled("wifiScan"), "WiFi scan (770) verified")
         assertTrue(FeatureFlags.isEnabled("fileManager"), "File list (702) verified")
         assertTrue(FeatureFlags.isEnabled("fileManagerReadOnly"), "File browse is safe to leave on")
+        assertTrue(FeatureFlags.isEnabled("astroWebUiMedia"), "Astro WebUI media reads are read-only")
     }
 
     @Test

@@ -133,6 +133,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Add / edit / delete OMS scheduled tasks. Unverified write path.", safe = false),
 
     // ---- file manager (read vs mutate vs format) -------------------------
+    FlagSpec("astroWebUiMedia", "Astro WebUI gallery (read-only)",
+        "Optional source-aligned HTTP index, thumbnail and full-JPEG reads from the resident Astro WebUI. No native file-transfer or destructive command is enabled by this flag.", safe = true),
     FlagSpec("fileManager", "SD file list (702)",
         "Browse SD files. Verified read-only.", safe = true),
     FlagSpec("fileManagerReadOnly", "SD file browse (browse-only mode)",

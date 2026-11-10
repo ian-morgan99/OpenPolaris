@@ -1,5 +1,6 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,10 +25,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.AstroMediaState
+import dev.openpolaris.core.domain.AstroMediaTransferKind
 import dev.openpolaris.core.domain.MediaPolicy
 import dev.openpolaris.core.domain.format2
 
@@ -446,7 +450,95 @@ fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
         }
         CaptureTimelinePane(vm, Modifier.fillMaxWidth())
+        AstroWebUiGalleryPane(vm, Modifier.fillMaxWidth())
         FilesPane(vm, Modifier.fillMaxWidth())
+    }
+}
+
+// =============================================================================
+// Astro WebUI gallery: source-aligned, read-only HTTP media surface
+// =============================================================================
+
+@Composable
+fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Astro WebUI gallery", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Optional resident WebUI index with thumbnail and full-JPEG reads. " +
+                    "This is separate from native 770/772/773 media transfer and cannot delete files.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val enabled = FeatureFlags.isEnabled("astroWebUiMedia")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = enabled,
+                    onClick = vm::refreshAstroMedia,
+                ) { Text("Refresh gallery") }
+                if (!enabled) {
+                    Text("Disabled by config", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            when (val state = vm.astroMediaState) {
+                AstroMediaState.Idle -> Text("No WebUI media list loaded.", style = MaterialTheme.typography.bodySmall)
+                AstroMediaState.LoadingList -> Text("Loading WebUI media list…", style = MaterialTheme.typography.bodySmall)
+                is AstroMediaState.LoadingItem -> Text(
+                    "Loading ${state.kind.name.lowercase()} for ${state.path}…",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                is AstroMediaState.Failed -> Text(state.reason, style = MaterialTheme.typography.bodySmall)
+                is AstroMediaState.Ready -> Text(
+                    "WebUI reports ${state.reportedCount} item(s); showing ${vm.astroMediaItems?.size ?: 0}.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            val items = vm.astroMediaItems.orEmpty()
+            if (items.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items.take(40).forEach { item ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(item.path, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "${item.category} · ${item.sizeBytes} bytes",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            TextButton(
+                                enabled = enabled,
+                                onClick = { vm.loadAstroMedia(item.path, AstroMediaTransferKind.THUMBNAIL) },
+                            ) { Text("Thumb") }
+                            OutlinedButton(
+                                enabled = enabled,
+                                onClick = { vm.loadAstroMedia(item.path, AstroMediaTransferKind.FULL_FILE) },
+                            ) { Text("Full") }
+                        }
+                        val preview = vm.astroMediaPreview
+                        if (preview?.path == item.path) {
+                            val bitmap = bytesToImageBitmap(preview.bytes)
+                            if (bitmap != null) {
+                                Image(
+                                    bitmap = bitmap,
+                                    contentDescription = item.path,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                                )
+                            }
+                            Text(
+                                "${preview.kind.name.lowercase()} · ${preview.bytes.size} bytes · ${preview.contentType}",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
+                if (items.size > 40) {
+                    Text("Showing the first 40 items; native file list remains available below.", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
     }
 }
 

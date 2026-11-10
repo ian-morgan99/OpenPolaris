@@ -115,6 +115,9 @@ object FeatureFlags {
     /** SD file list (read-only browse). Verified. */
     const val fileManager: Boolean = true
 
+    /** Optional read-only Astro WebUI media index, thumbnails and full JPEG fetches. */
+    const val astroWebUiMedia: Boolean = true
+
     /** Delete / rename / protect are gated separately so a user can browse
      *  files without exposing the destructive actions. */
     const val fileManagerReadOnly: Boolean = true
@@ -223,6 +226,7 @@ object FeatureFlags {
         "timelapse" -> timelapse
         "ditherAdvanced" -> ditherAdvanced
         "fileManager" -> fileManager
+        "astroWebUiMedia" -> astroWebUiMedia
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate
         "fileManagerFormat" -> fileManagerFormat

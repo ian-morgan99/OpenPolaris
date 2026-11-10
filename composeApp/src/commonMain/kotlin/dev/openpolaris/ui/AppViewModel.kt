@@ -5,6 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
+import dev.openpolaris.core.domain.AstroMediaFetchResult
+import dev.openpolaris.core.domain.AstroMediaItem
+import dev.openpolaris.core.domain.AstroMediaListResult
+import dev.openpolaris.core.domain.AstroMediaPreview
+import dev.openpolaris.core.domain.AstroMediaState
+import dev.openpolaris.core.domain.AstroMediaTransferKind
+import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.MountSessionTiltSampleSource
@@ -71,6 +78,7 @@ import dev.openpolaris.core.domain.SlowMotionTransportResult
 import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
+import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -195,6 +203,7 @@ class AppViewModel(
     // the platform default via PreviewController's own default.
     private val previewTransportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     private val previewIoDispatcher: CoroutineDispatcher? = null,
+    private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -1451,6 +1460,11 @@ class AppViewModel(
         lastCapturePublication = null
         captureTimeline = emptyList()
         fileList = null
+        astroMediaJob?.cancel()
+        astroMediaJob = null
+        astroMediaItems = null
+        astroMediaPreview = null
+        astroMediaState = AstroMediaState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3438,6 +3452,15 @@ class AppViewModel(
     var fileListPage by mutableStateOf(0)
         private set
 
+    /** Optional source-aligned Astro WebUI media surface; native 770 remains separate. */
+    var astroMediaItems by mutableStateOf<List<AstroMediaItem>?>(null)
+        private set
+    var astroMediaState by mutableStateOf<AstroMediaState>(AstroMediaState.Idle)
+        private set
+    var astroMediaPreview by mutableStateOf<AstroMediaPreview?>(null)
+        private set
+    private var astroMediaJob: Job? = null
+
     fun setFileType(t: Int) { fileListType = t }
     fun setFilePage(p: Int) { fileListPage = p.coerceAtLeast(0) }
 
@@ -3454,6 +3477,60 @@ class AppViewModel(
             if (r is MountSession.CmdResult.Ok) {
                 fileList = r.value
                 statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
+            }
+        }
+    }
+
+    fun refreshAstroMedia() {
+        astroMediaJob?.cancel()
+        astroMediaJob = scope.launch {
+            if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
+                astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
+                return@launch
+            }
+            if (session == null) {
+                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
+                return@launch
+            }
+            astroMediaState = AstroMediaState.LoadingList
+            astroMediaPreview = null
+            when (val result = astroWebUiMediaClient.list(host, previewPort)) {
+                is AstroMediaListResult.Success -> {
+                    astroMediaItems = result.items
+                    astroMediaState = AstroMediaState.Ready(result.reportedCount)
+                    statusMessage = "Astro WebUI gallery: ${result.items.size} item(s)"
+                }
+                is AstroMediaListResult.Failure -> {
+                    astroMediaItems = null
+                    astroMediaState = AstroMediaState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun loadAstroMedia(path: String, kind: AstroMediaTransferKind) {
+        astroMediaJob?.cancel()
+        astroMediaJob = scope.launch {
+            if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
+                astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
+                return@launch
+            }
+            if (session == null) {
+                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
+                return@launch
+            }
+            astroMediaState = AstroMediaState.LoadingItem(path, kind)
+            when (val result = astroWebUiMediaClient.fetch(host, previewPort, path, kind)) {
+                is AstroMediaFetchResult.Success -> {
+                    astroMediaPreview = AstroMediaPreview(path, kind, result.bytes, result.contentType)
+                    astroMediaState = AstroMediaState.Ready(astroMediaItems?.size ?: 0)
+                    statusMessage = "Astro WebUI ${kind.name.lowercase()}: ${result.bytes.size} bytes"
+                }
+                is AstroMediaFetchResult.Failure -> {
+                    astroMediaState = AstroMediaState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
             }
         }
     }

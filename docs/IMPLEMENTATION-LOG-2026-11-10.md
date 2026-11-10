@@ -391,3 +391,26 @@ Verification passed:
 ~~~
 
 No live Astro WebUI write route, mount, camera or hardware was exercised.
+
+### WBS-05.2/08.2 - Astro WebUI solve evidence
+
+Added the source-aligned read-only /api/astro/solve seam:
+
+- The bounded parser consumes the target and last-frame objects emitted by the
+  Astro WebUI files, including target/solved coordinates, rotation, drift,
+  match count, RMS, log odds, failure reason and action metadata.
+- Unknown fields remain forward-compatible, but malformed object shapes,
+  partial coordinates, non-finite/out-of-range values and oversized metadata
+  fail closed.
+- Mission owns a two-second visible-surface poll and a manual refresh routed to
+  the dedicated WebUI/preview port. Disconnect clears the state.
+- The UI labels this as file-backed solve evidence only; it cannot imply mount
+  alignment, tracking or successful physical correction.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSolveTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSolveTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+No solve, alignment, mount or camera write route was exercised.

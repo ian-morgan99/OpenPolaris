@@ -189,6 +189,8 @@
 
 - **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI session-control seam):** added source-aligned enter, leave and sidereal/lunar track requests with the source half-rate form field, dedicated preview-port routing, positive acknowledgement parsing, status readback and a default-off feature gate. The Mission surface exposes the controls with explicit qualification text; no write is enabled by the default build.
 
+- **2026-11-10 - WBS-05.2/08.2 ACTIVE (Astro WebUI solve evidence):** added a bounded read-only /api/astro/solve client and Mission readout for the source target and last-frame files. The parser preserves solved/not-solved metadata, coordinates, rotation, drift and quality fields while rejecting unsafe shapes/ranges; two-second visible-surface polling is lifecycle-scoped. This is solve evidence only and cannot mark mount alignment or tracking complete.
+
 ### WBS-05.2 — Alignment — P1
 
 - Plate solve, phone compass and manual bearing alternatives with confidence/provenance.

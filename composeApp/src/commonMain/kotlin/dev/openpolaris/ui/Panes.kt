@@ -72,6 +72,7 @@ import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiStatusState
+import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
 import dev.openpolaris.core.domain.AstroWebUiTrackRate
 import dev.openpolaris.core.domain.AstroWebUiTrackRequest
@@ -575,9 +576,11 @@ fun MissionDashboardPane(
 ) {
     DisposableEffect(vm) {
         vm.startAstroWebUiStatusPolling()
+        vm.startAstroWebUiSolvePolling()
         vm.startAstroWebUiProgrammePolling()
         onDispose {
             vm.stopAstroWebUiStatusPolling()
+            vm.stopAstroWebUiSolvePolling()
             vm.stopAstroWebUiProgrammePolling()
         }
     }
@@ -660,6 +663,66 @@ fun MissionDashboardPane(
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
+                }
+            }
+            HorizontalDivider()
+            Text("Resident solve state", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSolveStatus"),
+                    onClick = vm::refreshAstroWebUiSolve,
+                ) { Text("Refresh solve") }
+            }
+            when (val state = vm.astroWebUiSolve) {
+                AstroWebUiSolveUiState.Idle -> Text(
+                    "Solve state not checked.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                AstroWebUiSolveUiState.Loading -> Text(
+                    "Reading solve state...",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiSolveUiState.Failed -> Text(
+                    state.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is AstroWebUiSolveUiState.Ready -> {
+                    val target = state.state.target
+                    val targetRa = target?.targetRightAscensionDeg
+                    val targetDec = target?.targetDeclinationDeg
+                    val frame = state.state.lastFrame
+                    val frameRa = frame?.rightAscensionDeg
+                    val frameDec = frame?.declinationDeg
+                    Text(
+                        if (targetRa != null && targetDec != null) {
+                            "Target RA " + targetRa + " deg, Dec " + targetDec + " deg"
+                        } else {
+                            "Target: none"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        when {
+                            frame == null -> "Last frame: none"
+                            frame.solved == true && frameRa != null && frameDec != null ->
+                                "Last frame: solved, RA " + frameRa + " deg, Dec " + frameDec + " deg"
+                            frame.solved == false -> "Last frame: not solved" +
+                                (frame.failureReason?.let { " (" + it + ")" } ?: "")
+                            else -> "Last frame: observed"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    frame?.matchedCount?.let {
+                        Text("Matches: " + it, style = MaterialTheme.typography.labelSmall)
+                    }
+                    frame?.rmsPx?.let {
+                        Text("RMS: " + it + " px", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(
+                        "Read-only file-backed solve evidence; it does not prove mount alignment or tracking.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
             HorizontalDivider()

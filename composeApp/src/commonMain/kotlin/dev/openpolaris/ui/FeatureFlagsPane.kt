@@ -139,6 +139,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads the resident Astro WebUI /api/astro state without entering Astro mode or sending a mount command.", safe = true),
     FlagSpec("astroWebUiSite", "Astro WebUI site (read-only)",
         "Reads the saved observing latitude/longitude from the resident Astro WebUI without changing it.", safe = true),
+    FlagSpec("astroWebUiSolveStatus", "Astro WebUI solve evidence (read-only)",
+        "Reads target and last-frame solve files from the resident Astro WebUI; it never implies mount alignment or tracking.", safe = true),
     FlagSpec("astroWebUiProgrammeStatus", "Astro WebUI programme status (read-only)",
         "Reads resident timelapse, panorama, HDR, focus and other programme progress without starting, pausing or cancelling anything.", safe = true),
     FlagSpec("astroWebUiSessionControls", "Astro WebUI session/tracking controls (not qualified)",

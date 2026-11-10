@@ -21,6 +21,9 @@ import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiStatusResult
+import dev.openpolaris.core.domain.AstroWebUiSolveClient
+import dev.openpolaris.core.domain.AstroWebUiSolveResult
+import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.AstroWebUiSessionControlResult
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -114,6 +117,7 @@ import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
+import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
@@ -248,6 +252,7 @@ class AppViewModel(
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
+    private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
@@ -1550,6 +1555,11 @@ class AppViewModel(
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
         astroWebUiStatus = AstroWebUiStatusState.Idle
+        astroWebUiSolveJob?.cancel()
+        astroWebUiSolveJob = null
+        astroWebUiSolvePollJob?.cancel()
+        astroWebUiSolvePollJob = null
+        astroWebUiSolve = AstroWebUiSolveUiState.Idle
         astroWebUiSessionControlJob?.cancel()
         astroWebUiSessionControlJob = null
         astroWebUiSessionControl = AstroWebUiSessionControlState.Idle
@@ -3573,6 +3583,8 @@ class AppViewModel(
         private set
     var astroWebUiStatus by mutableStateOf<AstroWebUiStatusState>(AstroWebUiStatusState.Idle)
         private set
+    var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
+        private set
     var astroWebUiSessionControl by mutableStateOf<AstroWebUiSessionControlState>(
         AstroWebUiSessionControlState.Idle,
     )
@@ -3589,6 +3601,8 @@ class AppViewModel(
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
     private var astroWebUiStatusPollJob: Job? = null
+    private var astroWebUiSolveJob: Job? = null
+    private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiSessionControlJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
@@ -3596,6 +3610,7 @@ class AppViewModel(
     private var astroWebUiProgrammeControlJob: Job? = null
     private var astroWebUiProgrammeStartJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
+    private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
@@ -3685,6 +3700,59 @@ class AppViewModel(
     fun stopAstroWebUiStatusPolling() {
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
+    }
+
+    private suspend fun readAstroWebUiSolve(announce: Boolean) {
+        astroWebUiSolveReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiSolveStatus")) {
+                astroWebUiSolve = AstroWebUiSolveUiState.Failed("Astro WebUI solve status disabled by config")
+                return@withLock
+            }
+            if (session == null) {
+                astroWebUiSolve = AstroWebUiSolveUiState.Failed(
+                    "Connect to a mount before reading its Astro WebUI solve state",
+                )
+                return@withLock
+            }
+            astroWebUiSolve = AstroWebUiSolveUiState.Loading
+            when (val result = astroWebUiSolveClient.read(host, previewPort)) {
+                is AstroWebUiSolveResult.Success -> {
+                    astroWebUiSolve = AstroWebUiSolveUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI solve state refreshed"
+                }
+                is AstroWebUiSolveResult.Failure -> {
+                    astroWebUiSolve = AstroWebUiSolveUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiSolve() {
+        astroWebUiSolveJob?.cancel()
+        astroWebUiSolveJob = scope.launch {
+            readAstroWebUiSolve(announce = true)
+        }
+    }
+
+    /** Poll the source-aligned solve files only while the Mission surface owns the read. */
+    fun startAstroWebUiSolvePolling() {
+        astroWebUiSolvePollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiSolveStatus")) {
+            astroWebUiSolve = AstroWebUiSolveUiState.Failed("Astro WebUI solve status disabled by config")
+            return
+        }
+        astroWebUiSolvePollJob = scope.launch {
+            while (isActive) {
+                readAstroWebUiSolve(announce = false)
+                delay(2_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiSolvePolling() {
+        astroWebUiSolvePollJob?.cancel()
+        astroWebUiSolvePollJob = null
     }
 
     private fun runAstroWebUiSessionControl(

@@ -17,7 +17,7 @@
 | WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
 | WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | ACTIVE |
 | WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | ACTIVE |
-| WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | PLANNED |
+| WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | ACTIVE |
 | WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | PLANNED |
 | WBS-11 | Physical qualification and release gate | Named-device evidence and honest capability matrix | WBS-02..10 | QUALIFICATION |
 

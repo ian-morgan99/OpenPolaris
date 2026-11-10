@@ -21,6 +21,11 @@ class ObservationProgrammePreviewContractTest {
         assertTrue("startObservationProgramme" in source)
         assertTrue("Read-only" in source)
         assertTrue("ObservationProgrammePlanner" in source)
+        assertTrue("observation-programme-progress" in source)
+        assertTrue("Next:" in source)
+        assertTrue("Run Demo programme" in source)
+        assertTrue("Pause" in source)
+        assertTrue("Resume" in source)
         assertTrue("Previewing never moves the mount or fires the camera." in source)
     }
 }

@@ -3591,6 +3591,7 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                 ) { Text("Resume") }
                 OutlinedButton(onClick = vm::stopObservationProgramme, enabled = programmeActive) { Text("Stop") }
             }
+            ObservationProgrammeProgress(programmeState, demo = false)
             Text(
                 when (programmeState) {
                     dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle -> "Qualified path: fixed-exposure lapse with correlated file evidence"
@@ -3628,6 +3629,7 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                     enabled = programmeActive,
                 ) { Text("Stop") }
             }
+            ObservationProgrammeProgress(programmeState, demo = true)
             Text(
                 when (programmeState) {
                     dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle ->
@@ -3669,6 +3671,34 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
             Text("… ${preview.steps.size - 5} more planned steps", style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+@Composable
+private fun ObservationProgrammeProgress(
+    state: dev.openpolaris.core.domain.ObservationProgrammeExecutor.State,
+    demo: Boolean,
+) {
+    val progressData = when (state) {
+        is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running -> state.plan to state.completedSteps
+        is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused -> state.plan to state.completedSteps
+        is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed -> state.plan to state.completedSteps
+        is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Stopped -> state.plan to state.completedSteps
+        is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown -> state.plan to state.completedSteps
+        else -> null
+    } ?: return
+    val (plan, completedSteps) = progressData
+    val total = plan.captureCount.coerceAtLeast(1)
+    val progress = (completedSteps.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    val nextStep = plan.steps.getOrNull(completedSteps)?.label
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier.fillMaxWidth().testTag("observation-programme-progress"),
+    )
+    Text(
+        (if (demo) "Demo " else "") + "Progress: " + completedSteps + "/" + total +
+            (nextStep?.let { " - Next: " + it } ?: " - All steps confirmed"),
+        style = MaterialTheme.typography.labelSmall,
+    )
 }
 
 private fun ObservationProgrammePlanner.Kind.label(): String = when (this) {

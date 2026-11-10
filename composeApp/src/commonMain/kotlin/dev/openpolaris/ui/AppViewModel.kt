@@ -1326,6 +1326,7 @@ class AppViewModel(
         exAxisState = null
         cameraInfo = null
         cameraAttachment = null
+        cameraReadbackAtMs = null
         deviceInfo = null
         temperature = null
         captureState = null
@@ -2342,6 +2343,16 @@ class AppViewModel(
     var camera by mutableStateOf(dev.openpolaris.core.domain.CameraController.Params())
         private set
 
+    /** Time of the last explicit dynamic camera-parameter readback. */
+    var cameraReadbackAtMs by mutableStateOf<Long?>(null)
+        private set
+
+    val cameraReadbackAgeText: String
+        get() = cameraReadbackAtMs?.let {
+            val ageSeconds = (nowMs() - it).coerceAtLeast(0L) / 1_000L
+            if (ageSeconds == 0L) "just now" else "${ageSeconds}s ago"
+        } ?: "not read"
+
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
 
     // §6 (handover step 7): the typed intervalometer / capture-sequence engine.
@@ -2501,6 +2512,7 @@ class AppViewModel(
                 shutterOptions = shutter.options,
                 fNumOptions = aperture.options,
             )
+            cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
             val readings = listOf(
                 "ISO[265]=${iso.raw.ifBlank { "<empty>" }}",
                 "WB[266]=${wb.raw.ifBlank { "<empty>" }}",

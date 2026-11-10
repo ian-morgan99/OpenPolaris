@@ -638,6 +638,10 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Text("Refresh camera status")
             }
             Text(
+                "Parameter readback: ${vm.cameraReadbackAgeText}. Dynamic options load only after an explicit qualified refresh.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
                 if (qualificationEnabled)
                     "Qualification mode uses Benro Connect's evidenced INFO/SET map. Changes are sent to the attached camera; verify and restore each original value."
                 else

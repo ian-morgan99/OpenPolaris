@@ -310,4 +310,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** Compose JVM tests passed before and after the camera-admission regression coverage; tests prove no 264 shutter command is emitted for unknown status, explicit absence, M/B, or sequence admission.
 - **2026-11-10 — WBS-02.3 ACTIVE (preview ownership):** Preview now has one explicit workflow owner and one frame collector; repeated entry is idempotent, leaving releases the stream, and capture suspension only restores a preview that the user actually owned.
 - **2026-11-10 — verification:** preview-port tests passed with repeated-entry and leave/re-entry assertions; no new endpoint or hardware side effect was introduced.
-- **Next:** begin the dynamic camera capability/readback workspace pass, retaining the camera-admission and preview-ownership gates.
+- **2026-11-10 — WBS-04.1 ACTIVE (camera readback UX):** Camera workspace now exposes the age of the last explicit dynamic parameter readback, keeps unknown/unread state distinct, and continues to leave unqualified fields locked.
+- **2026-11-10 — verification:** full shared/Compose JVM suites passed after the readback state and UI copy change.
+- **Next:** add mode-aware M/B presentation and the qualified focus/video surfaces without widening the live protocol gate.

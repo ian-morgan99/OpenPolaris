@@ -848,3 +848,22 @@ Verification passed:
 Result: both focused suites passed, including cancellation-insensitive late
 programme and capture result regressions. No live Astro WebUI or camera command
 was exercised.
+
+
+### WBS-05.1/07.1/08.2 - Astro WebUI read-session ownership
+
+Made the Astro WebUI read surface lifecycle-owned. Status, solve, run-state,
+programme, site and media list/item requests capture the MountSession that
+admitted the read and check ownership after the HTTP client returns. Disconnect
+or reconnect therefore cannot allow an old response to overwrite current UI
+state. No-session media calls still report the existing actionable failure.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiStatusTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSolveTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiRunStateTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiMediaTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; 17 focused tests passed, followed by the added
+late-status regression in the status suite. No live Astro WebUI or camera
+command was exercised.

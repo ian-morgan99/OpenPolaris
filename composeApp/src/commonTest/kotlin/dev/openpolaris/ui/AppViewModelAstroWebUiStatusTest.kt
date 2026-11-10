@@ -6,7 +6,10 @@ import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -29,9 +32,13 @@ class AppViewModelAstroWebUiStatusTest {
         var calls = 0
         var host: String? = null
         var port: Int? = null
+        var releaseRead: CompletableDeferred<Unit>? = null
 
         override suspend fun read(host: String, port: Int): AstroWebUiStatusResult {
             calls += 1
+            releaseRead?.let { gate ->
+                withContext(NonCancellable) { gate.await() }
+            }
             this.host = host
             this.port = port
             return AstroWebUiStatusResult.Success(AstroWebUiStatus(active = true))
@@ -68,6 +75,42 @@ class AppViewModelAstroWebUiStatusTest {
             assertEquals(8080, client.port)
             val state = assertIs<AstroWebUiStatusState.Ready>(vm.astroWebUiStatus)
             assertEquals(true, state.status.active)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectDropsLateStatusReadResult() = runTest {
+        val client = FakeStatusClient()
+        val gate = CompletableDeferred<Unit>()
+        client.releaseRead = gate
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiStatusClient = client,
+        )
+        vm.testInstallSession(
+            MountSession(
+                connectionFactory = { NoopConnection() },
+                host = "192.168.0.1",
+                port = 9090,
+                readerScope = this,
+            ),
+        )
+
+        try {
+            vm.refreshAstroWebUiStatus()
+            runCurrent()
+            assertEquals(1, client.calls)
+            assertIs<AstroWebUiStatusState.Loading>(vm.astroWebUiStatus)
+
+            vm.disconnect()
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertIs<AstroWebUiStatusState.Idle>(vm.astroWebUiStatus)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

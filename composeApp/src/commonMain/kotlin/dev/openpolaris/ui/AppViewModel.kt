@@ -4186,14 +4186,17 @@ class AppViewModel(
                 astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
                 return@withLock
             }
-            if (session == null) {
+            val ownerSession = session
+            if (ownerSession == null) {
                 astroWebUiStatus = AstroWebUiStatusState.Failed(
                     "Connect to a mount before reading its Astro WebUI status",
                 )
                 return@withLock
             }
             astroWebUiStatus = AstroWebUiStatusState.Loading
-            when (val result = astroWebUiStatusClient.read(host, previewPort)) {
+            val result = astroWebUiStatusClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
                 is AstroWebUiStatusResult.Success -> {
                     astroWebUiStatus = AstroWebUiStatusState.Ready(result.status)
                     if (announce) {
@@ -4250,14 +4253,17 @@ class AppViewModel(
                 astroWebUiSolve = AstroWebUiSolveUiState.Failed("Astro WebUI solve status disabled by config")
                 return@withLock
             }
-            if (session == null) {
+            val ownerSession = session
+            if (ownerSession == null) {
                 astroWebUiSolve = AstroWebUiSolveUiState.Failed(
                     "Connect to a mount before reading its Astro WebUI solve state",
                 )
                 return@withLock
             }
             astroWebUiSolve = AstroWebUiSolveUiState.Loading
-            when (val result = astroWebUiSolveClient.read(host, previewPort)) {
+            val result = astroWebUiSolveClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
                 is AstroWebUiSolveResult.Success -> {
                     astroWebUiSolve = AstroWebUiSolveUiState.Ready(result.state)
                     if (announce) statusMessage = "Astro WebUI solve state refreshed"
@@ -4305,14 +4311,17 @@ class AppViewModel(
                 )
                 return@withLock
             }
-            if (session == null) {
+            val ownerSession = session
+            if (ownerSession == null) {
                 astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
                     "Connect to a mount before reading Astro WebUI run state",
                 )
                 return@withLock
             }
             astroWebUiRunState = AstroWebUiRunStateUiState.Loading
-            when (val result = astroWebUiRunStateClient.read(host, previewPort, readMount)) {
+            val result = astroWebUiRunStateClient.read(host, previewPort, readMount)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
                 is AstroWebUiRunStateResult.Success -> {
                     astroWebUiRunState = AstroWebUiRunStateUiState.Ready(result.state)
                     if (announce) {
@@ -4426,12 +4435,15 @@ class AppViewModel(
                 astroWebUiSite = AstroWebUiSiteState.Failed("Astro WebUI site disabled by config")
                 return@launch
             }
-            if (session == null) {
+            val ownerSession = session
+            if (ownerSession == null) {
                 astroWebUiSite = AstroWebUiSiteState.Failed("Connect to a mount before reading its Astro WebUI site")
                 return@launch
             }
             astroWebUiSite = AstroWebUiSiteState.Loading
-            when (val result = astroWebUiSiteClient.read(host, previewPort)) {
+            val result = astroWebUiSiteClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 is AstroWebUiSiteResult.Success -> {
                     astroWebUiSite = AstroWebUiSiteState.Ready(result.site)
                     statusMessage = if (result.site.havePosition) {
@@ -4454,12 +4466,15 @@ class AppViewModel(
                 astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
                 return@withLock false
             }
-            if (session == null) {
+            val ownerSession = session
+            if (ownerSession == null) {
                 astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Connect to a mount before reading its Astro WebUI programme status")
                 return@withLock false
             }
             astroWebUiProgramme = AstroWebUiProgrammeState.Loading
-            when (val result = astroWebUiProgrammeClient.read(host, previewPort)) {
+            val result = astroWebUiProgrammeClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock false
+            when (result) {
                 is AstroWebUiProgrammeResult.Success -> {
                     astroWebUiProgramme = AstroWebUiProgrammeState.Ready(result.programme)
                     if (announce) {
@@ -4660,19 +4675,23 @@ class AppViewModel(
         astroMediaExportJob?.cancel()
         astroMediaExportController.reset()
         astroMediaExportState = AstroMediaExportState.Idle
+        val ownerSession = session
         astroMediaJob?.cancel()
         astroMediaJob = scope.launch {
+            if (ownerSession == null) {
+                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
+                return@launch
+            }
+            if (!ownsSession(ownerSession)) return@launch
             if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
                 astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
                 return@launch
             }
-            if (session == null) {
-                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
-                return@launch
-            }
             astroMediaState = AstroMediaState.LoadingList
             astroMediaPreview = null
-            when (val result = astroWebUiMediaClient.list(host, previewPort)) {
+            val result = astroWebUiMediaClient.list(host, previewPort)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 is AstroMediaListResult.Success -> {
                     astroMediaItems = result.items
                     astroMediaState = AstroMediaState.Ready(result.reportedCount)
@@ -4691,18 +4710,22 @@ class AppViewModel(
         astroMediaExportJob?.cancel()
         astroMediaExportController.reset()
         astroMediaExportState = AstroMediaExportState.Idle
+        val ownerSession = session
         astroMediaJob?.cancel()
         astroMediaJob = scope.launch {
+            if (ownerSession == null) {
+                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
+                return@launch
+            }
+            if (!ownsSession(ownerSession)) return@launch
             if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
                 astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
                 return@launch
             }
-            if (session == null) {
-                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
-                return@launch
-            }
             astroMediaState = AstroMediaState.LoadingItem(path, kind)
-            when (val result = astroWebUiMediaClient.fetch(host, previewPort, path, kind)) {
+            val result = astroWebUiMediaClient.fetch(host, previewPort, path, kind)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 is AstroMediaFetchResult.Success -> {
                     astroMediaPreview = AstroMediaPreview(path, kind, result.bytes, result.contentType)
                     astroMediaState = AstroMediaState.Ready(astroMediaItems?.size ?: 0)

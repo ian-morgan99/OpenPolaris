@@ -588,3 +588,15 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AppViewModelAstroWebUiProgrammeStartTest and
   AppViewModelAstroWebUiCaptureTest cover cancellation-insensitive late results.
   No live Astro WebUI or camera command was exercised.
+
+
+- **2026-11-10 - WBS-05.1/07.1/08.2 ACTIVE (Astro WebUI read-session
+  ownership):** status, solve, run-state, programme, site and media reads now
+  capture their owning mount session and discard late HTTP results after
+  disconnect or reconnect. Direct no-session requests retain their explicit
+  Failed state, while stale work from an ended session cannot repopulate the
+  current UI.
+- **2026-11-10 - verification:** the focused Astro WebUI status, solve,
+  run-state, site, programme and media ViewModel suites passed, including a
+  cancellation-insensitive late status regression. No live Astro WebUI or
+  camera command was exercised.

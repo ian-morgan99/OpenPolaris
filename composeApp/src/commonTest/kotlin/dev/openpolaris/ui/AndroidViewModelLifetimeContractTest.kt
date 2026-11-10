@@ -16,13 +16,20 @@ class AndroidViewModelLifetimeContractTest {
     }
 
     @Test
-    fun androidHostRetainsViewModelAcrossRecomposition() {
+    fun androidHostRetainsViewModelAcrossRecompositionAndRotation() {
         val activity = source(
             "androidApp/src/androidMain/kotlin/dev/openpolaris/android/MainActivity.kt",
         )
+        val host = source(
+            "androidApp/src/androidMain/kotlin/dev/openpolaris/android/OpenPolarisHostViewModel.kt",
+        )
 
-        assertTrue("val retainedViewModel = remember {" in activity)
-        assertTrue("viewModel = retainedViewModel" in activity)
-        assertFalse("viewModel = AppViewModel(" in activity)
+        assertTrue("ViewModelProvider(" in activity)
+        assertTrue("viewModel = retainedHostViewModel.appViewModel" in activity)
+        assertFalse("val retainedViewModel = remember {" in activity)
+        assertTrue("class OpenPolarisHostViewModel(" in host)
+        assertTrue(": ViewModel()" in host)
+        assertTrue("override fun onCleared()" in host)
+        assertTrue("appViewModel.disconnect()" in host)
     }
 }

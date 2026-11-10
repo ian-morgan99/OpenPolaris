@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -177,30 +178,28 @@ class MainActivity : ComponentActivity() {
         installResourceContext(applicationContext)
 
         // Build the per-app SessionStore path BEFORE the composable so the
-        // VM uses the right one from its first read. The composable still
-        // owns the VM (and thus the connect/disconnect lifecycle), but the
-        // marker file is rooted in the app sandbox.
+        // VM uses the right one from its first read. The Activity-retained host
+        // ViewModel owns the shared session across composition and rotation;
+        // the marker file is rooted in the app sandbox.
         val sessionStore = SessionStore(
             filePath = sessionStorePathForFilesDir(applicationContext.filesDir),
         )
         val preferenceStore = UserPreferencesStore(
             filePath = preferencesStorePathForFilesDir(applicationContext.filesDir),
         )
+        // ViewModelProvider retains this owner across configuration changes.
+        // The shared AppViewModel therefore keeps its session and scope while
+        // the Activity composition is recreated.
+        val retainedHostViewModel = ViewModelProvider(
+            this,
+            OpenPolarisHostViewModelFactory(sessionStore),
+        )[OpenPolarisHostViewModel::class.java]
+        viewModel = retainedHostViewModel.appViewModel
 
         setContent {
             val wsc = calculateWindowSizeClass(this)
             val scope = rememberCoroutineScope()
             val compassHeadingSource = remember { AndroidCompassHeadingSource(this@MainActivity) }
-            // Keep one VM for the whole Activity composition. Recomposition
-            // must not replace session, motion, capture or preference state.
-            val retainedViewModel = remember {
-                AppViewModel(
-                    scope = scope,
-                    connectionFactory = { JvmConnection() },
-                    sessionStore = sessionStore,
-                )
-            }
-            viewModel = retainedViewModel
 
             // Drain the picker bridge: if a result was published (in this
             // activity instance OR the previous one before rotation), apply

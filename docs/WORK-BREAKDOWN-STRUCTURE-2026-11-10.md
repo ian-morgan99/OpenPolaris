@@ -297,4 +297,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused mission-readiness tests and Compose JVM tests passed; the summary is read-only and does not alter connection, preview, capture or motion transports.
 - **2026-11-10 — WBS-02.2 ACTIVE (first slice):** connected typed endpoint health to AppViewModel connect, demo, preview and disconnect lifecycle points; control reachability, preview reachability and failure evidence remain separate.
 - **2026-11-10 — verification:** preview-port and endpoint lifecycle regressions passed, including reset-to-disconnected and no-frame preview remaining unknown.
+- **2026-11-10 — WBS-03.2 ACTIVE (contract only):** added a fast-jog dead-man lease seam for duration-style 513–516 commands with 400 ms expiry, 50 ms repeat pacing, release/disconnect stop, ambiguous-result blocking and explicit recovery; no live adapter is connected.
+- **2026-11-10 — verification:** focused FastJogController tests passed for single ownership, repeat pacing, expiry, release ordering, invalid input and no-retry after ambiguity.
 - **Next:** expand the summary into the adaptive Mission destination and add explicit session ownership/readiness controls for connection, camera and preview.

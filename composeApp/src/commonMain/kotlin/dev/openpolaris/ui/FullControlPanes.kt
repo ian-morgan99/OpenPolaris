@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.MediaPolicy
 import dev.openpolaris.core.domain.format2
 
 // =============================================================================
@@ -537,7 +538,11 @@ private fun SdHeaderRow(vm: AppViewModel) {
 private fun FileRow(vm: AppViewModel, file: dev.openpolaris.core.domain.FileEntry) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("#${file.id}", modifier = Modifier.width(40.dp))
-        Text(file.name, modifier = Modifier.weight(1f), maxLines = 1)
+        Text(
+            "${file.name} · ${MediaPolicy.kind(file.name).label}",
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+        )
         if (file.prot != 0) Text("🔒", style = MaterialTheme.typography.bodySmall)
         if (FeatureFlags.isEnabled("fileManagerMutate")) {
             OutlinedButton(

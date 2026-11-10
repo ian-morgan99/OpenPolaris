@@ -822,6 +822,7 @@ fun MissionDashboardPane(
     modifier: Modifier = Modifier,
     title: String = "Mission readiness",
     onAction: ((String) -> Unit)? = null,
+    compassHeadingSource: CompassHeadingSource? = null,
 ) {
     DisposableEffect(vm) {
         vm.startAstroWebUiStatusPolling()
@@ -867,6 +868,8 @@ fun MissionDashboardPane(
     var gotoDec by remember { mutableStateOf("") }
     var gotoName by remember { mutableStateOf("") }
     var compassHeading by remember { mutableStateOf("") }
+    var phoneCompassHeading by remember { mutableStateOf<Double?>(null) }
+    var compassError by remember { mutableStateOf<String?>(null) }
     val focalOverrideMm = focalOverride.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..100_000.0 }
     val gotoRequest = runCatching {
         AstroWebUiGotoRequest(
@@ -876,6 +879,9 @@ fun MissionDashboardPane(
         )
     }.getOrNull()
     val compassRequest = compassHeading.toDoubleOrNull()?.let { runCatching { AstroWebUiAlignRequest(it) }.getOrNull() }
+    DisposableEffect(compassHeadingSource) {
+        onDispose { compassHeadingSource?.stop() }
+    }
     val autofocusParameters = runCatching {
         AstroWebUiAutofocusParameters(
             steps = autofocusSteps.toIntOrNull() ?: -1,
@@ -1086,6 +1092,36 @@ fun MissionDashboardPane(
                     enabled = FeatureFlags.isEnabled("astroWebUiTargetWrites") && previewMatches,
                     onClick = { gotoRequest?.let(vm::startAstroWebUiGoto) },
                 ) { Text("Confirm GoTo") }
+            }
+            Text(
+                compassHeadingSource?.let {
+                    if (it.supported) "Phone compass is available for heading rehearsal; reading it does not send alignment."
+                    else "This device does not expose a usable phone compass; enter a heading manually."
+                } ?: "Phone compass is unavailable on this platform; enter a heading manually.",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    enabled = compassHeadingSource?.supported == true,
+                    onClick = {
+                        compassError = null
+                        compassHeadingSource?.start(
+                            onHeading = { phoneCompassHeading = it },
+                            onUnavailable = { compassError = it },
+                        )
+                    },
+                ) { Text("Read phone compass") }
+                OutlinedButton(
+                    enabled = phoneCompassHeading != null,
+                    onClick = { compassHeading = phoneCompassHeading?.let { "%.2f".format(it) } ?: compassHeading },
+                ) { Text("Use reading") }
+                phoneCompassHeading?.let { Text("%.1f°".format(it), style = MaterialTheme.typography.labelSmall) }
+            }
+            compassError?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,

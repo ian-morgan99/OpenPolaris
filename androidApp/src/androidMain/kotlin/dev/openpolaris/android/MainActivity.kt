@@ -190,6 +190,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val wsc = calculateWindowSizeClass(this)
             val scope = rememberCoroutineScope()
+            val compassHeadingSource = remember { AndroidCompassHeadingSource(this@MainActivity) }
             viewModel = AppViewModel(
                 scope = scope,
                 connectionFactory = { JvmConnection() },
@@ -452,6 +453,7 @@ class MainActivity : ComponentActivity() {
                 // the device. Helps distinguish a real dev.openpolaris.app
                 // build from a stale fork / sideloaded APK (issue #43).
                 versionLabel = "v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})",
+                compassHeadingSource = compassHeadingSource,
             )
         }
     }

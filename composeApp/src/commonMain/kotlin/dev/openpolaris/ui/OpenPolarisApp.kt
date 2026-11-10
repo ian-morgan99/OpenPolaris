@@ -135,6 +135,8 @@ fun OpenPolarisApp(
      * doesn't inject one (e.g. desktop).
      */
     versionLabel: String? = null,
+    /** Optional mobile compass input; desktop leaves this null and uses manual heading. */
+    compassHeadingSource: CompassHeadingSource? = null,
 ) {
     val scope = rememberCoroutineScope()
     var dialog by remember { mutableStateOf<Callout?>(null) }
@@ -250,6 +252,7 @@ fun OpenPolarisApp(
                             destination = activeDestination,
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             onMissionAction = ::openMissionAction,
+                            compassHeadingSource = compassHeadingSource,
                         )
                     }
                     CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
@@ -269,6 +272,7 @@ fun OpenPolarisApp(
                         destination = activeDestination,
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         onMissionAction = ::openMissionAction,
+                            compassHeadingSource = compassHeadingSource,
                     )
                     PrimaryDestinationBar(
                         selected = activeDestination,
@@ -362,6 +366,7 @@ private fun InlineDestinationWorkspace(
     destination: AppDestination,
     modifier: Modifier = Modifier,
     onMissionAction: (String) -> Unit,
+    compassHeadingSource: CompassHeadingSource?,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -376,6 +381,7 @@ private fun InlineDestinationWorkspace(
                     modifier = Modifier.fillMaxWidth(),
                     title = if (destination == AppDestination.ASTRO) "Astro mission" else "Mission readiness",
                     onAction = onMissionAction,
+                    compassHeadingSource = compassHeadingSource,
                 )
                 AppDestination.CONTROL -> Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),

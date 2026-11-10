@@ -687,3 +687,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   form acknowledgement, malformed/sentinel data, safe default-on readback,
   preview-port routing, default-off writes and late-result disconnect
   ownership. No live guiding or mount command was exercised.
+
+
+- **2026-11-10 - WBS-05.5/08.2 ACTIVE (Astro WebUI autofocus progress):**
+  added bounded `/api/astro/autofocus` progress parsing for resident status,
+  V-curve samples, best step and failure detail. The shared Mission surface
+  exposes progress and validated sweep parameters, while start/stop remain
+  separate default-off writes because they drive the focuser and consume live
+  preview frames.
+- **2026-11-10 - verification:** AstroWebUiAutofocusTest,
+  AppViewModelAstroWebUiAutofocusTest and FeatureFlagsTest passed for source
+  progress shapes, explicit confirm/stop forms, range rejection, safe
+  default-on readback, default-off writes, preview-port routing and
+  disconnect ownership. No live focus, camera or mount command was exercised.

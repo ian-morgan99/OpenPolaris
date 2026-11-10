@@ -84,6 +84,8 @@ import dev.openpolaris.core.domain.AstroWebUiGrailNode
 import dev.openpolaris.core.domain.AstroWebUiGrailParameters
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiGuideUiState
+import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
+import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -615,6 +617,7 @@ private fun EndpointHealthSection(
  * known and the next safe action, but does not silently start a connection,
  * capture or motion owner.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MissionDashboardPane(
     vm: AppViewModel,
@@ -625,12 +628,14 @@ fun MissionDashboardPane(
     DisposableEffect(vm) {
         vm.startAstroWebUiStatusPolling()
         vm.startAstroWebUiGuidePolling()
+        vm.startAstroWebUiAutofocusPolling()
         vm.startAstroWebUiSolvePolling()
         vm.startAstroWebUiRunStatePolling()
         vm.startAstroWebUiProgrammePolling()
         onDispose {
             vm.stopAstroWebUiStatusPolling()
             vm.stopAstroWebUiGuidePolling()
+            vm.stopAstroWebUiAutofocusPolling()
             vm.stopAstroWebUiSolvePolling()
             vm.stopAstroWebUiRunStatePolling()
             vm.stopAstroWebUiProgrammePolling()
@@ -653,6 +658,18 @@ fun MissionDashboardPane(
     )
     var selectedAstroRate by remember { mutableStateOf(AstroWebUiTrackRate.SIDEREAL) }
     var selectedAstroHalfSpeed by remember { mutableStateOf(false) }
+    var autofocusSteps by remember { mutableStateOf("12") }
+    var autofocusAdjustment by remember { mutableStateOf("1") }
+    var autofocusSettle by remember { mutableStateOf("0.8") }
+    var autofocusBacklash by remember { mutableStateOf("3") }
+    val autofocusParameters = runCatching {
+        AstroWebUiAutofocusParameters(
+            steps = autofocusSteps.toIntOrNull() ?: -1,
+            adjustment = autofocusAdjustment.toIntOrNull() ?: -1,
+            settleSeconds = autofocusSettle.toDoubleOrNull() ?: Double.NaN,
+            backlash = autofocusBacklash.toIntOrNull() ?: -1,
+        )
+    }.getOrNull()
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -841,6 +858,108 @@ fun MissionDashboardPane(
             if (!FeatureFlags.isEnabled("astroWebUiGuiding")) {
                 Text(
                     "Guide writes are disabled until solve anchoring, motion ownership and recovery are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            HorizontalDivider()
+            Text("Astro autofocus", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "The resident WebUI runs a focus sweep, scores preview frames and returns to the best step. Progress is read-only; start/stop writes remain separately qualified.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiAutofocusStatus"),
+                    onClick = vm::refreshAstroWebUiAutofocus,
+                ) { Text("Refresh autofocus") }
+                val autofocusRunning = (vm.astroWebUiAutofocus as? AstroWebUiAutofocusUiState.Ready)
+                    ?.state?.status == "running"
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiAutofocus") &&
+                        !autofocusRunning &&
+                        autofocusParameters != null,
+                    onClick = { autofocusParameters?.let(vm::startAstroWebUiAutofocus) },
+                ) { Text("Start sweep") }
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiAutofocus") && autofocusRunning,
+                    onClick = vm::stopAstroWebUiAutofocus,
+                ) { Text("Stop sweep") }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OutlinedTextField(
+                    value = autofocusSteps,
+                    onValueChange = { autofocusSteps = it },
+                    label = { Text("Steps 3–40") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = autofocusAdjustment,
+                    onValueChange = { autofocusAdjustment = it },
+                    label = { Text("Adjustment 1–10") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = autofocusSettle,
+                    onValueChange = { autofocusSettle = it },
+                    label = { Text("Settle seconds") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = autofocusBacklash,
+                    onValueChange = { autofocusBacklash = it },
+                    label = { Text("Backlash 0–20") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            when (val autofocus = vm.astroWebUiAutofocus) {
+                AstroWebUiAutofocusUiState.Idle -> Text("Autofocus state not checked.", style = MaterialTheme.typography.labelSmall)
+                AstroWebUiAutofocusUiState.Loading -> Text("Reading or changing autofocus…", style = MaterialTheme.typography.labelSmall)
+                is AstroWebUiAutofocusUiState.Accepted -> Text(
+                    "Autofocus " + autofocus.action + " accepted; resident progress remains the authority.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiAutofocusUiState.Failed -> Text(
+                    autofocus.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is AstroWebUiAutofocusUiState.Ready -> {
+                    val progress = autofocus.state.progress
+                    Text(
+                        "Status " + autofocus.state.status + " · step " + progress.step + " / " + progress.steps +
+                            " · samples " + progress.samples.size,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    progress.best?.let { best ->
+                        Text(
+                            "Best step " + best.step + " · score " + best.score +
+                                (best.hfr?.let { " · HFR " + it + " px" } ?: ""),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    progress.error?.let { error ->
+                        Text("Autofocus: " + error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiAutofocusStatus")) {
+                Text(
+                    "Autofocus progress readback is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiAutofocus")) {
+                Text(
+                    "Autofocus start/stop is disabled until camera attachment, preview, focus direction, capture ownership and recovery are qualified.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

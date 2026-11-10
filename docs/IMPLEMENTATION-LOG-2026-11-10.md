@@ -1019,3 +1019,30 @@ Verification passed:
 Result: BUILD SUCCESSFUL; parser, feature-policy, ViewModel lifecycle and
 Compose compilation tests passed. No live guiding or mount command was
 exercised.
+
+
+### WBS-05.5/08.2 - Gated Astro WebUI autofocus progress
+
+Added the source-backed autofocus seam:
+
+- The adapter reads `/api/astro/autofocus` and bounds status, progress state,
+  step counts, best-focus data, V-curve samples and error text.
+- Start uses the source `confirm=1`, `steps`, `adj`, `settle` and
+  `backlash` form; stop uses `stop=1`. HTTP acceptance is followed by
+  resident progress readback rather than treated as focus completion.
+- The Mission surface shows progress, sample count, best step/HFR and
+  qualification messaging. Readback is default-on; start/stop are separately
+  default-off pending camera attachment, preview, focus direction,
+  capture/motion ownership and recovery evidence.
+- ViewModel jobs are session-owned and polling is stopped with the Mission
+  surface; late results cannot update a replacement session.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiAutofocusTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiAutofocusTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; parser, feature-policy, ViewModel lifecycle and
+Compose compilation tests passed. No live focus, camera or mount command was
+exercised.

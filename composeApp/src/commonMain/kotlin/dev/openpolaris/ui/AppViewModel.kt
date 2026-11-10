@@ -30,6 +30,10 @@ import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AstroWebUiGuideClient
 import dev.openpolaris.core.domain.AstroWebUiGuideResult
 import dev.openpolaris.core.domain.AstroWebUiGuideUiState
+import dev.openpolaris.core.domain.AstroWebUiAutofocusClient
+import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
+import dev.openpolaris.core.domain.AstroWebUiAutofocusResult
+import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -157,6 +161,7 @@ import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiGuideClient
+import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -298,6 +303,7 @@ class AppViewModel(
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
+    private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1815,6 +1821,11 @@ class AppViewModel(
         astroWebUiGuidePollJob?.cancel()
         astroWebUiGuidePollJob = null
         astroWebUiGuide = AstroWebUiGuideUiState.Idle
+        astroWebUiAutofocusJob?.cancel()
+        astroWebUiAutofocusJob = null
+        astroWebUiAutofocusPollJob?.cancel()
+        astroWebUiAutofocusPollJob = null
+        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4191,6 +4202,8 @@ class AppViewModel(
         private set
     var astroWebUiGuide by mutableStateOf<AstroWebUiGuideUiState>(AstroWebUiGuideUiState.Idle)
         private set
+    var astroWebUiAutofocus by mutableStateOf<AstroWebUiAutofocusUiState>(AstroWebUiAutofocusUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4221,6 +4234,8 @@ class AppViewModel(
     private var astroWebUiStatusPollJob: Job? = null
     private var astroWebUiGuideJob: Job? = null
     private var astroWebUiGuidePollJob: Job? = null
+    private var astroWebUiAutofocusJob: Job? = null
+    private var astroWebUiAutofocusPollJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4236,6 +4251,7 @@ class AppViewModel(
     private var astroWebUiMotionProgrammeJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiGuideReadMutex = Mutex()
+    private val astroWebUiAutofocusReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4429,6 +4445,163 @@ class AppViewModel(
                 is AstroWebUiGuideResult.Success -> astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
                 is AstroWebUiGuideResult.Failure -> {
                     astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    private suspend fun readAstroWebUiAutofocus(announce: Boolean) {
+        astroWebUiAutofocusReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiAutofocusStatus")) {
+                astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                    "Astro WebUI autofocus status disabled by config",
+                )
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI autofocus",
+                )
+                return@withLock
+            }
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
+            val result = astroWebUiAutofocusClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiAutofocusResult.Success -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI autofocus state refreshed"
+                }
+                is AstroWebUiAutofocusResult.Failure -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+                is AstroWebUiAutofocusResult.Accepted -> Unit
+            }
+        }
+    }
+
+    fun refreshAstroWebUiAutofocus() {
+        astroWebUiAutofocusJob?.cancel()
+        astroWebUiAutofocusJob = scope.launch {
+            readAstroWebUiAutofocus(announce = true)
+        }
+    }
+
+    fun startAstroWebUiAutofocusPolling() {
+        astroWebUiAutofocusPollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiAutofocusStatus")) {
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                "Astro WebUI autofocus status disabled by config",
+            )
+            return
+        }
+        astroWebUiAutofocusPollJob = scope.launch {
+            while (isActive) {
+                readAstroWebUiAutofocus(announce = false)
+                delay(2_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiAutofocusPolling() {
+        astroWebUiAutofocusPollJob?.cancel()
+        astroWebUiAutofocusPollJob = null
+    }
+
+    fun startAstroWebUiAutofocus(parameters: AstroWebUiAutofocusParameters) {
+        runAstroWebUiAutofocusWrite("start", parameters)
+    }
+
+    fun stopAstroWebUiAutofocus() {
+        astroWebUiAutofocusJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiAutofocus")) {
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                "Astro WebUI autofocus is disabled until camera, focus and recovery qualification",
+            )
+            statusMessage = "Astro WebUI autofocus is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                "Connect to a mount before stopping Astro WebUI autofocus",
+            )
+            statusMessage = "Connect to a mount before stopping Astro WebUI autofocus"
+            return
+        }
+        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
+        astroWebUiAutofocusJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiAutofocusClient.stop(host, previewPort)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiAutofocusResult.Failure(
+                    error.message ?: "Astro WebUI autofocus stop failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiAutofocusResult.Accepted -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Accepted(result.action)
+                    statusMessage = "Astro WebUI autofocus stop accepted; confirming by readback"
+                    readAstroWebUiAutofocus(announce = false)
+                }
+                is AstroWebUiAutofocusResult.Success -> astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
+                is AstroWebUiAutofocusResult.Failure -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    private fun runAstroWebUiAutofocusWrite(
+        action: String,
+        parameters: AstroWebUiAutofocusParameters,
+    ) {
+        astroWebUiAutofocusJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiAutofocus")) {
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                "Astro WebUI autofocus is disabled until camera, focus and recovery qualification",
+            )
+            statusMessage = "Astro WebUI autofocus is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
+                "Connect to a mount before starting Astro WebUI autofocus",
+            )
+            statusMessage = "Connect to a mount before starting Astro WebUI autofocus"
+            return
+        }
+        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
+        astroWebUiAutofocusJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiAutofocusClient.start(host, previewPort, parameters)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiAutofocusResult.Failure(
+                    error.message ?: "Astro WebUI autofocus $action failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiAutofocusResult.Accepted -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Accepted(result.action)
+                    statusMessage = "Astro WebUI autofocus start accepted; progress is read back from the resident job"
+                    readAstroWebUiAutofocus(announce = false)
+                }
+                is AstroWebUiAutofocusResult.Success -> astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
+                is AstroWebUiAutofocusResult.Failure -> {
+                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
                     statusMessage = result.reason
                 }
             }

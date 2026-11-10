@@ -231,7 +231,21 @@ fun OpenPolarisApp(
 
             if (missionOpen) {
                 CalloutDialog("Mission readiness", { missionOpen = false }) {
-                    MissionDashboardPane(vm, Modifier.fillMaxWidth())
+                    MissionDashboardPane(
+                        vm,
+                        Modifier.fillMaxWidth(),
+                        onAction = { actionId ->
+                            missionOpen = false
+                            dialog = when (actionId) {
+                                "connection", "mount" -> Callout.Connection
+                                "camera", "capture" -> Callout.Camera
+                                "preview" -> Callout.Preview
+                                "alignment", "tracking", "motion" -> Callout.Slew
+                                else -> null
+                            }
+                            if (actionId == "storage") galleryOpen = true
+                        },
+                    )
                 }
             }
 

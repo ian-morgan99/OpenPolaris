@@ -326,7 +326,11 @@ fun PasswordDialog(
  * capture or motion owner.
  */
 @Composable
-fun MissionDashboardPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+fun MissionDashboardPane(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    onAction: ((String) -> Unit)? = null,
+) {
     val endpoint = vm.endpointHealth
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
         vm.capturePhase is AppViewModel.CapturePhase.Busy
@@ -365,7 +369,15 @@ fun MissionDashboardPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         color = color,
                     )
                     Text(card.summary, style = MaterialTheme.typography.bodySmall)
-                    card.actionLabel?.let { Text("Next: $it", style = MaterialTheme.typography.labelSmall) }
+                    card.actionLabel?.let { actionLabel ->
+                        if (onAction != null) {
+                            TextButton(onClick = { onAction(card.id) }) {
+                                Text("Next: $actionLabel")
+                            }
+                        } else {
+                            Text("Next: $actionLabel", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
             }
         }

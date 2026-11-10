@@ -1,6 +1,7 @@
 package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
@@ -89,6 +90,26 @@ class AppViewModelCapturePhaseTest {
             runCurrent()
             assertEquals(2, conn.count(286), "refresh is explicit and bounded")
         } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun unqualifiedFocusAndVideoRemainReadOnly() = runTest(UnconfinedTestDispatcher()) {
+        FeatureFlags.reset()
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.adjustFocusNear()
+            vm.adjustFocusFar(fast = true)
+            vm.setVideoRecording(true)
+            runCurrent()
+
+            assertEquals(0, conn.count(311), "unqualified focus must not send manual-focus adjustments")
+            assertEquals(0, conn.count(263), "unqualified video must not send record control")
+            assertTrue(vm.statusMessage.contains("read-only"))
+        } finally {
+            FeatureFlags.reset()
+            vm.disconnect(); vm.preview.shutdown()
+        }
     }
 
     @Test

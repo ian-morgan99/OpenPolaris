@@ -54,6 +54,8 @@ class FeatureFlagsTest {
         // Unverified: still OFF
         assertFalse(FeatureFlags.isEnabled("wifiConnect"), "WiFi write must be OFF until verified")
         assertFalse(FeatureFlags.isEnabled("limitsWrite"), "Limits (541/542) wire format unverified - OFF by default")
+        assertFalse(FeatureFlags.isEnabled("cameraFocusControl"), "Focus direction and repeat/stop behaviour must be qualified first")
+        assertFalse(FeatureFlags.isEnabled("cameraVideo"), "Video lifecycle must be qualified first")
     }
 
     @Test

@@ -64,6 +64,12 @@ object FeatureFlags {
     /** Camera qualification surface. The Camera pane requires an additional
      * per-visit acknowledgement before any evidenced SET can be sent. */
     const val experimentalCamera: Boolean = false
+    /** Manual focus adjustments remain off until direction and stop behaviour
+     * are qualified against a named camera and firmware build. */
+    const val cameraFocusControl: Boolean = false
+    /** Video record control remains off until the 263 lifecycle is qualified
+     * alongside preview and still-capture ownership. */
+    const val cameraVideo: Boolean = false
     /** Tonight catalog/comets (read-only, no wire side effect). */
     const val catalog: Boolean = true
     /** Star alignment record (530). */
@@ -207,6 +213,8 @@ object FeatureFlags {
         "fineRateControl" -> fineRateControl
         "slowMotionControl" -> slowMotionControl
         "experimentalCamera" -> experimentalCamera
+        "cameraFocusControl" -> cameraFocusControl
+        "cameraVideo" -> cameraVideo
         "catalog" -> catalog
         "alignment" -> alignment
         "advancedAstro" -> advancedAstro

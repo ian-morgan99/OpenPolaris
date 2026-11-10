@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
@@ -755,6 +756,49 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // confirmed by the capture-event observer correlating the 264
             // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
             IntervalometerSection(vm)
+
+            HorizontalDivider()
+            Text("Focus and video", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "These controls are visible so the workflow is discoverable. Their source-derived wire paths remain disabled until direction, lifecycle and recovery are qualified for the attached camera.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val focusEnabled = qualificationArmed &&
+                FeatureFlags.isEnabled("cameraFocusControl") &&
+                attachment?.isAttached == true
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { vm.adjustFocusNear() }, enabled = focusEnabled) { Text("Focus near") }
+                OutlinedButton(onClick = { vm.adjustFocusFar() }, enabled = focusEnabled) { Text("Focus far") }
+                vm.focusStatus?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+            }
+            val videoEnabled = qualificationArmed &&
+                FeatureFlags.isEnabled("cameraVideo") &&
+                attachment?.isAttached == true
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = { vm.setVideoRecording(true) },
+                    enabled = videoEnabled && vm.videoRecording != true,
+                ) { Text("Start video") }
+                OutlinedButton(
+                    onClick = { vm.setVideoRecording(false) },
+                    enabled = videoEnabled && vm.videoRecording == true,
+                ) { Text("Stop video") }
+                Text(
+                    when (vm.videoRecording) {
+                        true -> "Recording"
+                        false -> "Stopped"
+                        null -> "Video state unknown"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            if (!FeatureFlags.isEnabled("cameraFocusControl") || !FeatureFlags.isEnabled("cameraVideo")) {
+                Text(
+                    "Enablement is intentionally unavailable in this build until the named-camera qualification record is complete.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

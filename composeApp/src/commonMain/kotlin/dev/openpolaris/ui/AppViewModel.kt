@@ -1327,6 +1327,8 @@ class AppViewModel(
         cameraInfo = null
         cameraAttachment = null
         cameraReadbackAtMs = null
+        focusStatus = null
+        videoRecording = null
         deviceInfo = null
         temperature = null
         captureState = null
@@ -2346,6 +2348,10 @@ class AppViewModel(
     /** Time of the last explicit dynamic camera-parameter readback. */
     var cameraReadbackAtMs by mutableStateOf<Long?>(null)
         private set
+    var focusStatus by mutableStateOf<String?>(null)
+        private set
+    var videoRecording by mutableStateOf<Boolean?>(null)
+        private set
 
     val cameraReadbackAgeText: String
         get() = cameraReadbackAtMs?.let {
@@ -2432,6 +2438,10 @@ class AppViewModel(
             return false
         }
         if (!cameraAttachmentAllowsCommand()) return false
+        if (videoRecording == true) {
+            statusMessage = "Stop video before starting a still capture sequence"
+            return false
+        }
         if (capturePhase !is CapturePhase.Idle && capturePhase !is CapturePhase.Completed && capturePhase !is CapturePhase.Failed) {
             statusMessage = "Capture outcome is not clear — reconnect before another shutter"
             return false
@@ -2561,6 +2571,60 @@ class AppViewModel(
     fun setFNum(index: Int) = qualifyCameraSetting("Aperture", Codes.BenroCamera.GET_FNUM_INFO, Codes.BenroCamera.SET_FNUM, "fNum", index)
     fun setEv(index: Int) = qualifyCameraSetting("EV", Codes.BenroCamera.GET_EV_INFO, Codes.BenroCamera.SET_EV, "ev", index)
 
+    /** One discrete, source-aligned manual-focus adjustment. The live gate is
+     * deliberately separate from [experimentalCamera] because the field sign
+     * and repeat/stop behaviour need named-camera qualification. */
+    fun adjustFocusNear(fast: Boolean = false) = dispatchFocusAdjustment(near = true, fast = fast)
+    fun adjustFocusFar(fast: Boolean = false) = dispatchFocusAdjustment(near = false, fast = fast)
+
+    private fun dispatchFocusAdjustment(near: Boolean, fast: Boolean) {
+        val controller = cameraController
+        if (controller == null) { statusMessage = "Not connected"; return }
+        if (!cameraAttachmentAllowsCommand()) return
+        if (!FeatureFlags.isEnabled("experimentalCamera") ||
+            !FeatureFlags.isEnabled("cameraFocusControl")
+        ) {
+            statusMessage = "Manual focus is read-only until camera direction is qualified"
+            return
+        }
+        scope.launch {
+            val result = if (near) controller.adjustManualFocusNear(fast)
+            else controller.adjustManualFocusFar(fast)
+            focusStatus = if (result.accepted) {
+                "${if (near) "Near" else "Far"} focus acknowledged${if (fast) " (fast)" else ""}"
+            } else {
+                "Focus not confirmed: ${result.error ?: result.raw ?: "no acknowledgement"}"
+            }
+            statusMessage = focusStatus.orEmpty()
+        }
+    }
+
+    /** Start/stop video using the source-aligned 263 state echo. */
+    fun setVideoRecording(recording: Boolean) {
+        val controller = cameraController
+        if (controller == null) { statusMessage = "Not connected"; return }
+        if (!cameraAttachmentAllowsCommand()) return
+        if (!FeatureFlags.isEnabled("experimentalCamera") ||
+            !FeatureFlags.isEnabled("cameraVideo")
+        ) {
+            statusMessage = "Video control is read-only until its camera lifecycle is qualified"
+            return
+        }
+        if (sequenceActive || capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
+            statusMessage = "Stop the active capture workflow before changing video"
+            return
+        }
+        scope.launch {
+            val result = controller.setVideoRecordStatus(recording)
+            if (result.accepted) {
+                videoRecording = recording
+                statusMessage = if (recording) "Video recording started" else "Video recording stopped"
+            } else {
+                statusMessage = "Video ${if (recording) "start" else "stop"} not confirmed: ${result.error ?: result.raw ?: "no state echo"}"
+            }
+        }
+    }
+
     private fun qualifyCameraSetting(
         label: String,
         infoCode: Int,
@@ -2612,6 +2676,10 @@ class AppViewModel(
     fun capture() {
         if (cameraController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
+        if (videoRecording == true) {
+            statusMessage = "Stop video before a still capture"
+            return
+        }
         // §6: a running/paused sequence owns the shutter — a manual single-shot
         // press would race the engine's next trigger. Stop the sequence first.
         if (sequenceActive) {
@@ -2656,6 +2724,10 @@ class AppViewModel(
         if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
         if (cameraController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
+        if (videoRecording == true) {
+            statusMessage = "Stop video before a Bulb capture"
+            return
+        }
         if (sequenceActive) { statusMessage = "Capture sequence in progress — stop it first"; return }
         val phase = capturePhase
         if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {

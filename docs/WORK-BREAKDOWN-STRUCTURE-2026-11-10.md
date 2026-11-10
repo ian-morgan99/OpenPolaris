@@ -312,5 +312,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** preview-port tests passed with repeated-entry and leave/re-entry assertions; no new endpoint or hardware side effect was introduced.
 - **2026-11-10 — WBS-04.1 ACTIVE (camera readback UX):** Camera workspace now exposes the age of the last explicit dynamic parameter readback, keeps unknown/unread state distinct, and continues to leave unqualified fields locked.
 - **2026-11-10 — WBS-04.3 ACTIVE (mode-aware release UX):** Shared shutter-label classification now distinguishes M/manual, B/bulb, timed/other and unknown; the UI only offers Bulb capture after positive B readback while normal release remains available for attached cameras.
-- **2026-11-10 — verification:** shared and Compose JVM suites passed after the readback state and mode-aware release changes; CameraReleaseMode has deterministic M/B/unknown coverage.
-- **Next:** add the qualified focus/video surfaces without widening the live protocol gate.
+- **2026-11-10 — WBS-04.4 ACTIVE (focus/video discovery surface):** Added visible Near/Far focus and Start/Stop video surfaces, with explicit per-capability gates, camera-attachment admission and still/video conflict protection; source-derived controls remain disabled until named-camera qualification.
+- **2026-11-10 — verification:** shared and Compose JVM suites passed after the readback state, mode-aware release and focus/video gate changes; CameraReleaseMode has deterministic M/B/unknown coverage.
+- **2026-11-10 — verification:** AppViewModel regression coverage proves unqualified focus/video controls emit no 311/263 wire commands and leave the user with a read-only explanation.
+- **Next:** continue the camera workspace parity pass with capture timeline and gallery publication surfaces.

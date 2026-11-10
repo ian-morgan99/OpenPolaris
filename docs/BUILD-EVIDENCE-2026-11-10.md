@@ -224,3 +224,30 @@ and the known libandroidx.graphics.path.so strip warning. The default SLOW
 capability record remains unqualified; no live mount, camera, Astro WebUI or
 physical SLOW qualification was performed. These artifacts are build evidence,
 not hardware qualification.
+## Latest committed verification - da6a17f
+
+Commit under test: da6a17f (feat: add cross-platform support bundle export).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). All shared and Compose JVM
+tests passed, including the support-bundle document/export tests, the evidence
+centre contract, Astro WebUI capture tests, Bluetooth tests and SLOW transport
+tests. Android debug Kotlin compilation and APK assembly passed, and the
+desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 065abe66c7a61eb8aecffbdc764dfecdaa4273124d68374a652408d2575310b2
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-da6a17f.tar.gz
+  SHA-256: 2a525a5e420b2b16bca3d2a0bb018afc27e38f2c08b8d882242127783b37fdc8
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
+and the known libandroidx.graphics.path.so strip warning. Support export is
+host-side build evidence only; no live mount, camera, network or physical SLOW
+qualification was performed.

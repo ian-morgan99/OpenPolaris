@@ -385,6 +385,8 @@ class AppViewModel(
     private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
     /** Evidence-backed SLOW allow-list; production defaults to the unqualified record. */
     private val slowMotionCapabilityRecord: SlowMotionCapabilityRecord = SlowMotionCapabilities.current,
+    /** Clock seam for deterministic SLOW hold/release tests; production uses wall time. */
+    private val slowMotionNow: () -> Long = { SystemMillis.now() },
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -2696,7 +2698,10 @@ class AppViewModel(
 
         val previous = demoSlowMotionJob
         val pendingStop = demoSlowMotionStopJob
-        demoSlowMotionJob = scope.launch {
+        // Start the owner acquisition at the input boundary. This prevents a
+        // queued coroutine from losing a very short touch/key hold before it
+        // has established the shared lease.
+        demoSlowMotionJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             // A release requested by the previous press/release cycle owns
             // the same SLOW controller. Finish that boundary before a new
             // direction can acquire it again.
@@ -2726,7 +2731,7 @@ class AppViewModel(
                 if (candidate == axis) SlowMotionTarget(rate, hold = true)
                 else SlowMotionTarget(0.0, hold = false)
             }
-            val now = SystemMillis.now().coerceAtLeast(0L)
+            val now = slowMotionNow().coerceAtLeast(0L)
             if (demoSlowMotion.start(lease, targets, now) != SlowMotionActionResult.Started) {
                 demoSlowMotion.release(lease)
                 statusMessage = "Slow-motion plan was rejected"
@@ -2750,7 +2755,7 @@ class AppViewModel(
 
             while (isActive && (demoMode || liveSlowMotionReady()) && demoSlowMotionLease == lease) {
                 delay(50L)
-                val tickNow = SystemMillis.now().coerceAtLeast(now)
+                val tickNow = slowMotionNow().coerceAtLeast(now)
                 val renewed = demoSlowMotion.renew(lease, tickNow)
                 if (renewed != SlowMotionActionResult.Renewed) {
                     slowMotionDemoState = slowMotionDemoState.copy(

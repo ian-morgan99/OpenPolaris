@@ -1,6 +1,8 @@
 package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.EndpointPhase
+import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.PreviewTransport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -109,16 +111,37 @@ class AppViewModelPreviewPortTest {
             advanceTimeBy(10_000)
 
             assertEquals("Connected", vm.statusMessage)
+            assertEquals(EndpointPhase.READY, vm.endpointHealth.phase)
+            assertEquals(EndpointService.REACHABLE, vm.endpointHealth.control)
+            assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview)
             assertEquals(0, recording.startCount, "connect alone must not open a competing preview stream")
             vm.enterPreview()
             assertEquals(1, recording.startCount, "preview transport should have started exactly once")
             assertEquals("192.168.0.1", recording.lastHost)
+            assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview, "opening preview does not claim a frame before one arrives")
             // The regression assertion: 8080, not the control port.
             assertEquals(8080, recording.lastPort, "MJPEG stream must target the dedicated 8080 endpoint, not the control port")
         } finally {
             vm.disconnect()
             vm.preview.shutdown()
         }
+    }
+
+    @Test
+    fun disconnectClearsEndpointEvidence() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection()
+        val vm = newViewModel(this, { conn }, RecordingTransport())
+
+        vm.connect()
+        advanceTimeBy(10_000)
+        assertEquals(EndpointPhase.READY, vm.endpointHealth.phase)
+
+        vm.disconnect()
+
+        assertEquals(EndpointPhase.DISCONNECTED, vm.endpointHealth.phase)
+        assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.control)
+        assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview)
+        vm.preview.shutdown()
     }
 
     @Test

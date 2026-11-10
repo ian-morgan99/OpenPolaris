@@ -21,6 +21,12 @@ import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.DeviceInfo
+import dev.openpolaris.core.domain.EndpointAddress
+import dev.openpolaris.core.domain.EndpointHealth
+import dev.openpolaris.core.domain.EndpointKind
+import dev.openpolaris.core.domain.EndpointPhase
+import dev.openpolaris.core.domain.EndpointProfile
+import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
@@ -550,6 +556,54 @@ class AppViewModel(
      */
     internal var nowMs: () -> Long = { dev.openpolaris.core.domain.currentEpochMillis() }
 
+    /**
+     * Typed endpoint evidence consumed by the Mission summary and future
+     * connection workspace. Control and preview are updated independently;
+     * a successful control handshake never claims that the MJPEG stream is
+     * healthy.
+     */
+    var endpointHealth by mutableStateOf(EndpointHealth.disconnected())
+        private set
+
+    private fun endpointProfile(): EndpointProfile? = runCatching {
+        EndpointProfile(
+            id = if (demoMode) "demo" else "current-mount",
+            label = if (demoMode) "Demo mount" else "Current mount",
+            kind = if (demoMode) EndpointKind.DEMO else EndpointKind.HOME_LAN,
+            address = EndpointAddress(host, controlPort = port, previewPort = previewPort),
+        )
+    }.getOrNull()
+
+    private fun setEndpointHealth(
+        phase: EndpointPhase,
+        control: EndpointService,
+        preview: EndpointService,
+        failure: String? = null,
+    ) {
+        endpointHealth = EndpointHealth(
+            profile = endpointProfile(),
+            phase = phase,
+            control = control,
+            preview = preview,
+            phaseSinceMs = nowMs().coerceAtLeast(0L),
+            lastFailure = failure,
+        )
+    }
+
+    private fun setPreviewHealth(service: EndpointService, failure: String? = null) {
+        val current = endpointHealth
+        if (current.profile == null) return
+        endpointHealth = current.copy(
+            phase = when {
+                failure != null -> EndpointPhase.DEGRADED
+                current.phase == EndpointPhase.FAILED -> EndpointPhase.FAILED
+                else -> current.phase
+            },
+            preview = service,
+            phaseSinceMs = nowMs().coerceAtLeast(0L),
+            lastFailure = failure ?: current.lastFailure,
+        )
+    }
 
     fun updateHost(h: String) { host = h }
 
@@ -770,6 +824,11 @@ class AppViewModel(
         reconnectGeneration++
         disconnect()
         demoMode = false
+        setEndpointHealth(
+            phase = EndpointPhase.CONTROL_CHECKING,
+            control = EndpointService.UNKNOWN,
+            preview = EndpointService.UNKNOWN,
+        )
         // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field which
         // acceptReconnect() committed before calling connect() (in the
         // reconnect path) or which the user set via the UI before pressing
@@ -846,6 +905,11 @@ class AppViewModel(
                     .takeIf { it.startsWith("Could not save updated host:") }
                 if (s.connect()) {
                     statusMessage = "Connected"
+                    setEndpointHealth(
+                        phase = EndpointPhase.READY,
+                        control = EndpointService.REACHABLE,
+                        preview = EndpointService.UNKNOWN,
+                    )
                     // 3e E2: catch any throw from the post-connect bootstrap
                     // (saveMarker / startPolling / startCaptureEventObserver /
                     // camera attachment poll) so a failing setup step surfaces
@@ -869,6 +933,12 @@ class AppViewModel(
                         // keep polling and streaming from a session whose
                         // bootstrap never finished.
                         disconnect()
+                        setEndpointHealth(
+                            phase = EndpointPhase.FAILED,
+                            control = EndpointService.REACHABLE,
+                            preview = EndpointService.UNKNOWN,
+                            failure = e.message ?: e::class.simpleName ?: "post-connect setup failed",
+                        )
                         statusMessage = "Connected, but post-connect setup failed: " +
                             "${e.message ?: e::class.simpleName}"
                     }
@@ -880,6 +950,12 @@ class AppViewModel(
                     // the bare "Could not reach $host". Falls back to the
                     // original message if MountSession never set one.
                     val reason = s.state.value.lastErrorMessage
+                    setEndpointHealth(
+                        phase = EndpointPhase.FAILED,
+                        control = EndpointService.UNREACHABLE,
+                        preview = EndpointService.UNKNOWN,
+                        failure = reason ?: "control connection failed",
+                    )
                     val prefix = pendingSaveFailure?.let { saveMsg ->
                         "$saveMsg — and could not reach $host."
                     } ?: "Could not reach $host"
@@ -902,7 +978,14 @@ class AppViewModel(
                 ) {
                     needsPassword = true
                 }
-                statusMessage = "Connect failed: ${e.message ?: e::class.simpleName}"
+                val failure = e.message ?: e::class.simpleName ?: "unknown connection failure"
+                setEndpointHealth(
+                    phase = EndpointPhase.FAILED,
+                    control = EndpointService.UNREACHABLE,
+                    preview = EndpointService.UNKNOWN,
+                    failure = failure,
+                )
+                statusMessage = "Connect failed: $failure"
             } finally {
                 _reconnecting.value = false
 
@@ -1079,6 +1162,11 @@ class AppViewModel(
     fun connectDemo(startPolling: Boolean = true) {
         disconnect()
         demoMode = true
+        setEndpointHealth(
+            phase = EndpointPhase.CONTROL_CHECKING,
+            control = EndpointService.UNKNOWN,
+            preview = EndpointService.UNKNOWN,
+        )
         val sim = SimulatedMount()
         // Hold a reference so disconnect() can cancel the private reader
         // scope (otherwise the long-lived reader coroutine keeps the
@@ -1100,6 +1188,11 @@ class AppViewModel(
                 // simulates intermittent failure should gate this on the
                 // return value the same way `connect()` does.)
                 saveMarker()
+                setEndpointHealth(
+                    phase = EndpointPhase.READY,
+                    control = EndpointService.REACHABLE,
+                    preview = EndpointService.UNREACHABLE,
+                )
                 statusMessage = "Demo mode (simulated mount)"
                 if (startPolling) {
                     startPolling(sim.session)
@@ -1113,7 +1206,14 @@ class AppViewModel(
                 // simulated intermittent failure or a saveMarker() I/O
                 // regression sneaks in, surface the cause instead of
                 // silently leaving the user with no status feedback.
-                statusMessage = "Demo mode failed: ${e.message ?: e::class.simpleName}"
+                val failure = e.message ?: e::class.simpleName ?: "unknown demo failure"
+                setEndpointHealth(
+                    phase = EndpointPhase.FAILED,
+                    control = EndpointService.UNREACHABLE,
+                    preview = EndpointService.UNKNOWN,
+                    failure = failure,
+                )
+                statusMessage = "Demo mode failed: $failure"
             }
 
         }
@@ -1145,6 +1245,7 @@ class AppViewModel(
         cancelHelpersJobs()
         runCatching { preview.stop() }
         previewFrame = null
+        endpointHealth = EndpointHealth.disconnected()
 
         session?.let { runBlocking { it.disconnect() } }
         session = null
@@ -1250,15 +1351,19 @@ class AppViewModel(
             // continue. Without this, the connect() success branch
             // catches it at the outer layer, but a cleaner message
             // here helps the user debug a misconfigured port.
-            statusMessage = "Preview unavailable: ${e.message ?: e::class.simpleName}"
+            val failure = e.message ?: e::class.simpleName ?: "preview start failed"
+            setPreviewHealth(EndpointService.UNREACHABLE, failure)
+            statusMessage = "Preview unavailable: $failure"
             return
         }
+        setPreviewHealth(EndpointService.UNKNOWN)
         scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
                     previewFrame = null
                     return@collect
                 }
+                setPreviewHealth(EndpointService.REACHABLE)
                 // Drop-on-late: if the user closes the pane, the next
                 // decode will simply replace a stale bitmap.
                 val decoded = withContext(Dispatchers.Default) {

@@ -295,4 +295,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** full `:shared:jvmTest :composeApp:jvmTest` passed, including endpoint validation and existing mobile-layout contracts.
 - **2026-11-10 — WBS-01.2 ACTIVE (first slice):** added `MissionReadiness` ordering and actionable ready/attention/blocked/unknown cards, then surfaced the highest-priority next action in the always-visible status chrome.
 - **2026-11-10 — verification:** focused mission-readiness tests and Compose JVM tests passed; the summary is read-only and does not alter connection, preview, capture or motion transports.
-- **Next:** expand the summary into the adaptive Mission destination and connect it to the typed endpoint profile lifecycle.
+- **2026-11-10 — WBS-02.2 ACTIVE (first slice):** connected typed endpoint health to AppViewModel connect, demo, preview and disconnect lifecycle points; control reachability, preview reachability and failure evidence remain separate.
+- **2026-11-10 — verification:** preview-port and endpoint lifecycle regressions passed, including reset-to-disconnected and no-frame preview remaining unknown.
+- **Next:** expand the summary into the adaptive Mission destination and add explicit session ownership/readiness controls for connection, camera and preview.

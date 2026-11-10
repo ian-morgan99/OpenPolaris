@@ -26,7 +26,6 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +40,6 @@ import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
-import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.config.FeatureFlags
@@ -354,22 +352,15 @@ private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
 @Composable
 private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
     val s = vm.mount
-    val previewState by vm.previewState.collectAsState()
-    val previewService = when (previewState) {
-        PreviewController.State.Streaming -> EndpointService.REACHABLE
-        is PreviewController.State.Error -> EndpointService.UNREACHABLE
-        PreviewController.State.Connecting -> EndpointService.UNKNOWN
-        PreviewController.State.Idle, PreviewController.State.Stopped ->
-            if (vm.cameraAttachment == null) EndpointService.UNKNOWN else EndpointService.UNREACHABLE
-    }
+    val endpoint = vm.endpointHealth
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
         vm.capturePhase is AppViewModel.CapturePhase.Busy
     val readiness = MissionReadiness.evaluate(
         MissionReadinessInput(
-            control = if (s.connected) EndpointService.REACHABLE else EndpointService.UNREACHABLE,
+            control = endpoint.control,
             mountConnected = s.connected,
             cameraAttached = vm.cameraAttachment?.isAttached,
-            preview = previewService,
+            preview = endpoint.preview,
             tracking = s.tracking,
             captureInProgress = captureInProgress,
         ),

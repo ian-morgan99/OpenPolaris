@@ -190,3 +190,37 @@ Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
 and the known libandroidx.graphics.path.so strip warning. No live mount,
 camera, Astro WebUI or physical SLOW qualification was performed; artifact
 success is not hardware qualification.
+## Latest committed verification - 924901f
+
+Commit under test: 924901f (feat: add qualified slow motion transport seam).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). All shared and Compose JVM
+tests passed, including the five qualification-gated SLOW transport tests,
+SLOW controller/wire replay tests, Astro WebUI capture tests and Bluetooth
+tests. Android debug Kotlin compilation and APK assembly passed, and the
+desktop distributable was created.
+
+Focused SLOW verification also passed with 22 tests:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --tests dev.openpolaris.core.protocol.SlowMotionWireTest --tests dev.openpolaris.core.protocol.SlowMotionWireReplayTest :shared:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 54243a5cf89d16fd10741fd078cd9e8e6afb2d99707cf96498d09185dd70f744
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-924901f.tar.gz
+  SHA-256: d1ad5865e873adf38755c6b3c6b77124d21be59f1b641a42d688280e5cf9e80f
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
+and the known libandroidx.graphics.path.so strip warning. The default SLOW
+capability record remains unqualified; no live mount, camera, Astro WebUI or
+physical SLOW qualification was performed. These artifacts are build evidence,
+not hardware qualification.

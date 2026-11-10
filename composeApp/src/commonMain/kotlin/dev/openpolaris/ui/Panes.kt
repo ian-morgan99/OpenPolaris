@@ -52,6 +52,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -1512,17 +1513,22 @@ private fun SlowDemoHoldButton(
 ) {
     var suppressNextClick by remember { mutableStateOf(false) }
     var keyHeld by remember { mutableStateOf(false) }
+    var holdActive by remember { mutableStateOf(false) }
     val inputModifier = modifier
         .pointerInput(enabled) {
             if (!enabled) return@pointerInput
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false)
                 suppressNextClick = true
+                holdActive = true
                 onPress()
                 try {
                     while (awaitPointerEvent().changes.any { it.pressed }) Unit
                 } finally {
-                    onRelease()
+                    if (holdActive) {
+                        holdActive = false
+                        onRelease()
+                    }
                 }
             }
         }
@@ -1532,17 +1538,30 @@ private fun SlowDemoHoldButton(
                 KeyEventType.KeyDown -> {
                     if (!keyHeld) {
                         keyHeld = true
+                        holdActive = true
                         onPress()
                     }
                 }
                 KeyEventType.KeyUp -> {
                     if (keyHeld) {
                         keyHeld = false
-                        onRelease()
+                        if (holdActive) {
+                            holdActive = false
+                            onRelease()
+                        }
                     }
                 }
             }
             true
+        }
+        .onFocusChanged { focusState ->
+            if (!focusState.isFocused) {
+                keyHeld = false
+                if (holdActive) {
+                    holdActive = false
+                    onRelease()
+                }
+            }
         }
         .semantics {
             contentDescription = "$label. Hold to move; release to stop."

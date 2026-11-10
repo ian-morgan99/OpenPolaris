@@ -531,3 +531,20 @@ Verification passed:
 The focused run passed, including the lease-scoped emergency-stop controller
 test and the ViewModel test that clears a demo fast-jog owner. No live mount or
 hardware was exercised; physical emergency-stop observation remains open.
+
+### WBS-03.6/09.1 - Focus-loss dead-man hardening
+
+The shared mobile/desktop hold-to-move control now treats keyboard focus loss as
+an input cancellation. It releases the active hold exactly once whether the
+loss occurs during pointer capture or a keyboard hold, while preserving the
+existing pointer-up and key-up release paths. The control remains labelled
+"Hold to move; release to stop" and still never creates a UI repeat timer.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The safety contract and Compose JVM compilation passed. No live mount or
+hardware was exercised.

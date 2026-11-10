@@ -155,6 +155,7 @@
 
 - **2026-11-10 - WBS-03.5/03.6 ACTIVE (named SLOW capability allow-list):** paired the UI's hard live-transport gate with an immutable capability record requiring exact firmware/gimbal/source-app identity, route and unit, signs, measured envelope, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence. The default record is unqualified; the Motion surface now lists the missing gates and remains live-disabled.
 - **2026-11-10 - WBS-03.1/03.6 ACTIVE (common emergency stop):** replaced the demo-only STOP ALL action with a shared Motion dock stop path. It delegates to the active controller's lease-scoped emergency boundary for FAST_JOG and SLOW_MOVE, uses the supervisor boundary for GoTo/alignment, cancels local motion jobs after the stop result, and keeps unknown or faulted outcomes visible instead of clearing them to idle. Deterministic FastJog and ViewModel tests passed; physical stop observation remains required.
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (focus-loss dead-man hardening):** the shared mobile/desktop hold control now releases the motion owner when keyboard focus is lost, and guards pointer/key cleanup against duplicate release callbacks. The source contract test covers the focus-loss seam; hardware stop qualification remains separate.
 
 ### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
 

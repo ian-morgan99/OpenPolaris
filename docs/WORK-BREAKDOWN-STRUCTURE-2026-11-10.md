@@ -307,4 +307,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused preview/bridge tests passed, including false bridge result → FAILED endpoint evidence.
 - **2026-11-10 — WBS-04.1 ACTIVE (camera safety slice):** camera setting writes, single M/B capture and intervalometer admission now stop when the mount's 286 snapshot explicitly reports no attached camera; unknown attachment remains non-optimistic, and the existing correlated 264/773 completion path is unchanged.
 - **2026-11-10 — verification:** Compose JVM tests passed before and after the absent-camera regression coverage; the new test proves no 264 shutter command is emitted for M/B or sequence admission.
+- **2026-11-10 — WBS-02.3 ACTIVE (preview ownership):** Preview now has one explicit workflow owner and one frame collector; repeated entry is idempotent, leaving releases the stream, and capture suspension only restores a preview that the user actually owned.
+- **2026-11-10 — verification:** preview-port tests passed with repeated-entry and leave/re-entry assertions; no new endpoint or hardware side effect was introduced.
 - **Next:** add explicit session ownership/readiness controls for camera and preview, then begin the camera workspace parity pass.

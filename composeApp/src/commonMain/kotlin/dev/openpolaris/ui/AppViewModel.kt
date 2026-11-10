@@ -460,6 +460,11 @@ class AppViewModel(
     val previewState: StateFlow<PreviewController.State> get() = preview.state
     var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
         private set
+    // Preview has one owner (the active Preview workflow). Keep a single
+    // collector for that owner so reopening the pane cannot accumulate
+    // duplicate frame decoders or competing transport lifecycles.
+    private var previewFrameJob: Job? = null
+    private var previewRequested = false
 
     // 3c.3: session-pause UX surface. Non-null while the UI is expected to
     // render the "Reconnect to <host>?" AlertDialog. Populated by
@@ -1284,6 +1289,9 @@ class AppViewModel(
         // not call disconnect() and has its own explicit reset.
         stopAutoLevelAsync()
         cancelHelpersJobs()
+        previewRequested = false
+        previewFrameJob?.cancel()
+        previewFrameJob = null
         runCatching { preview.stop() }
         previewFrame = null
         endpointHealth = EndpointHealth.disconnected()
@@ -1382,6 +1390,11 @@ class AppViewModel(
         // NOT [port]: passing the control port here sends the MJPEG HTTP
         // request to polestar_app, where it is rejected as an unknown control
         // frame (issue #74).
+        // Replacing a stream must also replace its frame collector. The
+        // transport is independent from the control socket, but the decoder
+        // belongs to this Preview workflow and must not outlive it.
+        previewFrameJob?.cancel()
+        previewFrameJob = null
         try {
             preview.start(host, previewPort)
         } catch (e: Throwable) {
@@ -1398,7 +1411,7 @@ class AppViewModel(
             return
         }
         setPreviewHealth(EndpointService.UNKNOWN)
-        scope.launch {
+        previewFrameJob = scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
                     previewFrame = null
@@ -1521,11 +1534,20 @@ class AppViewModel(
     /** Open preview only while the user is in the Preview workflow. */
     fun enterPreview() {
         if (session == null || captureWorkloadsSuspended) return
+        // The Preview pane may recompose or be opened repeatedly. Treat the
+        // first entry as ownership acquisition and keep it idempotent while
+        // the collector is alive; an explicit Error is the one case where a
+        // repeated entry is allowed to retry the stream.
+        previewRequested = true
+        if (previewFrameJob?.isActive == true && preview.state.value !is PreviewController.State.Error) return
         startPreview()
     }
 
     /** Release this app's preview connection when leaving the Preview workflow. */
     fun leavePreview() {
+        previewRequested = false
+        previewFrameJob?.cancel()
+        previewFrameJob = null
         preview.stop()
         previewFrame = null
     }
@@ -1537,8 +1559,12 @@ class AppViewModel(
         // Let a request already inside the 800 ms poll window finish before
         // issuing camera-preview or shutter commands on the shared socket.
         delay(POLL_REQUEST_TIMEOUT_MS + 50)
-        restorePreviewAfterCapture = preview.state.value is PreviewController.State.Streaming ||
-            preview.state.value is PreviewController.State.Connecting
+        restorePreviewAfterCapture = previewRequested && (
+            preview.state.value is PreviewController.State.Streaming ||
+                preview.state.value is PreviewController.State.Connecting
+        )
+        previewFrameJob?.cancel()
+        previewFrameJob = null
         preview.stop()
         previewFrame = null
         if (restorePreviewAfterCapture) {

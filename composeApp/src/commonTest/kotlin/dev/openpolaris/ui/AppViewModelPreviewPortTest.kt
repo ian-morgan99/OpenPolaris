@@ -118,11 +118,15 @@ class AppViewModelPreviewPortTest {
             assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview)
             assertEquals(0, recording.startCount, "connect alone must not open a competing preview stream")
             vm.enterPreview()
-            assertEquals(1, recording.startCount, "preview transport should have started exactly once")
+            vm.enterPreview()
+            assertEquals(1, recording.startCount, "re-entering the preview workflow must not create a second owner")
             assertEquals("192.168.0.1", recording.lastHost)
             assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview, "opening preview does not claim a frame before one arrives")
             // The regression assertion: 8080, not the control port.
             assertEquals(8080, recording.lastPort, "MJPEG stream must target the dedicated 8080 endpoint, not the control port")
+            vm.leavePreview()
+            vm.enterPreview()
+            assertEquals(2, recording.startCount, "leaving and re-entering must reacquire the preview owner")
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

@@ -2068,3 +2068,35 @@ Artifacts:
 The focus-stack and panorama rehearsals are simulator/package evidence only.
 Live Astro WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
 qualification remain unverified.
+
+
+## Latest committed verification - 513d4dd
+
+Commit under test: 513d4dd (feat: add programme progress feedback).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.ObservationProgrammePreviewContractTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: f1d995160e45eb94ae9b7a08609095dba47baf3a57825fec4da9ada0aad538ab
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-programme-progress.tar.gz
+  SHA-256: 594ba2f3a217b841806f20cc927d0c1ff97ebc76b81c8161c025d6a21f1bcdea
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The programme progress UX is simulator/package evidence only. Live Astro
+WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
+qualification remain unverified.

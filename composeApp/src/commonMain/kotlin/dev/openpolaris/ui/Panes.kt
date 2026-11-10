@@ -70,7 +70,13 @@ import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
+import dev.openpolaris.core.domain.AstroWebUiProgrammeStartState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeState
+import dev.openpolaris.core.domain.AstroWebUiLapseParameters
+import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
+import dev.openpolaris.core.domain.AstroWebUiHdrParameters
+import dev.openpolaris.core.domain.AstroWebUiFocusParameters
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -654,6 +660,8 @@ fun MissionDashboardPane(
                 }
             }
             HorizontalDivider()
+            AstroWebUiProgrammeComposer(vm)
+            HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Read-only checks from the current session; nothing here starts a motor, changes limits or fires the camera.",
@@ -710,6 +718,195 @@ fun MissionDashboardPane(
                 }
             }
         }
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
+    var kind by remember { mutableStateOf(AstroWebUiProgrammeStartResult.Kind.LAPSE) }
+    var armed by remember { mutableStateOf(false) }
+    var lapseInterval by remember { mutableStateOf("5") }
+    var lapseShots by remember { mutableStateOf("10") }
+    var lapseBulb by remember { mutableStateOf("0") }
+    var lapseFps by remember { mutableStateOf("24") }
+    var panoColumns by remember { mutableStateOf("2") }
+    var panoRows by remember { mutableStateOf("2") }
+    var panoHStep by remember { mutableStateOf("30") }
+    var panoVStep by remember { mutableStateOf("10") }
+    var panoStartDirection by remember { mutableStateOf("1") }
+    var panoPerSpot by remember { mutableStateOf("1") }
+    var panoInterval by remember { mutableStateOf("0") }
+    var hdrSpread by remember { mutableStateOf("3") }
+    var focusShots by remember { mutableStateOf("14") }
+    var imageStabilization by remember { mutableStateOf(false) }
+
+    val enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStarts")
+    val startState = vm.astroWebUiProgrammeStartState
+    val matchingPreview = (startState as? AstroWebUiProgrammeStartState.Preview)?.result?.kind == kind
+    val setField: (String, (String) -> Unit) -> Unit = { value, setter ->
+        setter(value)
+        armed = false
+    }
+
+    Text("Start resident programme", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "Lapse, panorama, HDR and focus use the resident Astro WebUI. Preview and validation never start a run; a confirmed start may move the mount or fire the shutter.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    if (!enabled) {
+        Text(
+            "Programme starts are disabled until named-head write, recovery and physical capture evidence are qualified.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        return
+    }
+
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        AstroWebUiProgrammeStartResult.Kind.entries.forEach { option ->
+            FilterChip(
+                selected = kind == option,
+                onClick = { kind = option; armed = false },
+                label = { Text(option.name.lowercase().replace('_', ' ')) },
+            )
+        }
+    }
+
+    when (kind) {
+        AstroWebUiProgrammeStartResult.Kind.LAPSE -> {
+            OutlinedTextField(value = lapseInterval, onValueChange = { setField(it) { lapseInterval = it } }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = lapseShots, onValueChange = { setField(it) { lapseShots = it } }, label = { Text("Shots (-1 for unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = lapseBulb, onValueChange = { setField(it) { lapseBulb = it } }, label = { Text("Bulb seconds") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = lapseFps, onValueChange = { setField(it) { lapseFps = it } }, label = { Text("Playback FPS") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        }
+        AstroWebUiProgrammeStartResult.Kind.PANORAMA -> {
+            OutlinedTextField(value = panoColumns, onValueChange = { setField(it) { panoColumns = it } }, label = { Text("Columns") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoRows, onValueChange = { setField(it) { panoRows = it } }, label = { Text("Rows") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoHStep, onValueChange = { setField(it) { panoHStep = it } }, label = { Text("Horizontal step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoVStep, onValueChange = { setField(it) { panoVStep = it } }, label = { Text("Vertical step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoStartDirection, onValueChange = { setField(it) { panoStartDirection = it } }, label = { Text("Start direction (0-4)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoPerSpot, onValueChange = { setField(it) { panoPerSpot = it } }, label = { Text("Frames per position") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = panoInterval, onValueChange = { setField(it) { panoInterval = it } }, label = { Text("Position interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        }
+        AstroWebUiProgrammeStartResult.Kind.HDR -> {
+            OutlinedTextField(value = hdrSpread, onValueChange = { setField(it) { hdrSpread = it } }, label = { Text("Shutter spread (steps)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        }
+        AstroWebUiProgrammeStartResult.Kind.FOCUS -> {
+            OutlinedTextField(value = focusShots, onValueChange = { setField(it) { focusShots = it } }, label = { Text("Focus shots") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        }
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = imageStabilization,
+            onCheckedChange = { imageStabilization = it; armed = false },
+        )
+        Text("Image stabilisation", style = MaterialTheme.typography.bodySmall)
+    }
+
+    val actionLabel = when {
+        kind == AstroWebUiProgrammeStartResult.Kind.LAPSE && armed -> "Tap again to start lapse - this fires the shutter"
+        matchingPreview && armed -> "Start " + kind.name.lowercase().replace('_', ' ') + " - this may move/fire"
+        kind == AstroWebUiProgrammeStartResult.Kind.LAPSE -> "Arm lapse start"
+        kind == AstroWebUiProgrammeStartResult.Kind.FOCUS -> "Validate focus stack"
+        else -> "Preview " + kind.name.lowercase().replace('_', ' ')
+    }
+    Button(
+        onClick = {
+            when (kind) {
+                AstroWebUiProgrammeStartResult.Kind.LAPSE -> {
+                    if (armed) {
+                        vm.startAstroWebUiLapse(
+                            AstroWebUiLapseParameters(
+                                intervalSeconds = lapseInterval.toDoubleOrNull() ?: Double.NaN,
+                                shots = lapseShots.toIntOrNull() ?: Int.MIN_VALUE,
+                                bulbSeconds = lapseBulb.toDoubleOrNull() ?: Double.NaN,
+                                fps = lapseFps.toIntOrNull() ?: Int.MIN_VALUE,
+                            ),
+                        )
+                        armed = false
+                    } else {
+                        armed = true
+                    }
+                }
+                AstroWebUiProgrammeStartResult.Kind.PANORAMA -> {
+                    val parameters = AstroWebUiPanoramaParameters(
+                        columns = panoColumns.toIntOrNull() ?: Int.MIN_VALUE,
+                        rows = panoRows.toIntOrNull() ?: Int.MIN_VALUE,
+                        horizontalStepDegrees = panoHStep.toDoubleOrNull() ?: Double.NaN,
+                        verticalStepDegrees = panoVStep.toDoubleOrNull() ?: Double.NaN,
+                        startDirection = panoStartDirection.toIntOrNull() ?: Int.MIN_VALUE,
+                        framesPerPosition = panoPerSpot.toIntOrNull() ?: Int.MIN_VALUE,
+                        intervalSeconds = panoInterval.toIntOrNull() ?: Int.MIN_VALUE,
+                        imageStabilization = imageStabilization,
+                    )
+                    if (matchingPreview && armed) {
+                        vm.startAstroWebUiPanorama(parameters)
+                        armed = false
+                    } else {
+                        vm.previewAstroWebUiPanorama(parameters)
+                        armed = true
+                    }
+                }
+                AstroWebUiProgrammeStartResult.Kind.HDR -> {
+                    val parameters = AstroWebUiHdrParameters(
+                        spread = hdrSpread.toIntOrNull() ?: Int.MIN_VALUE,
+                        imageStabilization = imageStabilization,
+                    )
+                    if (matchingPreview && armed) {
+                        vm.startAstroWebUiHdr(parameters)
+                        armed = false
+                    } else {
+                        vm.previewAstroWebUiHdr(parameters)
+                        armed = true
+                    }
+                }
+                AstroWebUiProgrammeStartResult.Kind.FOCUS -> {
+                    val parameters = AstroWebUiFocusParameters(
+                        shots = focusShots.toIntOrNull() ?: Int.MIN_VALUE,
+                        imageStabilization = imageStabilization,
+                    )
+                    if (matchingPreview && armed) {
+                        vm.startAstroWebUiFocus(parameters)
+                        armed = false
+                    } else {
+                        vm.validateAstroWebUiFocus(parameters)
+                        armed = true
+                    }
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(actionLabel)
+    }
+
+    when (val state = startState) {
+        AstroWebUiProgrammeStartState.Idle -> Unit
+        AstroWebUiProgrammeStartState.Loading -> Text("Sending programme request...", style = MaterialTheme.typography.labelSmall)
+        is AstroWebUiProgrammeStartState.Preview -> {
+            val result = state.result
+            Text(
+                "Preview or validation ready" +
+                    (result.shots?.let { " - " + it + " frames" } ?: "") +
+                    if (result.inferred) " - panorama frame inferred" else "",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            result.frame?.let { frame ->
+                Text("Returned frame: " + frame, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        is AstroWebUiProgrammeStartState.Accepted -> Text(
+            "Start accepted; follow Resident programmes for status and completion.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiProgrammeStartState.Failed -> Text(
+            state.reason,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 

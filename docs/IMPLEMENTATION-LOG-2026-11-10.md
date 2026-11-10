@@ -194,3 +194,26 @@ Verification passed:
 No programme write route, resident Astro WebUI, camera, mount or physical
 hardware was exercised. The Compose composer/two-tap controls and named-head
 qualification remain the next UX/field slices.
+
+### WBS-06.3/08.2 - Astro WebUI programme composer
+
+Added the cross-platform Mission composer for the new source-aligned client:
+
+- Responsive mode selection covers lapse, panorama, HDR and focus.
+- Numeric fields use the same bounded domain contract; invalid text reaches
+  validation as an invalid value and never creates an unvalidated wire body.
+- Lapse uses an explicit arm then second-tap start warning.
+- Panorama and HDR require a returned preview before the start action; focus
+  requires source validation before start.
+- Preview/validation and Accepted/status states are visible, including the
+  returned panorama/HDR frame and inferred marker.
+- The entire composer remains behind the default-off
+  astroWebUiProgrammeStarts flag.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+No live WebUI write route, camera or mount was exercised.

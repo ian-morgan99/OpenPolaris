@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -92,6 +93,32 @@ class PreviewControllerTest {
             c.state.value is PreviewController.State.Streaming,
             "expected Streaming, was ${c.state.value}",
         )
+        c.shutdown()
+    }
+
+    @Test
+    fun openEndpointWithoutFramesBecomesExplicitlyEmpty() {
+        val factory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport =
+            { _, _ ->
+                object : PreviewTransport {
+                    override fun start(host: String, port: Int, path: String) {
+                        // Keep the simulated HTTP reader open long enough for
+                        // the controller watchdog to distinguish an empty
+                        // stream from a clean transport stop.
+                        Thread.sleep(100)
+                    }
+
+                    override fun stop() = Unit
+                }
+            }
+        val c = PreviewController(
+            transportFactory = factory,
+            parent = SupervisorJob(),
+            emptyFrameTimeoutMs = 10L,
+        )
+        c.start("192.168.0.1")
+        Thread.sleep(30)
+        assertIs<PreviewController.State.Empty>(c.state.value)
         c.shutdown()
     }
 

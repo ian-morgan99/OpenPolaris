@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +35,11 @@ class PreviewController(
     private val transportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     parent: Job? = null,
     ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val emptyFrameTimeoutMs: Long = 5_000L,
 ) {
+    init {
+        require(emptyFrameTimeoutMs >= 0L) { "empty-frame timeout must not be negative" }
+    }
     // We use `Dispatchers.Default` because `Dispatchers.IO` is not exposed in
     // commonMain (it's JVM/Native-only in kotlinx-coroutines 1.9.x). The
     // preview loop is CPU-bound (sockets on JVM map to Default just fine) and
@@ -65,6 +70,7 @@ class PreviewController(
     // commonMain. The StateFlows above carry all cross-coroutine state.
     private var transport: PreviewTransport? = null
     private var job: Job? = null
+    private var emptyFrameJob: Job? = null
 
     /**
      * Begin streaming from `http://host:port`. Any prior stream is
@@ -74,9 +80,15 @@ class PreviewController(
     fun start(host: String, port: Int = 8080) {
         stop()
         _state.value = State.Connecting
+        emptyFrameJob = scope.launch {
+            delay(emptyFrameTimeoutMs)
+            if (_state.value is State.Connecting) _state.value = State.Empty
+        }
         val t = transportFactory(
             { jpeg -> consumeFrame(jpeg) },
             { err ->
+                emptyFrameJob?.cancel()
+                emptyFrameJob = null
                 _state.value = State.Error(err.message ?: err::class.simpleName ?: "error")
             },
         )
@@ -95,6 +107,8 @@ class PreviewController(
         transport = null
         job?.cancel()
         job = null
+        emptyFrameJob?.cancel()
+        emptyFrameJob = null
         _bytes.value = null
         if (_state.value !is State.Error) _state.value = State.Stopped
     }
@@ -105,8 +119,10 @@ class PreviewController(
     }
 
     private fun consumeFrame(jpeg: ByteArray): Boolean {
+        emptyFrameJob?.cancel()
+        emptyFrameJob = null
         _bytes.value = jpeg
-        if (_state.value is State.Connecting) _state.value = State.Streaming
+        if (_state.value is State.Connecting || _state.value is State.Empty) _state.value = State.Streaming
         return true
     }
 
@@ -126,6 +142,8 @@ class PreviewController(
     sealed class State {
         data object Idle : State()
         data object Connecting : State()
+        /** The preview endpoint is open but no frame arrived before the bounded wait. */
+        data object Empty : State()
         data object Streaming : State()
         data object Stopped : State()
         data class Error(val message: String) : State()

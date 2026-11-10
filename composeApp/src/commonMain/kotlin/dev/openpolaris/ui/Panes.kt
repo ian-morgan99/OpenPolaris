@@ -1344,6 +1344,8 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 // state out of the flow.
                 state.value is dev.openpolaris.core.domain.PreviewController.State.Connecting ->
                     Text("Connecting…", style = MaterialTheme.typography.bodyMedium)
+                state.value is dev.openpolaris.core.domain.PreviewController.State.Empty ->
+                    Text("Preview endpoint is open but no frames arrived — check camera attachment or preview mode.", style = MaterialTheme.typography.bodySmall)
                 state.value is dev.openpolaris.core.domain.PreviewController.State.Error ->
                     Text(
                         "Stream unavailable: ${(state.value as dev.openpolaris.core.domain.PreviewController.State.Error).message}",

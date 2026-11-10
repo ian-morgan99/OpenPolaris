@@ -22,5 +22,6 @@ class PreviewOverlayContractTest {
         assertTrue("Toggle preview histogram" in source)
         assertTrue("Toggle preview focus peaking" in source)
         assertTrue("do not alter camera or mount state" in source)
+        assertTrue("Preview endpoint is open but no frames arrived" in source)
     }
 }

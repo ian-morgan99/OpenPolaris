@@ -272,11 +272,11 @@ The first implementation slice is deliberately safe and useful:
 
 1. commit this plan and WBS;
 2. add the abstract rate-control state/request/capability seam and deterministic tests;
-3. add the disabled Fine correction presentation and feature gate;
-4. build the MotionSupervisor around existing fast-jog and GoTo ownership;
-5. only after those contracts are green, implement the rest of WBS-01/WBS-02 and the camera workspace.
+3. add the disabled Fine correction and Slow motion presentation with explicit feature gates;
+4. build the pure SLOW planner/scheduler and MotionSupervisor around motion ownership;
+5. implement the shared mission/connection state model before wiring the remaining Astro WebUI surfaces.
 
-The first slice must not send a new motor frame, alter firmware, alter network configuration or claim hardware support.
+The current implementation slice must not send a new motor frame, alter firmware, alter network configuration or claim hardware support.
 
 
 ## Execution log
@@ -289,3 +289,8 @@ The first slice must not send a new motor frame, alter firmware, alter network c
 
 - **2026-11-10 — WBS-03.4 DONE (pure seam):** added the calibration-driven SLOW planner and clock-driven scheduler with shared levels, torque-preserving zero holds, minimum dwell and one-shot STOP events; no transport adapter is connected.
 - **2026-11-10 — WBS-03.1 DONE (contract only):** added the shared MotionSupervisor ownership/lease seam with emergency-stop priority, wrong-lease rejection and fault blocking; no controller is wired to a new live transport.
+- **2026-11-10 — WBS-03.6 ACTIVE (disabled UX):** added a Motion destination with physical-axis naming, calibration-only speed ladder, stop/lease semantics and an unavailable emergency-stop state; all controls remain non-operational behind `slowMotionControl=false`.
+- **2026-11-10 — verification:** `FeatureFlagsTest`, rate-control, SLOW planner/scheduler and MotionSupervisor tests remain green after the Motion surface changes; full shared/Compose JVM verification is next.
+- **2026-11-10 — WBS-02.1 DONE (model only):** added typed endpoint profiles and independent control/preview health phases for Direct AP, home LAN, PC bridge and demo routes; no networking side effects.
+- **2026-11-10 — verification:** full `:shared:jvmTest :composeApp:jvmTest` passed, including endpoint validation and existing mobile-layout contracts.
+- **Next:** add the mission-readiness model and surface truthful connection, mount, camera and preview status before integrating any new live motion transport.

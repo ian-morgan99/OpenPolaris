@@ -182,7 +182,12 @@ fun OpenPolarisApp(
                         onBridgeDown = if (teardownBridge != null) ({ vm.teardownBridge() }) else null,
                     )
                 }
-                Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Slew -> CalloutDialog("Slew & Motion", { dialog = null }) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GotoPane(vm, Modifier.fillMaxWidth())
+                        SlowMotionPane(vm, Modifier.fillMaxWidth())
+                    }
+                }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }

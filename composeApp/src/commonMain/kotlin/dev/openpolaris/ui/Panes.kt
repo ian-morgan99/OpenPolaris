@@ -313,6 +313,72 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Slow-motion workspace.
+ *
+ * This is deliberately a truthful, reviewable surface while the target
+ * firmware wire contract is still unqualified. It explains the physical
+ * axes, speed ladder and hold/stop semantics without sending 532/533/534 or
+ * any alternative rate frame. The live controls must not appear until the
+ * exact firmware identity, signs, acknowledgement, watchdog and physical
+ * stop evidence are recorded in the capability registry.
+ */
+@Composable
+fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
+    val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Slow motion", style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (gateOpen) {
+                    "Qualified slow-motion controls are ready for this build."
+                } else {
+                    "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(connectionText, style = MaterialTheme.typography.bodySmall)
+
+            Text("Physical axes", style = MaterialTheme.typography.labelLarge)
+            Text("M1 · Pan / yaw", style = MaterialTheme.typography.bodySmall)
+            Text("M2 · Tilt / pitch", style = MaterialTheme.typography.bodySmall)
+            Text("M3 · Rotation / roll", style = MaterialTheme.typography.bodySmall)
+
+            HorizontalDivider()
+            Text("Speed ladder", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (1..5).forEach { level ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        enabled = gateOpen,
+                        label = { Text("$level") },
+                    )
+                }
+            }
+            Text(
+                "Levels are calibration steps, not degrees per second. The host planner selects adjacent measured points and time-shares them; it never uses state 0 as a running point.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Text("Safety behaviour", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "Release, cancel, backgrounding, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until an explicit reconnect and recovery.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Fast jog, tracking, GoTo and fine-rate correction remain separate motion owners. Slow motion cannot silently pre-empt any of them.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                Text("Emergency stop — unavailable until transport is qualified")
+            }
+        }
+    }
+}
+
 @Composable
 private fun JogPad(vm: AppViewModel, yawUp: Int, yawDown: Int, pitchUp: Int, pitchDown: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {

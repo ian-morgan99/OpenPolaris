@@ -101,6 +101,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads firmware, serial, WiFi band, SD, OMS, ex-axis, camera info, device info, temperature after connect.", safe = true),
     FlagSpec("experimentalCamera", "Camera qualification mode",
         "Arms the separately confirmed Benro INFO/SET test surface for ISO, WB, EV, shutter and aperture. Each Camera-pane visit requires a second acknowledgement.", safe = true),
+    FlagSpec("slowMotionControl", "Slow-motion transport (not qualified)",
+        "Keeps SLOW manual motion read-only until exact firmware routing, signs, acknowledgement, watchdog and physical stop evidence are recorded.", safe = false),
     FlagSpec("catalog", "Tonight catalog (read-only)",
         "Star/planet/comet catalog queries. No wire side effect.", safe = true),
     FlagSpec("alignment", "Star alignment (530)",

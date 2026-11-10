@@ -61,6 +61,7 @@ class FeatureFlagsTest {
         FeatureFlags.reset()
         assertTrue(FeatureFlags.isEnabled("basicControls"), "Slew/track/AHRS verified")
         assertFalse(FeatureFlags.isEnabled("fineRateControl"), "Fine correction must remain off until physically qualified")
+        assertFalse(FeatureFlags.isEnabled("slowMotionControl"), "Slow motion must remain off until wire and stop semantics are qualified")
         assertTrue(FeatureFlags.isEnabled("postConnectBurst"), "Post-connect burst verified")
         assertTrue(FeatureFlags.isEnabled("omsRead"), "OMS read (824/825) verified")
         assertTrue(FeatureFlags.isEnabled("wifiScan"), "WiFi scan (770) verified")

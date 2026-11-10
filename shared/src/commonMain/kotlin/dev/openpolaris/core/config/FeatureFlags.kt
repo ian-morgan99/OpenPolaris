@@ -57,8 +57,10 @@ object FeatureFlags {
     const val basicControls: Boolean = true
     /** Post-connect burst (808, 809, 802, 778, 779, 775, 824, 524, 543). */
     const val postConnectBurst: Boolean = true
-    /** Fine/SLOW rate control remains disabled until its firmware and stop contract is qualified. */
+    /** Fine-rate correction remains disabled until its firmware and stop contract is qualified. */
     const val fineRateControl: Boolean = false
+    /** SLOW manual motion remains disabled until its exact wire and stop contract is qualified. */
+    const val slowMotionControl: Boolean = false
     /** Camera qualification surface. The Camera pane requires an additional
      * per-visit acknowledgement before any evidenced SET can be sent. */
     const val experimentalCamera: Boolean = false
@@ -203,6 +205,7 @@ object FeatureFlags {
         "basicControls" -> basicControls
         "postConnectBurst" -> postConnectBurst
         "fineRateControl" -> fineRateControl
+        "slowMotionControl" -> slowMotionControl
         "experimentalCamera" -> experimentalCamera
         "catalog" -> catalog
         "alignment" -> alignment

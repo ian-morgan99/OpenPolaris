@@ -73,6 +73,8 @@ import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
+import dev.openpolaris.core.domain.AstroWebUiSunParameters
+import dev.openpolaris.core.domain.AstroWebUiSunState
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
@@ -1083,6 +1085,8 @@ fun MissionDashboardPane(
             HorizontalDivider()
             AstroWebUiProgrammeComposer(vm)
             HorizontalDivider()
+            AstroWebUiSunComposer(vm)
+            HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Read-only checks from the current session; nothing here starts a motor, changes limits or fires the camera.",
@@ -1324,6 +1328,127 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
             style = MaterialTheme.typography.labelSmall,
         )
         is AstroWebUiProgrammeStartState.Failed -> Text(
+            state.reason,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun AstroWebUiSunComposer(vm: AppViewModel) {
+    var sunset by remember { mutableStateOf(false) }
+    var interval by remember { mutableStateOf("10") }
+    var start by remember { mutableStateOf((SystemMillis.now() / 1000L).toString()) }
+    var end by remember { mutableStateOf(((SystemMillis.now() / 1000L) + 1800L).toString()) }
+    var armed by remember { mutableStateOf(false) }
+
+    val enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStarts")
+    val state = vm.astroWebUiSunState
+    val previewReady = state is AstroWebUiSunState.Preview
+
+    Text("Scheduled solar lapse", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "Preview a sunrise or sunset window using the client clock, then explicitly start it. The resident programme status remains the completion authority.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    if (!enabled) {
+        Text(
+            "Solar programme starts are disabled until named-head write, recovery and physical capture evidence are qualified.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        return
+    }
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        FilterChip(
+            selected = !sunset,
+            onClick = { sunset = false; armed = false },
+            label = { Text("Sunrise") },
+        )
+        FilterChip(
+            selected = sunset,
+            onClick = { sunset = true; armed = false },
+            label = { Text("Sunset") },
+        )
+        OutlinedButton(
+            onClick = {
+                val now = SystemMillis.now() / 1000L
+                start = now.toString()
+                end = (now + 1800L).toString()
+                armed = false
+            },
+        ) { Text("Now + 30 min") }
+    }
+    OutlinedTextField(
+        value = interval,
+        onValueChange = { interval = it; armed = false },
+        label = { Text("Interval (seconds)") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = start,
+        onValueChange = { start = it; armed = false },
+        label = { Text("Start Unix time") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = end,
+        onValueChange = { end = it; armed = false },
+        label = { Text("End Unix time") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    val parameters = runCatching {
+        AstroWebUiSunParameters(
+            sunset = sunset,
+            intervalSeconds = interval.toDoubleOrNull() ?: Double.NaN,
+            startEpochSeconds = start.toLongOrNull() ?: Long.MIN_VALUE,
+            endEpochSeconds = end.toLongOrNull() ?: Long.MIN_VALUE,
+            nowEpochSeconds = SystemMillis.now() / 1000L,
+        )
+    }.getOrNull()
+    if (parameters == null) {
+        Text(
+            "Enter a positive interval and an end time after the start time.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    Button(
+        enabled = parameters != null,
+        onClick = {
+            if (parameters != null) {
+                if (previewReady && armed) {
+                    vm.startAstroWebUiSun(parameters)
+                    armed = false
+                } else {
+                    vm.previewAstroWebUiSun(parameters)
+                    armed = true
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(if (previewReady && armed) "Start solar programme - this may move/fire" else "Preview solar programme")
+    }
+
+    when (state) {
+        AstroWebUiSunState.Idle -> Unit
+        AstroWebUiSunState.Loading -> Text("Sending solar programme request…", style = MaterialTheme.typography.labelSmall)
+        is AstroWebUiSunState.Preview -> Text(
+            "Preview ready: " + state.frame,
+            style = MaterialTheme.typography.labelSmall,
+        )
+        AstroWebUiSunState.Accepted -> Text(
+            "Start accepted; follow Resident programmes for progress and completion.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiSunState.Failed -> Text(
             state.reason,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,

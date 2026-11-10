@@ -939,3 +939,25 @@ Verification passed:
 Result: BUILD SUCCESSFUL; contract, feature-flag, read-site and site-write
 ViewModel tests passed. No live Astro WebUI, mount or camera operation was
 exercised.
+
+
+### WBS-06.4/08.2 - Gated Astro WebUI solar programme
+
+Added the first remaining Astro WebUI programme family beyond lapse, panorama,
+HDR and focus. The solar adapter posts the source `sunset`, `interval`,
+`start`, `end` and client-clock `now` fields to `/api/prog/sun`.
+Preview and start are separate operations; start is never sent without
+`confirm=1`. The shared mobile/desktop Mission surface provides sunrise or
+sunset selection, Unix-time window editing, a “Now + 30 min” helper, explicit
+preview-before-start and readback through resident programme status. The
+existing default-off programme-start gate remains closed.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSunProgrammeTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSunTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; source contract, form validation, preview/start
+separation and session lifecycle tests passed. No live Astro WebUI, mount or
+camera operation was exercised.

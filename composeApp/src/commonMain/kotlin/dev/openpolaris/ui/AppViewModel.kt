@@ -44,6 +44,10 @@ import dev.openpolaris.core.domain.AstroWebUiSiteControlClient
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteRequest
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteResult
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
+import dev.openpolaris.core.domain.AstroWebUiSunProgrammeClient
+import dev.openpolaris.core.domain.AstroWebUiSunParameters
+import dev.openpolaris.core.domain.AstroWebUiSunResult
+import dev.openpolaris.core.domain.AstroWebUiSunState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
@@ -146,6 +150,7 @@ import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteControlClient
+import dev.openpolaris.core.domain.createAstroWebUiSunProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeStartClient
@@ -287,6 +292,7 @@ class AppViewModel(
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
     private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
+    private val astroWebUiSunProgrammeClient: AstroWebUiSunProgrammeClient = createAstroWebUiSunProgrammeClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
     private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
 ) {
@@ -1818,6 +1824,7 @@ class AppViewModel(
         astroWebUiProgrammeStartJob = null
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Idle
+        astroWebUiSunState = AstroWebUiSunState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -4179,6 +4186,8 @@ class AppViewModel(
         AstroWebUiProgrammeStartState.Idle,
     )
         private set
+    var astroWebUiSunState by mutableStateOf<AstroWebUiSunState>(AstroWebUiSunState.Idle)
+        private set
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
@@ -4194,6 +4203,7 @@ class AppViewModel(
     private var astroWebUiProgrammePollJob: Job? = null
     private var astroWebUiProgrammeControlJob: Job? = null
     private var astroWebUiProgrammeStartJob: Job? = null
+    private var astroWebUiSunJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
@@ -4696,6 +4706,73 @@ class AppViewModel(
     fun startAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
         runAstroWebUiProgrammeStart("focus start") { client ->
             client.startFocus(host, previewPort, parameters)
+        }
+    }
+
+    fun previewAstroWebUiSun(parameters: AstroWebUiSunParameters) {
+        runAstroWebUiSunProgramme("sun programme preview", confirm = false) { client ->
+            client.preview(host, previewPort, parameters)
+        }
+    }
+
+    fun startAstroWebUiSun(parameters: AstroWebUiSunParameters) {
+        runAstroWebUiSunProgramme("sun programme start", confirm = true) { client ->
+            client.start(host, previewPort, parameters)
+        }
+    }
+
+    private fun runAstroWebUiSunProgramme(
+        action: String,
+        confirm: Boolean,
+        request: suspend (AstroWebUiSunProgrammeClient) -> AstroWebUiSunResult,
+    ) {
+        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
+            astroWebUiSunState = AstroWebUiSunState.Failed(
+                "Astro WebUI programme starts are disabled until named-head qualification",
+            )
+            statusMessage = "Astro WebUI programme starts are disabled until named-head qualification"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiSunState = AstroWebUiSunState.Failed(
+                "Connect to a mount before starting an Astro WebUI solar programme",
+            )
+            statusMessage = "Connect to a mount before starting an Astro WebUI solar programme"
+            return
+        }
+        if (astroWebUiSunJob?.isActive == true) {
+            statusMessage = "An Astro WebUI solar programme request is already in progress"
+            return
+        }
+        astroWebUiSunState = AstroWebUiSunState.Loading
+        astroWebUiSunJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                request(astroWebUiSunProgrammeClient)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiSunResult.Failure(
+                    error.message ?: "Astro WebUI solar programme failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiSunResult.Preview -> {
+                    astroWebUiSunState = AstroWebUiSunState.Preview(result.frame)
+                    statusMessage = "Astro WebUI solar programme preview ready; no run was started"
+                }
+                AstroWebUiSunResult.Accepted -> {
+                    astroWebUiSunState = AstroWebUiSunState.Accepted
+                    statusMessage = "Astro WebUI solar programme accepted; confirming through programme status"
+                    readAstroWebUiProgramme(announce = false)
+                }
+                is AstroWebUiSunResult.Failure -> {
+                    astroWebUiSunState = AstroWebUiSunState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
         }
     }
 

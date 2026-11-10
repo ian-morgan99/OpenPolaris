@@ -645,3 +645,17 @@ The current implementation slice must not send a new motor frame, alter firmware
   coordinate/host/ack validation, default blocking, enabled readback and
   cancellation-insensitive disconnect ownership. No live Astro WebUI or
   hardware operation was exercised.
+
+
+- **2026-11-10 - WBS-06.4/08.2 ACTIVE (Astro WebUI solar programme):**
+  added the source-aligned `/api/prog/sun` adapter and shared Mission
+  composer. Sunrise/sunset, interval and client-clock window are validated
+  before transport; preview requires positive `valid=true` and
+  `preview=true` evidence, while start adds the explicit `confirm=1`
+  guard. The UI remains behind the existing default-off named-head programme
+  gate and accepted starts confirm through resident programme status.
+- **2026-11-10 - verification:** AstroWebUiSunProgrammeTest and
+  AppViewModelAstroWebUiSunTest cover exact form fields, preview/start
+  separation, invalid-window/host rejection, default blocking, preview-port
+  routing and late-result disconnect ownership. No live Astro WebUI, mount or
+  camera operation was exercised.

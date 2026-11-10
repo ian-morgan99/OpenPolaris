@@ -86,6 +86,7 @@ import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiGuideUiState
 import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
 import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
+import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -629,6 +630,7 @@ fun MissionDashboardPane(
         vm.startAstroWebUiStatusPolling()
         vm.startAstroWebUiGuidePolling()
         vm.startAstroWebUiAutofocusPolling()
+        vm.refreshAstroWebUiFocal()
         vm.startAstroWebUiSolvePolling()
         vm.startAstroWebUiRunStatePolling()
         vm.startAstroWebUiProgrammePolling()
@@ -662,6 +664,8 @@ fun MissionDashboardPane(
     var autofocusAdjustment by remember { mutableStateOf("1") }
     var autofocusSettle by remember { mutableStateOf("0.8") }
     var autofocusBacklash by remember { mutableStateOf("3") }
+    var focalOverride by remember { mutableStateOf("") }
+    val focalOverrideMm = focalOverride.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..100_000.0 }
     val autofocusParameters = runCatching {
         AstroWebUiAutofocusParameters(
             steps = autofocusSteps.toIntOrNull() ?: -1,
@@ -793,6 +797,86 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
+            }
+            HorizontalDivider()
+            Text("Solve focal length", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "The resident solver prefers a manual override, then the last frame's EXIF focal length, then its configured default. Setting a focal override changes future solves; it does not re-solve or apply alignment.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiFocalStatus"),
+                    onClick = vm::refreshAstroWebUiFocal,
+                ) { Text("Refresh focal") }
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiFocalWrite"),
+                    onClick = { vm.setAstroWebUiFocalOverride(null) },
+                ) { Text("Use auto") }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OutlinedTextField(
+                    value = focalOverride,
+                    onValueChange = { focalOverride = it },
+                    label = { Text("Manual focal mm") },
+                    supportingText = { Text("1–100000 mm") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiFocalWrite") && focalOverrideMm != null,
+                    onClick = { focalOverrideMm?.let(vm::setAstroWebUiFocalOverride) },
+                ) { Text("Set override") }
+            }
+            when (val focal = vm.astroWebUiFocal) {
+                AstroWebUiFocalUiState.Idle -> Text(
+                    "Focal state not checked.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                AstroWebUiFocalUiState.Loading -> Text(
+                    "Reading or changing focal state…",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiFocalUiState.Accepted -> Text(
+                    "Focal change accepted; confirming by readback.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiFocalUiState.Failed -> Text(
+                    focal.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is AstroWebUiFocalUiState.Ready -> {
+                    Text(
+                        "Manual override: " + (focal.state.overrideMm?.let { it.toString() + " mm" } ?: "auto"),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "Last EXIF: " + (focal.state.exifCacheMm?.let { it.toString() + " mm" } ?: "unknown") +
+                            " · config default: " + focal.state.configMm + " mm",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiFocalStatus")) {
+                Text(
+                    "Focal readback is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiFocalWrite")) {
+                Text(
+                    "Focal writes are disabled until solve mutation and recovery are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             HorizontalDivider()
             Text("Resident guiding", style = MaterialTheme.typography.titleMedium)

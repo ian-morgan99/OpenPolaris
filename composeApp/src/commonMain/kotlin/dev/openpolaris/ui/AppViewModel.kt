@@ -34,6 +34,9 @@ import dev.openpolaris.core.domain.AstroWebUiAutofocusClient
 import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
 import dev.openpolaris.core.domain.AstroWebUiAutofocusResult
 import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
+import dev.openpolaris.core.domain.AstroWebUiFocalClient
+import dev.openpolaris.core.domain.AstroWebUiFocalResult
+import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -162,6 +165,7 @@ import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiGuideClient
 import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
+import dev.openpolaris.core.domain.createAstroWebUiFocalClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -304,6 +308,7 @@ class AppViewModel(
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
     private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
+    private val astroWebUiFocalClient: AstroWebUiFocalClient = createAstroWebUiFocalClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1826,6 +1831,9 @@ class AppViewModel(
         astroWebUiAutofocusPollJob?.cancel()
         astroWebUiAutofocusPollJob = null
         astroWebUiAutofocus = AstroWebUiAutofocusUiState.Idle
+        astroWebUiFocalJob?.cancel()
+        astroWebUiFocalJob = null
+        astroWebUiFocal = AstroWebUiFocalUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4204,6 +4212,8 @@ class AppViewModel(
         private set
     var astroWebUiAutofocus by mutableStateOf<AstroWebUiAutofocusUiState>(AstroWebUiAutofocusUiState.Idle)
         private set
+    var astroWebUiFocal by mutableStateOf<AstroWebUiFocalUiState>(AstroWebUiFocalUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4236,6 +4246,7 @@ class AppViewModel(
     private var astroWebUiGuidePollJob: Job? = null
     private var astroWebUiAutofocusJob: Job? = null
     private var astroWebUiAutofocusPollJob: Job? = null
+    private var astroWebUiFocalJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4252,6 +4263,7 @@ class AppViewModel(
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiGuideReadMutex = Mutex()
     private val astroWebUiAutofocusReadMutex = Mutex()
+    private val astroWebUiFocalReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4445,6 +4457,97 @@ class AppViewModel(
                 is AstroWebUiGuideResult.Success -> astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
                 is AstroWebUiGuideResult.Failure -> {
                     astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    private suspend fun readAstroWebUiFocal(announce: Boolean) {
+        astroWebUiFocalReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiFocalStatus")) {
+                astroWebUiFocal = AstroWebUiFocalUiState.Failed(
+                    "Astro WebUI focal status disabled by config",
+                )
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiFocal = AstroWebUiFocalUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI focal state",
+                )
+                return@withLock
+            }
+            astroWebUiFocal = AstroWebUiFocalUiState.Loading
+            val result = astroWebUiFocalClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiFocalResult.Success -> {
+                    astroWebUiFocal = AstroWebUiFocalUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI focal state refreshed"
+                }
+                is AstroWebUiFocalResult.Failure -> {
+                    astroWebUiFocal = AstroWebUiFocalUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+                is AstroWebUiFocalResult.Accepted -> Unit
+            }
+        }
+    }
+
+    fun refreshAstroWebUiFocal() {
+        astroWebUiFocalJob?.cancel()
+        astroWebUiFocalJob = scope.launch {
+            readAstroWebUiFocal(announce = true)
+        }
+    }
+
+    fun setAstroWebUiFocalOverride(focalMm: Double?) {
+        astroWebUiFocalJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiFocalWrite")) {
+            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
+                "Astro WebUI focal writes are disabled until solve and recovery qualification",
+            )
+            statusMessage = "Astro WebUI focal writes are disabled by config"
+            return
+        }
+        if (focalMm != null && (focalMm.isNaN() || focalMm.isInfinite() || focalMm !in 1.0..100_000.0)) {
+            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
+                "Focal override must be 1-100000 mm, or auto",
+            )
+            statusMessage = "Focal override is out of range"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
+                "Connect to a mount before changing Astro WebUI focal override",
+            )
+            statusMessage = "Connect to a mount before changing Astro WebUI focal override"
+            return
+        }
+        astroWebUiFocal = AstroWebUiFocalUiState.Loading
+        astroWebUiFocalJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiFocalClient.setOverride(host, previewPort, focalMm)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiFocalResult.Failure(
+                    error.message ?: "Astro WebUI focal change failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiFocalResult.Accepted -> {
+                    astroWebUiFocal = AstroWebUiFocalUiState.Accepted(result.focalMm)
+                    statusMessage = "Astro WebUI focal change accepted; confirming by readback"
+                    readAstroWebUiFocal(announce = false)
+                }
+                is AstroWebUiFocalResult.Success -> astroWebUiFocal = AstroWebUiFocalUiState.Ready(result.state)
+                is AstroWebUiFocalResult.Failure -> {
+                    astroWebUiFocal = AstroWebUiFocalUiState.Failed(result.reason)
                     statusMessage = result.reason
                 }
             }

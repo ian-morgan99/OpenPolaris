@@ -1558,3 +1558,31 @@ Artifacts:
   SHA-256: `5250fae163914774e90a82739d6602b2fc45b2e8aadae9bb8b0ca85487af0648`
 
 No live SLOW command, Bluetooth, bridge, camera, mount or physical stop qualification was exercised.
+
+
+## Latest committed verification - 1892b81
+
+Commit under test: 1892b81 (feat: make mission readiness actions direct).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MotionSafetyChromeContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 42781361b6befe8b7fbc382ff53e23a76df57b5f38687852055645d3702ebdc8
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-1892b81.tar.gz
+  SHA-256: 9f8a53b5036bf1f42abb44dbf6577f3955e0d025d058e9e36246225fb1ffa48c
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The build proves package/host behavior only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

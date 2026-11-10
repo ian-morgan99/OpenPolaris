@@ -883,6 +883,9 @@ class AppViewModel(
     private var captureEventJob: Job? = null
     // 286 camera-attachment poll (see [startCameraAttachmentPolling]).
     private var cameraAttachmentPollJob: Job? = null
+    // Dynamic INFO reads are session-owned so a late camera read cannot
+    // repopulate a replacement mount session after disconnect/reconnect.
+    private var cameraRefreshJob: Job? = null
     // #60: bounded watchdog for an in-flight capture. Started by [capture],
     // cancelled when the capture-event observer correlates a lifecycle + file
     // event (shot done) or when the phase reaches a terminal state. If it
@@ -1874,6 +1877,8 @@ class AppViewModel(
         pollJob?.cancel()
         captureEventJob?.cancel()
         cameraAttachmentPollJob?.cancel()
+        cameraRefreshJob?.cancel()
+        cameraRefreshJob = null
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
@@ -4119,18 +4124,24 @@ class AppViewModel(
     }
 
     fun refreshCamera() {
-        val controller = cameraController
-        if (controller == null) { statusMessage = "Not connected"; return }
+        val ownerSession = session
+        val ownerController = cameraController
+        if (ownerController == null || ownerSession == null) {
+            statusMessage = "Not connected"
+            return
+        }
         if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
-        scope.launch {
-            val iso = controller.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
-            val wb = controller.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
-            val ev = controller.queryBenroInfo(Codes.BenroCamera.GET_EV_INFO, "ev")
-            val shutter = controller.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
-            val aperture = controller.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
+        cameraRefreshJob?.cancel()
+        cameraRefreshJob = scope.launch {
+            val iso = ownerController.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
+            val wb = ownerController.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
+            val ev = ownerController.queryBenroInfo(Codes.BenroCamera.GET_EV_INFO, "ev")
+            val shutter = ownerController.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
+            val aperture = ownerController.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
+            if (!ownsSession(ownerSession)) return@launch
             camera = camera.copy(
                 isoIndex = iso.index,
                 wbIndex = wb.index,

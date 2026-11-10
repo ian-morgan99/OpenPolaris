@@ -238,3 +238,5 @@ OpenPolaris reaches the product goal when:
 - unresolved hardware or firmware capability is visible as `Unknown`/`Blocked`, never hidden behind a green button.
 
 The companion [work breakdown structure](WORK-BREAKDOWN-STRUCTURE-2026-11-10.md) turns this plan into ordered, checkable work.
+
+Implementation status as of 2026-11-10: the shared SLOW controller, dead-man lease, source-aligned wire seam, capability provenance, qualification-gated live adapter, responsive hold UX, and deterministic fake-head session test are implemented. The production capability record remains unqualified until exact firmware/gimbal/source-app evidence and supervised physical stop/recovery tests exist; the WBS log records package hashes and the remaining qualification boundary.

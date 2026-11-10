@@ -1113,3 +1113,21 @@ exercised.
   `e23629ec3f4cf61537f98bd24f3cc1dede099080fdf1d1239d200a1a659c0b41`.
   No live Astro WebUI, bridge, Bluetooth, mount, camera or physical SLOW
   qualification was exercised.
+
+
+- **2026-11-10 - WBS-02.1/08.2 ACTIVE (Astro Wi-Fi status):** implemented
+  source-aligned readback with response caps, safe host/preview-port routing,
+  default-on policy and disconnect-safe ViewModel ownership. Focused parser,
+  FeatureFlags, ViewModel lifecycle and Compose compilation tests passed. No
+  live Wi-Fi or Bluetooth operation was exercised.
+
+
+- **2026-11-10 - WBS-02.1/08.2 verification:** full host build for
+  `69ca50b` passed: 103 actionable tasks, shared and Compose JVM tests,
+  Android debug compilation/APK assembly, and desktop distributable creation.
+  APK SHA-256 is
+  `53f82599dedfe9c690fe53dd711e5deb87ae08ddfa3e1f7e81cf428275b9f8b4`;
+  desktop archive SHA-256 is
+  `e411b4d14a2ac8fcdda7e1ea40ff1d678e032f5e984b7ef728a981d11e63fa4f`.
+  No live Astro WebUI, Wi-Fi, bridge, Bluetooth, mount, camera or physical
+  SLOW qualification was exercised.

@@ -725,3 +725,10 @@ The current implementation slice must not send a new motor frame, alter firmware
   clearly separates helper state from bridge/Bluetooth health; writes remain
   default-off until alignment, bridge recovery and process teardown are
   qualified.
+
+
+- **2026-11-10 - WBS-02.1/08.2 ACTIVE (Astro WebUI Wi-Fi status):** added
+  bounded read-only `GET /api/wifi` parsing for AP/station addresses, SSID,
+  saved configuration and autojoin. The Connection workspace keeps this
+  evidence separate from Bluetooth wake and PC bridge health; Wi-Fi mutation
+  remains out of scope.

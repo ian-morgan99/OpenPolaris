@@ -53,6 +53,7 @@ class SimulatedMount {
     var evIndex = 4
 
     private var demoCaptureNumber = 0
+    private val demoFiles = mutableListOf<String>()
 
     private val conn = SimConnection()
     val session = dev.openpolaris.core.domain.MountSession(
@@ -88,6 +89,30 @@ class SimulatedMount {
                 Codes.BenroCamera.GET_SHUTTER_INFO -> queue(
                     "1&" + Codes.BenroCamera.GET_SHUTTER_INFO + "&2&V:1;R:1/100,B;RD:1;#"
                 )
+                Codes.FILE_LIST -> {
+                    val requestedType = fields["type"]?.toIntOrNull() ?: 0
+                    val requestedPage = fields["page"]?.toIntOrNull() ?: 0
+                    val payload = buildString {
+                        append("type:")
+                        append(requestedType)
+                        append(";page:")
+                        append(requestedPage)
+                        append(";count:")
+                        append(demoFiles.size)
+                        append(";")
+                        demoFiles.forEachIndexed { index, name ->
+                            append("id:")
+                            append(index + 1)
+                            append(";name:")
+                            append(name)
+                            append(";prot:0;")
+                        }
+                    }
+                    queue("1&" + Codes.FILE_LIST + "&2&" + payload + "#")
+                }
+                Codes.FILE_SD_STATUS -> queue(
+                    "1&" + Codes.FILE_SD_STATUS + "&2&state:0;total:128;free:96;#"
+                )
                 284 -> queue(
                     "1&284&2&mode:${if (tracking) 2 else 0};battery:76;charge:0;" +
                         "track:${if (tracking) 1 else 0};halfSpeed:${if (halfSpeed) 0 else 1};" +
@@ -118,6 +143,7 @@ class SimulatedMount {
                     queue("1&" + Codes.CAM_GET_EV + "&2&state:$state;bulb:$bulb;c:$c;#")
                     if (state == 1) {
                         val imageName = "IMG_" + (++demoCaptureNumber).toString().padStart(4, '0') + ".JPG"
+                        demoFiles += imageName
                         queue(
                             "1&" + Codes.FILE_DOWNLOAD_DATA +
                                 "&2&type:1;path:/demo/DCIM/$imageName;size:12345;#"

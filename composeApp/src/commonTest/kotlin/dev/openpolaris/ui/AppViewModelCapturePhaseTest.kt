@@ -192,6 +192,15 @@ class AppViewModelCapturePhaseTest {
             runCurrent()
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals("/demo/DCIM/IMG_0002.JPG", vm.lastCapturePublication?.path)
+
+            vm.refreshFileList()
+            vm.refreshSdStatus()
+            runCurrent()
+            assertEquals(
+                listOf("IMG_0001.JPG", "IMG_0002.JPG"),
+                vm.fileList?.files?.map { it.name },
+            )
+            assertTrue(vm.sdStatus?.present == true)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

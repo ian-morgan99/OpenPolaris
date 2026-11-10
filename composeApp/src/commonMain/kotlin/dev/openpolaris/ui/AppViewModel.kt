@@ -2673,9 +2673,12 @@ class AppViewModel(
         demoFineRate.setCapability(null)
     }
 
-    /** Start one logical SLOW direction in Demo mode only. */
+    /** Start one logical SLOW direction in Demo or qualified live mode. */
+    private fun liveSlowMotionReady(): Boolean =
+        !demoMode && session != null && SlowMotionCapabilities.current.liveReady
+
     fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
-        if (!demoMode) {
+        if (!demoMode && !liveSlowMotionReady()) {
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
         }
@@ -2706,9 +2709,9 @@ class AppViewModel(
             val lease = when (val acquired = demoSlowMotion.acquire()) {
                 is SlowMotionAcquireResult.Granted -> acquired.lease
                 is SlowMotionAcquireResult.Busy ->
-                    return@launch.also { statusMessage = "Demo motion owner is busy" }
+                    return@launch.also { statusMessage = "Slow-motion owner is busy" }
                 is SlowMotionAcquireResult.Blocked ->
-                    return@launch.also { statusMessage = "Demo motion blocked: ${acquired.reason}" }
+                    return@launch.also { statusMessage = "Slow-motion blocked: ${acquired.reason}" }
             }
             val calibration = SlowMotionCalibration.REFERENCE.levels.getValue(level)
             val rate = ((calibration.stateOneRate + calibration.stateTwoRate) / 2.0) * direction
@@ -2719,7 +2722,7 @@ class AppViewModel(
             val now = SystemMillis.now().coerceAtLeast(0L)
             if (demoSlowMotion.start(lease, targets, now) != SlowMotionActionResult.Started) {
                 demoSlowMotion.release(lease)
-                statusMessage = "Demo slow-motion plan was rejected"
+                statusMessage = "Slow-motion plan was rejected"
                 return@launch
             }
             demoSlowMotionLease = lease
@@ -2732,9 +2735,13 @@ class AppViewModel(
                 level = level,
                 lastEvents = initialEvents.takeLast(8),
             )
-            statusMessage = "Demo slow motion: ${slowMotionDemoState.label} (logical owner active; no hardware command)"
+            statusMessage = if (demoMode) {
+                "Demo slow motion: ${slowMotionDemoState.label} (logical owner active; no hardware command)"
+            } else {
+                "Qualified slow motion active: ${slowMotionDemoState.label}"
+            }
 
-            while (isActive && demoMode && demoSlowMotionLease == lease) {
+            while (isActive && (demoMode || liveSlowMotionReady()) && demoSlowMotionLease == lease) {
                 delay(50L)
                 val tickNow = SystemMillis.now().coerceAtLeast(now)
                 val renewed = demoSlowMotion.renew(lease, tickNow)
@@ -2770,11 +2777,12 @@ class AppViewModel(
     }
 
     /**
-     * Stop the logical Demo-mode SLOW session through the shared owner. The
-     * UI only asserts/relinquishes the hold; it does not own a repeat timer.
+     * Stop the logical Demo or qualified live SLOW session through the shared
+     * owner. The UI only asserts/relinquishes the hold; it does not own a
+     * repeat timer.
      */
     fun demoSlowMotionStop() {
-        if (!demoMode) {
+        if (!demoMode && !liveSlowMotionReady()) {
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
         }
@@ -2803,7 +2811,11 @@ class AppViewModel(
                     level = 0,
                     lastEvents = stops,
                 )
-                statusMessage = "Demo slow motion stopped (${stops.size} logical stop transitions)"
+                statusMessage = if (demoMode) {
+                    "Demo slow motion stopped (${stops.size} logical stop transitions)"
+                } else {
+                    "Qualified slow motion stopped"
+                }
             } finally {
                 if (demoSlowMotionStopJob === currentCoroutineContext()[Job]) {
                     demoSlowMotionStopJob = null

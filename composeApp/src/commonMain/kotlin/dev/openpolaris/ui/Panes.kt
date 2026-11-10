@@ -2586,11 +2586,11 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
-    // This hard gate is intentionally not configuration-controlled: a flag
-    // cannot imply that the target firmware transport is qualified.
-    // Keep the source-level hard gate until a named physical qualification record is installed.
-    val liveTransportQualified = false
+    // The allow-list is evidence-backed and independent from configuration: a
+    // feature flag cannot manufacture firmware, units, acknowledgement or a
+    // physical stop result. The default record remains unqualified.
     val capabilityRecord = SlowMotionCapabilities.current
+    val liveTransportQualified = capabilityRecord.liveReady
     val liveControlsEnabled = gateOpen && liveTransportQualified && capabilityRecord.liveReady && vm.mount.connected
     val demoControlsEnabled = vm.demoMode
     val controlsEnabled = liveControlsEnabled || demoControlsEnabled
@@ -2645,10 +2645,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    if (demoControlsEnabled) "Motion state: Demo ${vm.slowMotionDemoState.label}" else "Motion state: Unavailable",
+                    when {
+                        demoControlsEnabled -> "Motion state: Demo ${vm.slowMotionDemoState.label}"
+                        liveControlsEnabled -> "Motion state: Qualified live"
+                        else -> "Motion state: Unavailable"
+                    },
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Text(if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions" else connectionText, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions"
+                    else connectionText,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             Text(
                 motionOwnerText,
@@ -2722,7 +2730,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
             Text(
-                "Select an axis, then press and hold a direction in Demo mode; release stops the logical session. A qualified live version will use the same dead-man contract. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
+                "Select an axis, then press and hold a direction in Demo or qualified mode; release stops the session. The same dead-man contract applies to both. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2744,7 +2752,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             ) {
                 SlowDemoHoldButton(
                     label = "Direction A",
-                    enabled = controlsEnabled && demoControlsEnabled,
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                     onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel) },
                     onRelease = vm::demoSlowMotionStop,
@@ -2756,7 +2764,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 ) { Text("STOP ALL") }
                 SlowDemoHoldButton(
                     label = "Direction B",
-                    enabled = controlsEnabled && demoControlsEnabled,
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                     onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel) },
                     onRelease = vm::demoSlowMotionStop,
@@ -2823,14 +2831,14 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SlowDemoHoldButton(
                     label = "A · rotate",
-                    enabled = controlsEnabled && demoControlsEnabled,
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                     onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel) },
                     onRelease = vm::demoSlowMotionStop,
                 )
                 SlowDemoHoldButton(
                     label = "B · rotate",
-                    enabled = controlsEnabled && demoControlsEnabled,
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                     onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel) },
                     onRelease = vm::demoSlowMotionStop,
@@ -2853,10 +2861,13 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
-                if (demoControlsEnabled) {
-                    "Demo mode records logical planner/scheduler transitions only; no 532/533/534 or alternative AC 4A frame is emitted."
-                } else {
-                    "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected."
+                when {
+                    demoControlsEnabled ->
+                        "Demo mode records logical planner/scheduler transitions only; no 532/533/534 or alternative AC 4A frame is emitted."
+                    liveControlsEnabled ->
+                        "Qualified mode uses the evidence-backed 532/533/534 transport and the same dead-man stop boundary."
+                    else ->
+                        "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected."
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

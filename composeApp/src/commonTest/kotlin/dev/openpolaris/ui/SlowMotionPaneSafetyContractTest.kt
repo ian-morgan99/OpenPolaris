@@ -21,10 +21,11 @@ class SlowMotionPaneSafetyContractTest {
     @Test
     fun featureFlagCannotImplyLiveTransportQualification() {
         val source = sourceText()
-        assertTrue("val liveTransportQualified = false" in source)
+        assertTrue("val liveTransportQualified = capabilityRecord.liveReady" in source)
         assertTrue("val liveControlsEnabled = gateOpen && liveTransportQualified" in source)
         assertTrue("val controlsEnabled = liveControlsEnabled || demoControlsEnabled" in source)
         assertTrue("enabled = controlsEnabled" in source)
+        assertTrue("enabled = controlsEnabled && demoControlsEnabled" !in source)
         assertTrue("onPress = { vm.demoSlowMotionStart" in source)
         assertTrue("awaitEachGesture" in source)
         assertTrue("onRelease = vm::demoSlowMotionStop" in source)

@@ -1,7 +1,9 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import dev.openpolaris.core.protocol.Codes
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -37,11 +39,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -984,17 +989,62 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         vm.enterPreview()
         onDispose { vm.leavePreview() }
     }
+    var framingGrid by remember { mutableStateOf(false) }
+    var centreMark by remember { mutableStateOf(false) }
     val frame = vm.previewFrame
     val state = vm.previewState
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera preview", style = MaterialTheme.typography.titleMedium)
-            when {
-                frame != null -> androidx.compose.foundation.Image(
-                    bitmap = frame,
-                    contentDescription = "Live camera preview",
-                    modifier = Modifier.fillMaxWidth(),
+            if (frame != null) {
+                Box(Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.Image(
+                        bitmap = frame,
+                        contentDescription = "Live camera preview",
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (framingGrid || centreMark) {
+                        Canvas(Modifier.fillMaxSize()) {
+                            val stroke = 1.dp.toPx()
+                            val overlay = Color.White.copy(alpha = 0.75f)
+                            if (framingGrid) {
+                                drawLine(overlay, Offset(size.width / 3f, 0f), Offset(size.width / 3f, size.height), strokeWidth = stroke)
+                                drawLine(overlay, Offset(size.width * 2f / 3f, 0f), Offset(size.width * 2f / 3f, size.height), strokeWidth = stroke)
+                                drawLine(overlay, Offset(0f, size.height / 3f), Offset(size.width, size.height / 3f), strokeWidth = stroke)
+                                drawLine(overlay, Offset(0f, size.height * 2f / 3f), Offset(size.width, size.height * 2f / 3f), strokeWidth = stroke)
+                            }
+                            if (centreMark) {
+                                drawLine(overlay, Offset(size.width / 2f - 12.dp.toPx(), size.height / 2f), Offset(size.width / 2f + 12.dp.toPx(), size.height / 2f), strokeWidth = stroke)
+                                drawLine(overlay, Offset(size.width / 2f, size.height / 2f - 12.dp.toPx()), Offset(size.width / 2f, size.height / 2f + 12.dp.toPx()), strokeWidth = stroke)
+                            }
+                        }
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilterChip(
+                    selected = framingGrid,
+                    onClick = { framingGrid = !framingGrid },
+                    label = { Text("Grid") },
                 )
+                FilterChip(
+                    selected = centreMark,
+                    onClick = { centreMark = !centreMark },
+                    label = { Text("Centre") },
+                )
+            }
+            Text(
+                "Framing overlays are local presentation aids and do not alter camera or mount state.",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Text(
+                "Histogram and focus peaking are not enabled until the pixel-analysis pipeline is qualified.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            when {
+                frame == null -> when {
                 // 3h-BUG: `state` is a StateFlow, not a State. The previous
                 // check `state is PreviewController.State.Connecting` was
                 // comparing a StateFlow to a State object — always false.
@@ -1012,6 +1062,7 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     )
                 else ->
                     Text("Stream unavailable — connect to the mount or check Wi-Fi.", style = MaterialTheme.typography.bodySmall)
+                }
             }
             // Live-verified 2026-09-16: with no camera attached the firmware's
             // MJPG-Streamer answers HTTP 200 but never sends a JPEG frame, so

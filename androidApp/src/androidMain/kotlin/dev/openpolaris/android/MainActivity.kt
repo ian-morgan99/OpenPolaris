@@ -25,6 +25,7 @@ import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.domain.installResourceContext
 import dev.openpolaris.core.io.FilePicker
+import dev.openpolaris.core.domain.AstroMediaExportRegistry
 import dev.openpolaris.core.io.FilePickerRegistry
 import dev.openpolaris.core.io.PickerBridge
 import dev.openpolaris.core.session.SessionStore
@@ -115,6 +116,18 @@ class MainActivity : ComponentActivity() {
         cb?.invoke(path)
     }
 
+    private val saveAstroMediaLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("image/jpeg")
+    ) { uri ->
+        AstroMediaExportRegistry.completeSave(uri)
+    }
+
+    private val shareAstroMediaLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        AstroMediaExportRegistry.completeShare(result.resultCode)
+    }
+
     // Permissions launcher for "Find & wake Polaris…". Same lifecycle rule
     // as `openDocumentLauncher` above: MUST be a member field so it gets
     // registered while the activity is in CREATED state. Registering it
@@ -142,6 +155,11 @@ class MainActivity : ComponentActivity() {
         // a hard reference to `ComponentActivity`. Cleared in onDestroy.
         FilePickerRegistry.appContext = applicationContext
         FilePickerRegistry.launcher = getContentLauncher
+        AstroMediaExportRegistry.install(
+            context = applicationContext,
+            save = saveAstroMediaLauncher,
+            share = shareAstroMediaLauncher,
+        )
         // Make bundled `commonMain/resources/*.json` shards visible
         // to the readResourceText() expect/actual so the Tonight pane
         // can load the embedded catalog + comet shards.
@@ -446,6 +464,7 @@ class MainActivity : ComponentActivity() {
         // is single-slot; any in-flight callback will be lost on rotation,
         // which is acceptable for v1.
         FilePickerRegistry.clear()
+        AstroMediaExportRegistry.clear()
         super.onDestroy()
     }
 }

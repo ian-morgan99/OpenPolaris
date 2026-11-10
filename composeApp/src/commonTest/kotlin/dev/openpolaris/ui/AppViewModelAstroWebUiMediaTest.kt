@@ -1,6 +1,10 @@
 package dev.openpolaris.ui
 
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.AstroMediaExportRequest
+import dev.openpolaris.core.domain.AstroMediaExportResult
+import dev.openpolaris.core.domain.AstroMediaExportSink
+import dev.openpolaris.core.domain.AstroMediaExportState
 import dev.openpolaris.core.domain.AstroMediaFetchResult
 import dev.openpolaris.core.domain.AstroMediaItem
 import dev.openpolaris.core.domain.AstroMediaListResult
@@ -24,6 +28,14 @@ class AppViewModelAstroWebUiMediaTest {
         override suspend fun write(data: ByteArray) = Unit
         override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int = 0
         override fun close() = Unit
+    }
+
+    private class RecordingExportSink : AstroMediaExportSink {
+        val calls = mutableListOf<Pair<AstroMediaExportRequest, ByteArray>>()
+        override suspend fun export(request: AstroMediaExportRequest, bytes: ByteArray): AstroMediaExportResult {
+            calls += request to bytes
+            return AstroMediaExportResult.Stored("test://exported")
+        }
     }
 
     private class FakeMediaClient : AstroWebUiMediaClient {
@@ -95,6 +107,39 @@ class AppViewModelAstroWebUiMediaTest {
             assertEquals("normal/IMG_0001.jpg", client.lastPath)
             assertEquals(AstroMediaTransferKind.THUMBNAIL, client.lastKind)
             assertEquals(2, vm.astroMediaPreview?.bytes?.size)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun fullWebUiFileCanBeExportedOnlyAfterFetch() = runTest {
+        FeatureFlags.enable("astroWebUiMedia")
+        val client = FakeMediaClient()
+        val sink = RecordingExportSink()
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiMediaClient = client,
+            astroMediaExportSink = sink,
+        )
+        val session = MountSession(
+            connectionFactory = { NoopConnection() },
+            host = "192.168.0.1",
+            port = 9090,
+            readerScope = this,
+        )
+        vm.testInstallSession(session)
+        try {
+            vm.loadAstroMedia("normal/IMG_0001.jpg", AstroMediaTransferKind.FULL_FILE)
+            advanceUntilIdle()
+            vm.exportAstroMedia(dev.openpolaris.core.domain.AstroMediaExportDestination.SAVE_COPY)
+            advanceUntilIdle()
+            val complete = assertIs<AstroMediaExportState.Complete>(vm.astroMediaExportState)
+            assertEquals(2, complete.bytesStored)
+            assertEquals("IMG_0001.jpg", sink.calls.single().first.suggestedName)
+            assertEquals(2, sink.calls.single().second.size)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

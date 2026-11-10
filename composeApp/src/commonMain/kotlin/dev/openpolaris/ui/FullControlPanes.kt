@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.AstroMediaExportDestination
+import dev.openpolaris.core.domain.AstroMediaExportState
 import dev.openpolaris.core.domain.AstroMediaPolicy
 import dev.openpolaris.core.domain.AstroMediaState
 import dev.openpolaris.core.domain.AstroMediaTransferKind
@@ -495,6 +497,25 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
+            when (val exportState = vm.astroMediaExportState) {
+                AstroMediaExportState.Idle -> Unit
+                is AstroMediaExportState.Ready -> Text(
+                    "Ready to export ${exportState.request.suggestedName} (${exportState.bytesExpected} bytes).",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroMediaExportState.Exporting -> Text(
+                    "Exporting ${exportState.request.suggestedName}…",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroMediaExportState.Complete -> Text(
+                    "Exported ${exportState.request.suggestedName} (${exportState.bytesStored} bytes).",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroMediaExportState.Failed -> Text(
+                    "Export unavailable: ${exportState.reason}",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             val allItems = vm.astroMediaItems.orEmpty()
             if (allItems.isNotEmpty()) {
                 val categories = allItems.map { it.category }.distinct().sorted()
@@ -557,6 +578,18 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                 "${preview.kind.name.lowercase()} · ${preview.bytes.size} bytes · ${preview.contentType}",
                                 style = MaterialTheme.typography.labelSmall,
                             )
+                            if (preview.kind == AstroMediaTransferKind.FULL_FILE) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(
+                                        enabled = enabled,
+                                        onClick = { vm.exportAstroMedia(AstroMediaExportDestination.SAVE_COPY) },
+                                    ) { Text("Save copy") }
+                                    OutlinedButton(
+                                        enabled = enabled,
+                                        onClick = { vm.exportAstroMedia(AstroMediaExportDestination.SHARE) },
+                                    ) { Text("Share") }
+                                }
+                            }
                         }
                     }
                 }

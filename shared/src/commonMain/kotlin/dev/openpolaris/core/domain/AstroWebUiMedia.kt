@@ -65,6 +65,12 @@ object AstroMediaPolicy {
 
     fun categoryFor(path: String): String? = path.substringBefore('/').takeIf { it in categories }
 
+    /** Returns only the safe basename used for a platform save/share prompt. */
+    fun exportName(path: String): String? =
+        path.takeIf(::isSafePath)
+            ?.substringAfterLast('/')
+            ?.takeIf { it.isNotBlank() && it != "." && it != ".." }
+
     fun labelFor(category: String): String = when (category) {
         "normal" -> "Photos"
         "starskyStack" -> "Astro"

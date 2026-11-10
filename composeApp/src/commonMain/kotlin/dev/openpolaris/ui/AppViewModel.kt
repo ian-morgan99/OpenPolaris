@@ -5,6 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
+import dev.openpolaris.core.domain.AstroMediaExportController
+import dev.openpolaris.core.domain.AstroMediaExportDestination
+import dev.openpolaris.core.domain.AstroMediaExportSink
+import dev.openpolaris.core.domain.AstroMediaExportState
 import dev.openpolaris.core.domain.AstroMediaFetchResult
 import dev.openpolaris.core.domain.AstroMediaItem
 import dev.openpolaris.core.domain.AstroMediaListResult
@@ -80,6 +84,7 @@ import dev.openpolaris.core.domain.SlowMotionTransportResult
 import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
+import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createPreviewTransport
@@ -208,6 +213,7 @@ class AppViewModel(
     private val previewIoDispatcher: CoroutineDispatcher? = null,
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
+    private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -1473,6 +1479,9 @@ class AppViewModel(
         astroMediaPreview = null
         astroMediaCategory = null
         astroMediaState = AstroMediaState.Idle
+        astroMediaExportJob?.cancel()
+        astroMediaExportController.reset()
+        astroMediaExportState = AstroMediaExportState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3476,7 +3485,11 @@ class AppViewModel(
         private set
     var astroMediaCategory by mutableStateOf<String?>(null)
         private set
+    var astroMediaExportState by mutableStateOf<AstroMediaExportState>(AstroMediaExportState.Idle)
+        private set
+    private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
+    private var astroMediaExportJob: Job? = null
 
     fun selectAstroMediaCategory(category: String?) {
         astroMediaCategory = category
@@ -3503,6 +3516,9 @@ class AppViewModel(
     }
 
     fun refreshAstroMedia() {
+        astroMediaExportJob?.cancel()
+        astroMediaExportController.reset()
+        astroMediaExportState = AstroMediaExportState.Idle
         astroMediaJob?.cancel()
         astroMediaJob = scope.launch {
             if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
@@ -3531,6 +3547,9 @@ class AppViewModel(
     }
 
     fun loadAstroMedia(path: String, kind: AstroMediaTransferKind) {
+        astroMediaExportJob?.cancel()
+        astroMediaExportController.reset()
+        astroMediaExportState = AstroMediaExportState.Idle
         astroMediaJob?.cancel()
         astroMediaJob = scope.launch {
             if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
@@ -3552,6 +3571,37 @@ class AppViewModel(
                     astroMediaState = AstroMediaState.Failed(result.reason)
                     statusMessage = result.reason
                 }
+            }
+        }
+    }
+
+    fun exportAstroMedia(destination: AstroMediaExportDestination) {
+        if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
+            astroMediaExportState = AstroMediaExportState.Failed(null, "Astro WebUI gallery disabled by config")
+            statusMessage = "Astro WebUI gallery disabled by config"
+            return
+        }
+        val preview = astroMediaPreview
+        if (preview == null) {
+            astroMediaExportState = AstroMediaExportState.Failed(null, "Load a full Astro WebUI image before exporting")
+            statusMessage = "Load a full Astro WebUI image before exporting"
+            return
+        }
+        astroMediaExportJob?.cancel()
+        if (!astroMediaExportController.prepare(preview, destination)) {
+            astroMediaExportState = astroMediaExportController.state.value
+            statusMessage = (astroMediaExportState as? AstroMediaExportState.Failed)?.reason.orEmpty()
+            return
+        }
+        astroMediaExportState = astroMediaExportController.state.value
+        val bytes = preview.bytes.copyOf()
+        astroMediaExportJob = scope.launch {
+            val result = astroMediaExportController.export(bytes)
+            astroMediaExportState = result
+            statusMessage = when (result) {
+                is AstroMediaExportState.Complete -> "Astro media export complete (" + result.bytesStored + " bytes)"
+                is AstroMediaExportState.Failed -> result.reason
+                else -> "Astro media export in progress"
             }
         }
     }

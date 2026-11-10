@@ -66,3 +66,29 @@ The next slice is now present in the worktree and is ready to commit:
 Verification passed for the focused capture suite, Compose JVM tests, Compose JVM
 compile and Android debug compile. No live mount, camera or Astro WebUI endpoint
 was exercised.
+
+### WBS-07.2 — Astro WebUI full-file save/share
+
+The gallery now carries the source-aligned `/api/media/full` result through a
+platform-neutral export controller. It accepts only a non-empty full-file JPEG
+with a policy-approved Astro path and a safe basename; thumbnails, traversal
+paths, empty data and byte mismatches are rejected before any sink is called.
+
+- Desktop uses a native Save dialog for an explicit copy destination.
+- Android uses `ACTION_CREATE_DOCUMENT` for Save copy and a cache-only
+  `FileProvider` URI for `ACTION_SEND`; chooser cancellation and host recreation
+  are reported as failures rather than success.
+- Share/save state is visible in the Gallery and is cleared when the gallery
+  selection, session or feature gate changes.
+- No native 772/773/774/781/782 transfer or deletion path was enabled.
+
+Verification passed:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroMediaExportTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiMediaTest --rerun-tasks --console=plain --no-daemon
+./gradlew :androidApp:compileDebugKotlinAndroid :composeApp:compileKotlinJvm :shared:jvmTest --tests dev.openpolaris.core.domain.AstroMediaExportTest --rerun-tasks --console=plain --no-daemon
+```
+
+The Android provider and activity-result bridge compile, and the controller/ViewModel
+tests prove exact-byte export and fail-closed rejection. Physical Android chooser
+behaviour and desktop native dialog behaviour remain host-validation tasks.

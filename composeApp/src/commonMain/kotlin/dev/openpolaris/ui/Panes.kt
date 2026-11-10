@@ -90,6 +90,7 @@ import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
 import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiWifiUiState
+import dev.openpolaris.core.domain.AstroWebUiLinkUiState
 import dev.openpolaris.core.domain.AstroWebUiAlignRequest
 import dev.openpolaris.core.domain.AstroWebUiGotoRequest
 import dev.openpolaris.core.domain.AstroWebUiTargetUiState
@@ -441,6 +442,59 @@ fun ConnectionPane(
             }
             HorizontalDivider()
             EndpointHealthSection(vm)
+            Text("Astro control link", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Read-only /api/link evidence from the resident Astro WebUI. It describes the server control link and cached opcode frames; it does not replace Bluetooth wake, bridge or native motion ownership.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiLinkStatus"),
+                    onClick = vm::refreshAstroWebUiLink,
+                ) { Text("Refresh link") }
+                when (val link = vm.astroWebUiLink) {
+                    AstroWebUiLinkUiState.Idle -> Text("State not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiLinkUiState.Loading -> Text("Reading control-link telemetry…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiLinkUiState.Failed -> Text(
+                        link.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    is AstroWebUiLinkUiState.Ready -> {
+                        val state = link.state
+                        Text(
+                            state.phase.name.lowercase() + " · wanted " + if (state.wanted) "yes" else "no",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            "Connects " + state.connects + " · drops " + state.drops +
+                                " · RX " + state.receivedFrames + " · TX " + state.transmittedFrames,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            "Parse errors " + state.parseErrors + " · evictions " + state.evictions +
+                                " · last frame " + if (state.lastRxAgeMs >= 0) state.lastRxAgeMs.toString() + " ms ago" else "unknown",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (state.error.isNotBlank()) {
+                            Text("Last error: " + state.error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        Text("Cached opcode frames: " + state.opcodes.size, style = MaterialTheme.typography.labelSmall)
+                        state.opcodes.take(4).forEach { opcode ->
+                            Text(
+                                opcode.command.toString() + " · " + opcode.ageMs + " ms · " + opcode.args,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiLinkStatus")) {
+                Text("Astro control-link telemetry is disabled by config.", style = MaterialTheme.typography.labelSmall)
+            }
             HorizontalDivider()
             Text("Astro keep-Wi-Fi", style = MaterialTheme.typography.titleMedium)
             Text(

@@ -46,6 +46,9 @@ import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiWifiClient
 import dev.openpolaris.core.domain.AstroWebUiWifiResult
 import dev.openpolaris.core.domain.AstroWebUiWifiUiState
+import dev.openpolaris.core.domain.AstroWebUiLinkClient
+import dev.openpolaris.core.domain.AstroWebUiLinkResult
+import dev.openpolaris.core.domain.AstroWebUiLinkUiState
 import dev.openpolaris.core.domain.AstroWebUiAlignRequest
 import dev.openpolaris.core.domain.AstroWebUiGotoRequest
 import dev.openpolaris.core.domain.AstroWebUiTargetClient
@@ -188,6 +191,7 @@ import dev.openpolaris.core.domain.createAstroWebUiFocalClient
 import dev.openpolaris.core.domain.createAstroWebUiLimitsClient
 import dev.openpolaris.core.domain.createAstroWebUiKeepWifiClient
 import dev.openpolaris.core.domain.createAstroWebUiWifiClient
+import dev.openpolaris.core.domain.createAstroWebUiLinkClient
 import dev.openpolaris.core.domain.createAstroWebUiTargetClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
@@ -336,6 +340,7 @@ class AppViewModel(
     private val astroWebUiLimitsClient: AstroWebUiLimitsClient = createAstroWebUiLimitsClient(),
     private val astroWebUiKeepWifiClient: AstroWebUiKeepWifiClient = createAstroWebUiKeepWifiClient(),
     private val astroWebUiWifiClient: AstroWebUiWifiClient = createAstroWebUiWifiClient(),
+    private val astroWebUiLinkClient: AstroWebUiLinkClient = createAstroWebUiLinkClient(),
     private val astroWebUiTargetClient: AstroWebUiTargetClient = createAstroWebUiTargetClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiSolveControlClient: AstroWebUiSolveControlClient = createAstroWebUiSolveControlClient(),
@@ -1872,6 +1877,9 @@ class AppViewModel(
         astroWebUiWifiJob?.cancel()
         astroWebUiWifiJob = null
         astroWebUiWifi = AstroWebUiWifiUiState.Idle
+        astroWebUiLinkJob?.cancel()
+        astroWebUiLinkJob = null
+        astroWebUiLink = AstroWebUiLinkUiState.Idle
         astroWebUiTargetJob?.cancel()
         astroWebUiTargetJob = null
         astroWebUiTarget = AstroWebUiTargetUiState.Idle
@@ -4264,6 +4272,8 @@ class AppViewModel(
         private set
     var astroWebUiWifi by mutableStateOf<AstroWebUiWifiUiState>(AstroWebUiWifiUiState.Idle)
         private set
+    var astroWebUiLink by mutableStateOf<AstroWebUiLinkUiState>(AstroWebUiLinkUiState.Idle)
+        private set
     var astroWebUiTarget by mutableStateOf<AstroWebUiTargetUiState>(AstroWebUiTargetUiState.Idle)
         private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
@@ -4304,6 +4314,7 @@ class AppViewModel(
     private var astroWebUiLimitsJob: Job? = null
     private var astroWebUiKeepWifiJob: Job? = null
     private var astroWebUiWifiJob: Job? = null
+    private var astroWebUiLinkJob: Job? = null
     private var astroWebUiTargetJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolveControlJob: Job? = null
@@ -4326,6 +4337,7 @@ class AppViewModel(
     private val astroWebUiLimitsReadMutex = Mutex()
     private val astroWebUiKeepWifiReadMutex = Mutex()
     private val astroWebUiWifiReadMutex = Mutex()
+    private val astroWebUiLinkReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4695,6 +4707,42 @@ class AppViewModel(
         astroWebUiWifiJob?.cancel()
         astroWebUiWifiJob = scope.launch {
             readAstroWebUiWifi(announce = true)
+        }
+    }
+
+    private suspend fun readAstroWebUiLink(announce: Boolean) {
+        astroWebUiLinkReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiLinkStatus")) {
+                astroWebUiLink = AstroWebUiLinkUiState.Failed("Astro WebUI link telemetry disabled by config")
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiLink = AstroWebUiLinkUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI link telemetry",
+                )
+                return@withLock
+            }
+            astroWebUiLink = AstroWebUiLinkUiState.Loading
+            val result = astroWebUiLinkClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiLinkResult.Success -> {
+                    astroWebUiLink = AstroWebUiLinkUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI control-link telemetry refreshed"
+                }
+                is AstroWebUiLinkResult.Failure -> {
+                    astroWebUiLink = AstroWebUiLinkUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiLink() {
+        astroWebUiLinkJob?.cancel()
+        astroWebUiLinkJob = scope.launch {
+            readAstroWebUiLink(announce = true)
         }
     }
 

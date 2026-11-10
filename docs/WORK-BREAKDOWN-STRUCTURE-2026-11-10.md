@@ -553,3 +553,13 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AppViewModelSessionMarkerTest covers a queued
   Demo SLOW STOP ALL followed by disconnect and proves no post-disconnect
   emergency/idle status is published. No live motion command was exercised.
+
+
+- **2026-11-10 - WBS-03.1/02.2 ACTIVE (queued fast-jog release):** fast-jog
+  press-release now retains its lease until the asynchronous stop settles.
+  Disconnect can therefore take ownership of a queued release and synchronously
+  close the physical-motion boundary; an old-session release cannot use a
+  replacement session or publish stale status.
+- **2026-11-10 - verification:** AppViewModelFastJogTest proves a queued Demo
+  fast-jog release followed by disconnect leaves both the shared supervisor and
+  fast-jog controller idle. No live motion command was exercised.

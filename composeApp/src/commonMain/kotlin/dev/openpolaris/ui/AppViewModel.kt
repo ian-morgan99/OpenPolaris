@@ -2499,11 +2499,29 @@ class AppViewModel(
 
     fun stopFastJog() {
         val lease = fastJogLease ?: return
-        fastJogLease = null
+        val motionSession = session
+        // Keep the lease visible until the asynchronous release has either
+        // settled or been taken over by disconnect(). Clearing it before the
+        // coroutine runs lets disconnect miss the physical stop boundary.
         fastJogJob?.cancel()
         fastJogJob = null
         scope.launch {
-            when (val result = fastJogController.release(lease)) {
+            // A queued release from an old session must not use the replacement
+            // session or publish a terminal status after disconnect.
+            if (motionSession == null ||
+                session !== motionSession ||
+                sessionTearingDown
+            ) {
+                return@launch
+            }
+            val result = fastJogController.release(lease)
+            if (session !== motionSession || sessionTearingDown) {
+                return@launch
+            }
+            if (fastJogLease == lease) {
+                fastJogLease = null
+            }
+            when (result) {
                 FastJogActionResult.Stopped -> statusMessage = "Fast jog stopped"
                 FastJogActionResult.Rejected -> statusMessage = "Fast jog stop rejected"
                 is FastJogActionResult.Unknown -> statusMessage = result.reason

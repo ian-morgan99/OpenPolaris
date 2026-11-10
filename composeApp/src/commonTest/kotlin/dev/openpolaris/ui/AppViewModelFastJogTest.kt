@@ -1,6 +1,7 @@
 package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.FastJogState
 import dev.openpolaris.core.domain.MotionOwner
 import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.protocol.Codes
@@ -63,6 +64,31 @@ class AppViewModelFastJogTest {
             runCurrent()
 
             assertEquals(MotionState.Idle, vm.motionState.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectOwnsQueuedFastJogRelease() = runTest {
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+        )
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            vm.startFastJog(Codes.GIMBAL_HADJ_SPEED)
+            runCurrent()
+            assertIs<MotionState.Owned>(vm.motionState.value)
+
+            vm.stopFastJog()
+            vm.disconnect()
+            runCurrent()
+
+            assertEquals(MotionState.Idle, vm.motionState.value)
+            assertEquals(FastJogState.Idle, vm.fastJogState.value)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

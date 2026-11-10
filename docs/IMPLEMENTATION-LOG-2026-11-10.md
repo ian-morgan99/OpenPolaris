@@ -783,3 +783,22 @@ Verification passed:
 
 Result: BUILD SUCCESSFUL; the session-marker suite passed, including the
 queued STOP ALL regression. No live motion command was exercised.
+
+
+### WBS-03.1/02.2 - Queued fast-jog release ownership
+
+Closed the fast-jog press-release teardown race. The UI no longer clears the
+fast-jog lease before its asynchronous release runs. The lease remains visible
+so disconnect can synchronously settle it if the user leaves the session before
+the queued release executes. The release also checks session ownership before
+using the transport and before publishing status, preventing an old-session
+release from acting on a replacement connection.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFastJogTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the fast-jog suite passed, including the queued
+release/disconnect regression. No live motion command was exercised.

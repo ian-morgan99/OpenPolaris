@@ -494,6 +494,13 @@ class AppViewModel(
     val previewState: StateFlow<PreviewController.State> get() = preview.state
     var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
         private set
+    // Derived locally from the same decoded frame that is rendered. This is
+    // presentation state only; it never implies camera focus or mount health.
+    var previewPixelAnalysis by mutableStateOf<PreviewPixelAnalysis?>(null)
+        private set
+    // Pixel reads can block on a GPU-backed bitmap, so analysis has its own
+    // cancellable job and never delays the control-socket owner.
+    private var previewAnalysisJob: Job? = null
     // Preview has one owner (the active Preview workflow). Keep a single
     // collector for that owner so reopening the pane cannot accumulate
     // duplicate frame decoders or competing transport lifecycles.
@@ -1335,8 +1342,11 @@ class AppViewModel(
         previewRequested = false
         previewFrameJob?.cancel()
         previewFrameJob = null
+        previewAnalysisJob?.cancel()
+        previewAnalysisJob = null
         runCatching { preview.stop() }
         previewFrame = null
+        previewPixelAnalysis = null
         endpointHealth = EndpointHealth.disconnected()
 
         session?.let { runBlocking { it.disconnect() } }
@@ -1446,6 +1456,9 @@ class AppViewModel(
         // belongs to this Preview workflow and must not outlive it.
         previewFrameJob?.cancel()
         previewFrameJob = null
+        previewAnalysisJob?.cancel()
+        previewAnalysisJob = null
+        previewPixelAnalysis = null
         try {
             preview.start(host, previewPort)
         } catch (e: Throwable) {
@@ -1466,6 +1479,9 @@ class AppViewModel(
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
                     previewFrame = null
+                    previewAnalysisJob?.cancel()
+                    previewAnalysisJob = null
+                    previewPixelAnalysis = null
                     return@collect
                 }
                 setPreviewHealth(EndpointService.REACHABLE)
@@ -1474,7 +1490,19 @@ class AppViewModel(
                 val decoded = withContext(Dispatchers.Default) {
                     runCatching { decodeJpegToImageBitmap(jpeg) }
                 }
-                decoded.getOrNull()?.let { previewFrame = it }
+                decoded.getOrNull()?.let { image ->
+                    previewFrame = image
+                    // Do not queue one pixel read per MJPEG frame. If an
+                    // analysis is still running, the next frame will be
+                    // offered after it completes and the displayed bitmap
+                    // remains independent of this optional presentation aid.
+                    if (previewAnalysisJob?.isActive != true) {
+                        previewAnalysisJob = scope.launch(Dispatchers.Default) {
+                            val result = runCatching { PreviewPixelAnalyzer.analyze(image) }.getOrNull()
+                            if (isActive) previewPixelAnalysis = result
+                        }
+                    }
+                }
             }
         }
 
@@ -1625,8 +1653,11 @@ class AppViewModel(
         previewRequested = false
         previewFrameJob?.cancel()
         previewFrameJob = null
+        previewAnalysisJob?.cancel()
+        previewAnalysisJob = null
         preview.stop()
         previewFrame = null
+        previewPixelAnalysis = null
     }
 
     private suspend fun suspendCaptureWorkloads() {
@@ -1642,8 +1673,11 @@ class AppViewModel(
         )
         previewFrameJob?.cancel()
         previewFrameJob = null
+        previewAnalysisJob?.cancel()
+        previewAnalysisJob = null
         preview.stop()
         previewFrame = null
+        previewPixelAnalysis = null
         if (restorePreviewAfterCapture) {
             // Best effort: the transport is already closed, so even a firmware
             // timeout cannot leave a second 8080 owner in this process.

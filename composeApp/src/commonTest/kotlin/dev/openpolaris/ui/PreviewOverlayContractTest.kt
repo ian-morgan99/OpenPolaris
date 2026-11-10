@@ -18,7 +18,9 @@ class PreviewOverlayContractTest {
         assertTrue("var framingGrid by remember" in source)
         assertTrue("var centreMark by remember" in source)
         assertTrue("Canvas(Modifier.fillMaxSize())" in source)
-        assertTrue("Framing overlays are local presentation aids" in source)
-        assertTrue("Histogram and focus peaking are not enabled" in source)
+        assertTrue("Framing overlays and pixel analysis are local presentation aids" in source)
+        assertTrue("Toggle preview histogram" in source)
+        assertTrue("Toggle preview focus peaking" in source)
+        assertTrue("do not alter camera or mount state" in source)
     }
 }

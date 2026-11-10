@@ -1202,6 +1202,7 @@ private fun StepperRow(
  * AppViewModel; this composable just renders whatever's latest.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     androidx.compose.runtime.DisposableEffect(vm) {
         vm.enterPreview()
@@ -1209,7 +1210,10 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
     var framingGrid by remember { mutableStateOf(false) }
     var centreMark by remember { mutableStateOf(false) }
+    var showHistogram by remember { mutableStateOf(false) }
+    var focusPeaking by remember { mutableStateOf(false) }
     val frame = vm.previewFrame
+    val analysis = vm.previewPixelAnalysis
     val state = vm.previewState
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1222,7 +1226,7 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    if (framingGrid || centreMark) {
+                    if (framingGrid || centreMark || (focusPeaking && analysis != null)) {
                         Canvas(Modifier.fillMaxSize()) {
                             val stroke = 1.dp.toPx()
                             val overlay = Color.White.copy(alpha = 0.75f)
@@ -1236,11 +1240,36 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                 drawLine(overlay, Offset(size.width / 2f - 12.dp.toPx(), size.height / 2f), Offset(size.width / 2f + 12.dp.toPx(), size.height / 2f), strokeWidth = stroke)
                                 drawLine(overlay, Offset(size.width / 2f, size.height / 2f - 12.dp.toPx()), Offset(size.width / 2f, size.height / 2f + 12.dp.toPx()), strokeWidth = stroke)
                             }
+                            if (focusPeaking) {
+                                analysis?.let { result ->
+                                    val radius = minOf(
+                                        size.width / (result.peakMapWidth * 3f),
+                                        size.height / (result.peakMapHeight * 3f),
+                                    ).coerceAtLeast(1f)
+                                    for (y in 0 until result.peakMapHeight) {
+                                        for (x in 0 until result.peakMapWidth) {
+                                            if (result.peakMap[y * result.peakMapWidth + x]) {
+                                                drawCircle(
+                                                    color = Color.Red.copy(alpha = 0.85f),
+                                                    radius = radius,
+                                                    center = Offset(
+                                                        size.width * (x + 0.5f) / result.peakMapWidth,
+                                                        size.height * (y + 0.5f) / result.peakMapHeight,
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 FilterChip(
                     selected = framingGrid,
                     onClick = { framingGrid = !framingGrid },
@@ -1251,16 +1280,59 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     onClick = { centreMark = !centreMark },
                     label = { Text("Centre") },
                 )
+                FilterChip(
+                    selected = showHistogram,
+                    onClick = { showHistogram = !showHistogram },
+                    label = { Text("Histogram") },
+                    modifier = Modifier.semantics { contentDescription = "Toggle preview histogram" },
+                )
+                FilterChip(
+                    selected = focusPeaking,
+                    onClick = { focusPeaking = !focusPeaking },
+                    label = { Text("Focus peaks") },
+                    modifier = Modifier.semantics { contentDescription = "Toggle preview focus peaking" },
+                )
             }
             Text(
-                "Framing overlays are local presentation aids and do not alter camera or mount state.",
+                "Framing overlays and pixel analysis are local presentation aids; they do not alter camera or mount state.",
                 style = MaterialTheme.typography.labelSmall,
             )
-            Text(
-                "Histogram and focus peaking are not enabled until the pixel-analysis pipeline is qualified.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (showHistogram) {
+                if (analysis == null) {
+                    Text(
+                        "Histogram waiting for a decoded preview frame…",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val histogramColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        Canvas(Modifier.fillMaxWidth().height(72.dp)) {
+                            val maximum = analysis.histogramMax.coerceAtLeast(1)
+                            val barWidth = size.width / analysis.histogram.size
+                            analysis.histogram.forEachIndexed { index, count ->
+                                val barHeight = size.height * count / maximum
+                                drawRect(
+                                    color = histogramColor,
+                                    topLeft = Offset(index * barWidth, size.height - barHeight),
+                                    size = androidx.compose.ui.geometry.Size((barWidth - 1f).coerceAtLeast(1f), barHeight),
+                                )
+                            }
+                        }
+                        Text(
+                            "Mean luminance ${analysis.meanLuma.toInt()}/255 · focus edges ${(analysis.peakFraction * 100f).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+            if (focusPeaking && analysis == null) {
+                Text(
+                    "Focus peaking waiting for a decoded preview frame…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             when {
                 frame == null -> when {
                 // 3h-BUG: `state` is a StateFlow, not a State. The previous

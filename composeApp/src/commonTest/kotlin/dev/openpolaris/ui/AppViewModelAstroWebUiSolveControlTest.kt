@@ -10,6 +10,7 @@ import dev.openpolaris.core.domain.AstroWebUiSolveResult
 import dev.openpolaris.core.domain.AstroWebUiSolveState
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -17,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelAstroWebUiSolveControlTest {
     private class NoopConnection : Connection {
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit

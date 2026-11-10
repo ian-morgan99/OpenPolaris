@@ -1,5 +1,37 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+
+private object AstroWebUiCaptureAckParser {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = false
+        coerceInputValues = false
+    }
+
+    /**
+     * /api/link/send acknowledges a queued bridge write. Require a parsed JSON
+     * object, a real boolean true and the exact 264 command; substring checks
+     * could accept a malformed response or a command such as 2640.
+     */
+    fun isPositive(body: ByteArray): Boolean {
+        if (body.size.toLong() > ASTRO_CAPTURE_ACK_MAX_BYTES) return false
+        return runCatching {
+            val root = json.parseToJsonElement(body.decodeToString()) as? JsonObject
+                ?: return@runCatching false
+            val ok = (root["ok"] as? JsonPrimitive)?.let {
+                !it.isString && it.content == "true"
+            } ?: false
+            val command = (root["cmd"] as? JsonPrimitive)?.let {
+                !it.isString && it.content.toIntOrNull() == AstroCaptureContract.CAPTURE_CODE
+            } ?: false
+            ok && command
+        }.getOrDefault(false)
+    }
+}
+
 /** Result of the resident Astro WebUI link bridge, not of the camera. */
 sealed interface AstroWebUiCaptureResult {
     /** The HTTP bridge accepted one 264 write; lifecycle/file evidence is still pending. */
@@ -67,8 +99,7 @@ class AstroWebUiCaptureClient(
         if (response.statusCode !in 200..299) {
             return AstroWebUiCaptureResult.Failed("Astro WebUI link/send HTTP ${response.statusCode}")
         }
-        val body = response.body.decodeToString()
-        if (!body.contains("\"ok\":true") || !body.contains("\"cmd\":264")) {
+        if (!AstroWebUiCaptureAckParser.isPositive(response.body)) {
             return AstroWebUiCaptureResult.Failed("Astro WebUI did not acknowledge the 264 write")
         }
         return AstroWebUiCaptureResult.Queued(mode, AstroCaptureContract.CAPTURE_CODE)
@@ -91,8 +122,7 @@ class AstroWebUiCaptureClient(
         if (response.statusCode !in 200..299) {
             return AstroWebUiCaptureResult.Failed("Astro WebUI link/send HTTP ${response.statusCode}")
         }
-        val body = response.body.decodeToString()
-        if (!body.contains("\"ok\":true") || !body.contains("\"cmd\":264")) {
+        if (!AstroWebUiCaptureAckParser.isPositive(response.body)) {
             return AstroWebUiCaptureResult.Failed("Astro WebUI did not acknowledge the 264 stop write")
         }
         return AstroWebUiCaptureResult.Stopped(AstroCaptureContract.CAPTURE_CODE)

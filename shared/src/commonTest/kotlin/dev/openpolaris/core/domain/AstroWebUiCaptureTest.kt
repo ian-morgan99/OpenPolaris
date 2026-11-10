@@ -72,6 +72,42 @@ class AstroWebUiCaptureTest {
     }
 
     @Test
+    fun acknowledgementRequiresTypedBooleanAndExactCommand() = runTest {
+        val malformedBodies = listOf(
+            "{\"ok\":\"true\",\"cmd\":264}",
+            "{\"ok\":true,\"cmd\":2640}",
+            "{\"ok\":true}",
+            "not-json",
+        )
+        malformedBodies.forEach { body ->
+            val transport = RecordingTransport(
+                AstroWebUiHttpResponse(200, "application/json", body.encodeToByteArray()),
+            )
+            val result = AstroWebUiCaptureClient(transport).dispatch(
+                "192.168.0.1",
+                8080,
+                CameraReleaseMode.MANUAL,
+            )
+            assertIs<AstroWebUiCaptureResult.Failed>(result)
+        }
+    }
+
+    @Test
+    fun oversizedAcknowledgementIsRejectedBeforeItCanQueueCapture() = runTest {
+        val body = "{\"ok\":true,\"cmd\":264}" +
+            " ".repeat(ASTRO_CAPTURE_ACK_MAX_BYTES.toInt())
+        val transport = RecordingTransport(
+            AstroWebUiHttpResponse(200, "application/json", body.encodeToByteArray()),
+        )
+        val result = AstroWebUiCaptureClient(transport).dispatch(
+            "192.168.0.1",
+            8080,
+            CameraReleaseMode.MANUAL,
+        )
+        assertIs<AstroWebUiCaptureResult.Failed>(result)
+    }
+
+    @Test
     fun bridgeFailureIsNotRetriedOrReportedAsCaptureCompletion() = runTest {
         val transport = RecordingTransport(
             AstroWebUiHttpResponse(503, "application/json", "{\"ok\":false}".encodeToByteArray()),

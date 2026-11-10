@@ -22,6 +22,18 @@ class SlowMotionDemoControllerTest {
     }
 
     @Test
+    fun tickAdvancesTheLogicalSchedulerWithoutChangingTheSelectedAxis() {
+        val controller = SlowMotionDemoController()
+        controller.start(RateAxis.M1_PAN, direction = 1, level = 2, nowMs = 0L)
+
+        val later = controller.tick(nowMs = 150L)
+
+        assertTrue(later.running)
+        assertEquals(RateAxis.M1_PAN, later.axis)
+        assertTrue(later.lastEvents.any { it.axis == RateAxis.M1_PAN && it.kind == SlowScheduleKind.SLOW })
+    }
+
+    @Test
     fun stopEmitsOneLogicalStopAndClearsRunningState() {
         val controller = SlowMotionDemoController()
         controller.start(RateAxis.M2_TILT, direction = 1, level = 1, nowMs = 0L)

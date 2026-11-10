@@ -515,6 +515,12 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
+    LaunchedEffect(vm.demoMode, vm.slowMotionDemoState.running) {
+        while (vm.demoMode && vm.slowMotionDemoState.running) {
+            delay(50L)
+            vm.demoSlowMotionTick()
+        }
+    }
 
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -534,7 +540,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     if (demoControlsEnabled) "Motion state: Demo ${vm.slowMotionDemoState.label}" else "Motion state: Unavailable",
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Text(if (demoControlsEnabled) "No physical transport" else connectionText, style = MaterialTheme.typography.bodySmall)
+                Text(if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions" else connectionText, style = MaterialTheme.typography.bodySmall)
             }
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)

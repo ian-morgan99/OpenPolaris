@@ -75,7 +75,10 @@ class SlowMotionDemoController(
         _state.value = SlowMotionDemoSnapshot()
     }
 
-    private fun plannerRate(level: Int): Double = calibration.levels.getValue(level).stateTwoRate
+    private fun plannerRate(level: Int): Double {
+        val rung = calibration.levels.getValue(level)
+        return (rung.stateOneRate + rung.stateTwoRate) / 2.0
+    }
 
     private fun publish(snapshot: SlowMotionDemoSnapshot): SlowMotionDemoSnapshot {
         _state.value = snapshot

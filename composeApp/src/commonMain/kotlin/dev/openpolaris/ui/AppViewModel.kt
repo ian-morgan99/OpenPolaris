@@ -1865,6 +1865,12 @@ class AppViewModel(
         statusMessage = "Demo slow motion: ${snapshot.label} (${snapshot.lastEvents.size} logical transitions; no hardware command)"
     }
 
+    /** Advance the logical Demo scheduler; this never touches MountSession. */
+    fun demoSlowMotionTick() {
+        if (!demoMode || !demoSlowMotion.state.value.running) return
+        slowMotionDemoState = demoSlowMotion.tick(SystemMillis.now().coerceAtLeast(0L))
+    }
+
     /** Stop the logical Demo-mode SLOW session; this is not a live stop path. */
     fun demoSlowMotionStop() {
         if (!demoMode) {

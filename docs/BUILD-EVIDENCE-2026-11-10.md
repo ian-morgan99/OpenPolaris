@@ -1586,3 +1586,31 @@ Artifacts:
   SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
 
 The build proves package/host behavior only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - cfe7290
+
+Commit under test: cfe7290 (fix: keep camera readback inside session).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCameraRefreshOwnershipTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --tests dev.openpolaris.ui.AppViewModelSessionLifecycleTest --tests dev.openpolaris.ui.MotionSafetyChromeContractTest --tests dev.openpolaris.ui.AppViewModelQualifiedSlowMotionTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: e9b7867f089d280cc3fd53f7313c2354293717566311a76e502e82c3e10a7626
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-cfe7290.tar.gz
+  SHA-256: 13c04c1063c7c056ebc1d0154cf467436ed54e6588e6844a8a2382a65ab08745
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+No live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

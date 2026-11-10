@@ -748,3 +748,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-05.2/09.1 ACTIVE (mobile compass rehearsal):** added an optional Android rotation-vector compass source and Mission controls to read a local heading, display it and copy it into the manual Astro alignment field. The source is lifecycle-stopped, desktop remains manual-entry only, and no sensor reading can send a mount command; compass alignment remains behind its existing default-off qualification gate.
 - **2026-11-10 - verification:** Compose JVM tests, Compose JVM compilation and Android debug Kotlin compilation passed. No physical sensor accuracy, magnetic interference, alignment or mount operation was qualified.
+
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW rehearsal calibration UX):** added a visible, test-tagged host-reference calibration card for the selected SLOW level and explicit held/released button semantics with button roles. The card labels state-1/state-2 rates as planner rehearsal data, never as live promises; the hard-coded live transport gate and no-wire boundary remain unchanged.

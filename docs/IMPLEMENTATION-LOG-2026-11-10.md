@@ -1147,3 +1147,7 @@ exercised.
 
 - **2026-11-10 - WBS-05.2/09.1 ACTIVE (mobile compass rehearsal):** implemented a lifecycle-stable Android rotation-vector source injected through the common app shell. Mission exposes Read phone compass and Use reading actions while preserving manual input, local-only state and the default-off Astro alignment write gate; desktop has an explicit unavailable/manual path.
 - **2026-11-10 - verification:** Compose JVM tests, Compose JVM compilation and Android debug Kotlin compilation passed. No physical compass accuracy or mount alignment was exercised.
+
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW rehearsal calibration UX):** the Motion surface now shows the selected host reference level, its two source-aligned planner rungs and an explicit warning that these values are not a live degrees-per-second contract. Hold controls now expose a button role plus Held/Released state to keyboard and accessibility clients. No live transport, 532/533/534 frame or AC 4A path was enabled.
+- **2026-11-10 - verification:** focused Compose compilation and `SlowMotionPaneSafetyContractTest` passed; the full cross-platform build passed on rerun after one isolated timing-sensitive `SessionShutdownLeakTest` failure at cycle 3. No physical SLOW qualification was exercised.

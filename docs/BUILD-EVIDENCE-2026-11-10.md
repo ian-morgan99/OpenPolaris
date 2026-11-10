@@ -1158,3 +1158,33 @@ Artifacts:
   SHA-256: a3cf9792be46d2ede74a42df303e8b8c5cf16c4f5e1efbfa676e5b2ba789f452
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No physical compass accuracy, live Astro WebUI, alignment, Bluetooth, bridge, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.
+
+
+## Latest committed verification - 6295c46
+
+Commit under test: 6295c46 (feat: clarify slow motion rehearsal UX).
+
+Focused verification:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL; Compose JVM compilation and the SLOW safety contract test passed.
+
+Full build:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+The first full run had one timing-sensitive `SessionShutdownLeakTest` failure at cycle 3. The test passed in an isolated rerun, and the complete command then passed: 817 shared tests, Compose JVM tests, Android debug compilation/APK assembly and Linux x64 desktop distributable creation.
+
+Artifacts:
+
+- Android debug APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+  SHA-256: `8e83d85d2e21f7bae0d3e20386a4dcea0d66a6d07d48db49857a8e7cdf6fc2a9`
+- Linux x64 desktop archive: `/tmp/OpenPolaris-linux-x64-6295c46.tar.gz`
+  SHA-256: `440b55418b5bd49a8564992ef551e331abf1880cdfdf034215e6e80aefe7aeae`
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known `libandroidx.graphics.path.so` strip warning and Gradle 9 deprecation notices. The build proves host/package integrity only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

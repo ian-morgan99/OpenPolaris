@@ -1257,3 +1257,15 @@ Commit a101008 adds a read-only readiness checklist to the shared Motion pane. T
 - field rotation within five degrees, currently shown as missing because the app has no rotation-bearing solve evidence.
 
 Solve age is refreshed once per second while evidence is present. The card explicitly says the live rate transport is disabled and that the thresholds are policy defaults rather than hardware qualification. No control path was enabled.
+
+
+### WBS-04.3/06.1/09.1 — Unknown capture outcome UX
+
+Commit d9c8a4f closes a retry affordance gap in the Camera workspace. When the shared capture lifecycle reaches OutcomeUnknown, every new release surface is disabled:
+
+- ordinary M capture;
+- native Bulb capture;
+- feature-gated Astro WebUI M/B capture;
+- new client-driven intervalometer sequences.
+
+The UI labels the result as unknown, tells the operator not to retry the shutter, and directs inspection of the camera/card followed by reconnect. This preserves the asynchronous Benro Connect lifecycle contract: HTTP or command acceptance is not completion, and missing lifecycle/file evidence is never silently retriggered.

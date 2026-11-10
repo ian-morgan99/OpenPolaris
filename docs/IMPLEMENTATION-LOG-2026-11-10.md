@@ -1465,3 +1465,19 @@ The focused and full cross-platform verification passed. Android debug APK
 SHA-256: `10fdcec832532381104aa0487313fc198374f12e67886cb04d195656ffde16c9`.
 This is source/package evidence; an installed-phone screenshot and UI dump are
 still required to confirm that the shipped device scale is usable.
+
+### WBS-02.1/09.1 - Adaptive pose polling for camera-busy mounts
+
+Commit `9b51779` completes the next part of issue #89. The existing concurrent
+284/517 requests and 800 ms per-request timeout are retained. Idle, non-tracking
+mounts now use a 2 s pose-pair cadence (about one request per second total),
+while tracking, GoTo and any shared motion owner return to the 1 Hz cadence.
+This reduces camera/PTP contention without making active motion readouts less
+responsive.
+
+`PosePollPolicyTest` covers idle, tracking, owned-motion, GoTo and ViewModel
+wiring cases. The full shared/Compose JVM, Android compilation/assembly,
+merged asset verification and desktop packaging passed. Android debug APK
+SHA-256: `abbb71080c4deff5f9c8c8e14d54ba4a9fcdb9305e84ec4327f32306a5c93149`.
+This is simulator/package evidence; no live camera, mount or hardware latency
+measurement was performed.

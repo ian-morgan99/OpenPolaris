@@ -2592,3 +2592,28 @@ The run included the real merged debug/release asset verification. Android debug
 The compact boundary is source/package verified. No installed-phone screenshot/UI
 dump, mount, camera, Bluetooth, Astro WebUI or physical SLOW qualification was
 performed.
+
+## Latest committed verification - 9b51779
+
+Commit under test: `9b51779` (perf: adapt pose polling cadence).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.PosePollPolicyTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+The run included the real merged debug/release asset verification. Android debug APK:
+
+- `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+- SHA-256: `abbb71080c4deff5f9c8c8e14d54ba4a9fcdb9305e84ec4327f32306a5c93149`
+
+No live camera, mount, Bluetooth, Astro WebUI or physical SLOW qualification
+was performed.

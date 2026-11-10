@@ -45,6 +45,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import dev.openpolaris.core.domain.EndpointService
+import dev.openpolaris.core.domain.MissionReadiness
+import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.domain.DeliveryMode
 import kotlinx.coroutines.launch
@@ -298,6 +301,59 @@ fun PasswordDialog(
 // StatusPane was removed in v0.1.5: it was unreachable from the surface tree
 // (grep confirmed zero callers), and the same status info is now always
 // visible via the StatusStrip / PositionReadout chrome in OpenPolarisApp.
+
+/**
+ * Full Mission readiness sheet opened from the always-visible status strip.
+ * It is deliberately read-only: each row explains the evidence currently
+ * known and the next safe action, but does not silently start a connection,
+ * capture or motion owner.
+ */
+@Composable
+fun MissionDashboardPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val endpoint = vm.endpointHealth
+    val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
+        vm.capturePhase is AppViewModel.CapturePhase.Busy
+    val cards = MissionReadiness.evaluate(
+        MissionReadinessInput(
+            control = endpoint.control,
+            mountConnected = vm.mount.connected,
+            cameraAttached = vm.cameraAttachment?.isAttached,
+            preview = endpoint.preview,
+            storageReady = vm.sdStatus?.present,
+            alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
+            tracking = vm.mount.tracking,
+            captureInProgress = captureInProgress,
+        ),
+    )
+    Card(modifier = modifier.padding(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Mission readiness", style = MaterialTheme.typography.titleMedium)
+            endpoint.profile?.let { profile ->
+                Text(
+                    "${profile.label} · ${profile.address.host}:${profile.address.controlPort} · ${endpoint.phase}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } ?: Text("No endpoint selected", style = MaterialTheme.typography.bodySmall)
+            HorizontalDivider()
+            cards.forEach { card ->
+                val color = when (card.level) {
+                    dev.openpolaris.core.domain.ReadinessLevel.READY -> MaterialTheme.colorScheme.primary
+                    dev.openpolaris.core.domain.ReadinessLevel.BLOCKED -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "${card.label} · ${card.level.name.lowercase()}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = color,
+                    )
+                    Text(card.summary, style = MaterialTheme.typography.bodySmall)
+                    card.actionLabel?.let { Text("Next: $it", style = MaterialTheme.typography.labelSmall) }
+                }
+            }
+        }
+    }
+}
 
 /** Position + jog pane. */
 @Composable

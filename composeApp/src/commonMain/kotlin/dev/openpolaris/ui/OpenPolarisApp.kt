@@ -134,6 +134,7 @@ fun OpenPolarisApp(
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
+    var missionOpen by remember { mutableStateOf(false) }
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
     // Compact *height* (typically 360 dp) which can't host a full 9-item
     // rail without the items being shrunk to glyph-sized labels — exactly
@@ -152,7 +153,7 @@ fun OpenPolarisApp(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusStrip(vm, Modifier.fillMaxWidth())
+                        StatusStrip(vm, Modifier.fillMaxWidth(), onOpenDetails = { missionOpen = true })
                         PositionReadout(vm, Modifier.fillMaxWidth())
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             JogPane(vm, Modifier.width(260.dp))
@@ -162,7 +163,7 @@ fun OpenPolarisApp(
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusStrip(vm, Modifier.fillMaxWidth())
+                    StatusStrip(vm, Modifier.fillMaxWidth(), onOpenDetails = { missionOpen = true })
                     PositionReadout(vm, Modifier.fillMaxWidth())
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         // Wider dial on Medium-height viewports so the jog
@@ -216,6 +217,12 @@ fun OpenPolarisApp(
                     FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
                 }
                 null -> {}
+            }
+
+            if (missionOpen) {
+                CalloutDialog("Mission readiness", { missionOpen = false }) {
+                    MissionDashboardPane(vm, Modifier.fillMaxWidth())
+                }
             }
 
             // 3c.4: surface the "Reconnect to last mount?" prompt whenever the
@@ -350,7 +357,11 @@ private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
 
 /** Compact always-visible status line. */
 @Composable
-private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
+private fun StatusStrip(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    onOpenDetails: (() -> Unit)? = null,
+) {
     val s = vm.mount
     val endpoint = vm.endpointHealth
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
@@ -375,6 +386,9 @@ private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                onOpenDetails?.let { open ->
+                    TextButton(onClick = open) { Text("Details") }
+                }
                 Text(
                     buildString {
                         append(s.batteryPercent?.toString() ?: "—")

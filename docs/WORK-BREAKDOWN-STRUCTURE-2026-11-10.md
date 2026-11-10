@@ -301,4 +301,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused FastJogController tests passed for single ownership, repeat pacing, expiry, release ordering, invalid input and no-retry after ambiguity.
 - **2026-11-10 — WBS-01.2 ACTIVE (parity complete for current signals):** extended the readiness model and summary to cover connection, mount, camera, preview, storage, alignment, tracking, capture and motion ownership with separate unknown/blocked/attention states.
 - **2026-11-10 — verification:** focused MissionReadiness and mobile-layout tests passed after adding storage/alignment boundaries.
-- **Next:** expand the summary into the adaptive Mission destination and add explicit session ownership/readiness controls for connection, camera and preview.
+- **2026-11-10 — WBS-01.1/01.3 ACTIVE (transitional shell):** added a touch/mouse/keyboard-accessible Mission details sheet from the persistent status strip, with endpoint identity, phase and all readiness rows; existing responsive callout navigation remains intact while the adaptive shell is expanded.
+- **2026-11-10 — verification:** Compose JVM suite passed after the Mission details integration.
+- **Next:** add explicit session ownership/readiness controls for connection, camera and preview, then begin the camera workspace parity pass.

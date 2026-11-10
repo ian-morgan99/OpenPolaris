@@ -34,7 +34,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,6 +112,7 @@ import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
 import dev.openpolaris.core.domain.AstroWebUiHdrParameters
 import dev.openpolaris.core.domain.AstroWebUiFocusParameters
 import dev.openpolaris.core.domain.SlowMotionCapabilities
+import dev.openpolaris.core.domain.SlowMotionCalibration
 import dev.openpolaris.core.domain.SupportBundleExportState
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
@@ -2548,6 +2552,23 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Level " + selectedLevel + " is a calibration step, not a degrees-per-second promise. The planner selects adjacent measured points and time-shares them; state 0 is STOP, never a running point.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            val selectedCalibration = SlowMotionCalibration.REFERENCE.levels.getValue(selectedLevel)
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("slow-motion-calibration"),
+            ) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Host reference calibration", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Level $selectedLevel: state 1 ${selectedCalibration.stateOneRate}°/s · state 2 ${selectedCalibration.stateTwoRate}°/s",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        "Reference values are for planner rehearsal only. They are not a live target rate and must be replaced by exact-firmware measurements before hardware use.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             Text("Rotation rocker · M3", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2656,6 +2677,8 @@ private fun SlowDemoHoldButton(
         }
         .semantics {
             contentDescription = "$label. Hold to move; release to stop."
+            stateDescription = if (holdActive) "Held" else "Released"
+            role = Role.Button
         }
         .focusable(enabled)
     Button(

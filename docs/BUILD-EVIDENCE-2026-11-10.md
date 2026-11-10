@@ -2566,3 +2566,29 @@ trees. Android debug APK SHA-256 remains:
 
 The local machine cannot perform signed `assembleRelease` without the CI
 keystore; release signing and upload are verified by the next GitHub run.
+
+## Latest committed verification - e36c9a9
+
+Commit under test: `e36c9a9` (fix: compact phone visual density).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+The run included the real merged debug/release asset verification. Android debug APK:
+
+- `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+- SHA-256: `10fdcec832532381104aa0487313fc198374f12e67886cb04d195656ffde16c9`
+
+The compact boundary is source/package verified. No installed-phone screenshot/UI
+dump, mount, camera, Bluetooth, Astro WebUI or physical SLOW qualification was
+performed.

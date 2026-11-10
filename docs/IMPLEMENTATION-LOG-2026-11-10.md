@@ -1450,3 +1450,18 @@ merged-assets verification finalizer.
 The corrected local matrix passed, including the previously failing
 `generateReleaseLintVitalReportModel`; the local machine has no release
 keystore, so signed release assembly remains CI-owned.
+
+### WBS-01.3/09.1 - Compact phone visual density
+
+Commit `e36c9a9` adds a phone-only compact visual-density boundary instead of
+shrinking the desktop experience. Compact typography reduces title, body and
+label growth; jog symbols and navigation labels inherit the smaller label scale.
+Responsive card outer padding, inner padding and section spacing are applied
+across the shared mission, control, SLOW, camera, gallery, firmware, guide,
+Tonight and settings surfaces. The existing 48 dp phone navigation row and
+touch semantics remain intact.
+
+The focused and full cross-platform verification passed. Android debug APK
+SHA-256: `10fdcec832532381104aa0487313fc198374f12e67886cb04d195656ffde16c9`.
+This is source/package evidence; an installed-phone screenshot and UI dump are
+still required to confirm that the shipped device scale is usable.

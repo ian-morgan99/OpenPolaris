@@ -3383,6 +3383,36 @@ fun CameraPane(
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
+                "Auxiliary source readback: ${vm.cameraAuxiliaryReadbackAgeText}. These values are read-only evidence; writes remain separately gated.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedButton(
+                onClick = vm::refreshCameraAuxiliary,
+                enabled = vm.demoMode || attachment?.isAttached == true,
+                modifier = Modifier.testTag("camera-auxiliary-readback"),
+            ) {
+                Text("Read auxiliary camera state")
+            }
+            val auxiliary = vm.cameraAuxiliaryReadback
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "Image format: " + cameraParamReadbackText(auxiliary.imageFormat),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                    "Control mode: " + cameraParamReadbackText(auxiliary.controlMode),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                    "Exposure time: " + cameraParamReadbackText(auxiliary.exposureTime),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                    "Interval type: " + cameraParamReadbackText(auxiliary.intervalType),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            Text(
                 "Release mode: ${releaseMode.label}${shutterLabel?.let { " ($it)" } ?: ""}",
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -3902,6 +3932,16 @@ private fun IntervalometerSection(vm: AppViewModel) {
             color = MaterialTheme.colorScheme.error,
         )
     }
+}
+
+private fun cameraParamReadbackText(
+    result: CameraController.CameraParamResult?,
+): String = when {
+    result == null -> "not read"
+    result.value != null -> result.value ?: "no value"
+    result.error != null -> result.error ?: "unknown error"
+    result.raw != null -> result.raw ?: "unknown"
+    else -> "no value"
 }
 
 @Composable

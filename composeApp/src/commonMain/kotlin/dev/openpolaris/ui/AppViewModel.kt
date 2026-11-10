@@ -951,6 +951,10 @@ class AppViewModel(
     // Dynamic INFO reads are session-owned so a late camera read cannot
     // repopulate a replacement mount session after disconnect/reconnect.
     private var cameraRefreshJob: Job? = null
+    // Explicit source-aligned task-3 camera reads are separate from the
+    // dynamic index registry so an unavailable auxiliary route cannot erase
+    // the primary exposure options.
+    private var cameraAuxiliaryRefreshJob: Job? = null
     // #60: bounded watchdog for an in-flight capture. Started by [capture],
     // cancelled when the capture-event observer correlates a lifecycle + file
     // event (shot done) or when the phase reaches a terminal state. If it
@@ -1956,6 +1960,8 @@ class AppViewModel(
         cameraAttachmentPollJob?.cancel()
         cameraRefreshJob?.cancel()
         cameraRefreshJob = null
+        cameraAuxiliaryRefreshJob?.cancel()
+        cameraAuxiliaryRefreshJob = null
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
@@ -2038,6 +2044,8 @@ class AppViewModel(
         cameraAttachment = null
         cameraReadbackAtMs = null
         cameraReadbackStatuses = emptyMap()
+        cameraAuxiliaryReadback = CameraAuxiliaryReadback()
+        cameraAuxiliaryReadbackAtMs = null
         focusStatus = null
         videoRecording = null
         deviceInfo = null
@@ -4046,6 +4054,25 @@ class AppViewModel(
     var cameraReadbackStatuses by mutableStateOf<Map<String, CameraController.InfoStatus>>(emptyMap())
         private set
 
+    data class CameraAuxiliaryReadback(
+        val imageFormat: CameraController.CameraParamResult? = null,
+        val controlMode: CameraController.CameraParamResult? = null,
+        val exposureTime: CameraController.CameraParamResult? = null,
+        val intervalType: CameraController.CameraParamResult? = null,
+    )
+
+    var cameraAuxiliaryReadback by mutableStateOf(CameraAuxiliaryReadback())
+        private set
+
+    var cameraAuxiliaryReadbackAtMs by mutableStateOf<Long?>(null)
+        private set
+
+    val cameraAuxiliaryReadbackAgeText: String
+        get() = cameraAuxiliaryReadbackAtMs?.let {
+            val ageSeconds = (nowMs() - it).coerceAtLeast(0L) / 1_000L
+            if (ageSeconds == 0L) "just now" else "${ageSeconds}s ago"
+        } ?: "not read"
+
     var focusStatus by mutableStateOf<String?>(null)
         private set
     var videoRecording by mutableStateOf<Boolean?>(null)
@@ -4437,6 +4464,48 @@ class AppViewModel(
                 "Demo camera readback ready: " + shutter.raw.ifBlank { "unknown" }
             } else {
                 readings.joinToString(" | ")
+            }
+        }
+    }
+
+    /**
+     * Read the source-aligned task-3 camera values without enabling any write.
+     * These routes are intentionally explicit because some firmware exposes
+     * only the primary INFO registry; a missing auxiliary response is shown as
+     * unavailable and never replaces the primary camera readback.
+     */
+    fun refreshCameraAuxiliary() {
+        val ownerSession = session
+        val ownerController = cameraController
+        if (ownerController == null || ownerSession == null) {
+            statusMessage = "Not connected"
+            return
+        }
+        if (!FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
+            statusMessage = "Enable Camera qualification mode in Settings first"
+            return
+        }
+        if (cameraAuxiliaryRefreshJob?.isActive == true) {
+            statusMessage = "Auxiliary camera readback already in progress"
+            return
+        }
+        cameraAuxiliaryRefreshJob = scope.launch {
+            val imageFormat = ownerController.queryImageFormat()
+            val controlMode = ownerController.queryControlMode()
+            val exposureTime = ownerController.queryExposureTime()
+            val intervalType = ownerController.queryIntervalType()
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            cameraAuxiliaryReadback = CameraAuxiliaryReadback(
+                imageFormat = imageFormat,
+                controlMode = controlMode,
+                exposureTime = exposureTime,
+                intervalType = intervalType,
+            )
+            cameraAuxiliaryReadbackAtMs = nowMs().coerceAtLeast(0L)
+            statusMessage = if (demoMode) {
+                "Demo auxiliary camera readback ready"
+            } else {
+                "Auxiliary camera readback complete"
             }
         }
     }

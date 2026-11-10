@@ -35,6 +35,10 @@ class AppViewModelCameraRefreshOwnershipTest {
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&286&") ->
                     "1&286&2&manufacturer:Pentax;model:K-3 III;state:1;storage:128;photoFormat:1;#"
+                wire.startsWith("1&282&") -> "1&282&4&format:RAW;#"
+                wire.startsWith("1&296&") -> "1&296&2&mode:1;#"
+                wire.startsWith("1&298&") -> "1&298&2&ExTime:1250;#"
+                wire.startsWith("1&306&") -> "1&306&2&type:1;#"
                 else -> null
             }
             response?.let { responses.trySend(it.encodeToByteArray()) }
@@ -70,6 +74,34 @@ class AppViewModelCameraRefreshOwnershipTest {
             scope.coroutineContext[TestCoroutineScheduler],
         ),
     )
+
+    @Test
+    fun auxiliaryReadbackUsesExplicitSourceAlignedQueries() = runTest(UnconfinedTestDispatcher()) {
+        FeatureFlags.reset()
+        FeatureFlags.enable("experimentalCamera")
+        val connection = FakeConnection()
+        val vm = vm(this, connection)
+        try {
+            vm.connect()
+            runCurrent()
+
+            vm.refreshCameraAuxiliary()
+            runCurrent()
+
+            assertEquals("RAW", vm.cameraAuxiliaryReadback.imageFormat?.value)
+            assertEquals("1", vm.cameraAuxiliaryReadback.controlMode?.value)
+            assertEquals("1250", vm.cameraAuxiliaryReadback.exposureTime?.value)
+            assertEquals("1&306&2&#", connection.written.last())
+            assertTrue(connection.count(282) > 0)
+            assertTrue(connection.count(296) > 0)
+            assertTrue(connection.count(298) > 0)
+            assertTrue(connection.count(306) > 0)
+        } finally {
+            FeatureFlags.reset()
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
 
     @Test
     fun disconnectCancelsDynamicReadbackBeforeItCanPublish() = runTest(UnconfinedTestDispatcher()) {

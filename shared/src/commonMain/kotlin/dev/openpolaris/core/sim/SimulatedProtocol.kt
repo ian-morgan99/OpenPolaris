@@ -48,6 +48,9 @@ class SimulatedProtocol {
     var shutterIndex = 0
     var captureModeIndex = 0
     var liveview = false
+    var cameraControlMode = 1
+    var cameraExposureTime = 1250
+    var cameraIntervalType = 1
 
     // ---- misc knobs -----------------------------------------------------------
     var tiltState = 0
@@ -494,9 +497,22 @@ class SimulatedProtocol {
                 "1&${Codes.GET_TEMPERATURE}&2&Tempa$temperatureHex ;#"
             )
             Codes.SYS_FORMAT -> {
-                val fmt = fields["format"]?.toIntOrNull() ?: 0
-                out += response("1&${Codes.SYS_FORMAT}&2&format:$fmt;ret:0;#")
+                if (subtype == 4) {
+                    out += response("1&${Codes.BenroCamera.GET_IMG_FORMAT}&4&format:RAW;#")
+                } else {
+                    val fmt = fields["format"]?.toIntOrNull() ?: 0
+                    out += response("1&${Codes.SYS_FORMAT}&2&format:$fmt;ret:0;#")
+                }
             }
+            Codes.BenroCamera.GET_CONTROL_MODE -> out += response(
+                "1&${Codes.BenroCamera.GET_CONTROL_MODE}&2&mode:$cameraControlMode;#"
+            )
+            Codes.BenroCamera.GET_EX_TIME -> out += response(
+                "1&${Codes.BenroCamera.GET_EX_TIME}&2&ExTime:$cameraExposureTime;#"
+            )
+            Codes.BenroCamera.GET_INTERVAL_TYPE -> out += response(
+                "1&${Codes.BenroCamera.GET_INTERVAL_TYPE}&2&type:$cameraIntervalType;#"
+            )
             Codes.CAM_INFO -> {
                 val manu = if (cameraAttached) "sony" else "none"
                 val model = if (cameraAttached) "A7" else "none"

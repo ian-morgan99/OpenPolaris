@@ -68,6 +68,20 @@ class SimulatedProtocolTest {
     }
 
     @Test
+    fun auxiliaryCameraReadbacksUseSourceTask3Shapes() {
+        val s = newSim()
+        val format = s.handle(Codes.BenroCamera.GET_IMG_FORMAT, emptyMap(), 4)
+        val mode = s.handle(Codes.BenroCamera.GET_CONTROL_MODE, emptyMap())
+        val exposure = s.handle(Codes.BenroCamera.GET_EX_TIME, emptyMap())
+        val interval = s.handle(Codes.BenroCamera.GET_INTERVAL_TYPE, emptyMap())
+
+        assertEquals("RAW", fieldOf(String(format.single()), "format"))
+        assertEquals("1", fieldOf(String(mode.single()), "mode"))
+        assertEquals("1250", fieldOf(String(exposure.single()), "ExTime"))
+        assertEquals("1", fieldOf(String(interval.single()), "type"))
+    }
+
+    @Test
     fun cameraFocusGetAndSet() {
         assertNotNull(sim.handle(Codes.CAM_SET_FOCUS, StringMap("focus" to 0)))
         assertNotNull(sim.handle(Codes.CAM_GET_FOCUS, emptyMap()))

@@ -26,6 +26,7 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.EndpointService
+import dev.openpolaris.core.domain.MissionReadiness
+import dev.openpolaris.core.domain.MissionReadinessInput
+import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.config.FeatureFlags
@@ -349,23 +354,71 @@ private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
 @Composable
 private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
     val s = vm.mount
+    val previewState by vm.previewState.collectAsState()
+    val previewService = when (previewState) {
+        PreviewController.State.Streaming -> EndpointService.REACHABLE
+        is PreviewController.State.Error -> EndpointService.UNREACHABLE
+        PreviewController.State.Connecting -> EndpointService.UNKNOWN
+        PreviewController.State.Idle, PreviewController.State.Stopped ->
+            if (vm.cameraAttachment == null) EndpointService.UNKNOWN else EndpointService.UNREACHABLE
+    }
+    val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
+        vm.capturePhase is AppViewModel.CapturePhase.Busy
+    val readiness = MissionReadiness.evaluate(
+        MissionReadinessInput(
+            control = if (s.connected) EndpointService.REACHABLE else EndpointService.UNREACHABLE,
+            mountConnected = s.connected,
+            cameraAttached = vm.cameraAttachment?.isAttached,
+            preview = previewService,
+            tracking = s.tracking,
+            captureInProgress = captureInProgress,
+        ),
+    )
+    val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }
     Card(modifier) {
-        Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-            Text(
-                buildString {
-                    append(s.batteryPercent?.toString() ?: "—")
-                    append("%")
-                    if (s.charging) append("+")
-                    if (s.tracking == true) append("  TRK")
-                    if (s.halfSpeed) append("  ½×")
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(
+                    buildString {
+                        append(s.batteryPercent?.toString() ?: "—")
+                        append("%")
+                        if (s.charging) append("+")
+                        if (s.tracking == true) append("  TRK")
+                        if (s.halfSpeed) append("  ½×")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            HorizontalDivider()
+            if (next == null) {
+                Text(
+                    "Mission ready — no blocked or unknown prerequisites",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("mission-readiness-summary"),
+                )
+            } else {
+                Text(
+                    "Next: ${next.label} — ${next.summary}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (next.level == dev.openpolaris.core.domain.ReadinessLevel.BLOCKED) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.testTag("mission-readiness-summary"),
+                )
+                next.actionLabel?.let { action ->
+                    Text(
+                        "Action: $action",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

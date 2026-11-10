@@ -293,4 +293,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** `FeatureFlagsTest`, rate-control, SLOW planner/scheduler and MotionSupervisor tests remain green after the Motion surface changes; full shared/Compose JVM verification is next.
 - **2026-11-10 — WBS-02.1 DONE (model only):** added typed endpoint profiles and independent control/preview health phases for Direct AP, home LAN, PC bridge and demo routes; no networking side effects.
 - **2026-11-10 — verification:** full `:shared:jvmTest :composeApp:jvmTest` passed, including endpoint validation and existing mobile-layout contracts.
-- **Next:** add the mission-readiness model and surface truthful connection, mount, camera and preview status before integrating any new live motion transport.
+- **2026-11-10 — WBS-01.2 ACTIVE (first slice):** added `MissionReadiness` ordering and actionable ready/attention/blocked/unknown cards, then surfaced the highest-priority next action in the always-visible status chrome.
+- **2026-11-10 — verification:** focused mission-readiness tests and Compose JVM tests passed; the summary is read-only and does not alter connection, preview, capture or motion transports.
+- **Next:** expand the summary into the adaptive Mission destination and connect it to the typed endpoint profile lifecycle.

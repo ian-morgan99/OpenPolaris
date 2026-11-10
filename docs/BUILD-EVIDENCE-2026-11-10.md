@@ -109,3 +109,29 @@ Full verification passed from this source state:
 | Linux x64 app-image archive | `/tmp/OpenPolaris-linux-x64-c0ab834.tar.gz` | `39db616423c6b51b50bcab8a982e11a263d5729bdd9257cbe06b84a4eb27f00b` |
 
 The SLOW live hard gate remains false. These are source, test and build artifacts only; they are not physical qualification of a mount, firmware route, acknowledgement, watchdog or stop behavior.
+
+## Latest committed verification - c548e28
+
+Commit under test: c548e28b72c85f13933837d67444d45a219f070d.
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). All shared and Compose JVM
+tests passed, Android debug Kotlin compilation and APK assembly passed, and the
+desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 206eaae3dc908ef3862cd12f5b79b8d13f8b4307b5259fa95b69fc51c6a306b3
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-c548e28.tar.gz
+  SHA-256: 907cdc3eda4a723623e5ca349d5ada0828190cc427ffbb92f1f224efa85b915f
+
+The build emits existing deprecation warnings, including Android Bluetooth scan
+API warnings and JVM URL/readLine warnings. No live mount, camera, Astro
+WebUI or physical SLOW qualification was performed; artifact success is not
+hardware qualification.

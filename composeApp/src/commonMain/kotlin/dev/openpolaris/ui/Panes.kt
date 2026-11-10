@@ -90,6 +90,9 @@ import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
 import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiWifiUiState
+import dev.openpolaris.core.domain.AstroWebUiAlignRequest
+import dev.openpolaris.core.domain.AstroWebUiGotoRequest
+import dev.openpolaris.core.domain.AstroWebUiTargetUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -804,7 +807,19 @@ fun MissionDashboardPane(
     var autofocusSettle by remember { mutableStateOf("0.8") }
     var autofocusBacklash by remember { mutableStateOf("3") }
     var focalOverride by remember { mutableStateOf("") }
+    var gotoRa by remember { mutableStateOf("") }
+    var gotoDec by remember { mutableStateOf("") }
+    var gotoName by remember { mutableStateOf("") }
+    var compassHeading by remember { mutableStateOf("") }
     val focalOverrideMm = focalOverride.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..100_000.0 }
+    val gotoRequest = runCatching {
+        AstroWebUiGotoRequest(
+            rightAscensionDeg = gotoRa.toDoubleOrNull() ?: Double.NaN,
+            declinationDeg = gotoDec.toDoubleOrNull() ?: Double.NaN,
+            name = gotoName,
+        )
+    }.getOrNull()
+    val compassRequest = compassHeading.toDoubleOrNull()?.let { runCatching { AstroWebUiAlignRequest(it) }.getOrNull() }
     val autofocusParameters = runCatching {
         AstroWebUiAutofocusParameters(
             steps = autofocusSteps.toIntOrNull() ?: -1,
@@ -936,6 +951,103 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
+            }
+            HorizontalDivider()
+            Text("Astro target and alignment", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "GoTo preview validates the target without moving the head. A second explicit action starts the resident slew; compass alignment and GoTo writes remain separately gated and require physical recovery evidence.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OutlinedTextField(
+                    value = gotoRa,
+                    onValueChange = { gotoRa = it },
+                    label = { Text("RA degrees 0–360") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = gotoDec,
+                    onValueChange = { gotoDec = it },
+                    label = { Text("Dec degrees −90–90") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = gotoName,
+                    onValueChange = { gotoName = it.take(64) },
+                    label = { Text("Target name") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiTargetPreview") && gotoRequest != null,
+                    onClick = { gotoRequest?.let(vm::previewAstroWebUiGoto) },
+                ) { Text("Preview GoTo") }
+                val previewMatches = (vm.astroWebUiTarget as? AstroWebUiTargetUiState.Preview)?.request == gotoRequest
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiTargetWrites") && previewMatches,
+                    onClick = { gotoRequest?.let(vm::startAstroWebUiGoto) },
+                ) { Text("Confirm GoTo") }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = compassHeading,
+                    onValueChange = { compassHeading = it },
+                    label = { Text("Compass degrees 0–360") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiTargetWrites") && compassRequest != null,
+                    onClick = { compassRequest?.let(vm::alignAstroWebUiCompass) },
+                ) { Text("Align compass") }
+            }
+            when (val target = vm.astroWebUiTarget) {
+                AstroWebUiTargetUiState.Idle -> Text(
+                    "No Astro target action checked.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                AstroWebUiTargetUiState.Loading -> Text(
+                    "Previewing or sending Astro target action…",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiTargetUiState.Preview -> Text(
+                    "Preview ready for " + (target.request.name.ifBlank { "unnamed target" }) +
+                        " at RA " + target.request.rightAscensionDeg + "°, Dec " + target.request.declinationDeg + "°.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiTargetUiState.Accepted -> Text(
+                    target.action + " accepted; resident Astro status remains authoritative.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiTargetUiState.Failed -> Text(
+                    target.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiTargetPreview")) {
+                Text(
+                    "Astro GoTo preview is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiTargetWrites")) {
+                Text(
+                    "Compass alignment and confirmed GoTo are disabled until physical motion, collision and recovery qualification.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             HorizontalDivider()
             Text("Solve focal length", style = MaterialTheme.typography.titleMedium)

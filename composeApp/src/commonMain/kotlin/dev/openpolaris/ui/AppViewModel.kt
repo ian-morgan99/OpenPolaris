@@ -46,6 +46,11 @@ import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiWifiClient
 import dev.openpolaris.core.domain.AstroWebUiWifiResult
 import dev.openpolaris.core.domain.AstroWebUiWifiUiState
+import dev.openpolaris.core.domain.AstroWebUiAlignRequest
+import dev.openpolaris.core.domain.AstroWebUiGotoRequest
+import dev.openpolaris.core.domain.AstroWebUiTargetClient
+import dev.openpolaris.core.domain.AstroWebUiTargetResult
+import dev.openpolaris.core.domain.AstroWebUiTargetUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -178,6 +183,7 @@ import dev.openpolaris.core.domain.createAstroWebUiFocalClient
 import dev.openpolaris.core.domain.createAstroWebUiLimitsClient
 import dev.openpolaris.core.domain.createAstroWebUiKeepWifiClient
 import dev.openpolaris.core.domain.createAstroWebUiWifiClient
+import dev.openpolaris.core.domain.createAstroWebUiTargetClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -324,6 +330,7 @@ class AppViewModel(
     private val astroWebUiLimitsClient: AstroWebUiLimitsClient = createAstroWebUiLimitsClient(),
     private val astroWebUiKeepWifiClient: AstroWebUiKeepWifiClient = createAstroWebUiKeepWifiClient(),
     private val astroWebUiWifiClient: AstroWebUiWifiClient = createAstroWebUiWifiClient(),
+    private val astroWebUiTargetClient: AstroWebUiTargetClient = createAstroWebUiTargetClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1858,6 +1865,9 @@ class AppViewModel(
         astroWebUiWifiJob?.cancel()
         astroWebUiWifiJob = null
         astroWebUiWifi = AstroWebUiWifiUiState.Idle
+        astroWebUiTargetJob?.cancel()
+        astroWebUiTargetJob = null
+        astroWebUiTarget = AstroWebUiTargetUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4244,6 +4254,8 @@ class AppViewModel(
         private set
     var astroWebUiWifi by mutableStateOf<AstroWebUiWifiUiState>(AstroWebUiWifiUiState.Idle)
         private set
+    var astroWebUiTarget by mutableStateOf<AstroWebUiTargetUiState>(AstroWebUiTargetUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4280,6 +4292,7 @@ class AppViewModel(
     private var astroWebUiLimitsJob: Job? = null
     private var astroWebUiKeepWifiJob: Job? = null
     private var astroWebUiWifiJob: Job? = null
+    private var astroWebUiTargetJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4495,6 +4508,141 @@ class AppViewModel(
                     astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
                     statusMessage = result.reason
                 }
+            }
+        }
+    }
+
+    fun previewAstroWebUiGoto(request: AstroWebUiGotoRequest) {
+        astroWebUiTargetJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiTargetPreview")) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Astro WebUI GoTo preview is disabled by config",
+            )
+            statusMessage = "Astro WebUI GoTo preview is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Connect to a mount before previewing an Astro WebUI GoTo",
+            )
+            statusMessage = "Connect to a mount before previewing an Astro WebUI GoTo"
+            return
+        }
+        astroWebUiTarget = AstroWebUiTargetUiState.Loading
+        astroWebUiTargetJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiTargetClient.previewGoto(host, previewPort, request)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI GoTo preview failed")
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiTargetResult.GotoPreview -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Preview(result.request)
+                    statusMessage = "GoTo preview ready; confirmation is still required"
+                }
+                is AstroWebUiTargetResult.Failure -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun startAstroWebUiGoto(request: AstroWebUiGotoRequest) {
+        astroWebUiTargetJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiTargetWrites")) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Astro WebUI GoTo writes are disabled until motion and recovery qualification",
+            )
+            statusMessage = "Astro WebUI GoTo writes are disabled by config"
+            return
+        }
+        if ((astroWebUiTarget as? AstroWebUiTargetUiState.Preview)?.request != request) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Preview this exact target before starting the GoTo",
+            )
+            statusMessage = "Preview this exact target before starting the GoTo"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Connect to a mount before starting an Astro WebUI GoTo",
+            )
+            statusMessage = "Connect to a mount before starting an Astro WebUI GoTo"
+            return
+        }
+        astroWebUiTarget = AstroWebUiTargetUiState.Loading
+        astroWebUiTargetJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiTargetClient.startGoto(host, previewPort, request)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI GoTo failed")
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiTargetResult.GotoAccepted -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Accepted("GoTo")
+                    statusMessage = "Astro WebUI GoTo accepted; resident status remains authoritative"
+                    refreshAstroWebUiStatus()
+                }
+                is AstroWebUiTargetResult.Failure -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun alignAstroWebUiCompass(request: AstroWebUiAlignRequest) {
+        astroWebUiTargetJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiTargetWrites")) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Astro WebUI compass alignment is disabled until alignment and recovery qualification",
+            )
+            statusMessage = "Astro WebUI compass alignment is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
+                "Connect to a mount before compass alignment",
+            )
+            statusMessage = "Connect to a mount before compass alignment"
+            return
+        }
+        astroWebUiTarget = AstroWebUiTargetUiState.Loading
+        astroWebUiTargetJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiTargetClient.align(host, previewPort, request)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI compass alignment failed")
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiTargetResult.AlignmentAccepted -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Accepted("compass alignment")
+                    statusMessage = "Compass alignment accepted; resident status remains authoritative"
+                    refreshAstroWebUiStatus()
+                }
+                is AstroWebUiTargetResult.Failure -> {
+                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+                else -> Unit
             }
         }
     }

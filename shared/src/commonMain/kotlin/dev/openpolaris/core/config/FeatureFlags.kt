@@ -135,6 +135,10 @@ object FeatureFlags {
     const val astroWebUiWifiStatus: Boolean = true
     /** Astro WebUI Wi-Fi keepalive writes; disabled until recovery qualification. */
     const val astroWebUiKeepWifiWrite: Boolean = false
+    /** Astro WebUI target preview; source preview performs no slew. */
+    const val astroWebUiTargetPreview: Boolean = true
+    /** Astro WebUI compass alignment and confirmed GoTo writes. */
+    const val astroWebUiTargetWrites: Boolean = false
     /** Astro WebUI focal override writes; disabled until solve/recovery qualification. */
     const val astroWebUiFocalWrite: Boolean = false
     /** Astro WebUI autofocus start/stop; disabled until camera/focus recovery qualifies. */
@@ -276,6 +280,8 @@ object FeatureFlags {
         "astroWebUiKeepWifiStatus" -> astroWebUiKeepWifiStatus
         "astroWebUiWifiStatus" -> astroWebUiWifiStatus
         "astroWebUiKeepWifiWrite" -> astroWebUiKeepWifiWrite
+        "astroWebUiTargetPreview" -> astroWebUiTargetPreview
+        "astroWebUiTargetWrites" -> astroWebUiTargetWrites
         "astroWebUiFocalWrite" -> astroWebUiFocalWrite
         "astroWebUiAutofocus" -> astroWebUiAutofocus
         "astroWebUiSite" -> astroWebUiSite

@@ -1061,3 +1061,6 @@ The current implementation slice must not send a new motor frame, alter firmware
   full shared/Compose JVM tests, Android compilation, desktop packaging and
   Android debug APK assembly passed. No live rate transport, solve, Bluetooth,
   camera, Astro WebUI or physical SLOW qualification was performed.
+
+- **2026-11-10 - WBS-01.3/09.1 ACTIVE (compact mobile status and unavailable-feature feedback):** commit `08db4d8` adds a compact phone status summary with ellipsis-safe status text, battery/tracking readouts, horizontally scrollable actions and an explicit More/Less detail boundary. The 3D View action now tells the user when no VR host is wired instead of silently no-oping. Wide status layout and motion emergency-stop semantics remain intact.
+- **2026-11-10 - verification:** MobileResponsiveLayoutContractTest covers the compact status strip and explicit 3D fallback; the shared/Compose JVM tests, Android compilation, desktop packaging and Android debug APK assembly passed. APK SHA-256: `89786a5ed1de7980440856ef88d8a0dfbaf79ea3c10ae869efb392f89aab406b`. No physical phone, VR host, mount, camera, Bluetooth, Astro WebUI or SLOW qualification was performed.

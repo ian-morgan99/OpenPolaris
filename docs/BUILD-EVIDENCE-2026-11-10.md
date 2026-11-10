@@ -2459,3 +2459,31 @@ Android debug APK:
 The APK is source/package evidence for phone UI testing. Live fine-rate
 transport, solve freshness, Bluetooth, camera, Astro WebUI lifecycle and
 physical SLOW stop qualification remain separate evidence gates.
+
+## Latest committed verification - 08db4d8
+
+Commit under test: `08db4d8` (fix: compact mobile status and expose 3d fallback).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --console=plain --no-daemon
+~~~
+
+The Android debug APK was then rebuilt with `:androidApp:assembleDebug --rerun-tasks`.
+
+Android debug APK:
+
+- `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+- SHA-256: `89786a5ed1de7980440856ef88d8a0dfbaf79ea3c10ae869efb392f89aab406b`
+
+The result is ready for a deliberate phone UI check. Physical phone rendering,
+mount, camera, Bluetooth, Astro WebUI shutter/file lifecycle and live SLOW
+qualification remain unverified.

@@ -1397,3 +1397,16 @@ the mount.
 Focused and full cross-platform verification passed. This is still Demo-only
 logical evidence: the live rate transport remains qualification-gated and no
 physical mount, solve or Bluetooth operation was exercised.
+
+### WBS-01.3/09.1 - Compact mobile status and explicit unavailable 3D action
+
+Commit `08db4d8` makes the phone status strip a compact two-level surface: a
+truncated status/battery/tracking summary, horizontally scrollable actions, and
+an explicit More/Less disclosure for readiness and motion-safety detail. Mobile
+padding and spacing are reduced without changing the wide layout or emergency
+STOP path. Selecting 3D View on a host without a VR callback now opens an
+explicit unavailable-feature dialog instead of silently doing nothing.
+
+The responsive contract tests pin both behaviors. This is source/package UX
+evidence; real phone rendering, VR host availability, Bluetooth, camera, Astro
+WebUI lifecycle and physical SLOW qualification remain separate gates.

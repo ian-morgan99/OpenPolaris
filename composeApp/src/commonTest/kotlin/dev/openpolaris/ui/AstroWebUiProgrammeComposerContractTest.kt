@@ -32,4 +32,16 @@ class AstroWebUiProgrammeComposerContractTest {
         assertTrue("startAstroWebUiFocus" in source)
         assertTrue("Returned frame:" in source)
     }
+
+    @Test
+    fun inHeadCaptureRemainsExplicitlyGatedAndStatusAuthoritative() {
+        val source = sourceText()
+        assertTrue("AstroWebUiAstroCaptureComposer" in source)
+        assertTrue("astroWebUiAstroCapture" in source)
+        assertTrue("/api/astro/capture" in source)
+        assertTrue("resident 272 run" in source)
+        assertTrue("externally triggered Astro capture can be unreliable" in source)
+        assertTrue("Tap again to start in-head Astro capture" in source)
+        assertTrue("resident programme status remains authoritative" in source)
+    }
 }

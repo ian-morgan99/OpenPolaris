@@ -23,6 +23,10 @@ import dev.openpolaris.core.domain.AstroMediaState
 import dev.openpolaris.core.domain.AstroMediaTransferKind
 import dev.openpolaris.core.domain.AstroWebUiCaptureClient
 import dev.openpolaris.core.domain.AstroWebUiCaptureResult
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureClient
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureParameters
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureResult
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureState
 import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusState
@@ -184,6 +188,7 @@ import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createSupportBundleExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
+import dev.openpolaris.core.domain.createAstroWebUiAstroCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiGuideClient
 import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
@@ -333,6 +338,7 @@ class AppViewModel(
     private val previewIoDispatcher: CoroutineDispatcher? = null,
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
+    private val astroWebUiAstroCaptureClient: AstroWebUiAstroCaptureClient = createAstroWebUiAstroCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
     private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
@@ -1915,6 +1921,9 @@ class AppViewModel(
         astroWebUiProgrammeStartJob = null
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Idle
+        astroWebUiAstroCaptureJob?.cancel()
+        astroWebUiAstroCaptureJob = null
+        astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Idle
         astroWebUiSunState = AstroWebUiSunState.Idle
         astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Idle
         captureWorkloadsSuspended = false
@@ -4296,6 +4305,10 @@ class AppViewModel(
         AstroWebUiProgrammeStartState.Idle,
     )
         private set
+    var astroWebUiAstroCapture by mutableStateOf<AstroWebUiAstroCaptureState>(
+        AstroWebUiAstroCaptureState.Idle,
+    )
+        private set
     var astroWebUiSunState by mutableStateOf<AstroWebUiSunState>(AstroWebUiSunState.Idle)
         private set
     var astroWebUiMotionProgrammeState by mutableStateOf<AstroWebUiMotionProgrammeState>(
@@ -4328,6 +4341,7 @@ class AppViewModel(
     private var astroWebUiProgrammePollJob: Job? = null
     private var astroWebUiProgrammeControlJob: Job? = null
     private var astroWebUiProgrammeStartJob: Job? = null
+    private var astroWebUiAstroCaptureJob: Job? = null
     private var astroWebUiSunJob: Job? = null
     private var astroWebUiMotionProgrammeJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
@@ -5555,6 +5569,58 @@ class AppViewModel(
     fun startAstroWebUiLapse(parameters: AstroWebUiLapseParameters) {
         runAstroWebUiProgrammeStart("timelapse start") { client ->
             client.startLapse(host, previewPort, parameters)
+        }
+    }
+
+    /**
+     * Start the source-specific in-head Astro capture route. The HTTP
+     * acknowledgement only proves that the resident programme was accepted;
+     * /api/prog remains the authority for the run after this returns.
+     */
+    fun startAstroWebUiAstroCapture(parameters: AstroWebUiAstroCaptureParameters) {
+        if (!FeatureFlags.isEnabled("astroWebUiAstroCapture")) {
+            astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(
+                "Astro WebUI in-head capture is disabled until route, recovery and physical shutter/mount qualification",
+            )
+            statusMessage = "Astro WebUI in-head capture is disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(
+                "Connect to a mount before starting Astro WebUI in-head capture",
+            )
+            statusMessage = "Connect to a mount before starting Astro WebUI in-head capture"
+            return
+        }
+        if (astroWebUiAstroCaptureJob?.isActive == true) {
+            statusMessage = "An Astro WebUI in-head capture request is already in progress"
+            return
+        }
+        astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Loading
+        astroWebUiAstroCaptureJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiAstroCaptureClient.start(host, previewPort, parameters)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiAstroCaptureResult.Failure(
+                    error.message ?: "Astro WebUI in-head capture failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiAstroCaptureResult.Accepted -> {
+                    astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Accepted(result.programme)
+                    statusMessage = "Astro WebUI in-head capture accepted; /api/prog remains authoritative"
+                    readAstroWebUiProgramme(announce = false)
+                }
+                is AstroWebUiAstroCaptureResult.Failure -> {
+                    astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
         }
     }
 

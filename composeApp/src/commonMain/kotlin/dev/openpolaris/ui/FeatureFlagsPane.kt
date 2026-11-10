@@ -155,6 +155,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Source-aligned lapse, panorama, HDR and focus start/preview routes remain disabled until named-head validation and recovery evidence are recorded.", safe = false),
     FlagSpec("astroWebUiCapture", "Astro WebUI shutter (M/B, queue-only)",
         "Source-aligned 264 dispatch for M/B capture. Default OFF until lifecycle, file-publication and named-firmware qualification are complete.", safe = false),
+    FlagSpec("astroWebUiAstroCapture", "Astro WebUI in-head capture (not qualified)",
+        "Source-aligned /api/astro/capture resident 272 sequence. It can move the mount and fire the shutter; default OFF until route, recovery and programme evidence are complete.", safe = false),
     FlagSpec("fileManager", "SD file list (702)",
         "Browse SD files. Verified read-only.", safe = true),
     FlagSpec("fileManagerReadOnly", "SD file browse (browse-only mode)",

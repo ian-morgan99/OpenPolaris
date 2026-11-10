@@ -75,6 +75,8 @@ import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureParameters
+import dev.openpolaris.core.domain.AstroWebUiAstroCaptureState
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
 import dev.openpolaris.core.domain.AstroWebUiSunParameters
 import dev.openpolaris.core.domain.AstroWebUiSunState
@@ -1804,6 +1806,8 @@ fun MissionDashboardPane(
             HorizontalDivider()
             AstroWebUiProgrammeComposer(vm)
             HorizontalDivider()
+            AstroWebUiAstroCaptureComposer(vm)
+            HorizontalDivider()
             AstroWebUiSunComposer(vm)
             HorizontalDivider()
             AstroWebUiExtendedProgrammeComposer(vm)
@@ -2049,6 +2053,110 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
             style = MaterialTheme.typography.labelSmall,
         )
         is AstroWebUiProgrammeStartState.Failed -> Text(
+            state.reason,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
+    var interval by remember { mutableStateOf("8") }
+    var shots by remember { mutableStateOf("") }
+    var bulb by remember { mutableStateOf("0") }
+    var armed by remember { mutableStateOf(false) }
+
+    val enabled = FeatureFlags.isEnabled("astroWebUiAstroCapture")
+    val parameters = runCatching {
+        AstroWebUiAstroCaptureParameters(
+            intervalSeconds = interval.toIntOrNull() ?: 0,
+            shots = if (shots.isBlank()) -1 else shots.toIntOrNull() ?: 0,
+            bulbSeconds = bulb.toDoubleOrNull() ?: Double.NaN,
+        )
+    }.getOrNull()
+
+    Text("In-head Astro capture", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "Source Astro WebUI /api/astro/capture starts a resident 272 run. The server's /api/prog status remains authoritative after the HTTP acknowledgement; the source also warns that externally triggered Astro capture can be unreliable.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    if (!enabled) {
+        Text(
+            "Disabled until route, mode, recovery and physical shutter/mount qualification are complete. This action can move the mount and fire the shutter.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.testTag("astro-webui-astro-capture"),
+        )
+        return
+    }
+
+    OutlinedTextField(
+        value = interval,
+        onValueChange = { interval = it; armed = false },
+        label = { Text("Interval (seconds)") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = shots,
+        onValueChange = { shots = it; armed = false },
+        label = { Text("Shots (blank = unlimited)") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = bulb,
+        onValueChange = { bulb = it; armed = false },
+        label = { Text("Bulb seconds (0 = camera default)") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (parameters == null) {
+        Text(
+            "Enter a positive interval, optional positive shot count, and a bulb exposure shorter than the interval.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    val state = vm.astroWebUiAstroCapture
+    Button(
+        enabled = parameters != null,
+        onClick = {
+            if (armed) {
+                parameters?.let(vm::startAstroWebUiAstroCapture)
+                armed = false
+            } else {
+                armed = true
+            }
+        },
+        modifier = Modifier.fillMaxWidth().testTag("astro-webui-astro-capture-start"),
+    ) {
+        Text(
+            when {
+                armed -> "Tap again to start in-head Astro capture"
+                else -> "Arm in-head Astro capture"
+            },
+        )
+    }
+    if (armed) {
+        Text(
+            "Armed: the next tap sends the source capture request and may move/fire. Check camera mode and framing first.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    when (state) {
+        AstroWebUiAstroCaptureState.Idle -> Unit
+        AstroWebUiAstroCaptureState.Loading -> Text(
+            "Sending in-head capture request…",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiAstroCaptureState.Accepted -> Text(
+            "Accepted at HTTP level; resident programme status remains authoritative.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiAstroCaptureState.Failed -> Text(
             state.reason,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,

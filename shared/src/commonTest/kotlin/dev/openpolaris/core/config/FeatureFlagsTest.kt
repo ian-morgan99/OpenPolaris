@@ -66,6 +66,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"), "Astro WebUI keep-Wi-Fi writes must remain off until recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiTargetWrites"), "Astro WebUI compass alignment and GoTo writes must remain off until motion recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiSolveControls"), "Astro WebUI solve/apply controls must remain off until solver and alignment recovery qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiAstroCapture"), "Astro WebUI in-head capture must remain off until resident 272 recovery qualification")
     }
 
     @Test
@@ -91,6 +92,7 @@ class FeatureFlagsTest {
         assertTrue(FeatureFlags.isEnabled("astroWebUiSolveStatus"), "Astro WebUI solve status is read-only")
         assertTrue(FeatureFlags.isEnabled("astroWebUiRunState"), "Astro WebUI run state is read-only")
         assertFalse(FeatureFlags.isEnabled("astroWebUiCapture"), "Astro WebUI shutter must remain off until lifecycle qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiAstroCapture"), "Astro WebUI in-head capture must remain off until lifecycle qualification")
     }
 
     @Test

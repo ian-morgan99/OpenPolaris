@@ -161,6 +161,8 @@ object FeatureFlags {
     const val astroWebUiSessionControls: Boolean = false
     /** Astro WebUI 264 M/B dispatch; queue-only until lifecycle/file qualification. */
     const val astroWebUiCapture: Boolean = false
+    /** Source-specific in-head Astro capture; moves/fires through a resident 272 run. */
+    const val astroWebUiAstroCapture: Boolean = false
     /** Astro WebUI programme pause/stop writes; disabled until route qualification. */
     const val astroWebUiProgrammeControls: Boolean = false
     /** Astro WebUI lapse/panorama/HDR/focus start writes; disabled until named-head qualification. */
@@ -299,6 +301,7 @@ object FeatureFlags {
         "astroWebUiProgrammeControls" -> astroWebUiProgrammeControls
         "astroWebUiProgrammeStarts" -> astroWebUiProgrammeStarts
         "astroWebUiCapture" -> astroWebUiCapture
+        "astroWebUiAstroCapture" -> astroWebUiAstroCapture
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate
         "fileManagerFormat" -> fileManagerFormat

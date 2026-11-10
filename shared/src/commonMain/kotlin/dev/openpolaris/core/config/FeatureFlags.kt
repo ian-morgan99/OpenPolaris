@@ -121,6 +121,8 @@ object FeatureFlags {
     const val astroWebUiStatus: Boolean = true
     /** Optional read-only Astro WebUI observing-site status. */
     const val astroWebUiSite: Boolean = true
+    /** Optional read-only Astro WebUI programme status. */
+    const val astroWebUiProgrammeStatus: Boolean = true
     /** Astro WebUI 264 M/B dispatch; queue-only until lifecycle/file qualification. */
     const val astroWebUiCapture: Boolean = false
 
@@ -235,6 +237,7 @@ object FeatureFlags {
         "astroWebUiMedia" -> astroWebUiMedia
         "astroWebUiStatus" -> astroWebUiStatus
         "astroWebUiSite" -> astroWebUiSite
+        "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
         "astroWebUiCapture" -> astroWebUiCapture
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate

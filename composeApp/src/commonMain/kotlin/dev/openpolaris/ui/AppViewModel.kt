@@ -24,6 +24,9 @@ import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AstroWebUiSiteClient
 import dev.openpolaris.core.domain.AstroWebUiSiteResult
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
+import dev.openpolaris.core.domain.AstroWebUiProgrammeResult
+import dev.openpolaris.core.domain.AstroWebUiProgrammeState
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.MountSessionTiltSampleSource
@@ -95,6 +98,7 @@ import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
+import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -223,6 +227,7 @@ class AppViewModel(
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
+    private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
@@ -1498,6 +1503,9 @@ class AppViewModel(
         astroWebUiSiteJob?.cancel()
         astroWebUiSiteJob = null
         astroWebUiSite = AstroWebUiSiteState.Idle
+        astroWebUiProgrammeJob?.cancel()
+        astroWebUiProgrammeJob = null
+        astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3507,10 +3515,13 @@ class AppViewModel(
         private set
     var astroWebUiSite by mutableStateOf<AstroWebUiSiteState>(AstroWebUiSiteState.Idle)
         private set
+    var astroWebUiProgramme by mutableStateOf<AstroWebUiProgrammeState>(AstroWebUiProgrammeState.Idle)
+        private set
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
+    private var astroWebUiProgrammeJob: Job? = null
     private var astroMediaExportJob: Job? = null
 
     fun selectAstroMediaCategory(category: String?) {
@@ -3589,6 +3600,35 @@ class AppViewModel(
                 }
                 is AstroWebUiSiteResult.Failure -> {
                     astroWebUiSite = AstroWebUiSiteState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiProgramme() {
+        astroWebUiProgrammeJob?.cancel()
+        astroWebUiProgrammeJob = scope.launch {
+            if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
+                astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
+                return@launch
+            }
+            if (session == null) {
+                astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Connect to a mount before reading its Astro WebUI programme status")
+                return@launch
+            }
+            astroWebUiProgramme = AstroWebUiProgrammeState.Loading
+            when (val result = astroWebUiProgrammeClient.read(host, previewPort)) {
+                is AstroWebUiProgrammeResult.Success -> {
+                    astroWebUiProgramme = AstroWebUiProgrammeState.Ready(result.programme)
+                    statusMessage = if (result.programme.kind == "none") {
+                        "Astro WebUI has no programme running"
+                    } else {
+                        "Astro WebUI programme: " + result.programme.kind
+                    }
+                }
+                is AstroWebUiProgrammeResult.Failure -> {
+                    astroWebUiProgramme = AstroWebUiProgrammeState.Failed(result.reason)
                     statusMessage = result.reason
                 }
             }

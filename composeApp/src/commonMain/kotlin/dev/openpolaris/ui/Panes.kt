@@ -69,6 +69,7 @@ import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiProgrammeState
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -574,6 +575,46 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                     is AstroWebUiSiteState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            HorizontalDivider()
+            Text("Resident programmes", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStatus"),
+                    onClick = vm::refreshAstroWebUiProgramme,
+                ) { Text("Refresh programme") }
+                when (val state = vm.astroWebUiProgramme) {
+                    AstroWebUiProgrammeState.Idle -> Text("Programme not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiProgrammeState.Loading -> Text("Reading programme…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiProgrammeState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiProgrammeState.Ready -> {
+                        val programme = state.programme
+                        val total = programme.total
+                        val remaining = programme.remaining
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (programme.kind == "none") "No resident programme running" else programme.kind,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            if (total != null && remaining != null && total >= 0 && remaining >= 0) {
+                                Text(
+                                    "Taken " + (total - remaining) + " / " + total,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            if (programme.paused == true || programme.preview == true || programme.stale == true) {
+                                Text(
+                                    listOfNotNull(
+                                        if (programme.paused == true) "paused" else null,
+                                        if (programme.preview == true) "preview" else null,
+                                        if (programme.stale == true) "stale" else null,
+                                    ).joinToString(" · "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
                 }
             }
             HorizontalDivider()

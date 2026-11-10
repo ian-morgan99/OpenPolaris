@@ -139,6 +139,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads the resident Astro WebUI /api/astro state without entering Astro mode or sending a mount command.", safe = true),
     FlagSpec("astroWebUiSite", "Astro WebUI site (read-only)",
         "Reads the saved observing latitude/longitude from the resident Astro WebUI without changing it.", safe = true),
+    FlagSpec("astroWebUiProgrammeStatus", "Astro WebUI programme status (read-only)",
+        "Reads resident timelapse, panorama, HDR, focus and other programme progress without starting, pausing or cancelling anything.", safe = true),
     FlagSpec("astroWebUiCapture", "Astro WebUI shutter (M/B, queue-only)",
         "Source-aligned 264 dispatch for M/B capture. Default OFF until lifecycle, file-publication and named-firmware qualification are complete.", safe = false),
     FlagSpec("fileManager", "SD file list (702)",

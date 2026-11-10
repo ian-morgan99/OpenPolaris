@@ -128,3 +128,20 @@ Verification passed:
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSiteTest --rerun-tasks --console=plain --no-daemon
 ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --rerun-tasks --console=plain --no-daemon
 ```
+
+
+### WBS-06.1/08.2 — Astro WebUI read-only programme status
+
+The Mission readiness sheet now exposes the resident Astro WebUI's `/api/prog` state. The parser follows the source C response contract for idle, timelapse, panorama, HDR, focus, program, pathlapse and solar runs, while retaining unknown future kind strings for display.
+
+- Progress values and sentinel ranges are validated; malformed or contradictory numeric state fails closed.
+- Pause, preview and stale are shown as observed flags.
+- The request is bounded, feature-gated, session-gated and routed to the dedicated WebUI port.
+- No programme start, pause, cancel or native mount command is issued.
+
+Verification passed:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon
+```

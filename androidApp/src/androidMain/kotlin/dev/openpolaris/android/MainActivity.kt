@@ -26,6 +26,7 @@ import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.domain.installResourceContext
 import dev.openpolaris.core.io.FilePicker
 import dev.openpolaris.core.domain.AstroMediaExportRegistry
+import dev.openpolaris.core.domain.SupportBundleExportRegistry
 import dev.openpolaris.core.io.FilePickerRegistry
 import dev.openpolaris.core.io.PickerBridge
 import dev.openpolaris.core.session.SessionStore
@@ -128,6 +129,12 @@ class MainActivity : ComponentActivity() {
         AstroMediaExportRegistry.completeShare(result.resultCode)
     }
 
+    private val saveSupportBundleLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        SupportBundleExportRegistry.completeSave(uri)
+    }
+
     // Permissions launcher for "Find & wake Polaris…". Same lifecycle rule
     // as `openDocumentLauncher` above: MUST be a member field so it gets
     // registered while the activity is in CREATED state. Registering it
@@ -159,6 +166,10 @@ class MainActivity : ComponentActivity() {
             context = applicationContext,
             save = saveAstroMediaLauncher,
             share = shareAstroMediaLauncher,
+        )
+        SupportBundleExportRegistry.install(
+            context = applicationContext,
+            save = saveSupportBundleLauncher,
         )
         // Make bundled `commonMain/resources/*.json` shards visible
         // to the readResourceText() expect/actual so the Tonight pane
@@ -465,6 +476,7 @@ class MainActivity : ComponentActivity() {
         // which is acceptable for v1.
         FilePickerRegistry.clear()
         AstroMediaExportRegistry.clear()
+        SupportBundleExportRegistry.clear()
         super.onDestroy()
     }
 }

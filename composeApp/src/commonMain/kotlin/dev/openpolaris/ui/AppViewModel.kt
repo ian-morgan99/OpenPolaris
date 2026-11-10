@@ -9,6 +9,12 @@ import dev.openpolaris.core.domain.AstroMediaExportController
 import dev.openpolaris.core.domain.AstroMediaExportDestination
 import dev.openpolaris.core.domain.AstroMediaExportSink
 import dev.openpolaris.core.domain.AstroMediaExportState
+import dev.openpolaris.core.domain.SupportBundleExportController
+import dev.openpolaris.core.domain.SupportBundleExportSink
+import dev.openpolaris.core.domain.SupportBundleExportState
+import dev.openpolaris.core.domain.SupportBundlePublication
+import dev.openpolaris.core.domain.SupportBundleSnapshot
+import dev.openpolaris.core.domain.SupportBundleTimelineEntry
 import dev.openpolaris.core.domain.AstroMediaFetchResult
 import dev.openpolaris.core.domain.AstroMediaItem
 import dev.openpolaris.core.domain.AstroMediaListResult
@@ -113,6 +119,7 @@ import dev.openpolaris.core.domain.MotionStopTransport
 import dev.openpolaris.core.domain.MotionSupervisor
 import dev.openpolaris.core.domain.RateAxis
 import dev.openpolaris.core.domain.SlowMotionActionResult
+import dev.openpolaris.core.domain.SlowMotionCapabilities
 import dev.openpolaris.core.domain.SlowMotionAcquireResult
 import dev.openpolaris.core.domain.SlowMotionCalibration
 import dev.openpolaris.core.domain.SlowMotionController
@@ -126,6 +133,7 @@ import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createAstroMediaExportSink
+import dev.openpolaris.core.domain.createSupportBundleExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
@@ -273,6 +281,7 @@ class AppViewModel(
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
     private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
+    private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -455,6 +464,11 @@ class AppViewModel(
     /** Bounded, ordered evidence trail for the current/last capture workflow. */
     var captureTimeline by mutableStateOf<List<CaptureTimelineEntry>>(emptyList())
         private set
+
+    private val supportBundleExportController = SupportBundleExportController(supportBundleExportSink)
+    var supportBundleExportState by mutableStateOf<SupportBundleExportState>(SupportBundleExportState.Idle)
+        private set
+    private var supportBundleExportJob: Job? = null
 
     /**
      * Live status of the firmware-update flow (FirmwareUpdateController). Null
@@ -4558,6 +4572,85 @@ class AppViewModel(
                 is AstroMediaExportState.Complete -> "Astro media export complete (" + result.bytesStored + " bytes)"
                 is AstroMediaExportState.Failed -> result.reason
                 else -> "Astro media export in progress"
+            }
+        }
+    }
+
+    /**
+     * Prepare and save a redacted support snapshot. The platform chooser is
+     * explicit and the export contains only observed state; it never performs
+     * a fresh mount request or includes credentials/raw camera bytes.
+     */
+    fun exportSupportBundle(versionLabel: String? = null) {
+        supportBundleExportJob?.cancel()
+        val attachment = cameraAttachment
+        val cameraSummary = attachment?.let {
+            if (it.isAttached) {
+                listOfNotNull(it.manufacturer, it.model).joinToString(" ").ifBlank { "Attached camera" }
+            } else {
+                "No camera attached (state " + (it.state ?: "unknown") + ")"
+            }
+        }
+        val storageSummary = sdStatus?.let { status ->
+            if (status.present) {
+                (status.freeMb ?: "?").toString() + " MB free / " +
+                    (status.totalMb ?: "?") + " MB"
+            } else {
+                "Not present"
+            }
+        }
+        val captureSummary = when (val phase = capturePhase) {
+            CapturePhase.Idle -> "Idle"
+            CapturePhase.Requested -> "Requested"
+            CapturePhase.Busy -> "Camera active"
+            CapturePhase.Completed -> "Confirmed: lifecycle + file publication"
+            is CapturePhase.OutcomeUnknown -> "Outcome unknown: " + phase.reason
+            is CapturePhase.Failed -> "Failed: " + phase.reason
+        }
+        val snapshot = SupportBundleSnapshot(
+            appBuild = versionLabel,
+            generatedAtEpochMs = SystemMillis.now().coerceAtLeast(0L),
+            endpointKind = endpointHealth.profile?.kind?.name,
+            controlPort = endpointHealth.profile?.address?.controlPort,
+            previewPort = endpointHealth.profile?.address?.previewPort,
+            routePhase = endpointHealth.phase.name,
+            controlService = endpointHealth.control.name,
+            previewService = endpointHealth.preview.name,
+            lastFailure = endpointHealth.lastFailure,
+            mountConnected = mount.connected,
+            firmware = firmwareVersion ?: deviceInfo?.software,
+            hardware = deviceInfo?.hardware,
+            camera = cameraSummary,
+            storage = storageSummary,
+            capture = captureSummary,
+            slowMotionLiveReady = SlowMotionCapabilities.current.liveReady,
+            slowMotionBlockers = SlowMotionCapabilities.current.blockers,
+            rawFrameLoggingEnabled = FeatureFlags.isEnabled("rawFrameLog"),
+            captureTimeline = captureTimeline.takeLast(20).map {
+                SupportBundleTimelineEntry(it.stage.label, it.detail)
+            },
+            publication = lastCapturePublication?.let {
+                SupportBundlePublication(
+                    basename = it.path.substringAfterLast('/').substringAfterLast('\\'),
+                    type = it.type,
+                    sizeBytes = it.sizeBytes,
+                )
+            },
+        )
+        if (!supportBundleExportController.prepare(snapshot)) {
+            supportBundleExportState = supportBundleExportController.state
+            statusMessage = (supportBundleExportState as? SupportBundleExportState.Failed)?.reason
+                ?: "Support bundle could not be prepared"
+            return
+        }
+        supportBundleExportState = supportBundleExportController.state
+        supportBundleExportJob = scope.launch {
+            val result = supportBundleExportController.export()
+            supportBundleExportState = result
+            statusMessage = when (result) {
+                is SupportBundleExportState.Complete -> "Support bundle saved"
+                is SupportBundleExportState.Failed -> result.reason
+                else -> "Support bundle save in progress"
             }
         }
     }

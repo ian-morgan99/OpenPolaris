@@ -617,3 +617,12 @@ Focused verification passed:
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --tests dev.openpolaris.core.protocol.SlowMotionWireTest --tests dev.openpolaris.core.protocol.SlowMotionWireReplayTest :shared:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
 
 Result: BUILD SUCCESSFUL; 22 tests passed. This is host-side contract evidence only. Exact firmware/gimbal/source-app identity, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence remain required before enabling live SLOW.
+### WBS-08.2 - Bounded support bundle
+
+Added a cross-platform Settings export for a bounded, redacted support snapshot. AppViewModel assembles only observed route/service health, device identity fields, camera/storage state, correlated capture timeline/publication evidence and the immutable SLOW capability blockers; the snapshot does not issue fresh mount requests. The document redacts hostnames and password/token/secret-like values, emits a basename-only publication field, states that raw logs are not included, and refuses oversized or unsafe requests. Android uses a lifecycle-owned CreateDocument text chooser; desktop uses a native Save dialog. Failed or cancelled saves remain terminal until the user explicitly requests another export.
+
+Verification passed:
+
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SupportBundleTest :shared:compileKotlinJvm :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid --rerun-tasks --console=plain --no-daemon
+
+Result: BUILD SUCCESSFUL; four support-bundle tests passed, shared/Compose JVM compilation passed, and Android Kotlin compilation passed. No live mount, camera or network state was read for the export.

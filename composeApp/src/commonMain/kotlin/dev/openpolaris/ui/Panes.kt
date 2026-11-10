@@ -86,6 +86,7 @@ import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
 import dev.openpolaris.core.domain.AstroWebUiHdrParameters
 import dev.openpolaris.core.domain.AstroWebUiFocusParameters
 import dev.openpolaris.core.domain.SlowMotionCapabilities
+import dev.openpolaris.core.domain.SupportBundleExportState
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -203,6 +204,39 @@ fun EvidenceCentrePane(
                 EvidenceRow(
                     "Published file",
                     "${publication.path} (${publication.sizeBytes ?: "size unknown"} bytes)",
+                )
+            }
+
+            HorizontalDivider()
+            Text("Support bundle", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Save a bounded snapshot of observed health and capture evidence. Hostnames, credentials, raw frames and camera bytes are omitted.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                onClick = { vm.exportSupportBundle(versionLabel) },
+                enabled = vm.supportBundleExportState !is SupportBundleExportState.Exporting,
+            ) {
+                Text("Save support bundle")
+            }
+            when (val export = vm.supportBundleExportState) {
+                SupportBundleExportState.Idle -> Unit
+                is SupportBundleExportState.Ready -> Text(
+                    "Preparing save chooser...",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                is SupportBundleExportState.Exporting -> Text(
+                    "Waiting for a save location...",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                is SupportBundleExportState.Complete -> Text(
+                    "Saved: " + (export.location ?: "user-selected destination"),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                is SupportBundleExportState.Failed -> Text(
+                    "Not saved: " + export.reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         }

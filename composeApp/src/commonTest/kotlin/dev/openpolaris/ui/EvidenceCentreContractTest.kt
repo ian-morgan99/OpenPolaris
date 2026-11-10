@@ -23,6 +23,8 @@ class EvidenceCentreContractTest {
         assertTrue("Read-only support view" in panes)
         assertTrue("Outcome unknown" in panes)
         assertTrue("captureTimeline" in panes)
+        assertTrue("Save support bundle" in panes)
+        assertTrue("Hostnames, credentials, raw frames and camera bytes are omitted." in panes)
         assertTrue("live transport remains gated" in panes)
         assertTrue("EvidenceCentrePane(" in app)
     }

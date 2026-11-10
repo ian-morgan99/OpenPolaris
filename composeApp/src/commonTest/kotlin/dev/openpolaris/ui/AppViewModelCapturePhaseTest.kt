@@ -164,7 +164,7 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
-    fun demoCaptureCompletesWithSimulatedCameraLifecycleAndPublication() = runTest(UnconfinedTestDispatcher()) {
+    fun demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication() = runTest(UnconfinedTestDispatcher()) {
         val vm = vm(this, FakeConnection())
         try {
             vm.connectDemo(startPolling = false)
@@ -186,6 +186,12 @@ class AppViewModelCapturePhaseTest {
                 ),
                 vm.captureTimeline.map { it.stage },
             )
+
+            vm.captureBulb(3)
+            advanceTimeBy(850)
+            runCurrent()
+            assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertEquals("/demo/DCIM/IMG_0002.JPG", vm.lastCapturePublication?.path)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

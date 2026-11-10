@@ -85,6 +85,9 @@ class SimulatedMount {
                 Codes.CAM_INFO -> queue(
                     "1&" + Codes.CAM_INFO + "&2&manufacturer:sony;model:A7;state:0;storage:128;photoFormat:1;#"
                 )
+                Codes.BenroCamera.GET_SHUTTER_INFO -> queue(
+                    "1&" + Codes.BenroCamera.GET_SHUTTER_INFO + "&2&V:1;R:1/100,B;RD:1;#"
+                )
                 284 -> queue(
                     "1&284&2&mode:${if (tracking) 2 else 0};battery:76;charge:0;" +
                         "track:${if (tracking) 1 else 0};halfSpeed:${if (halfSpeed) 0 else 1};" +
@@ -108,19 +111,21 @@ class SimulatedMount {
                 261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
                 262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
                 263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
-                Codes.CAM_CAPTURE -> if (subtype == Codes.CAM_CAPTURE_SUBTYPE) {
+                Codes.CAM_GET_EV -> if (fields.containsKey("state") || fields.containsKey("bulb") || fields.containsKey("c")) {
                     val state = fields["state"]?.toIntOrNull() ?: 1
                     val bulb = fields["bulb"]?.toIntOrNull() ?: 0
                     val c = fields["c"]?.toIntOrNull() ?: -1
-                    queue("1&" + Codes.CAM_CAPTURE + "&2&state:$state;bulb:$bulb;c:$c;#")
+                    queue("1&" + Codes.CAM_GET_EV + "&2&state:$state;bulb:$bulb;c:$c;#")
                     if (state == 1) {
                         val imageName = "IMG_" + (++demoCaptureNumber).toString().padStart(4, '0') + ".JPG"
                         queue(
                             "1&" + Codes.FILE_DOWNLOAD_DATA +
                                 "&2&type:1;path:/demo/DCIM/$imageName;size:12345;#"
                         )
-                        queue("1&" + Codes.CAM_CAPTURE + "&2&state:0;bulb:0;c:$c;#")
+                        queue("1&" + Codes.CAM_GET_EV + "&2&state:0;bulb:0;c:$c;#")
                     }
+                } else if (subtype == Codes.CAM_CAPTURE_SUBTYPE) {
+                    queue("1&" + Codes.CAM_CAPTURE + "&2&state:1;bulb:0;c:-1;#")
                 } else {
                     queue("1&" + Codes.CAM_GET_EV + "&2&ev:$evIndex;ret:0;#")
                 }

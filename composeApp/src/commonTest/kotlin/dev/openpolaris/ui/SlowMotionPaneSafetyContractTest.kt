@@ -45,5 +45,12 @@ class SlowMotionPaneSafetyContractTest {
         assertFalse("LaunchedEffect(vm.demoMode, vm.slowMotionDemoState.running)" in source)
         assertFalse("vm.demoSlowMotionTick()" in source)
         assertTrue("Fine correction — unavailable" in source)
+        assertTrue("fine-rate-readiness" in source)
+        assertTrue("Fine correction readiness" in source)
+        assertTrue("Fresh plate solve (under 5 seconds)" in source)
+        assertTrue("Solve confidence at least 0.60" in source)
+        assertTrue("Field rotation within 5 degrees" in source)
+        assertTrue("live rate transport is disabled in this build" in source)
+        assertTrue("safety-policy defaults" in source)
     }
 }

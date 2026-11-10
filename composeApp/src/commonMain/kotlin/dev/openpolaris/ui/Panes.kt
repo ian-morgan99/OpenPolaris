@@ -2570,6 +2570,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val controlsEnabled = liveControlsEnabled || demoControlsEnabled
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     val motionState by vm.motionState.collectAsState()
+    val lastSolve by vm.lastSolveResult.collectAsState()
+    var nowMs by remember { mutableStateOf(SystemMillis.now()) }
+    LaunchedEffect(lastSolve?.timestampMs) {
+        if (lastSolve == null) {
+            nowMs = SystemMillis.now()
+        } else {
+            while (true) {
+                nowMs = SystemMillis.now()
+                delay(1_000L)
+            }
+        }
+    }
     val motionOwnerText = when (val state = motionState) {
         dev.openpolaris.core.domain.MotionState.Idle -> "Motion owner: idle"
         is dev.openpolaris.core.domain.MotionState.Owned ->
@@ -2580,6 +2592,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
     var showShortcuts by remember { mutableStateOf(false) }
+    val solve = lastSolve
+    val solveAgeMs = solve?.ageMs(nowMs)
+    val fineRateChecks: List<Pair<String, Boolean>> = listOf(
+        "Qualified firmware, route and physical stop" to capabilityRecord.liveReady,
+        "Mount connected" to vm.mount.connected,
+        "Tracking confirmed" to (vm.mount.tracking == true),
+        "Half-speed disabled" to !vm.mount.halfSpeed,
+        "Exclusive motion owner available" to (motionState is dev.openpolaris.core.domain.MotionState.Idle),
+        "Fresh plate solve (under 5 seconds)" to (solveAgeMs?.let { it <= 5_000L } == true),
+        "Solve confidence at least 0.60" to ((solve?.confidence ?: 0.0) >= 0.60),
+        "Field rotation within 5 degrees" to false,
+    )
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
@@ -2617,6 +2641,50 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("fine-rate-readiness"),
+            ) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("Fine correction readiness", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Read-only contract preview. The live rate transport is disabled in this build; every check must be observed before a future correction can be armed.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    fineRateChecks.forEach { (label, observed) ->
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(label, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                if (observed) "Observed" else "Missing",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (observed) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                            )
+                        }
+                    }
+                    Text(
+                        when {
+                            solve == null -> "Solve evidence: no local plate solve observed."
+                            solveAgeMs == null -> "Solve evidence: age unavailable."
+                            else -> "Solve evidence: ${solveAgeMs / 1_000.0}s old · confidence ${"%.2f".format(solve.confidence)} · field rotation unavailable"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "The 0.60 confidence, 5-second freshness and 5-degree rotation values are safety-policy defaults, not hardware qualification claims.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (demoControlsEnabled && vm.slowMotionDemoState.lastEvents.isNotEmpty()) {
                 Text("Logical scheduler trace", style = MaterialTheme.typography.labelSmall)

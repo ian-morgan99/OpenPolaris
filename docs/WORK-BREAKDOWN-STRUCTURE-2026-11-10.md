@@ -16,7 +16,7 @@
 | WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | PLANNED |
 | WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
 | WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | ACTIVE |
-| WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | PLANNED |
+| WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | ACTIVE |
 | WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | PLANNED |
 | WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | PLANNED |
 | WBS-11 | Physical qualification and release gate | Named-device evidence and honest capability matrix | WBS-02..10 | QUALIFICATION |
@@ -207,6 +207,8 @@
 ### WBS-08.2 — Health/evidence centre — P1
 
 - Event timeline, raw frame/log export, build identity, firmware identity, capability matrix and support bundle.
+
+- **2026-11-10 — WBS-08.2 ACTIVE:** added a read-only evidence and health centre to Settings. It reports build/route identity, separate control and preview health, observed device/camera/storage state, capture lifecycle/publication evidence, and the gated live-SLOW boundary. Raw-log export and support-bundle packaging remain future work.
 
 ### WBS-08.3 — Firmware/network controls — P2
 

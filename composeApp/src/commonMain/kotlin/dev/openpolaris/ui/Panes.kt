@@ -78,6 +78,140 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * Read-only health and evidence surface for support and field diagnosis.
+ *
+ * It intentionally reports what OpenPolaris has observed, not what a command
+ * might have meant. A simulator trace is labelled as such and a capture file
+ * is only shown as confirmed when the lifecycle and publication evidence were
+ * correlated by the view model.
+ */
+@Composable
+fun EvidenceCentrePane(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    versionLabel: String? = null,
+) {
+    val endpoint = vm.endpointHealth
+    val captureSummary = when (val phase = vm.capturePhase) {
+        AppViewModel.CapturePhase.Idle -> "Idle"
+        AppViewModel.CapturePhase.Requested -> "Requested"
+        AppViewModel.CapturePhase.Busy -> "Camera active"
+        AppViewModel.CapturePhase.Completed -> "Confirmed: lifecycle + file publication"
+        is AppViewModel.CapturePhase.OutcomeUnknown -> "Outcome unknown: ${phase.reason}"
+        is AppViewModel.CapturePhase.Failed -> "Failed: ${phase.reason}"
+    }
+    val cameraSummary = vm.cameraAttachment?.let { attachment ->
+        if (attachment.isAttached) {
+            listOfNotNull(attachment.manufacturer, attachment.model).joinToString(" ").ifBlank { "Attached camera" }
+        } else {
+            "No camera attached (state ${attachment.state ?: "unknown"})"
+        }
+    } ?: "Not checked"
+    val routeSummary = endpoint.profile?.let { profile ->
+        "${profile.label} ${profile.address.host}:${profile.address.controlPort} / preview ${profile.address.previewPort}"
+    } ?: "No endpoint selected"
+
+    Card(modifier.padding(8.dp)) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Evidence and health", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Read-only support view. Values are observed in this session; unknown is not success.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            HorizontalDivider()
+            Text("Build and route", style = MaterialTheme.typography.titleSmall)
+            EvidenceRow("App build", versionLabel ?: "Host build identity not supplied")
+            EvidenceRow("Endpoint", routeSummary)
+            EvidenceRow("Route phase", endpoint.phase.name)
+            EvidenceRow("Control service", endpoint.control.name)
+            EvidenceRow("Preview service", endpoint.preview.name)
+            endpoint.lastFailure?.let { EvidenceRow("Last failure", it) }
+
+            HorizontalDivider()
+            Text("Device and mission state", style = MaterialTheme.typography.titleSmall)
+            EvidenceRow("Mount", if (vm.mount.connected) "Connected" else "Disconnected")
+            EvidenceRow("Firmware", vm.firmwareVersion ?: vm.deviceInfo?.software ?: "Not observed")
+            EvidenceRow("Hardware", vm.deviceInfo?.hardware ?: "Not observed")
+            EvidenceRow("Serial", vm.serialNumber ?: "Not observed")
+            EvidenceRow("Camera", cameraSummary)
+            EvidenceRow("SD storage", vm.sdStatus?.let { status ->
+                if (status.present) {
+                    "${status.freeMb ?: "?"} MB free / ${status.totalMb ?: "?"} MB"
+                } else {
+                    "Not present"
+                }
+            } ?: "Not checked")
+            EvidenceRow("Capture", captureSummary)
+
+            HorizontalDivider()
+            Text("Capability gates", style = MaterialTheme.typography.titleSmall)
+            EvidenceRow(
+                "Slow motion",
+                if (vm.demoMode) {
+                    "Simulator-only trace available; live transport remains gated"
+                } else {
+                    "Blocked pending exact firmware route and physical stop evidence"
+                },
+            )
+            EvidenceRow(
+                "Preview",
+                if (endpoint.previewReady) "Hardware stream reachable" else "Unknown or unavailable",
+            )
+            EvidenceRow(
+                "Alignment",
+                if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) {
+                    "Identity recorded in this session"
+                } else {
+                    "Not recorded"
+                },
+            )
+
+            HorizontalDivider()
+            Text("Recent capture evidence", style = MaterialTheme.typography.titleSmall)
+            if (vm.captureTimeline.isEmpty()) {
+                Text(
+                    "No correlated capture lifecycle has been recorded.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                vm.captureTimeline.takeLast(6).forEach { entry ->
+                    EvidenceRow(entry.stage.label, entry.detail)
+                }
+            }
+            vm.lastCapturePublication?.let { publication ->
+                EvidenceRow(
+                    "Published file",
+                    "${publication.path} (${publication.sizeBytes ?: "size unknown"} bytes)",
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvidenceRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.width(112.dp),
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/**
  * Connection pane: host entry, connect/demo buttons, status line.
  * [onFindWifi], when provided, opens a platform Wi-Fi picker so the user can
  * join the mount's access point without leaving the app. This is the

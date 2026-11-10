@@ -229,7 +229,15 @@ fun OpenPolarisApp(
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { UserManualPane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
-                    FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        EvidenceCentrePane(
+                            vm,
+                            Modifier.fillMaxWidth(),
+                            versionLabel = versionLabel,
+                        )
+                        HorizontalDivider()
+                        FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
+                    }
                 }
                 null -> {}
             }

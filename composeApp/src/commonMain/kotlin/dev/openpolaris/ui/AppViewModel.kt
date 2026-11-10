@@ -54,6 +54,7 @@ import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
+import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createPreviewTransport
@@ -497,6 +498,9 @@ class AppViewModel(
     // Derived locally from the same decoded frame that is rendered. This is
     // presentation state only; it never implies camera focus or mount health.
     var previewPixelAnalysis by mutableStateOf<PreviewPixelAnalysis?>(null)
+        private set
+    /** Wall-clock receipt of the currently displayed decoded preview frame. */
+    var previewFrameReceivedAtMs by mutableStateOf<Long?>(null)
         private set
     // Pixel reads can block on a GPU-backed bitmap, so analysis has its own
     // cancellable job and never delays the control-socket owner.
@@ -1347,6 +1351,7 @@ class AppViewModel(
         runCatching { preview.stop() }
         previewFrame = null
         previewPixelAnalysis = null
+        previewFrameReceivedAtMs = null
         endpointHealth = EndpointHealth.disconnected()
 
         session?.let { runBlocking { it.disconnect() } }
@@ -1459,6 +1464,7 @@ class AppViewModel(
         previewAnalysisJob?.cancel()
         previewAnalysisJob = null
         previewPixelAnalysis = null
+        previewFrameReceivedAtMs = null
         try {
             preview.start(host, previewPort)
         } catch (e: Throwable) {
@@ -1482,9 +1488,11 @@ class AppViewModel(
                     previewAnalysisJob?.cancel()
                     previewAnalysisJob = null
                     previewPixelAnalysis = null
+                    previewFrameReceivedAtMs = null
                     return@collect
                 }
                 setPreviewHealth(EndpointService.REACHABLE)
+                previewFrameReceivedAtMs = SystemMillis.now()
                 // Drop-on-late: if the user closes the pane, the next
                 // decode will simply replace a stale bitmap.
                 val decoded = withContext(Dispatchers.Default) {
@@ -1658,6 +1666,7 @@ class AppViewModel(
         preview.stop()
         previewFrame = null
         previewPixelAnalysis = null
+        previewFrameReceivedAtMs = null
     }
 
     private suspend fun suspendCaptureWorkloads() {
@@ -1678,6 +1687,7 @@ class AppViewModel(
         preview.stop()
         previewFrame = null
         previewPixelAnalysis = null
+        previewFrameReceivedAtMs = null
         if (restorePreviewAfterCapture) {
             // Best effort: the transport is already closed, so even a firmware
             // timeout cannot leave a second 8080 owner in this process.

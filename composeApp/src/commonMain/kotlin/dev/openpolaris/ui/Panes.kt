@@ -57,9 +57,11 @@ import dev.openpolaris.core.domain.AstroMissionFlow
 import dev.openpolaris.core.domain.AstroMissionInput
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
+import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.ObservationProgrammePlanner
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.domain.DeliveryMode
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -1215,6 +1217,16 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val frame = vm.previewFrame
     val analysis = vm.previewPixelAnalysis
     val state = vm.previewState
+    var nowMs by remember { mutableStateOf(SystemMillis.now()) }
+    LaunchedEffect(frame != null) {
+        while (frame != null) {
+            nowMs = SystemMillis.now()
+            delay(1_000L)
+        }
+    }
+    val frameAgeSeconds = vm.previewFrameReceivedAtMs?.let { received ->
+        ((nowMs - received).coerceAtLeast(0L) / 1_000L)
+    }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera preview", style = MaterialTheme.typography.titleMedium)
@@ -1265,6 +1277,13 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         }
                     }
                 }
+            }
+            frameAgeSeconds?.let { age ->
+                Text(
+                    if (age == 0L) "Frame age: under 1 s" else "Frame age: ${age} s",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (age > 5L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

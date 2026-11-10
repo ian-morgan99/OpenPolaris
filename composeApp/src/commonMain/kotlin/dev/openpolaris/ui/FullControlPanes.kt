@@ -459,17 +459,60 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("SD card files", style = MaterialTheme.typography.titleMedium)
             SdHeaderRow(vm)
-            OutlinedButton(
-                enabled = FeatureFlags.isEnabled("fileManager"),
-                onClick = vm::refreshFileList,
-            ) { Text("Refresh list") }
+            val fileManagerEnabled = FeatureFlags.isEnabled("fileManager")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Category", style = MaterialTheme.typography.labelMedium)
+                listOf(0 to "All", 1 to "Normal").forEach { (type, label) ->
+                    TextButton(
+                        enabled = fileManagerEnabled && vm.fileListType != type,
+                        onClick = {
+                            vm.setFileType(type)
+                            vm.setFilePage(0)
+                            vm.refreshFileList()
+                        },
+                    ) { Text(label) }
+                }
+                OutlinedButton(
+                    enabled = fileManagerEnabled,
+                    onClick = vm::refreshFileList,
+                ) { Text("Refresh") }
+            }
+            val fileList = vm.fileList
+            val files = fileList?.files.orEmpty()
+            if (fileList != null) {
+                Text(
+                    "Type ${vm.fileListType} · page ${vm.fileListPage}" +
+                        (fileList.count?.let { " · ${files.size} of $it" } ?: ""),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             HorizontalDivider()
-            val files = vm.fileList?.files.orEmpty()
             if (files.isEmpty()) {
                 Text("(no files loaded — hit Refresh list)", style = MaterialTheme.typography.bodySmall)
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     files.forEach { f -> FileRow(vm, f) }
+                }
+            }
+            val canNextPage = fileList?.count?.let { total ->
+                files.isNotEmpty() && (vm.fileListPage + 1) * files.size < total
+            } ?: false
+            if (fileList != null && (vm.fileListPage > 0 || canNextPage)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        enabled = fileManagerEnabled && vm.fileListPage > 0,
+                        onClick = {
+                            vm.setFilePage(vm.fileListPage - 1)
+                            vm.refreshFileList()
+                        },
+                    ) { Text("Previous") }
+                    OutlinedButton(
+                        enabled = fileManagerEnabled && canNextPage,
+                        onClick = {
+                            vm.setFilePage(vm.fileListPage + 1)
+                            vm.refreshFileList()
+                        },
+                    ) { Text("Next") }
                 }
             }
             HorizontalDivider()

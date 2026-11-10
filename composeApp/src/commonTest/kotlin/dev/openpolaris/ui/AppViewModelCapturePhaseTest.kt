@@ -34,6 +34,7 @@ class AppViewModelCapturePhaseTest {
                 wire.startsWith("1&286&") -> cameraFrame
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&823&") -> "1&823&2&app:openpolaris;ver:test;#"
+                wire.startsWith("1&770&") -> "1&770&2&type:1;page:2;count:2;id:11;name:SP_0011.dng;prot:0;id:12;name:SP_0012.jpg;prot:1;#"
                 else -> null
             }
             response?.let { channel.trySend(it.toByteArray(Charsets.US_ASCII)) }
@@ -89,6 +90,22 @@ class AppViewModelCapturePhaseTest {
             vm.refreshCameraAttachment()
             runCurrent()
             assertEquals(2, conn.count(286), "refresh is explicit and bounded")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun fileListUsesSelectedCategoryAndPage() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.setFileType(1)
+            vm.setFilePage(2)
+            vm.refreshFileList()
+            runCurrent()
+
+            assertTrue(conn.written.any { it.contains("type:1;page:2;") })
+            assertEquals(2, vm.fileList?.files?.size)
+            assertEquals("SP_0011.dng", vm.fileList?.files?.first()?.name)
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
 

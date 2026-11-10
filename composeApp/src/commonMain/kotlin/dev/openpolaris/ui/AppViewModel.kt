@@ -1372,6 +1372,7 @@ class AppViewModel(
         pendingCapturePublication = null
         lastCapturePublication = null
         captureTimeline = emptyList()
+        fileList = null
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3020,7 +3021,12 @@ class AppViewModel(
         if (!FeatureFlags.isEnabled("fileManager")) { statusMessage = "File manager disabled by config"; return@launch }
         val s = session ?: return@launch
         runCatching {
-            val r = s.request<FileList>(Codes.FILE_LIST) { f -> FileList.fromFrame(f) }
+            val r = s.request<FileList>(
+                Codes.FILE_LIST,
+                CommandTable.FILE_LIST.payload(CommandTable.FileListRequest(fileListType, fileListPage)),
+            ) { f ->
+                FileList.fromFrame(f)
+            }
             if (r is MountSession.CmdResult.Ok) {
                 fileList = r.value
                 statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"

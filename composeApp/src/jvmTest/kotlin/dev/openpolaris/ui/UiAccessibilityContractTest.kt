@@ -23,6 +23,13 @@ class UiAccessibilityContractTest {
     }
 
     @Test
+    fun `persistent status actions expose deterministic automation tags`() {
+        val text = source("OpenPolarisApp.kt")
+        assertTrue("testTag(\"mission-details\")" in text)
+        assertTrue("testTag(\"open-gallery\")" in text)
+    }
+
+    @Test
     fun `ambiguous camera glyph controls have spoken labels`() {
         val text = source("Panes.kt")
         assertTrue("contentDescription = \"Decrease ${'$'}label\"" in text)

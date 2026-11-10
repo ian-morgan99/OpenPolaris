@@ -404,10 +404,16 @@ private fun StatusStrip(
             ) {
                 Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                 onOpenDetails?.let { open ->
-                    TextButton(onClick = open) { Text("Details") }
+                    TextButton(
+                        onClick = open,
+                        modifier = Modifier.testTag("mission-details"),
+                    ) { Text("Details") }
                 }
                 onOpenGallery?.let { open ->
-                    TextButton(onClick = open) { Text("Gallery") }
+                    TextButton(
+                        onClick = open,
+                        modifier = Modifier.testTag("open-gallery"),
+                    ) { Text("Gallery") }
                 }
                 Text(
                     buildString {

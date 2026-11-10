@@ -27,6 +27,9 @@ import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiStatusResult
+import dev.openpolaris.core.domain.AstroWebUiGuideClient
+import dev.openpolaris.core.domain.AstroWebUiGuideResult
+import dev.openpolaris.core.domain.AstroWebUiGuideUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -153,6 +156,7 @@ import dev.openpolaris.core.domain.createSupportBundleExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
+import dev.openpolaris.core.domain.createAstroWebUiGuideClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -293,6 +297,7 @@ class AppViewModel(
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
+    private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1805,6 +1810,11 @@ class AppViewModel(
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
         astroWebUiStatus = AstroWebUiStatusState.Idle
+        astroWebUiGuideJob?.cancel()
+        astroWebUiGuideJob = null
+        astroWebUiGuidePollJob?.cancel()
+        astroWebUiGuidePollJob = null
+        astroWebUiGuide = AstroWebUiGuideUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4179,6 +4189,8 @@ class AppViewModel(
         private set
     var astroWebUiStatus by mutableStateOf<AstroWebUiStatusState>(AstroWebUiStatusState.Idle)
         private set
+    var astroWebUiGuide by mutableStateOf<AstroWebUiGuideUiState>(AstroWebUiGuideUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4207,6 +4219,8 @@ class AppViewModel(
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
     private var astroWebUiStatusPollJob: Job? = null
+    private var astroWebUiGuideJob: Job? = null
+    private var astroWebUiGuidePollJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4221,6 +4235,7 @@ class AppViewModel(
     private var astroWebUiSunJob: Job? = null
     private var astroWebUiMotionProgrammeJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
+    private val astroWebUiGuideReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4319,6 +4334,105 @@ class AppViewModel(
     fun stopAstroWebUiStatusPolling() {
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
+    }
+
+    private suspend fun readAstroWebUiGuide(announce: Boolean) {
+        astroWebUiGuideReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiGuideStatus")) {
+                astroWebUiGuide = AstroWebUiGuideUiState.Failed("Astro WebUI guide status disabled by config")
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiGuide = AstroWebUiGuideUiState.Failed(
+                    "Connect to a mount before reading its Astro WebUI guide state",
+                )
+                return@withLock
+            }
+            astroWebUiGuide = AstroWebUiGuideUiState.Loading
+            val result = astroWebUiGuideClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiGuideResult.Success -> {
+                    astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI guide state refreshed"
+                }
+                is AstroWebUiGuideResult.Failure -> {
+                    astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+                is AstroWebUiGuideResult.Accepted -> Unit
+            }
+        }
+    }
+
+    fun refreshAstroWebUiGuide() {
+        astroWebUiGuideJob?.cancel()
+        astroWebUiGuideJob = scope.launch {
+            readAstroWebUiGuide(announce = true)
+        }
+    }
+
+    fun startAstroWebUiGuidePolling() {
+        astroWebUiGuidePollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiGuideStatus")) {
+            astroWebUiGuide = AstroWebUiGuideUiState.Failed("Astro WebUI guide status disabled by config")
+            return
+        }
+        astroWebUiGuidePollJob = scope.launch {
+            while (isActive) {
+                readAstroWebUiGuide(announce = false)
+                delay(2_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiGuidePolling() {
+        astroWebUiGuidePollJob?.cancel()
+        astroWebUiGuidePollJob = null
+    }
+
+    fun setAstroWebUiGuiding(running: Boolean) {
+        astroWebUiGuideJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiGuiding")) {
+            astroWebUiGuide = AstroWebUiGuideUiState.Failed(
+                "Astro WebUI guiding writes are disabled until solve, ownership and recovery are qualified",
+            )
+            statusMessage = "Astro WebUI guiding writes are disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiGuide = AstroWebUiGuideUiState.Failed(
+                "Connect to a mount before changing Astro WebUI guiding",
+            )
+            statusMessage = "Connect to a mount before changing Astro WebUI guiding"
+            return
+        }
+        astroWebUiGuide = AstroWebUiGuideUiState.Loading
+        astroWebUiGuideJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiGuideClient.setRunning(host, previewPort, running)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiGuideResult.Failure(error.message ?: "Astro WebUI guide change failed")
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiGuideResult.Accepted -> {
+                    astroWebUiGuide = AstroWebUiGuideUiState.Accepted(result.running)
+                    statusMessage = "Astro WebUI guide change accepted; confirming by readback"
+                    readAstroWebUiGuide(announce = false)
+                }
+                is AstroWebUiGuideResult.Success -> astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
+                is AstroWebUiGuideResult.Failure -> {
+                    astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
     }
 
     private suspend fun readAstroWebUiSolve(announce: Boolean) {

@@ -991,3 +991,31 @@ Verification passed:
 Result: BUILD SUCCESSFUL; all four source-contract tests and all three
 ViewModel lifecycle/default-gate tests passed. No live Astro WebUI, mount,
 camera or physical SLOW command was exercised.
+
+
+### WBS-05.4/08.2 - Bounded Astro WebUI guide telemetry
+
+Added the source-backed guide surface:
+
+- `GET /api/guide` is parsed into typed running/threshold/interval/drift
+  state with strict numeric and boolean validation, a 64-point cap and a
+  4096-character log cap.
+- The Mission surface polls guide telemetry at the same two-second cadence as
+  Astro status and labels it as guider evidence rather than physical correction
+  confirmation.
+- `POST /api/guide` uses the source `on=1|0` form and positive JSON
+  acknowledgement parsing, but the switch remains behind a separate
+  default-off `astroWebUiGuiding` gate. Safe readback is independently
+  default-on through `astroWebUiGuideStatus`.
+- Reads, writes, polling and disconnect are MountSession-owned; late guide
+  results cannot update a replacement session.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiGuideTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiGuideTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; parser, feature-policy, ViewModel lifecycle and
+Compose compilation tests passed. No live guiding or mount command was
+exercised.

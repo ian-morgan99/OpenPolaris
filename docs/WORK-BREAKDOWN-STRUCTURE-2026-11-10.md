@@ -674,3 +674,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   form bodies, Holy Grail status responses without an `ok` field, default
   blocking, preview-port routing and late-result disconnect ownership. No live
   Astro WebUI, mount, camera or physical SLOW command was exercised.
+
+
+- **2026-11-10 - WBS-05.4/08.2 ACTIVE (Astro WebUI guide telemetry):**
+  added bounded source-aligned `/api/guide` parsing for running state, threshold,
+  interval, last drift, up to 64 drift points and a capped log. The Mission
+  surface polls this readback with the same session lifecycle as the other
+  Astro status surfaces and keeps it distinct from proof that a correction
+  reached the mount. Guide writes use a separate default-off gate.
+- **2026-11-10 - verification:** AstroWebUiGuideTest,
+  AppViewModelAstroWebUiGuideTest and FeatureFlagsTest passed for exact `on=1`
+  form acknowledgement, malformed/sentinel data, safe default-on readback,
+  preview-port routing, default-off writes and late-result disconnect
+  ownership. No live guiding or mount command was exercised.

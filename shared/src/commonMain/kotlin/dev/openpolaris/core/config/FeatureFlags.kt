@@ -119,6 +119,10 @@ object FeatureFlags {
     const val astroWebUiMedia: Boolean = true
     /** Optional read-only Astro WebUI mission-state status. */
     const val astroWebUiStatus: Boolean = true
+    /** Optional read-only Astro WebUI guide telemetry. */
+    const val astroWebUiGuideStatus: Boolean = true
+    /** Astro WebUI guide writes; disabled until solve, ownership and recovery qualify. */
+    const val astroWebUiGuiding: Boolean = false
     /** Optional read-only Astro WebUI observing-site status. */
     const val astroWebUiSite: Boolean = true
     /** Astro WebUI observing-site save; disabled until mutation and recovery are qualified. */
@@ -248,6 +252,8 @@ object FeatureFlags {
         "fileManager" -> fileManager
         "astroWebUiMedia" -> astroWebUiMedia
         "astroWebUiStatus" -> astroWebUiStatus
+        "astroWebUiGuideStatus" -> astroWebUiGuideStatus
+        "astroWebUiGuiding" -> astroWebUiGuiding
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiSiteWrite" -> astroWebUiSiteWrite
         "astroWebUiSolveStatus" -> astroWebUiSolveStatus

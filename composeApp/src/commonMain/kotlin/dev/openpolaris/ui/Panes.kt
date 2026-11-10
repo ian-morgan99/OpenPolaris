@@ -83,6 +83,7 @@ import dev.openpolaris.core.domain.AstroWebUiPathWaypointRequest
 import dev.openpolaris.core.domain.AstroWebUiGrailNode
 import dev.openpolaris.core.domain.AstroWebUiGrailParameters
 import dev.openpolaris.core.domain.AstroWebUiStatusState
+import dev.openpolaris.core.domain.AstroWebUiGuideUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -623,11 +624,13 @@ fun MissionDashboardPane(
 ) {
     DisposableEffect(vm) {
         vm.startAstroWebUiStatusPolling()
+        vm.startAstroWebUiGuidePolling()
         vm.startAstroWebUiSolvePolling()
         vm.startAstroWebUiRunStatePolling()
         vm.startAstroWebUiProgrammePolling()
         onDispose {
             vm.stopAstroWebUiStatusPolling()
+            vm.stopAstroWebUiGuidePolling()
             vm.stopAstroWebUiSolvePolling()
             vm.stopAstroWebUiRunStatePolling()
             vm.stopAstroWebUiProgrammePolling()
@@ -773,6 +776,74 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
+            }
+            HorizontalDivider()
+            Text("Resident guiding", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Readback is source-aligned and shows the guider's own drift history. It is not proof that a correction reached the mount.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiGuideStatus"),
+                    onClick = vm::refreshAstroWebUiGuide,
+                ) { Text("Refresh guiding") }
+                when (val guide = vm.astroWebUiGuide) {
+                    AstroWebUiGuideUiState.Idle -> Text("Guide state not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiGuideUiState.Loading -> Text("Reading guide state…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiGuideUiState.Accepted -> Text(
+                        "Guide change accepted; waiting for readback.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiGuideUiState.Failed -> Text(
+                        guide.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    is AstroWebUiGuideUiState.Ready -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (guide.state.running) "Guiding active" else "Guiding off",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            Switch(
+                                checked = guide.state.running,
+                                enabled = FeatureFlags.isEnabled("astroWebUiGuiding"),
+                                onCheckedChange = vm::setAstroWebUiGuiding,
+                            )
+                        }
+                        Text(
+                            "Threshold " + guide.state.thresholdArcsec + "″ · interval " +
+                                guide.state.intervalSeconds + " s",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            "Last drift " + (guide.state.lastDriftArcsec?.let { it.toString() + "″" } ?: "unknown") +
+                                " · " + guide.state.points.size + " points",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (guide.state.log.isNotBlank()) {
+                            Text("Guide log: " + guide.state.log, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiGuideStatus")) {
+                Text(
+                    "Guide readback is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiGuiding")) {
+                Text(
+                    "Guide writes are disabled until solve anchoring, motion ownership and recovery are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             HorizontalDivider()
             Text("Astro run state", style = MaterialTheme.typography.titleMedium)

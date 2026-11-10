@@ -967,3 +967,7 @@ The current implementation slice must not send a new motor frame, alter firmware
   navigation/layout tests and the full cross-platform build passed. No live
   camera, SD card, Astro WebUI, Bluetooth, mount or physical SLOW qualification
   was performed.
+
+
+- **2026-11-10 - WBS-04.1/04.3/09.1 ACTIVE (Demo camera readiness and M/B mode rehearsal):** Demo now performs the five source-aligned Benro camera INFO readbacks (265/266/267/268/275) after connect, exposes a verified M/B shutter option list, and allows Demo-only SET 261 round trips to switch modes without touching hardware. The Camera pane explains the local simulation and the existing experimentalCamera gate remains closed by default.
+- **2026-11-10 - verification:** AppViewModelCapturePhaseTest.demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication now verifies B readback, M transition, M capture, B transition and Bulb capture. Focused and full cross-platform builds passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.

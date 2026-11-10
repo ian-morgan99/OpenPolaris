@@ -1876,3 +1876,35 @@ Artifacts:
 The review affordance is simulator/package evidence only. No live Astro WebUI,
 Bluetooth, bridge, camera, SD card, mount or physical SLOW qualification was
 exercised.
+
+
+## Latest committed verification - de116be
+
+Commit under test: de116be (test: rehearse demo camera M/B readback).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: ef5299119735abdbe30d3f0d4beb3945c6eca0f9da1342e049f17a2967fd0cac
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-mb-modes.tar.gz
+  SHA-256: 9a7571e0c91f7360cc8e36bc65877764170f17484f9af8a917730abfeadaecc2
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The M/B mode rehearsal is simulator/package evidence only. No live Astro
+WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was
+performed.

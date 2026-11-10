@@ -890,3 +890,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   the full shared/Compose JVM, Android compilation, desktop packaging and APK
   build passed. No live Astro WebUI, mount or physical SLOW operation was
   exercised.
+
+- **2026-11-10 - WBS-03.1/03.5/03.6/04.3/06.4 ACTIVE (capture exclusivity):**
+  SLOW admission now fails closed when a camera lifecycle is requested/busy or
+  outcome-unknown, an Astro WebUI shutter is dispatching/active, video is
+  recording, or an observation programme owns capture. Native still/Bulb,
+  intervalometer, qualified lapse and Astro WebUI capture/programme starts
+  refuse to begin while SLOW owns the mount. This keeps the mount motion lease
+  and camera shutter lifecycle separate and visible.
+- **2026-11-10 - verification:** added Demo admission regressions for both
+  sides of the boundary: SLOW cannot start over capture state, and capture
+  cannot start over an active SLOW lease. The full shared/Compose JVM, Android
+  compilation, desktop packaging and APK build passed. No live camera, Astro
+  WebUI, mount or physical SLOW operation was exercised.

@@ -1311,3 +1311,9 @@ This is an integration improvement, not a qualification claim: a named firmware/
 Commit `d5c9ff4` injects the SLOW capability record into AppViewModel. Production still defaults to the immutable unqualified record, while tests or a future release can supply one exact evidence-backed record. The Motion pane, `QualifiedSlowMotionTransport`, live readiness check and support-bundle snapshot now read that same object. This prevents a future qualified transport from being enabled in the runtime while the UI or diagnostics report a different record.
 
 No live capability was promoted.
+
+### WBS-02.1/02.3/08.1 - Explicit AP/LAN connection intent
+
+Commit `2282c60` adds a persisted Direct AP/Home Wi-Fi (LAN) mode to the Connection workspace. The selected mode changes endpoint identity and UI guidance, but never changes host networking implicitly. Direct-AP-only wake, Wi-Fi picker and desktop bridge actions are disabled in LAN mode; ordinary Connect remains available against the user-entered station host and port. Bluetooth wake failures now map to the typed FAILED evidence state while Wi-Fi discovery continues independently.
+
+Focused and full cross-platform verification passed. This remains package/source-contract evidence: station listener reachability, phone Bluetooth GATT wake, live mount, camera, Astro WebUI and physical SLOW qualification are still required.

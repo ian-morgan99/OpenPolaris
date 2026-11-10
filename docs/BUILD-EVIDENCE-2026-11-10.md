@@ -2213,3 +2213,29 @@ Android debug APK:
 This is source-contract/package evidence only. Live phone Bluetooth GATT,
 mount AP wake, camera, Astro WebUI and physical slow-motion qualification
 remain unverified.
+
+## Latest committed verification - 2282c60
+
+Commit under test: 2282c60 (feat: add explicit home LAN connection mode).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.EndpointHealthTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelConnectionModeTest --tests dev.openpolaris.ui.ConnectionModeContractTest --tests dev.openpolaris.ui.AndroidBluetoothWakeContractTest :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: f6e19607f6994810d4ee93262956685bec8da4e28a3ec53b33dbd192c45c4e8f
+
+This is simulator/package and source-contract evidence only. Live station-LAN
+listener reachability, phone Bluetooth GATT wake, mount, camera, Astro WebUI
+and physical SLOW qualification remain unverified.

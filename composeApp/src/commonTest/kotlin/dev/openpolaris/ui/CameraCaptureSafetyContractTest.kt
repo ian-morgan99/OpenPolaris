@@ -29,5 +29,7 @@ class CameraCaptureSafetyContractTest {
         assertTrue("val captureOutcomeUnknown = vm.capturePhase is AppViewModel.CapturePhase.OutcomeUnknown" in source)
         assertTrue("val canStart = !active && !outcomeUnknown && !captureOutcomeUnknown" in source)
         assertTrue("A single shutter outcome is unknown; reconnect before starting a sequence." in source)
+        assertTrue("review-capture-gallery" in source)
+        assertTrue("Review in Gallery" in source)
     }
 }

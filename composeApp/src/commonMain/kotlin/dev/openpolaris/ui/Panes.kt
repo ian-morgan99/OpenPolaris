@@ -3244,7 +3244,11 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
  * GET/SET pairs into `CommandTable` and the post-connect burst.
  */
 @Composable
-fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+fun CameraPane(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    onOpenGallery: (() -> Unit)? = null,
+) {
     val c = vm.camera
     val attachment = vm.cameraAttachment
     val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
@@ -3379,6 +3383,14 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     "Published: ${publication.path}" + (publication.sizeBytes?.let { " (${it} bytes)" } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                onOpenGallery?.let { open ->
+                    TextButton(
+                        onClick = open,
+                        modifier = Modifier.testTag("review-capture-gallery"),
+                    ) {
+                        Text("Review in Gallery")
+                    }
+                }
             }
             CaptureTimelinePane(vm, Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

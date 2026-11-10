@@ -255,6 +255,7 @@ fun OpenPolarisApp(
                             destination = activeDestination,
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             onMissionAction = ::openMissionAction,
+                            onOpenGallery = { openDestination(AppDestination.GALLERY) },
                             compassHeadingSource = compassHeadingSource,
                         )
                     }
@@ -276,7 +277,8 @@ fun OpenPolarisApp(
                         destination = activeDestination,
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         onMissionAction = ::openMissionAction,
-                            compassHeadingSource = compassHeadingSource,
+                        onOpenGallery = { openDestination(AppDestination.GALLERY) },
+                        compassHeadingSource = compassHeadingSource,
                     )
                     PrimaryDestinationBar(
                         selected = activeDestination,
@@ -370,6 +372,7 @@ private fun InlineDestinationWorkspace(
     destination: AppDestination,
     modifier: Modifier = Modifier,
     onMissionAction: (String) -> Unit,
+    onOpenGallery: () -> Unit,
     compassHeadingSource: CompassHeadingSource?,
 ) {
     LazyColumn(
@@ -394,7 +397,11 @@ private fun InlineDestinationWorkspace(
                     JogPane(vm, Modifier.fillMaxWidth())
                     SlowMotionPane(vm, Modifier.fillMaxWidth())
                 }
-                AppDestination.CAMERA -> CameraPane(vm, Modifier.fillMaxWidth())
+                AppDestination.CAMERA -> CameraPane(
+                    vm = vm,
+                    modifier = Modifier.fillMaxWidth(),
+                    onOpenGallery = onOpenGallery,
+                )
                 AppDestination.GALLERY -> GalleryPane(vm, Modifier.fillMaxWidth())
             }
         }

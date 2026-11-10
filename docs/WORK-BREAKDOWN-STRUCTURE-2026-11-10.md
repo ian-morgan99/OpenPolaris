@@ -700,3 +700,12 @@ The current implementation slice must not send a new motor frame, alter firmware
   progress shapes, explicit confirm/stop forms, range rejection, safe
   default-on readback, default-off writes, preview-port routing and
   disconnect ownership. No live focus, camera or mount command was exercised.
+
+
+- **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI focal controls):** added
+  bounded source-aligned `/api/focal` parsing for manual override, EXIF cache
+  and configured fallback values. The shared Mission surface performs a
+  session-scoped read on entry and offers Refresh, Use auto and Set override
+  controls; focal writes remain separately default-off, validate 1-100000 mm
+  and confirm through readback. No solve, alignment or mount command is
+  inferred from focal state.

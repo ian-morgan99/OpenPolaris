@@ -1056,3 +1056,22 @@ exercised.
   `27aff09ddbedc760ffd6409fa022c8daaa1f16b5ee6a1554a6ad07dd6f2dca86`;
   desktop archive SHA-256 is
   `5f9de7375c7018ca9c4464c96ea4cc3848e8b4f6e6c733416a40985fbbdec38c`.
+
+
+- **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI focal):** implemented
+  source-aligned focal state and write forms, with bounded numeric validation,
+  preview-port routing, a safe readback default, a separate write gate and
+  disconnect-safe ViewModel ownership. Focused adapter, FeatureFlags,
+  ViewModel lifecycle and Compose compilation tests passed. No live solve,
+  camera or mount operation was exercised.
+
+
+- **2026-11-10 - WBS-05.3/08.2 verification:** full host build for
+  `3440bea` passed: 103 actionable tasks, shared and Compose JVM tests,
+  Android debug compilation/APK assembly, and desktop distributable creation.
+  APK SHA-256 is
+  `0ff1161b4d04187202b9972c8dedb78e206f2300f9596b5cc3da86ca29948305`;
+  desktop archive SHA-256 is
+  `aa0023697a17bb49bfde95aa242fd9415fcfd880e24a709c6aa459ab83ff2d31`.
+  No live Astro WebUI, solve, camera, mount or physical SLOW qualification
+  was exercised.

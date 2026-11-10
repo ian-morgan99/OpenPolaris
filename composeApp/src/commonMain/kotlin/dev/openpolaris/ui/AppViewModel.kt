@@ -5553,6 +5553,12 @@ class AppViewModel(
         }
     }
 
+    fun setAstroWebUiPanoramaInterval(seconds: Int) {
+        runAstroWebUiProgrammeControl("panorama interval update") { client ->
+            client.setPanoramaInterval(host, previewPort, seconds)
+        }
+    }
+
     fun toggleAstroWebUiPanoramaPause() {
         val programme = (astroWebUiProgramme as? AstroWebUiProgrammeState.Ready)?.programme
         val paused = programme?.paused

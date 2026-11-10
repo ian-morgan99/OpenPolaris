@@ -40,6 +40,39 @@ class AstroWebUiProgrammeControlTest {
     }
 
     @Test
+    fun panoramaIntervalUsesSourceEndpointAndSecondsFormValue() = runTest {
+        val requests = mutableListOf<AstroWebUiCaptureHttpRequest>()
+        val client = DefaultAstroWebUiProgrammeControlClient(
+            AstroWebUiCaptureTransport { request ->
+                requests += request
+                AstroWebUiHttpResponse(200, "application/json", """{"ok":true}""".encodeToByteArray())
+            },
+        )
+
+        client.setPanoramaInterval("192.168.0.1", 8080, 12)
+
+        assertEquals("/api/prog/pano/interval", requests.single().path)
+        assertEquals("seconds=12", requests.single().body)
+    }
+
+    @Test
+    fun panoramaIntervalRejectsUnsafeRangeBeforeTransport() = runTest {
+        var called = false
+        val client = DefaultAstroWebUiProgrammeControlClient(
+            AstroWebUiCaptureTransport {
+                called = true
+                error("transport must not be called")
+            },
+        )
+
+        val result = client.setPanoramaInterval("192.168.0.1", 8080, 3_601)
+
+        val failure = assertIs<AstroWebUiProgrammeControlResult.Failure>(result)
+        assertEquals("panorama interval must be between 0 and 3600 seconds", failure.reason)
+        assertEquals(false, called)
+    }
+
+    @Test
     fun rejectedAckIsNotReportedAsAccepted() = runTest {
         val client = DefaultAstroWebUiProgrammeControlClient(
             AstroWebUiCaptureTransport {

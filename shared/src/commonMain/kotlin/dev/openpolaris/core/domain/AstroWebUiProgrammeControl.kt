@@ -21,6 +21,12 @@ interface AstroWebUiProgrammeControlClient {
         port: Int,
         paused: Boolean,
     ): AstroWebUiProgrammeControlResult
+
+    suspend fun setPanoramaInterval(
+        host: String,
+        port: Int,
+        seconds: Int,
+    ): AstroWebUiProgrammeControlResult
 }
 
 private object AstroWebUiProgrammeControlJson {
@@ -55,6 +61,25 @@ class DefaultAstroWebUiProgrammeControlClient(
             "paused=" + if (paused) "1" else "0",
             if (paused) "panorama pause" else "panorama resume",
         )
+
+    override suspend fun setPanoramaInterval(
+        host: String,
+        port: Int,
+        seconds: Int,
+    ): AstroWebUiProgrammeControlResult {
+        if (seconds !in 0..3_600) {
+            return AstroWebUiProgrammeControlResult.Failure(
+                "panorama interval must be between 0 and 3600 seconds",
+            )
+        }
+        return post(
+            host,
+            port,
+            "/api/prog/pano/interval",
+            "seconds=" + seconds,
+            "panorama interval update",
+        )
+    }
 
     private suspend fun post(
         host: String,

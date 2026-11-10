@@ -869,6 +869,7 @@ fun MissionDashboardPane(
     var autofocusAdjustment by remember { mutableStateOf("1") }
     var autofocusSettle by remember { mutableStateOf("0.8") }
     var autofocusBacklash by remember { mutableStateOf("3") }
+    var panoramaInterval by remember { mutableStateOf("0") }
     var focalOverride by remember { mutableStateOf("") }
     var gotoRa by remember { mutableStateOf("") }
     var gotoDec by remember { mutableStateOf("") }
@@ -1774,6 +1775,31 @@ fun MissionDashboardPane(
                             }
                             if (programme.kind != "none") {
                                 if (FeatureFlags.isEnabled("astroWebUiProgrammeControls")) {
+                                    if (programme.kind == "panorama") {
+                                        val intervalSeconds = panoramaInterval.toIntOrNull()
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            OutlinedTextField(
+                                                value = panoramaInterval,
+                                                onValueChange = { panoramaInterval = it },
+                                                label = { Text("Live interval (seconds)") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            OutlinedButton(
+                                                enabled = intervalSeconds != null && intervalSeconds in 0..3_600,
+                                                onClick = {
+                                                    intervalSeconds?.let(vm::setAstroWebUiPanoramaInterval)
+                                                },
+                                            ) { Text("Set interval") }
+                                        }
+                                        Text(
+                                            "Source /api/prog/pano/interval update; status polling remains authoritative.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         val paused = programme.paused
                                         if (programme.kind == "panorama" && paused != null) {

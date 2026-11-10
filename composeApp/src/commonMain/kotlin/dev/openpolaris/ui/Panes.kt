@@ -543,6 +543,13 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Text(if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions" else connectionText, style = MaterialTheme.typography.bodySmall)
             }
+            if (demoControlsEnabled && vm.slowMotionDemoState.lastEvents.isNotEmpty()) {
+                Text("Logical scheduler trace", style = MaterialTheme.typography.labelSmall)
+                vm.slowMotionDemoState.lastEvents.takeLast(4).forEach { event ->
+                    val point = event.point?.let { "key ${it.key} · state ${it.state} · level ${it.level}" } ?: "explicit stop"
+                    Text("${event.axis.name}: ${event.kind.name} · $point", style = MaterialTheme.typography.labelSmall)
+                }
+            }
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
             Text(

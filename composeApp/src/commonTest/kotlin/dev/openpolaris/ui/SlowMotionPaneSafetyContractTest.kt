@@ -31,6 +31,7 @@ class SlowMotionPaneSafetyContractTest {
         assertFalse("enabled = gateOpen" in source)
         assertTrue("no 532/533/534" in source)
         assertTrue("STOP ALL" in source)
+        assertTrue("Logical scheduler trace" in source)
         assertTrue("Pointer capture, dead-man renewal" in source)
         assertTrue("Fine correction — unavailable" in source)
     }

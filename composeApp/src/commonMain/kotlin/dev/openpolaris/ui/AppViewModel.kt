@@ -2324,7 +2324,13 @@ class AppViewModel(
                         }
                     }
                 }
-                delay(1000)
+                delay(
+                    PosePollPolicy.delayMs(
+                        tracking = mount.tracking == true,
+                        motionOwned = motionSupervisor.state.value is MotionState.Owned,
+                        slewInProgress = slewInProgress,
+                    ),
+                )
             }
         }
     }

@@ -7,16 +7,20 @@ import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-actual fun createAstroWebUiCaptureClient(): AstroWebUiCaptureClient = AstroWebUiCaptureClient { request ->
-    astroWebUiHttpPost(
-        request.host,
-        request.port,
-        request.path,
-        request.contentType,
-        request.body.encodeToByteArray(),
-        ASTRO_CAPTURE_ACK_MAX_BYTES,
-    )
-}
+actual fun createAstroWebUiCaptureTransport(): AstroWebUiCaptureTransport =
+    AstroWebUiCaptureTransport { request ->
+        astroWebUiHttpPost(
+            request.host,
+            request.port,
+            request.path,
+            request.contentType,
+            request.body.encodeToByteArray(),
+            ASTRO_CAPTURE_ACK_MAX_BYTES,
+        )
+    }
+
+actual fun createAstroWebUiCaptureClient(): AstroWebUiCaptureClient =
+    AstroWebUiCaptureClient(createAstroWebUiCaptureTransport())
 
 private suspend fun astroWebUiHttpPost(
     host: String,
@@ -69,3 +73,6 @@ private fun readBounded(input: java.io.InputStream, maxBytes: Long): ByteArray {
     }
     return output.toByteArray()
 }
+
+actual fun createAstroWebUiProgrammeControlClient(): AstroWebUiProgrammeControlClient =
+    DefaultAstroWebUiProgrammeControlClient(createAstroWebUiCaptureTransport())

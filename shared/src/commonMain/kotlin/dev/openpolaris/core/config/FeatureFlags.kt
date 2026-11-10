@@ -125,6 +125,8 @@ object FeatureFlags {
     const val astroWebUiProgrammeStatus: Boolean = true
     /** Astro WebUI 264 M/B dispatch; queue-only until lifecycle/file qualification. */
     const val astroWebUiCapture: Boolean = false
+    /** Astro WebUI programme pause/stop writes; disabled until route qualification. */
+    const val astroWebUiProgrammeControls: Boolean = false
 
     /** Delete / rename / protect are gated separately so a user can browse
      *  files without exposing the destructive actions. */
@@ -238,6 +240,7 @@ object FeatureFlags {
         "astroWebUiStatus" -> astroWebUiStatus
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
+        "astroWebUiProgrammeControls" -> astroWebUiProgrammeControls
         "astroWebUiCapture" -> astroWebUiCapture
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate

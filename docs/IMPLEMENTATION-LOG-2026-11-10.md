@@ -157,3 +157,9 @@ The Mission readiness sheet now owns the read-only /api/prog poll lifecycle whil
 Verification command:
 
 ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon
+
+### WBS-06.1/08.2 — Astro WebUI resident programme control seam
+
+Added source-aligned /api/prog/cancel and /api/prog/pano/pause adapters and exposed their safety-gated Mission actions. The default remains disabled because the endpoints can alter a live resident run; an accepted HTTP acknowledgement is followed by a /api/prog read and is never treated as proof of physical completion.
+
+Verification is covered by AstroWebUiProgrammeControlTest. No live write route or hardware command was exercised.

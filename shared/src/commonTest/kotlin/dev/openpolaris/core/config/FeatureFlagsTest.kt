@@ -56,6 +56,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("limitsWrite"), "Limits (541/542) wire format unverified - OFF by default")
         assertFalse(FeatureFlags.isEnabled("cameraFocusControl"), "Focus direction and repeat/stop behaviour must be qualified first")
         assertFalse(FeatureFlags.isEnabled("cameraVideo"), "Video lifecycle must be qualified first")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiProgrammeControls"), "Astro programme writes must remain off until route qualification")
     }
 
     @Test

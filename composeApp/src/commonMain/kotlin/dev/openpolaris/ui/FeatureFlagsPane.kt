@@ -141,6 +141,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads the saved observing latitude/longitude from the resident Astro WebUI without changing it.", safe = true),
     FlagSpec("astroWebUiProgrammeStatus", "Astro WebUI programme status (read-only)",
         "Reads resident timelapse, panorama, HDR, focus and other programme progress without starting, pausing or cancelling anything.", safe = true),
+    FlagSpec("astroWebUiProgrammeControls", "Astro WebUI programme pause/stop (not qualified)",
+        "Source-aligned pause/resume and stop requests remain disabled until write-route and hardware recovery evidence is recorded.", safe = false),
     FlagSpec("astroWebUiCapture", "Astro WebUI shutter (M/B, queue-only)",
         "Source-aligned 264 dispatch for M/B capture. Default OFF until lifecycle, file-publication and named-firmware qualification are complete.", safe = false),
     FlagSpec("fileManager", "SD file list (702)",

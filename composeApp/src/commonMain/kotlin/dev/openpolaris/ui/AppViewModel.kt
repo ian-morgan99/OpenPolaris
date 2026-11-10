@@ -25,6 +25,8 @@ import dev.openpolaris.core.domain.AstroWebUiSiteClient
 import dev.openpolaris.core.domain.AstroWebUiSiteResult
 import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
+import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
+import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
 import dev.openpolaris.core.domain.AstroWebUiProgrammeResult
 import dev.openpolaris.core.domain.AstroWebUiProgrammeState
 import dev.openpolaris.core.domain.AuthConfig
@@ -99,6 +101,7 @@ import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
+import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -230,6 +233,7 @@ class AppViewModel(
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
+    private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
@@ -1509,6 +1513,8 @@ class AppViewModel(
         astroWebUiProgrammeJob = null
         astroWebUiProgrammePollJob?.cancel()
         astroWebUiProgrammePollJob = null
+        astroWebUiProgrammeControlJob?.cancel()
+        astroWebUiProgrammeControlJob = null
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
@@ -3527,6 +3533,7 @@ class AppViewModel(
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
     private var astroWebUiProgrammePollJob: Job? = null
+    private var astroWebUiProgrammeControlJob: Job? = null
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
@@ -3672,6 +3679,54 @@ class AppViewModel(
     fun stopAstroWebUiProgrammePolling() {
         astroWebUiProgrammePollJob?.cancel()
         astroWebUiProgrammePollJob = null
+    }
+
+    fun cancelAstroWebUiProgramme() {
+        runAstroWebUiProgrammeControl("cancel") { client ->
+            client.cancel(host, previewPort)
+        }
+    }
+
+    fun toggleAstroWebUiPanoramaPause() {
+        val programme = (astroWebUiProgramme as? AstroWebUiProgrammeState.Ready)?.programme
+        val paused = programme?.paused
+        if (programme?.kind != "panorama" || paused == null) {
+            statusMessage = "Panorama pause state is not positively observed"
+            return
+        }
+        val desired = !paused
+        runAstroWebUiProgrammeControl(if (desired) "pause" else "resume") { client ->
+            client.setPanoramaPaused(host, previewPort, desired)
+        }
+    }
+
+    private fun runAstroWebUiProgrammeControl(
+        action: String,
+        request: suspend (AstroWebUiProgrammeControlClient) -> AstroWebUiProgrammeControlResult,
+    ) {
+        if (!FeatureFlags.isEnabled("astroWebUiProgrammeControls")) {
+            statusMessage = "Astro WebUI programme controls are disabled until write-route qualification"
+            return
+        }
+        if (session == null) {
+            statusMessage = "Connect to a mount before controlling an Astro WebUI programme"
+            return
+        }
+        if (astroWebUiProgrammeControlJob?.isActive == true) {
+            statusMessage = "An Astro WebUI programme control request is already in progress"
+            return
+        }
+        astroWebUiProgrammeControlJob = scope.launch {
+            when (val result = request(astroWebUiProgrammeControlClient)) {
+                AstroWebUiProgrammeControlResult.Accepted -> {
+                    statusMessage = "Astro WebUI " + action + " request accepted; confirming by status poll"
+                    readAstroWebUiProgramme(announce = false)
+                }
+                is AstroWebUiProgrammeControlResult.Failure -> {
+                    statusMessage = result.reason
+                }
+            }
+        }
     }
 
     fun refreshAstroMedia() {

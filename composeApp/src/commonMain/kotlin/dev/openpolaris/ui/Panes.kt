@@ -622,6 +622,33 @@ fun MissionDashboardPane(
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             }
+                            if (programme.kind != "none") {
+                                if (FeatureFlags.isEnabled("astroWebUiProgrammeControls")) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        val paused = programme.paused
+                                        if (programme.kind == "panorama" && paused != null) {
+                                            OutlinedButton(
+                                                onClick = vm::toggleAstroWebUiPanoramaPause,
+                                            ) {
+                                                Text(if (paused) "Resume panorama" else "Pause panorama")
+                                            }
+                                        }
+                                        OutlinedButton(onClick = vm::cancelAstroWebUiProgramme) {
+                                            Text("Stop programme")
+                                        }
+                                    }
+                                    Text(
+                                        "Controls acknowledge a request; status polling remains the completion authority.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                } else {
+                                    Text(
+                                        "Pause/resume and stop are source-aligned but disabled until programme write-route qualification.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -110,6 +110,8 @@ class AstroWebUiCaptureClient(
     }
 }
 
+expect fun createAstroWebUiCaptureTransport(): AstroWebUiCaptureTransport
+
 expect fun createAstroWebUiCaptureClient(): AstroWebUiCaptureClient
 
 internal const val ASTRO_CAPTURE_ACK_MAX_BYTES: Long = 64L * 1024L

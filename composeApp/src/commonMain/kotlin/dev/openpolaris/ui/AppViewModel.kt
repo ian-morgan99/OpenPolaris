@@ -1684,6 +1684,10 @@ class AppViewModel(
         astroMediaExportJob?.cancel()
         astroMediaExportController.reset()
         astroMediaExportState = AstroMediaExportState.Idle
+        supportBundleExportJob?.cancel()
+        supportBundleExportJob = null
+        supportBundleExportController.reset()
+        supportBundleExportState = SupportBundleExportState.Idle
         astroWebUiStatusJob?.cancel()
         astroWebUiStatusJob = null
         astroWebUiStatusPollJob?.cancel()
@@ -4645,6 +4649,10 @@ class AppViewModel(
         }
         supportBundleExportState = supportBundleExportController.state
         supportBundleExportJob = scope.launch {
+            val ready = supportBundleExportController.state as? SupportBundleExportState.Ready
+            if (ready != null) {
+                supportBundleExportState = SupportBundleExportState.Exporting(ready.request)
+            }
             val result = supportBundleExportController.export()
             supportBundleExportState = result
             statusMessage = when (result) {

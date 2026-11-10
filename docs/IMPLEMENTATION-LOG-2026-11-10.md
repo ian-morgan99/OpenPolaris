@@ -626,3 +626,17 @@ Verification passed:
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SupportBundleTest :shared:compileKotlinJvm :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid --rerun-tasks --console=plain --no-daemon
 
 Result: BUILD SUCCESSFUL; four support-bundle tests passed, shared/Compose JVM compilation passed, and Android Kotlin compilation passed. No live mount, camera or network state was read for the export.
+### WBS-02.2/08.2 - Support export lifecycle ownership
+
+Closed a session-lifecycle gap introduced by the support-bundle export: the
+Settings pane now shows Exporting while the Android/Desktop save surface is
+pending, and AppViewModel.disconnect cancels the export job, resets its
+controller and clears the export state. A regression test proves that an
+in-flight platform save is cancelled and cannot leave stale export state after
+disconnect.
+
+Verification passed:
+
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSupportBundleTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+
+Result: BUILD SUCCESSFUL; the lifecycle regression passed.

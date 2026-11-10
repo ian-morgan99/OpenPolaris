@@ -143,6 +143,11 @@
 - Add disabled Fine correction sheet before live qualification.
 - Exit: UI can be reviewed end-to-end without sending a live motor command; live controls appear only on an allow-list.
 
+- **2026-11-10 - WBS-03.6 progress:** exposed the shared MotionSupervisor state
+  to the responsive Motion workspace. Demo SLOW now shows idle, owned-owner or
+  fault-blocked state separately from its logical scheduler trace; the state is
+  read-only and does not open a live motor path.
+
 ### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
 
 - Apply bounded signed corrections around verified base tracking.

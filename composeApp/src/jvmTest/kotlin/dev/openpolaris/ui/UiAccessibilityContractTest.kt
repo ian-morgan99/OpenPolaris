@@ -45,6 +45,8 @@ class UiAccessibilityContractTest {
         assertTrue("testTag(\"endpoint-control-service\")" in text)
         assertTrue("testTag(\"endpoint-preview-service\")" in text)
         assertTrue("onOpenConnection = onAction?.let" in text)
+        assertTrue("vm.motionState.collectAsState()" in text)
+        assertTrue("testTag(\"motion-owner-state\")" in text)
     }
     @Test
     fun `ambiguous camera glyph controls have spoken labels`() {

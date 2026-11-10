@@ -1014,6 +1014,14 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val demoControlsEnabled = vm.demoMode
     val controlsEnabled = liveControlsEnabled || demoControlsEnabled
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
+    val motionState by vm.motionState.collectAsState()
+    val motionOwnerText = when (val state = motionState) {
+        dev.openpolaris.core.domain.MotionState.Idle -> "Motion owner: idle"
+        is dev.openpolaris.core.domain.MotionState.Owned ->
+            "Motion owner: " + state.lease.owner.name.lowercase().replace('_', ' ')
+        is dev.openpolaris.core.domain.MotionState.Faulted ->
+            "Motion owner blocked: " + state.reason
+    }
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
     Card(modifier = modifier.padding(8.dp)) {
@@ -1036,6 +1044,16 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Text(if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions" else connectionText, style = MaterialTheme.typography.bodySmall)
             }
+            Text(
+                motionOwnerText,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (motionState is dev.openpolaris.core.domain.MotionState.Faulted) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.testTag("motion-owner-state"),
+            )
             if (demoControlsEnabled && vm.slowMotionDemoState.lastEvents.isNotEmpty()) {
                 Text("Logical scheduler trace", style = MaterialTheme.typography.labelSmall)
                 vm.slowMotionDemoState.lastEvents.takeLast(4).forEach { event ->

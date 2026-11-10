@@ -305,3 +305,16 @@ Verification passed:
 ~~~text
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.EndpointHealthTest :composeApp:jvmTest --tests dev.openpolaris.ui.UiAccessibilityContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
 ~~~
+
+### WBS-03.6 - Motion owner state UX
+
+The Motion workspace now observes the shared MotionSupervisor state and labels
+idle, owned-owner and fault-blocked conditions separately from the Demo SLOW
+logical scheduler trace. This keeps ownership and stop-fault feedback visible on
+mobile and desktop while the firmware-bound transport gate remains closed.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.UiAccessibilityContractTest :composeApp:compileKotlinJvm :shared:jvmTest --tests dev.openpolaris.core.domain.MotionSupervisorTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --rerun-tasks --console=plain --no-daemon
+~~~

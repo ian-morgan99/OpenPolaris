@@ -87,6 +87,7 @@ import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.MotionOwner
+import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.MotionStopReason
 import dev.openpolaris.core.domain.MotionStopResult
 import dev.openpolaris.core.domain.MotionStopTransport
@@ -533,6 +534,14 @@ class AppViewModel(
     // Keep ownership separate from the SLOW scheduler. The supervisor is the
     // shared boundary that future fast-jog, GoTo and programme adapters must
     // use; a SLOW hold cannot acquire while another owner is active.
+    /**
+     * Shared physical-motion ownership state for the responsive Motion pane.
+     * The state is observable even while the live transport gate is closed;
+     * it prevents Demo SLOW feedback from looking like an unowned motor path.
+     */
+    val motionState: StateFlow<MotionState>
+        get() = motionSupervisor.state
+
     private val motionSupervisor = MotionSupervisor(
         stopTransport = object : MotionStopTransport {
             override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =

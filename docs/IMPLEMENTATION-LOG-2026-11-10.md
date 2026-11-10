@@ -1297,3 +1297,10 @@ This is a rehearsal of UI/state/ownership behavior, not a live rate qualificatio
 Commit `570ac1a` wires `QualifiedSlowMotionTransport` into the common SLOW controller without weakening the gate. The adapter dispatches source-aligned frames through the session's serialized `sendOnly` path only when the immutable capability record is live-ready; otherwise the existing Demo-only logical transport remains selected. Shared `MotionSupervisor` stop handling now selects the same transport, preserving release, emergency and disconnect boundaries.
 
 This makes the runtime route installable from one evidence-backed capability record while retaining the current hard-disabled live UX.
+
+
+### WBS-03.5/03.6 — Evidence-gated qualified SLOW path
+
+Commit `96f8eac` removes the permanent `false` live branch from the Motion pane without weakening safety. Live availability now requires both the feature flag and `SlowMotionCapabilities.current.liveReady`; the current immutable record remains unqualified. The AppViewModel's SLOW controller selects the no-wire Demo transport in Demo mode and the existing `QualifiedSlowMotionTransport` otherwise. Pointer/key release, lease renewal, emergency stop, disconnect and owner arbitration are shared by both paths.
+
+This is an integration improvement, not a qualification claim: a named firmware/gimbal/source-app record with route, units, signs, envelope, acknowledgement, watchdog, physical stop, disconnect recovery and limits evidence is still required before any live frame can be sent.

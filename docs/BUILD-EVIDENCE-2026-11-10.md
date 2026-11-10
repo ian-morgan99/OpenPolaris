@@ -40,6 +40,17 @@ desktopApp/build/compose/binaries/main/app/OpenPolaris and the embedded build
 metadata matched the source commit and clean-checkout requirement. The archive
 in /tmp is a local handoff artifact, not a tracked release asset.
 
+## Follow-up SLOW wire-seam verification
+
+- Source-aligned host-only formatter added after the prior build record:
+  `shared/src/commonMain/kotlin/dev/openpolaris/core/protocol/SlowMotionWire.kt`.
+- The formatter pins M1/M2/M3 to 532/533/534, formats
+  `key:<0|1>;state:<0|1|2>;level:<1..5>;`, emits subtype 3 through the
+  subtype-aware builder, and turns a retained-point STOP into state 0.
+- `SlowMotionWireTest` and the complete `:shared:jvmTest` suite passed.
+- This is replay/fake-head preparation only. It does not connect the formatter
+  to `MountSession`, enable live SLOW, or qualify target-firmware stop behavior.
+
 ## Release and qualification boundaries
 
 - A local signed Android release rebuild was attempted but stopped at

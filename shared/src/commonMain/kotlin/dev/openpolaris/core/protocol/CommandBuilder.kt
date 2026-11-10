@@ -39,9 +39,10 @@ fun command(code: Int, block: CommandBuilder.() -> Unit = {}): ByteArray =
 
 /**
  * Subtype-aware frame builder. Looks up the firmware-expected subtype
- * via [Codes.subtypeFor], which currently returns 2 for everything
- * except camera-param setters (subtype 1) and image-format reads
- * (subtype 4). Use this for new code paths that want to honour the
+ * via [Codes.subtypeFor], which currently returns 2 for ordinary callers,
+ * subtype 1 for camera-param setters, subtype 4 for image-format reads and
+ * subtype 3 for the source-aligned 532/533/534 SLOW controls. Use this for
+ * new code paths that want to honour the
  * RE table; the default [command] helper stays at subtype 2 so all
  * existing tests continue to pass.
  */

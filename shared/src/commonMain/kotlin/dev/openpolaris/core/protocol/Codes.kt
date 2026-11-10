@@ -424,6 +424,10 @@ object Codes {
         in 258..278 -> 1
         // Image format / long-response
         282, 286 -> 4
+        // Benro Connect's SLOW application controls use the motion subtype.
+        // This is exposed only through commandWithSubtype(); the legacy
+        // command() helper remains pinned to subtype 2 for existing callers.
+        YAW_KEY, PITCH_KEY, ROLL_KEY -> 3
         else -> REQUEST_TYPE
     }
 }

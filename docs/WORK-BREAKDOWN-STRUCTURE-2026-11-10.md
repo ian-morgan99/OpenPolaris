@@ -112,6 +112,7 @@
 
 - **2026-11-10 — WBS-03.5 ACTIVE (transport-neutral owner):** added a SLOW controller seam with exclusive ownership, separate dead-man renewal, scheduler ticks, explicit release/emergency/disconnect stops, and terminal unknown/recovery states. It sends no wire frame; exact firmware mapping remains blocked.
 - **2026-11-10 — WBS-03.5/03.6 ACTIVE (owner-driven Demo SLOW):** moved the demo scheduler loop out of the Compose pane and into the shared SlowMotionController owner. Demo pointer/key holds now acquire a lease, renew it separately from scheduler ticks, record logical commands through a transport-neutral adapter, and release through the explicit stop path; disconnect cancels the owner and uses the disconnect stop boundary. Live 532/533/534 and AC 4A transport remains hard-gated.
+- **2026-11-10 — WBS-03.5 ACTIVE (source-aligned host-only wire seam):** added a pure formatter for the Benro Connect 532/533/534 SLOW family. It maps M1/M2/M3 to the exact `key;state;level` payload, uses the observed type-3 request envelope, retains the active point for explicit state-0 STOP, and rejects a STOP without a retained point. It produces bytes for replay/fake-head tests only; no MountSession or live transport calls it, and AC 4A remains isolated.
 
 
 ### WBS-03.6 — Motion UX — P1 — ACTIVE (disabled surface)

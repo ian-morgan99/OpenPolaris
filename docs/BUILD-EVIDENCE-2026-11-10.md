@@ -2036,3 +2036,35 @@ Artifacts:
 The programme pause/resume controls are simulator/package evidence only.
 Live Astro WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
 qualification remain unverified.
+
+
+## Latest committed verification - b26d4cb
+
+Commit under test: b26d4cb (test: rehearse demo focus and panorama programmes).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: a98159bdc92920300bfa2dc5f322d00be8ac2910b183b8fc07b6439d70285299
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-focus-panorama.tar.gz
+  SHA-256: b1494890acaf208f8c178bc82af7debfd1426a9cb8d42ad4fe00bd70a0c847db
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The focus-stack and panorama rehearsals are simulator/package evidence only.
+Live Astro WebUI, Bluetooth, bridge, camera, SD card, mount and physical SLOW
+qualification remain unverified.

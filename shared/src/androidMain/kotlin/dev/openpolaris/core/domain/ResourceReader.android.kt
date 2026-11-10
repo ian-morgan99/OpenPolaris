@@ -20,9 +20,10 @@ fun installResourceContext(context: Context) {
 actual fun readResourceText(path: String): String? {
     val ctx = ResourceContext.appContext ?: return null
     return try {
-        // KMP packages `commonMain/resources/` into the AAR's `assets/`
-        // directory by default, so `context.assets.open` is the right
-        // path on Android. Returns null if the file is missing.
+        // androidApp copies both KMP commonMain/resource trees into its
+        // application assets through syncCommonRuntimeAssets, so the host
+        // asset manager is the single runtime source. Returns null if the
+        // file is missing.
         ctx.assets.open(path).use { it.readBytes().toString(Charsets.UTF_8) }
     } catch (_: Exception) {
         null

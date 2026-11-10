@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.Sync
+
 import java.util.Properties
 
 plugins {
@@ -41,6 +43,16 @@ kotlin {
 // password lives in `androidApp/key.properties` (gitignored). On CI, the
 // same file can be regenerated from `KEYSTORE_BASE64` + `KEYSTORE_PASSWORD`
 // + `KEY_ALIAS` + `KEY_PASSWORD` secrets before running the build.
+// The Android host owns the shared resource reader, so copy both KMP resource
+// trees into the application assets directory. AGP does not automatically merge
+// commonMain/resources from sibling KMP modules into androidApp/assets.
+val commonRuntimeAssetsDir = layout.buildDirectory.dir("generated/commonRuntimeAssets")
+val syncCommonRuntimeAssets = tasks.register<Sync>("syncCommonRuntimeAssets") {
+    from(project(":shared").file("src/commonMain/resources"))
+    from(project(":composeApp").file("src/commonMain/resources"))
+    into(commonRuntimeAssetsDir)
+}
+
 val androidAppDir = rootProject.projectDir.resolve("androidApp")
 val keystorePropsFile = androidAppDir.resolve("key.properties")
 val keystoreProps = Properties().apply {
@@ -72,6 +84,8 @@ android {
         // installed under a similar id (see issue #43).
         buildConfig = true
     }
+    sourceSets["main"].assets.srcDir(commonRuntimeAssetsDir)
+
     packaging {
         // SSHJ (the Android firmware-delivery seam) pulls in BouncyCastle,
         // whose bcpkix/bcutil/bcprov jars each ship an OSGi manifest at the
@@ -113,5 +127,44 @@ android {
             // unsigned default. CI must supply `key.properties` (or its
             // decoded equivalent) before running `:androidApp:assembleRelease`.
         }
+    }
+}
+
+
+// A real merged-assets check protects the Android runtime reader, not just the
+// JVM classpath tests. Keep the required set explicit so a new resource cannot
+// silently disappear from the phone build.
+val verifyCommonRuntimeAssets = tasks.register("verifyCommonRuntimeAssets") {
+    dependsOn("mergeDebugAssets", "mergeReleaseAssets")
+    doLast {
+        val required = listOf(
+            "USER-MANUAL.md",
+            "screenshots/openpolaris-desktop-v1.0.0.png",
+            "catalog.json",
+            "stars.json",
+            "ngc.json",
+            "comets.json",
+        )
+        val variants = mapOf(
+            "debug" to layout.buildDirectory.dir("intermediates/assets/debug/mergeDebugAssets"),
+            "release" to layout.buildDirectory.dir("intermediates/assets/release/mergeReleaseAssets"),
+        )
+        variants.forEach { (variant, directory) ->
+            val root = directory.get().asFile
+            required.forEach { path ->
+                check(root.resolve(path).isFile) {
+                    "Missing Android $variant runtime asset: $path in ${root.absolutePath}"
+                }
+            }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "mergeDebugAssets" || name == "mergeReleaseAssets") {
+        dependsOn(syncCommonRuntimeAssets)
+    }
+    if (name == "assembleDebug" || name == "assembleRelease") {
+        finalizedBy(verifyCommonRuntimeAssets)
     }
 }

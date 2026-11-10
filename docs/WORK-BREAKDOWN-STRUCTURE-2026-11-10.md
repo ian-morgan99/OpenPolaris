@@ -600,3 +600,14 @@ The current implementation slice must not send a new motor frame, alter firmware
   run-state, site, programme and media ViewModel suites passed, including a
   cancellation-insensitive late status regression. No live Astro WebUI or
   camera command was exercised.
+
+
+- **2026-11-10 - WBS-06.3/08.2 ACTIVE (Astro WebUI session-control
+  ownership):** enter, leave and tracking actions now capture their owning
+  mount session and discard late HTTP results after disconnect or reconnect.
+  Confirmation status reads are therefore only launched for the session that
+  received the accepted write.
+- **2026-11-10 - verification:** AppViewModelAstroWebUiSessionControlTest
+  passed, including a cancellation-insensitive late enter-result regression.
+  Write routes remain default-off pending named-head qualification; no live
+  Astro WebUI command was exercised.

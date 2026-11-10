@@ -4381,6 +4381,7 @@ class AppViewModel(
         request: suspend (AstroWebUiSessionControlClient) -> AstroWebUiSessionControlResult,
     ) {
         if (astroWebUiSessionControl is AstroWebUiSessionControlState.Working) return
+        val ownerSession = session
         astroWebUiSessionControlJob?.cancel()
         astroWebUiSessionControlJob = scope.launch {
             if (!FeatureFlags.isEnabled("astroWebUiSessionControls")) {
@@ -4389,14 +4390,17 @@ class AppViewModel(
                 )
                 return@launch
             }
-            if (session == null) {
+            if (ownerSession == null) {
                 astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(
                     "Connect to a mount before changing its Astro WebUI session",
                 )
                 return@launch
             }
+            if (!ownsSession(ownerSession)) return@launch
             astroWebUiSessionControl = AstroWebUiSessionControlState.Working(action)
-            when (val result = request(astroWebUiSessionControlClient)) {
+            val result = request(astroWebUiSessionControlClient)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 is AstroWebUiSessionControlResult.Accepted -> {
                     astroWebUiSessionControl = AstroWebUiSessionControlState.Accepted(result.action)
                     statusMessage = "Astro WebUI " + result.action + " request accepted; confirming by status read"

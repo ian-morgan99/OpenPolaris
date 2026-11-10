@@ -867,3 +867,22 @@ Verification passed:
 Result: BUILD SUCCESSFUL; 17 focused tests passed, followed by the added
 late-status regression in the status suite. No live Astro WebUI or camera
 command was exercised.
+
+
+### WBS-06.3/08.2 - Astro WebUI session-control ownership
+
+Made Astro WebUI enter, leave and tracking writes lifecycle-owned. The action
+captures the MountSession before dispatch, checks ownership before the request
+and again before applying its result, so disconnect cannot revive Accepted or
+Failed state or launch a stale status confirmation read.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSessionControlTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the session-control suite passed, including the
+cancellation-insensitive late enter-result regression. Write routes remain
+default-off pending named-head qualification. No live Astro WebUI command was
+exercised.

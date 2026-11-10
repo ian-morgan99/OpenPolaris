@@ -10,8 +10,12 @@ import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AstroWebUiTrackRequest
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -29,9 +33,13 @@ class AppViewModelAstroWebUiSessionControlTest {
 
     private class FakeControlClient : AstroWebUiSessionControlClient {
         val actions = mutableListOf<String>()
+        var releaseEnter: CompletableDeferred<Unit>? = null
 
         override suspend fun enter(host: String, port: Int): AstroWebUiSessionControlResult {
             actions += "enter:" + host + ":" + port
+            releaseEnter?.let { gate ->
+                withContext(NonCancellable) { gate.await() }
+            }
             return AstroWebUiSessionControlResult.Accepted("enter Astro mode")
         }
 
@@ -94,6 +102,46 @@ class AppViewModelAstroWebUiSessionControlTest {
                 "Astro WebUI session controls are disabled by config",
                 state.reason,
             )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectDropsLateSessionControlResult() = runTest {
+        FeatureFlags.enable("astroWebUiSessionControls")
+        val client = FakeControlClient()
+        val gate = CompletableDeferred<Unit>()
+        client.releaseEnter = gate
+        val statusClient = FakeStatusClient()
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiSessionControlClient = client,
+            astroWebUiStatusClient = statusClient,
+        )
+        vm.testInstallSession(
+            MountSession(
+                connectionFactory = { NoopConnection() },
+                host = "192.168.0.1",
+                port = 9090,
+                readerScope = this,
+            ),
+        )
+
+        try {
+            vm.enterAstroWebUi()
+            runCurrent()
+            assertEquals(listOf("enter:192.168.0.1:8080"), client.actions)
+            assertIs<AstroWebUiSessionControlState.Working>(vm.astroWebUiSessionControl)
+
+            vm.disconnect()
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertIs<AstroWebUiSessionControlState.Idle>(vm.astroWebUiSessionControl)
+            assertEquals(0, statusClient.calls)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

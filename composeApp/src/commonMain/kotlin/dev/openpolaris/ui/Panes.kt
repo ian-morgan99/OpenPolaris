@@ -52,6 +52,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -2994,13 +2995,24 @@ private fun SlowDemoHoldButton(
                 suppressNextClick = true
                 holdActive = true
                 onPress()
+                var released = false
                 try {
-                    while (awaitPointerEvent().changes.any { it.pressed }) Unit
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.changes.none { it.pressed }) {
+                            released = event.changes.any { it.changedToUpIgnoreConsumed() }
+                            break
+                        }
+                    }
                 } finally {
                     if (holdActive) {
                         holdActive = false
                         onRelease()
                     }
+                    // A cancelled pointer sequence has no Button click to
+                    // consume the suppression flag. Clear it here so a later
+                    // accessible/keyboard click cannot be swallowed.
+                    if (!released) suppressNextClick = false
                 }
             }
         }
@@ -3052,7 +3064,7 @@ private fun SlowDemoHoldButton(
         enabled = enabled,
         modifier = inputModifier,
     ) {
-        Text(label)
+        Text(if (holdActive) "$label · HOLDING" else label)
     }
 }
 

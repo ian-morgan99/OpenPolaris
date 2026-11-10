@@ -8,6 +8,9 @@ import dev.openpolaris.core.domain.AstroWebUiStatus
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AstroWebUiTrackRequest
+import dev.openpolaris.core.domain.MotionOwner
+import dev.openpolaris.core.domain.MotionState
+import dev.openpolaris.core.domain.RateAxis
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
 import kotlinx.coroutines.CompletableDeferred
@@ -142,6 +145,39 @@ class AppViewModelAstroWebUiSessionControlTest {
 
             assertIs<AstroWebUiSessionControlState.Idle>(vm.astroWebUiSessionControl)
             assertEquals(0, statusClient.calls)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun leavingAstroStopsAnActiveDemoSlowMotionBeforeSessionWrite() = runTest {
+        FeatureFlags.enable("astroWebUiSessionControls")
+        val client = FakeControlClient()
+        val statusClient = FakeStatusClient()
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiSessionControlClient = client,
+            astroWebUiStatusClient = statusClient,
+        )
+
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            vm.demoSlowMotionStart(RateAxis.M1_PAN, 1, 1)
+            runCurrent()
+            assertEquals(
+                MotionOwner.SLOW_MOVE,
+                assertIs<MotionState.Owned>(vm.motionState.value).lease.owner,
+            )
+
+            vm.leaveAstroWebUi()
+            advanceUntilIdle()
+
+            assertEquals(listOf("leave:192.168.0.1:8080"), client.actions)
+            assertEquals(MotionState.Idle, vm.motionState.value)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

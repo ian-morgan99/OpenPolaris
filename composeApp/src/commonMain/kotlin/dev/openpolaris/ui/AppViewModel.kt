@@ -5784,6 +5784,7 @@ class AppViewModel(
 
     private fun runAstroWebUiSessionControl(
         action: String,
+        requiresMotionBoundary: Boolean = false,
         request: suspend (AstroWebUiSessionControlClient) -> AstroWebUiSessionControlResult,
     ) {
         if (astroWebUiSessionControl is AstroWebUiSessionControlState.Working) return
@@ -5803,6 +5804,7 @@ class AppViewModel(
                 return@launch
             }
             if (!ownsSession(ownerSession)) return@launch
+            if (requiresMotionBoundary && !stopSlowMotionForModeChange()) return@launch
             astroWebUiSessionControl = AstroWebUiSessionControlState.Working(action)
             val result = request(astroWebUiSessionControlClient)
             if (!ownsSession(ownerSession)) return@launch
@@ -5827,13 +5829,16 @@ class AppViewModel(
     }
 
     fun leaveAstroWebUi() {
-        runAstroWebUiSessionControl("leave") { client ->
+        runAstroWebUiSessionControl("leave", requiresMotionBoundary = true) { client ->
             client.leave(host, previewPort)
         }
     }
 
     fun setAstroWebUiTracking(request: AstroWebUiTrackRequest) {
-        runAstroWebUiSessionControl(if (request.on) "start tracking" else "stop tracking") { client ->
+        runAstroWebUiSessionControl(
+            if (request.on) "start tracking" else "stop tracking",
+            requiresMotionBoundary = true,
+        ) { client ->
             client.setTracking(host, previewPort, request)
         }
     }

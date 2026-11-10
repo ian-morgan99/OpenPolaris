@@ -1341,3 +1341,8 @@ The workflow still requires the protected release keystore secrets and an extern
 Commit `646fbfd` moves Android session retention from a Compose `remember` boundary to an Activity-retained `ViewModelProvider` owner. The shared AppViewModel and scope survive configuration changes; `onCleared()` disconnects the mount and cancels the retained scope. The Android host still supplies the same shared VM to the common UI and keeps protocol logic platform-neutral.
 
 Focused and full cross-platform verification passed. This is source/package evidence; live rotation and hardware qualification still require a phone and named mount.
+### WBS-04.3/08.2 - Astro WebUI shutter acknowledgement hardening
+
+Commit 2ec31f1 replaces the Astro WebUI capture adapter's substring checks with bounded strict JSON parsing. M mode, B mode and the explicit B stop only return bridge-queued evidence for a real ok=true and exact numeric cmd=264; malformed, wrong-command, string-typed and oversized responses are rejected without retry. The existing lifecycle plus file-publication gate remains the only completion contract.
+
+Focused tests and the full cross-platform build passed. The adapter is source-aligned with the Benro Connect state/bulb/c forms, but named-camera/firmware physical lifecycle evidence is still required.

@@ -2331,3 +2331,29 @@ Android debug APK:
 This is source/package evidence only. Physical rotation with a live session,
 station-LAN reachability, phone Bluetooth GATT wake, mount, camera, Astro
 WebUI and physical SLOW qualification remain unverified.
+## Latest committed verification - 2ec31f1
+
+Commit under test: 2ec31f1 (fix: harden Astro shutter acknowledgements).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiCaptureTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiCaptureTest :composeApp:compileKotlinJvm --rerun-tasks --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 5f2dec45bebe49fab54a5662484b8e138b9316cad5092e29c529d5fca18c5278
+
+This is source/package evidence only. The WebUI bridge acknowledgement is now
+strictly parsed, but physical M/B shutter lifecycle, file publication, named
+camera/firmware, station LAN, phone Bluetooth and physical SLOW qualification
+remain unverified.

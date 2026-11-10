@@ -161,7 +161,11 @@ val verifyCommonRuntimeAssets = tasks.register("verifyCommonRuntimeAssets") {
 }
 
 tasks.configureEach {
-    if (name == "mergeDebugAssets" || name == "mergeReleaseAssets") {
+    // AGP's merge and lint-model tasks consume the generated directory through
+    // the Android source-set model, so declare the producing task explicitly
+    // for every asset/lint consumer. This also keeps Gradle 8 validation from
+    // accepting a locally ordered build that fails on a clean CI runner.
+    if (name != "syncCommonRuntimeAssets" && (name.contains("Assets") || name.contains("Lint"))) {
         dependsOn(syncCommonRuntimeAssets)
     }
     if (name == "assembleDebug" || name == "assembleRelease") {

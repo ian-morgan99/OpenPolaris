@@ -2,7 +2,6 @@ package dev.openpolaris.android
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -50,7 +49,7 @@ data class MountAp(
 /**
  * Drives the "Find & wake Polaris…" flow on the Android Connection
  * pane. Mirrors the Benro app's first-tap behaviour: pulse a soft
- * Bluetooth nudge so a sleeping gimbal wakes up its access point, then
+ * source-aligned GATT-connect pulse so a sleeping gimbal wakes up its access point, then
  * run a fresh Wi-Fi scan and filter the results down to SSIDs whose
  * prefix is `polaris`.
  *
@@ -83,12 +82,13 @@ class MountWifiScan(private val context: Context) {
      */
     suspend fun scan(progress: suspend (String) -> Unit = {}): List<MountAp> =
         withContext(Dispatchers.IO) {
-            progress("Pulsing Bluetooth…")
-            btWakePulse()
+            val wake = btWakePulse(progress)
+            if (!wake.success) {
+                progress("Bluetooth wake not confirmed: ${wake.detail}; continuing with Wi-Fi scan")
+            }
             // Give the gimbal a beat to actually bring up the AP after the
-            // wake nudge lands. 2.5s is the empirically-observed
-            // Benro/BenroClone cadence; longer than 4s is more likely to
-            // be the user re-pressing the button than the mount waking.
+            // GATT state=2 wake pulse lands. 2.5s is the empirically-observed
+            // Benro cadence; the Wi-Fi scan remains authoritative.
             delayMillis(2_500)
 
             progress("Scanning Wi-Fi…")
@@ -154,35 +154,10 @@ class MountWifiScan(private val context: Context) {
 
     // ---- internals ----
 
-    private fun btWakePulse() {
-        // We don't have the gimbal's GATT service UUID baked in (the
-        // Benro protocol is closed), so we issue a soft nudge:
-        // BluetoothAdapter.startDiscovery() forces the BT radio to
-        // wake and look around, which is the same "are there any
-        // familiar peers nearby?" signal the Benro app uses as a
-        // first-step wake. If the gimbal is awake but not paired
-        // to this phone, this is a no-op; if it's asleep with the
-        // AP down, the discovery broadcast is what nudges it to
-        // bring the AP back up.
-        try {
-            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
-            if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT) &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // BLUETOOTH_CONNECT is the Android 12+ gate for
-                // startDiscovery(); without it, skip cleanly so the
-                // Wi-Fi scan can still run.
-                return
-            }
-            if (adapter.isDiscovering) adapter.cancelDiscovery()
-            @SuppressLint("MissingPermission")
-            val started = adapter.startDiscovery()
-            Log.i(tag, "BT startDiscovery -> $started")
-        } catch (se: SecurityException) {
-            Log.w(tag, "BT wake: SecurityException, skipping", se)
-        } catch (t: Throwable) {
-            Log.w(tag, "BT wake: unexpected ${t.javaClass.simpleName}", t)
-        }
-    }
+    private suspend fun btWakePulse(
+        progress: suspend (String) -> Unit,
+    ): MountBluetoothWake.Result =
+        MountBluetoothWake(context).wake(progress)
 
     /**
      * Run a one-shot Wi-Fi scan and suspend on the

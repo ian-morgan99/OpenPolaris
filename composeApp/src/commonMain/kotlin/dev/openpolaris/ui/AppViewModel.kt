@@ -1652,7 +1652,10 @@ class AppViewModel(
         val lower = message.lowercase()
         val current = bluetoothWakeState.phase
         val phase = when {
-            lower.startsWith("woke ") || lower.contains("wake complete") -> BluetoothWakePhase.SUCCEEDED
+            lower.startsWith("woke ") ||
+                lower.contains("wake complete") ||
+                lower.contains("pulse opened") ||
+                lower.contains("pulse succeeded") -> BluetoothWakePhase.SUCCEEDED
             lower.contains("bt wake failed") ||
                 lower.contains("wake failed") ||
                 (lower.contains("bluetooth") && lower.contains("fail")) -> BluetoothWakePhase.FAILED

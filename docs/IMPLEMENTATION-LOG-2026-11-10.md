@@ -640,3 +640,21 @@ Verification passed:
 ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSupportBundleTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
 
 Result: BUILD SUCCESSFUL; the lifecycle regression passed.
+
+### WBS-02.2/02.3 - Bridge and Bluetooth session ownership
+
+Closed another session-lifecycle gap: connectWifi() and wake() now retain
+their coroutine jobs, reject duplicate bridge starts, propagate cancellation
+without converting it to a failure, and are cancelled by disconnect() before
+endpoint state is reset. The wake operation also clears its in-flight state
+synchronously at teardown. This keeps bridge/Bluetooth callbacks from a
+previous session from writing stale route health into a replacement session.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionLifecycleTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; both lifecycle cancellation tests passed. No live
+network, Bluetooth, mount or camera operation was exercised.

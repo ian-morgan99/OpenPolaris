@@ -175,6 +175,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -844,6 +845,11 @@ class AppViewModel(
     // can interrupt a hung `s.connect()`. Null between connects. Set by
     // [connect] immediately before launching.
     private var connectJob: Job? = null
+    // Bridge and BT wake operations are session-owned too. Keeping explicit
+    // handles prevents teardown/reconnect from leaving host work publishing
+    // into a new session after the old UI surface has gone away.
+    private var connectWifiJob: Job? = null
+    private var wakeJob: Job? = null
 
     /**
      * Wall-clock provider for the marker-age calculation. Overridable from
@@ -1303,9 +1309,9 @@ class AppViewModel(
         // statusMessage stuck on the initial "Connecting…" line. Also
         // guard against double-tap so two overlapping launches do not
         // race to write the same status line.
-        if (_reconnecting.value) return
+        if (_reconnecting.value || connectWifiJob?.isActive == true) return
         _reconnecting.value = true
-        scope.launch {
+        connectWifiJob = scope.launch {
             try {
                 setEndpointHealth(
                     phase = EndpointPhase.WAKING,
@@ -1330,6 +1336,8 @@ class AppViewModel(
                     )
                     statusMessage = "Wi-Fi bridge failed: $failure"
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 val failure = e.message ?: e::class.simpleName ?: "Wi-Fi bridge failed"
                 setEndpointHealth(
@@ -1340,7 +1348,10 @@ class AppViewModel(
                 )
                 statusMessage = "Wi-Fi bridge failed: $failure"
             } finally {
-                _reconnecting.value = false
+                if (connectWifiJob === currentCoroutineContext()[Job]) {
+                    connectWifiJob = null
+                    _reconnecting.value = false
+                }
             }
         }
     }
@@ -1388,7 +1399,7 @@ class AppViewModel(
             control = endpointHealth.control,
             preview = endpointHealth.preview,
         )
-        scope.launch {
+        wakeJob = scope.launch {
             // 8.0 wake-then-connect race (v2): a connect that *started* during
             // the wake must own the terminal status line, even if it finishes
             // and resets [_reconnecting] before the wake's terminal write
@@ -1447,6 +1458,8 @@ class AppViewModel(
                 ) {
                     statusMessage = "Wake complete — try Connect"
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 if (!_reconnecting.value && reconnectGeneration == wakeStartGeneration) {
                     val failure = e.message ?: e::class.simpleName ?: "Bluetooth wake failed"
@@ -1459,7 +1472,10 @@ class AppViewModel(
                     statusMessage = "Wake failed: $failure"
                 }
             } finally {
-                _waking.value = false
+                if (wakeJob === currentCoroutineContext()[Job]) {
+                    wakeJob = null
+                    _waking.value = false
+                }
             }
         }
     }
@@ -1560,6 +1576,20 @@ class AppViewModel(
     }
 
     fun disconnect() {
+        // Host-side wake/bridge work belongs to the same session boundary as
+        // the control socket. Cancel it before clearing endpoint evidence so
+        // a suspended callback cannot publish stale progress into the next
+        // connection. The host orchestrator owns any lower-level cleanup.
+        val activeConnectWifiJob = connectWifiJob
+        activeConnectWifiJob?.cancel()
+        connectWifiJob = null
+        if (activeConnectWifiJob != null) {
+            _reconnecting.value = false
+        }
+        val wakeWasActive = wakeJob?.isActive == true || _waking.value
+        wakeJob?.cancel()
+        wakeJob = null
+        _waking.value = false
         stopDemoSlowMotionForDisconnect()
         val activeFastJogLease = fastJogLease
         fastJogLease = null
@@ -1756,7 +1786,8 @@ class AppViewModel(
             // surrender to the connect's terminal message on the
             // _reconnecting gate added in [wake].
             if (!statusMessage.startsWith("Could not save updated host:") &&
-                !_waking.value
+                !_waking.value &&
+                !wakeWasActive
             ) {
                 statusMessage = "Disconnected"
             }

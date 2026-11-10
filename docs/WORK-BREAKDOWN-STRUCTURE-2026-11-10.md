@@ -473,3 +473,14 @@ The current implementation slice must not send a new motor frame, alter firmware
 - 2026-11-10 - WBS-03.5 ACTIVE (qualification-gated runtime adapter): added QualifiedSlowMotionTransport. It emits only the source-aligned 532/533/534 frames after an evidence-backed SlowMotionCapabilityRecord.liveReady gate, treats the scheduler's initial idle-axis STOP as an acknowledge-free logical no-op, retains acknowledged active points for explicit STOP and emergency-stop sequencing, and preserves UNKNOWN outcomes without falsely claiming that motion stopped. The default capability record remains unqualified; no physical SLOW transport is enabled.
 - 2026-11-10 - WBS-08.2 ACTIVE (support bundle): added a bounded, redacted support snapshot with route/service health, observed device/camera/storage state, capture timeline/publication evidence and the named SLOW capability blockers. Settings now offers an explicit Save support bundle action on Android and desktop. Hostnames, credentials, mount-local paths, raw frames and camera bytes are omitted; raw-log collection remains a separate future qualification task.
 - 2026-11-10 - WBS-02.2/08.2 ACTIVE (export lifecycle ownership): disconnect now cancels an in-flight support-bundle platform chooser, resets its controller/state, and exposes the pending Exporting state while the chooser is open. This prevents a save callback from a torn-down session from updating stale UI state.
+
+- **2026-11-10 - WBS-02.2/02.3 ACTIVE (host-operation ownership):** AppViewModel now
+  retains explicit jobs for bridge bring-up and Bluetooth wake. Disconnect and
+  reconnect cancel those session-owned operations before clearing endpoint
+  evidence; cancellation is propagated instead of being rendered as a false
+  bridge or wake failure. This prevents stale callbacks from a prior session
+  publishing into a new one.
+- **2026-11-10 - verification:** AppViewModelSessionLifecycleTest proves an
+  in-flight bridge and Bluetooth wake are both cancelled by disconnect and
+  their visible progress flags clear. No live network or Bluetooth operation
+  was exercised.

@@ -1,5 +1,6 @@
 package dev.openpolaris.ui
 
+import dev.openpolaris.core.domain.BluetoothWakePhase
 import dev.openpolaris.core.domain.Connection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -274,6 +275,7 @@ class AppViewModelWakeConnectRaceTest {
                 final.startsWith("Woke gimbal:") || final == "Connected",
                 "expected wake terminal 'Woke gimbal: …' or preserved 'Connected', got '$final'"
             )
+            assertEquals(BluetoothWakePhase.SUCCEEDED, vm.bluetoothWakeState.phase)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()
@@ -328,6 +330,7 @@ class AppViewModelWakeConnectRaceTest {
                 "disconnect() must not clobber the wake's in-progress status " +
                     "(_waking.value was true; gate skipped the write)"
             )
+            assertEquals(BluetoothWakePhase.CANCELLED, vm.bluetoothWakeState.phase)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

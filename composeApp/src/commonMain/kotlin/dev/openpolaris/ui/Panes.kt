@@ -448,6 +448,7 @@ fun ConnectionPane(
             }
             HorizontalDivider()
             EndpointHealthSection(vm)
+            BluetoothWakeEvidenceSection(vm)
             Text("Astro control link", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Read-only /api/link evidence from the resident Astro WebUI. It describes the server control link and cached opcode frames; it does not replace Bluetooth wake, bridge or native motion ownership.",
@@ -812,6 +813,31 @@ private fun EndpointHealthSection(
                 Text("Open connection")
             }
         }
+    }
+}
+
+@Composable
+private fun BluetoothWakeEvidenceSection(vm: AppViewModel) {
+    val wake = vm.bluetoothWakeState
+    Column(
+        modifier = Modifier.testTag("bluetooth-wake-evidence"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text("Bluetooth wake evidence", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Bluetooth is a wake pulse only. A pulse does not prove that Wi-Fi, the control socket, preview or the camera is ready.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text("Pulse phase: ${wake.label}", style = MaterialTheme.typography.bodySmall)
+        Text(
+            wake.detail,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (wake.phase == dev.openpolaris.core.domain.BluetoothWakePhase.FAILED) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
     }
 }
 

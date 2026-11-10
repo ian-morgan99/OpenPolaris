@@ -119,6 +119,8 @@ import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.BluetoothWakePhase
+import dev.openpolaris.core.domain.BluetoothWakeState
 import dev.openpolaris.core.domain.DeviceInfo
 import dev.openpolaris.core.domain.EndpointAddress
 import dev.openpolaris.core.domain.EndpointHealth
@@ -426,6 +428,10 @@ class AppViewModel(
         private set
 
     var statusMessage by mutableStateOf("Disconnected")
+        private set
+
+    /** Typed evidence for the Bluetooth wake pulse; it is not Wi-Fi/control readiness. */
+    var bluetoothWakeState by mutableStateOf(BluetoothWakeState())
         private set
 
     var demoMode by mutableStateOf(false)
@@ -1425,8 +1431,16 @@ class AppViewModel(
             activeWake.cancel()
             wakeJob = null
             _waking.value = false
+            bluetoothWakeState = BluetoothWakeState(
+                BluetoothWakePhase.CANCELLED,
+                "Standalone Bluetooth wake cancelled; the PC bridge now owns the attempt",
+            )
         }
         _reconnecting.value = true
+        bluetoothWakeState = BluetoothWakeState(
+            BluetoothWakePhase.REQUESTED,
+            "PC bridge may use the Bluetooth wake pulse before establishing Wi-Fi",
+        )
         connectWifiJob = scope.launch {
             try {
                 setEndpointHealth(
@@ -1435,7 +1449,7 @@ class AppViewModel(
                     preview = endpointHealth.preview,
                 )
                 statusMessage = "Connecting to mount Wi-Fi…"
-                val routeReady = connectWifi { msg -> statusMessage = msg }
+                val routeReady = connectWifi { msg -> publishConnectionProgress(msg) }
                 if (routeReady) {
                     setEndpointHealth(
                         phase = EndpointPhase.WIFI_READY,
@@ -1497,6 +1511,27 @@ class AppViewModel(
         }
     }
 
+    private fun publishConnectionProgress(message: String) {
+        statusMessage = message
+        val lower = message.lowercase()
+        val current = bluetoothWakeState.phase
+        val phase = when {
+            lower.startsWith("woke ") || lower.contains("wake complete") -> BluetoothWakePhase.SUCCEEDED
+            lower.contains("bt wake failed") ||
+                lower.contains("wake failed") ||
+                (lower.contains("bluetooth") && lower.contains("fail")) -> BluetoothWakePhase.FAILED
+            lower.contains("gatt") ||
+                (lower.contains("bluetooth") && lower.contains("connect")) -> BluetoothWakePhase.CONNECTING
+            lower.contains("scan") && (
+                current == BluetoothWakePhase.REQUESTED ||
+                    current == BluetoothWakePhase.DISCOVERING
+                ) -> BluetoothWakePhase.DISCOVERING
+            lower.contains("bluetooth") && current == BluetoothWakePhase.IDLE -> BluetoothWakePhase.REQUESTED
+            else -> return
+        }
+        bluetoothWakeState = BluetoothWakeState(phase, message)
+    }
+
     /**
      * BT-only wake pulse: a single GATT-connect to the gimbal so it brings
      * its Wi-Fi AP up. Distinct from [connectWifi] which continues on to
@@ -1512,6 +1547,10 @@ class AppViewModel(
     fun wake() {
         if (_waking.value) return
         _waking.value = true
+        bluetoothWakeState = BluetoothWakeState(
+            BluetoothWakePhase.REQUESTED,
+            "Bluetooth wake pulse requested",
+        )
         setEndpointHealth(
             phase = EndpointPhase.WAKING,
             control = endpointHealth.control,
@@ -1552,13 +1591,13 @@ class AppViewModel(
                     if (!_reconnecting.value &&
                         reconnectGeneration == wakeStartGeneration
                     ) {
-                        statusMessage = msg
+                        publishConnectionProgress(msg)
                     }
                 }
                 if (!_reconnecting.value &&
                     reconnectGeneration == wakeStartGeneration
                 ) {
-                    statusMessage = "Waking gimbal over Bluetooth…"
+                    publishConnectionProgress("Waking gimbal over Bluetooth…")
                 }
                 wakeProbe(wakeProgress)
                 // 8.0 v2: in addition to the in-flight check, suppress the
@@ -1574,7 +1613,7 @@ class AppViewModel(
                     !statusMessage.startsWith("Woke ") &&
                     !statusMessage.startsWith("BT wake failed:")
                 ) {
-                    statusMessage = "Wake complete — try Connect"
+                    publishConnectionProgress("Wake complete — try Connect")
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -1587,7 +1626,7 @@ class AppViewModel(
                         preview = EndpointService.UNKNOWN,
                         failure = failure,
                     )
-                    statusMessage = "Wake failed: $failure"
+                    publishConnectionProgress("BT wake failed: $failure")
                 }
             } finally {
                 if (wakeJob === currentCoroutineContext()[Job]) {
@@ -1608,7 +1647,7 @@ class AppViewModel(
      * owner of the status line.
      */
     fun notifyStatus(msg: String) {
-        statusMessage = msg
+        publishConnectionProgress(msg)
     }
 
     /**
@@ -1713,6 +1752,12 @@ class AppViewModel(
         wakeJob?.cancel()
         wakeJob = null
         _waking.value = false
+        if (wakeWasActive) {
+            bluetoothWakeState = BluetoothWakeState(
+                BluetoothWakePhase.CANCELLED,
+                "Bluetooth wake cancelled by disconnect",
+            )
+        }
         stopDemoSlowMotionForDisconnect()
         val activeFastJogLease = fastJogLease
         fastJogLease = null

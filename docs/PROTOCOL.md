@@ -68,7 +68,7 @@ with extended firmware payloads.
 | 522 | SP_GIMBAL_RADJ_ANGLE | roll-axis angle |
 | 523 | SP_POS_RESET | reset position reference |
 | 524 | SP_EX_AXIS_STA | external axis state |
-| 532–534 | YAW/PITCH/ROLL_KEY | key events |
+| 532–534 | YAW/PITCH/ROLL_KEY | `key:<0|1>;state:<0|1|2>;level:<1..5>;` | Source-aligned Benro Connect SLOW family; subtype 3. State 0 is an explicit STOP retaining the active key/level. OpenPolaris formats this for host replay only; live firmware stop/watchdog/sign qualification remains open. |
 | 535 | SP_SET_GIMBAL_POS | `yaw:%s;pitch:%s;roll:%s;` |
 
 **Enhancement note:** 513–522 exist in firmware but the stock app uses them only for manual jog.

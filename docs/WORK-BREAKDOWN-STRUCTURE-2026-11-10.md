@@ -732,3 +732,7 @@ The current implementation slice must not send a new motor frame, alter firmware
   saved configuration and autojoin. The Connection workspace keeps this
   evidence separate from Bluetooth wake and PC bridge health; Wi-Fi mutation
   remains out of scope.
+
+
+- **2026-11-10 - WBS-05.6/08.2 ACTIVE (Astro WebUI target controls):** added source-aligned compass alignment plus preview-then-confirm GoTo contracts. RA/Dec/name input is bounded before transport; preview requires positive `valid=true` and `preview=true` evidence; confirmation requires an exact matching preview and adds the explicit `confirm=1` guard. Motion writes and alignment remain separately default-off, while the safe preview path is available for UI rehearsal.
+- **2026-11-10 - verification:** AstroWebUiTargetControlTest, AppViewModelAstroWebUiTargetTest, FeatureFlagsTest and Compose JVM compilation passed. No live Astro WebUI, alignment, GoTo, mount or physical SLOW operation was exercised.

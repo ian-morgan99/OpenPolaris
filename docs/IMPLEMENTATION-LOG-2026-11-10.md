@@ -1131,3 +1131,7 @@ exercised.
   `e411b4d14a2ac8fcdda7e1ea40ff1d678e032f5e984b7ef728a981d11e63fa4f`.
   No live Astro WebUI, Wi-Fi, bridge, Bluetooth, mount, camera or physical
   SLOW qualification was exercised.
+
+
+- **2026-11-10 - WBS-05.6/08.2 ACTIVE (Astro target controls):** implemented typed `/api/astro/align` and `/api/astro/goto` clients with source-aligned form bodies, bounded RA/Dec/name validation, positive acknowledgement evidence and explicit preview/confirm separation. Mission exposes preview, exact-preview confirmation and compass alignment with physical motion warnings; ViewModel jobs are session-owned and late results are discarded after disconnect. Target writes remain default-off.
+- **2026-11-10 - verification:** focused adapter, feature-policy, ViewModel lifecycle and Compose compilation tests passed after correcting RA validation to the source-aligned `[0,360)` range. No live Astro WebUI, mount or physical SLOW qualification was performed.

@@ -74,13 +74,12 @@ fun OpenPolarisApp(
     /**
      * Desktop-only: bridge the segregated Wi-Fi interface to the gimbal.
      * Receives a `progress: (String) -> Unit` callback the bridge calls
-     * from its IO dispatcher; the lambda itself is invoked synchronously
-     * from the click handler so it can launch the long-running bridge
-     * coroutine. Defaults to a no-op so the Android build (which has no
-     * bridge implementation) constructs the VM without it. Mirrors the
-     * constructor parameter on [AppViewModel].
+     * from its IO dispatcher and returns true only after route and Polaris
+     * service identity are verified. The lambda itself is invoked from the
+     * click-launched coroutine. A false-returning default keeps Android from
+     * claiming a desktop bridge is ready. Mirrors [AppViewModel].
      */
-    connectWifi: (suspend (suspend (String) -> Unit) -> Unit)? = null,
+    connectWifi: (suspend (suspend (String) -> Unit) -> Boolean)? = null,
     /**
      * Optional BT-only wake pulse. When supplied, the Connection pane
      * shows a "Wake" button that calls [AppViewModel.wake]. Independent
@@ -128,7 +127,7 @@ fun OpenPolarisApp(
         ?: AppViewModel(
             scope = scope,
             connectionFactory = connectionFactory,
-            connectWifi = connectWifi ?: {},
+            connectWifi = connectWifi ?: { false },
             wakeProbe = wakeProbe ?: {},
             teardownBridge = teardownBridge ?: {},
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),

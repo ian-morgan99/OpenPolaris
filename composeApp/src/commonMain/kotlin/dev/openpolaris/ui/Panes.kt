@@ -206,6 +206,21 @@ fun ConnectionPane(
                     Text("Open system Wi-Fi…")
                 }
             }
+            HorizontalDivider()
+            vm.endpointHealth.profile?.let { profile ->
+                Text(
+                    "${profile.label} · ${profile.address.host}:${profile.address.controlPort} / preview ${profile.address.previewPort}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } ?: Text("No endpoint selected", style = MaterialTheme.typography.bodySmall)
+            Text("Phase: ${vm.endpointHealth.phase}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Control: ${vm.endpointHealth.control} · Preview: ${vm.endpointHealth.preview}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            vm.endpointHealth.lastFailure?.let { failure ->
+                Text("Last failure: $failure", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
         }
     }

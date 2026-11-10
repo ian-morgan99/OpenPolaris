@@ -109,11 +109,12 @@ class AppViewModel(
     /**
      * Bridge the segregated Wi-Fi interface to the gimbal. The lambda receives
      * a `progress: (String) -> Unit` callback; it is called from a background
-     * dispatcher and must be safe to invoke off the main thread. The default
-     * is a no-op so callers that don't have a bridge implementation (e.g.
-     * the Android build) can construct the VM without it.
+     * dispatcher and must be safe to invoke off the main thread. It returns
+     * true only after the route and Polaris service identity are verified. The
+     * default is a false-returning no-op so callers without a bridge (e.g. the
+     * Android build) cannot claim Wi-Fi readiness.
      */
-    private val connectWifi: suspend (suspend (String) -> Unit) -> Unit = {},
+    private val connectWifi: suspend (suspend (String) -> Unit) -> Boolean = { false },
     /**
      * BT-only wake pulse for the gimbal. Distinct from [connectWifi] (which
      * does wake → NM up → link → policy route in one shot). The lambda
@@ -1008,10 +1009,38 @@ class AppViewModel(
         _reconnecting.value = true
         scope.launch {
             try {
+                setEndpointHealth(
+                    phase = EndpointPhase.WAKING,
+                    control = endpointHealth.control,
+                    preview = endpointHealth.preview,
+                )
                 statusMessage = "Connecting to mount Wi-Fi…"
-                connectWifi { msg -> statusMessage = msg }
+                val routeReady = connectWifi { msg -> statusMessage = msg }
+                if (routeReady) {
+                    setEndpointHealth(
+                        phase = EndpointPhase.WIFI_READY,
+                        control = EndpointService.UNKNOWN,
+                        preview = EndpointService.UNKNOWN,
+                    )
+                } else {
+                    val failure = "bridge did not verify the mount route"
+                    setEndpointHealth(
+                        phase = EndpointPhase.FAILED,
+                        control = EndpointService.UNREACHABLE,
+                        preview = EndpointService.UNKNOWN,
+                        failure = failure,
+                    )
+                    statusMessage = "Wi-Fi bridge failed: $failure"
+                }
             } catch (e: Throwable) {
-                statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
+                val failure = e.message ?: e::class.simpleName ?: "Wi-Fi bridge failed"
+                setEndpointHealth(
+                    phase = EndpointPhase.FAILED,
+                    control = EndpointService.UNREACHABLE,
+                    preview = EndpointService.UNKNOWN,
+                    failure = failure,
+                )
+                statusMessage = "Wi-Fi bridge failed: $failure"
             } finally {
                 _reconnecting.value = false
             }
@@ -1056,6 +1085,11 @@ class AppViewModel(
     fun wake() {
         if (_waking.value) return
         _waking.value = true
+        setEndpointHealth(
+            phase = EndpointPhase.WAKING,
+            control = endpointHealth.control,
+            preview = endpointHealth.preview,
+        )
         scope.launch {
             // 8.0 wake-then-connect race (v2): a connect that *started* during
             // the wake must own the terminal status line, even if it finishes
@@ -1117,7 +1151,14 @@ class AppViewModel(
                 }
             } catch (e: Throwable) {
                 if (!_reconnecting.value && reconnectGeneration == wakeStartGeneration) {
-                    statusMessage = "Wake failed: ${e.message ?: e::class.simpleName}"
+                    val failure = e.message ?: e::class.simpleName ?: "Bluetooth wake failed"
+                    setEndpointHealth(
+                        phase = EndpointPhase.FAILED,
+                        control = EndpointService.UNREACHABLE,
+                        preview = EndpointService.UNKNOWN,
+                        failure = failure,
+                    )
+                    statusMessage = "Wake failed: $failure"
                 }
             } finally {
                 _waking.value = false

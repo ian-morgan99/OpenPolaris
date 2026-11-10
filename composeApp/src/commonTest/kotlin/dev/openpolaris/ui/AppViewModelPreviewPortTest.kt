@@ -86,9 +86,11 @@ class AppViewModelPreviewPortTest {
         scope: CoroutineScope,
         connectionFactory: () -> Connection,
         recording: RecordingTransport,
+        connectWifi: suspend (suspend (String) -> Unit) -> Boolean = { true },
     ): AppViewModel = AppViewModel(
         scope = scope,
         connectionFactory = connectionFactory,
+        connectWifi = connectWifi,
         ioDispatcher = UnconfinedTestDispatcher(scope.coroutineContext[TestCoroutineScheduler]),
         sessionReaderScope = scope,
         previewTransportFactory = { _, _ -> recording },
@@ -141,6 +143,25 @@ class AppViewModelPreviewPortTest {
         assertEquals(EndpointPhase.DISCONNECTED, vm.endpointHealth.phase)
         assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.control)
         assertEquals(EndpointService.UNKNOWN, vm.endpointHealth.preview)
+        vm.preview.shutdown()
+    }
+
+    @Test
+    fun falseBridgeResultDoesNotClaimWifiReady() = runTest(UnconfinedTestDispatcher()) {
+        val vm = newViewModel(
+            this,
+            { FakeConnection() },
+            RecordingTransport(),
+            connectWifi = { false },
+        )
+
+        vm.connectWifi()
+        advanceTimeBy(1_000)
+
+        assertEquals(EndpointPhase.FAILED, vm.endpointHealth.phase)
+        assertEquals(EndpointService.UNREACHABLE, vm.endpointHealth.control)
+        assertEquals("Wi-Fi bridge failed: bridge did not verify the mount route", vm.statusMessage)
+        vm.disconnect()
         vm.preview.shutdown()
     }
 

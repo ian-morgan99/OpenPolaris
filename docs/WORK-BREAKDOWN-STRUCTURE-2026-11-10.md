@@ -303,4 +303,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused MissionReadiness and mobile-layout tests passed after adding storage/alignment boundaries.
 - **2026-11-10 — WBS-01.1/01.3 ACTIVE (transitional shell):** added a touch/mouse/keyboard-accessible Mission details sheet from the persistent status strip, with endpoint identity, phase and all readiness rows; existing responsive callout navigation remains intact while the adaptive shell is expanded.
 - **2026-11-10 — verification:** Compose JVM suite passed after the Mission details integration.
-- **Next:** add explicit session ownership/readiness controls for connection, camera and preview, then begin the camera workspace parity pass.
+- **2026-11-10 — WBS-02.3 ACTIVE (truthful route UX):** Connection now shows endpoint identity, control/preview service state, phase and last failure; Bluetooth wake and PC bridge phases are represented separately, and the bridge callback now returns a verified Boolean so a false route result cannot claim readiness.
+- **2026-11-10 — verification:** focused preview/bridge tests passed, including false bridge result → FAILED endpoint evidence.
+- **Next:** add explicit session ownership/readiness controls for camera and preview, then begin the camera workspace parity pass.

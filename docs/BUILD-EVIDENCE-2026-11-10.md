@@ -135,3 +135,30 @@ The build emits existing deprecation warnings, including Android Bluetooth scan
 API warnings and JVM URL/readLine warnings. No live mount, camera, Astro
 WebUI or physical SLOW qualification was performed; artifact success is not
 hardware qualification.
+
+## Latest committed verification - f5f3f90
+
+Commit under test: f5f3f90 (feat: add common motion emergency stop).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). All shared and Compose JVM
+tests passed, including the FastJog emergency-stop and ViewModel owner-clear
+tests. Android debug Kotlin compilation and APK assembly passed, and the Linux
+desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: af2b80b11a6f2aaf2477e55ce37a44ade0ef6d40e541e061f59b825c8e2fa984
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-f5f3f90.tar.gz
+  SHA-256: 58e5ac3fef3f82187d186f6d226c754a2cc150c032c33919f0d3939917e07774
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
+and the known libandroidx.graphics.path.so strip warning. No live mount,
+camera, Astro WebUI or physical SLOW qualification was performed; artifact
+success is not hardware qualification.

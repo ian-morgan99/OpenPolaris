@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.AstroMissionFlow
@@ -735,6 +736,7 @@ private fun JogButton(label: String, code: Int, vm: AppViewModel) {
 /** Goto pane: az/alt or RA/Dec entry, observer location, slew/cancel, alignment, auto-level. */
 @Composable
 fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    var alignmentQuery by remember { mutableStateOf("") }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Slew", style = MaterialTheme.typography.titleMedium)
@@ -839,6 +841,36 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Center a bright star with the jog controls, then record it. 2–3 stars spread across the sky give the best pointing model.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            OutlinedTextField(
+                value = alignmentQuery,
+                onValueChange = { alignmentQuery = it },
+                label = { Text("Find a named alignment star") },
+                placeholder = { Text("Polaris, Vega, Deneb…") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            val alignmentCandidates = if (alignmentQuery.length < 2) emptyList() else
+                vm.tonightCatalog.objects.filter { star ->
+                    star.type == dev.openpolaris.core.astro.ObjectType.STAR &&
+                        (star.designation.contains(alignmentQuery, ignoreCase = true) ||
+                            star.name.contains(alignmentQuery, ignoreCase = true))
+                }.take(8)
+            vm.selectedAlignmentStar?.let { selected ->
+                Text("Selected: ${selected.designation} — centre it, then Record star", style = MaterialTheme.typography.labelMedium)
+            }
+            alignmentCandidates.forEach { star ->
+                TextButton(
+                    onClick = { vm.selectAlignmentStar(star.designation, star.raDeg, star.decDeg) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("${star.designation}  ${star.name} · RA ${AstroMath.formatRaHours(star.raDeg)} · Dec ${AstroMath.formatDecDMS(star.decDeg)}")
+                }
+            }
+            solved?.let { result ->
+                OutlinedButton(
+                    onClick = { vm.selectAlignmentStar("plate-solve", result.raDeg, result.decDeg) },
+                ) { Text("Use last plate solve as alignment identity") }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::submitAlignmentStar) { Text("Record star") }
                 OutlinedButton(onClick = vm::resetAlignment) { Text("Reset alignment") }

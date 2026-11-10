@@ -135,6 +135,30 @@ class MobileResponsiveLayoutContractTest {
     // --- (3) Three tall panes redesigned ----------------------------
 
     @Test
+    fun unavailableThreeDViewIsExplicitlyCommunicated() {
+        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val noComments = stripComments(src)
+        assertTrue("var unavailableFeature by remember" in noComments)
+        assertTrue("onLaunchVr == null" in noComments)
+        assertTrue("unavailableFeature = \"3D view\"" in noComments)
+        assertTrue("\$feature unavailable" in noComments)
+        assertTrue("This build has no host for " + "\$feature" in noComments)
+        assertTrue("continue with the standard mobile/PC workspace" in noComments)
+    }
+
+    @Test
+    fun phoneStatusStripHasCompactExpandableDetails() {
+        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val noComments = stripComments(src)
+        assertTrue("compact: Boolean = false" in noComments)
+        assertTrue("compact = true" in noComments, "phone status strip must opt into compact mode")
+        assertTrue("status-details-toggle" in noComments, "phone status strip needs an explicit details toggle")
+        assertTrue("if (!compact || expanded)" in noComments, "secondary readiness and safety details must be collapsible")
+        assertTrue("horizontalScroll(rememberScrollState())" in noComments, "status actions must remain reachable on narrow phones")
+        assertTrue("TextOverflow.Ellipsis" in noComments, "long status text must not expand the phone card")
+    }
+
+    @Test
     fun firmwarePaneIsPaginatedIntoThreeSteps() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
         val noComments = stripComments(src)

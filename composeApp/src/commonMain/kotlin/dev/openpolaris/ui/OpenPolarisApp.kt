@@ -1,5 +1,6 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.domain.BatteryAwareness
 import dev.openpolaris.core.domain.BatterySeverity
@@ -148,6 +150,7 @@ fun OpenPolarisApp(
 ) {
     val scope = rememberCoroutineScope()
     var dialog by remember { mutableStateOf<Callout?>(null) }
+    var unavailableFeature by remember { mutableStateOf<String?>(null) }
     var activeDestination by remember { mutableStateOf(AppDestination.MISSION) }
     var preferences by remember { mutableStateOf(UserPreferences()) }
     var dimMode by remember { mutableStateOf(false) }
@@ -211,7 +214,11 @@ fun OpenPolarisApp(
 
     fun openAdvanced(callout: Callout) {
         if (callout == Callout.VR) {
-            onLaunchVr?.invoke()
+            if (onLaunchVr == null) {
+                unavailableFeature = "3D view"
+            } else {
+                onLaunchVr.invoke()
+            }
         } else {
             dialog = callout
         }
@@ -254,6 +261,7 @@ fun OpenPolarisApp(
                         StatusStrip(
                             vm,
                             Modifier.fillMaxWidth(),
+                            compact = false,
                             onOpenDetails = { openDestination(AppDestination.MISSION) },
                             onOpenGallery = { openDestination(AppDestination.GALLERY) },
                             onOpenMissionAction = ::openMissionAction,
@@ -276,6 +284,7 @@ fun OpenPolarisApp(
                     StatusStrip(
                         vm,
                         Modifier.fillMaxWidth(),
+                        compact = true,
                         onOpenDetails = { openDestination(AppDestination.MISSION) },
                         onOpenGallery = { openDestination(AppDestination.GALLERY) },
                         onOpenMissionAction = ::openMissionAction,
@@ -297,6 +306,23 @@ fun OpenPolarisApp(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+
+            unavailableFeature?.let { feature ->
+                AlertDialog(
+                    onDismissRequest = { unavailableFeature = null },
+                    title = { Text("$feature unavailable") },
+                    text = {
+                        Text(
+                            "This build has no host for $feature. Choose a supported Android VR host or continue with the standard mobile/PC workspace.",
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { unavailableFeature = null }) {
+                            Text("Close")
+                        }
+                    },
+                )
             }
 
             when (dialog) {
@@ -683,7 +709,9 @@ private fun StatusStrip(
     onOpenMissionAction: ((String) -> Unit)? = null,
     dimMode: Boolean = false,
     onToggleDim: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
+    var expanded by remember { mutableStateOf(false) }
     val s = vm.mount
     val endpoint = vm.endpointHealth
     val motionState by vm.motionState.collectAsState()
@@ -706,111 +734,194 @@ private fun StatusStrip(
     )
     val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }
     Card(modifier) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                onOpenDetails?.let { open ->
-                    TextButton(
-                        onClick = open,
-                        modifier = Modifier.testTag("mission-details"),
-                    ) { Text("Details") }
+        Column(
+            Modifier.padding(
+                horizontal = if (compact) 8.dp else 12.dp,
+                vertical = if (compact) 4.dp else 8.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
+        ) {
+            if (compact) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            vm.statusMessage,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
+                        Text(
+                            battery.compactLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (battery.severity) {
+                                BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
+                                BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
+                                else -> MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier
+                                .testTag("battery-status")
+                                .semantics {
+                                    contentDescription = battery.contentDescription
+                                    stateDescription = battery.severity.label
+                                },
+                        )
+                        Text(
+                            buildString {
+                                if (s.tracking == true) append("TRK")
+                                if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .testTag("status-actions"),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        onOpenDetails?.let { open ->
+                            TextButton(
+                                onClick = open,
+                                modifier = Modifier.testTag("mission-details"),
+                            ) { Text("Details") }
+                        }
+                        onOpenGallery?.let { open ->
+                            TextButton(
+                                onClick = open,
+                                modifier = Modifier.testTag("open-gallery"),
+                            ) { Text("Gallery") }
+                        }
+                        onToggleDim?.let { toggle ->
+                            TextButton(
+                                onClick = toggle,
+                                modifier = Modifier.testTag("night-dim-toggle"),
+                            ) { Text(if (dimMode) "Bright" else "Dim") }
+                        }
+                        TextButton(
+                            onClick = { expanded = !expanded },
+                            modifier = Modifier.testTag("status-details-toggle"),
+                        ) {
+                            Text(if (expanded) "Less" else "More")
+                        }
+                    }
                 }
-                onOpenGallery?.let { open ->
-                    TextButton(
-                        onClick = open,
-                        modifier = Modifier.testTag("open-gallery"),
-                    ) { Text("Gallery") }
-                }
-                onToggleDim?.let { toggle ->
-                    TextButton(
-                        onClick = toggle,
-                        modifier = Modifier.testTag("night-dim-toggle"),
-                    ) { Text(if (dimMode) "Bright" else "Dim") }
-                }
-                val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
-                Text(
-                    battery.compactLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (battery.severity) {
-                        BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
-                        BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
-                    modifier = Modifier
-                        .testTag("battery-status")
-                        .semantics {
-                            contentDescription = battery.contentDescription
-                            stateDescription = battery.severity.label
-                        },
-                )
-                Text(
-                    buildString {
-                        if (s.tracking == true) append("TRK")
-                        if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            when (val motion = motionState) {
-                MotionState.Idle -> Unit
-                is MotionState.Owned -> Row(
-                    modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        "Motion active: " + motion.lease.owner.name.lowercase().replace('_', ' '),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(
-                        onClick = vm::emergencyStopMotion,
-                        modifier = Modifier.testTag("emergency-stop"),
-                    ) { Text("STOP ALL") }
-                }
-                is MotionState.Faulted -> Text(
-                    "Motion stop fault: " + motion.reason,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
-                )
-            }
-            HorizontalDivider()
-            if (next == null) {
-                Text(
-                    "Mission ready — no blocked or unknown prerequisites",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.testTag("mission-readiness-summary"),
-                )
-            } else {
-                Text(
-                    "Next: ${next.label} — ${next.summary}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (next.level == dev.openpolaris.core.domain.ReadinessLevel.BLOCKED) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.testTag("mission-readiness-summary"),
-                )
-                next.actionLabel?.let { action ->
-                    onOpenMissionAction?.let { open ->
+                    Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    onOpenDetails?.let { open ->
                         TextButton(
-                            onClick = { open(next.id) },
-                            modifier = Modifier.testTag("mission-next-action"),
-                        ) {
-                            Text("Next: $action")
-                        }
-                    } ?: Text(
-                        "Action: $action",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            onClick = open,
+                            modifier = Modifier.testTag("mission-details"),
+                        ) { Text("Details") }
+                    }
+                    onOpenGallery?.let { open ->
+                        TextButton(
+                            onClick = open,
+                            modifier = Modifier.testTag("open-gallery"),
+                        ) { Text("Gallery") }
+                    }
+                    onToggleDim?.let { toggle ->
+                        TextButton(
+                            onClick = toggle,
+                            modifier = Modifier.testTag("night-dim-toggle"),
+                        ) { Text(if (dimMode) "Bright" else "Dim") }
+                    }
+                    val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
+                    Text(
+                        battery.compactLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when (battery.severity) {
+                            BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
+                            BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier
+                            .testTag("battery-status")
+                            .semantics {
+                                contentDescription = battery.contentDescription
+                                stateDescription = battery.severity.label
+                            },
+                    )
+                    Text(
+                        buildString {
+                            if (s.tracking == true) append("TRK")
+                            if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
+            if (!compact || expanded) {
+                when (val motion = motionState) {
+                    MotionState.Idle -> Unit
+                    is MotionState.Owned -> Row(
+                        modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Motion active: " + motion.lease.owner.name.lowercase().replace('_', ' '),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            onClick = vm::emergencyStopMotion,
+                            modifier = Modifier.testTag("emergency-stop"),
+                        ) { Text("STOP ALL") }
+                    }
+                    is MotionState.Faulted -> Text(
+                        "Motion stop fault: " + motion.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
+                    )
+                }
+                HorizontalDivider()
+                if (next == null) {
+                    Text(
+                        "Mission ready — no blocked or unknown prerequisites",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("mission-readiness-summary"),
+                    )
+                } else {
+                    Text(
+                        "Next: ${next.label} — ${next.summary}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (next.level == dev.openpolaris.core.domain.ReadinessLevel.BLOCKED) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.testTag("mission-readiness-summary"),
+                    )
+                    next.actionLabel?.let { action ->
+                        onOpenMissionAction?.let { open ->
+                            TextButton(
+                                onClick = { open(next.id) },
+                                modifier = Modifier.testTag("mission-next-action"),
+                            ) {
+                                Text("Next: $action")
+                            }
+                        } ?: Text(
+                            "Action: $action",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
         }
     }
 }

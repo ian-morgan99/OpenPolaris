@@ -650,13 +650,6 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
-    LaunchedEffect(vm.demoMode, vm.slowMotionDemoState.running) {
-        while (vm.demoMode && vm.slowMotionDemoState.running) {
-            delay(50L)
-            vm.demoSlowMotionTick()
-        }
-    }
-
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
@@ -728,7 +721,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
             Text(
-                "Pointer capture, dead-man renewal and stop ordering belong to the shared motion owner; the UI must not create its own repeat timer.",
+                "Pointer capture, dead-man renewal and stop ordering belong to the shared motion owner; the UI asserts the hold and never creates a repeat timer.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

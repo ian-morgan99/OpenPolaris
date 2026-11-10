@@ -35,6 +35,9 @@ class SlowMotionPaneSafetyContractTest {
         assertTrue("STOP ALL" in source)
         assertTrue("Logical scheduler trace" in source)
         assertTrue("Pointer capture, dead-man renewal" in source)
+        assertTrue("never creates a repeat timer" in source)
+        assertFalse("LaunchedEffect(vm.demoMode, vm.slowMotionDemoState.running)" in source)
+        assertFalse("vm.demoSlowMotionTick()" in source)
         assertTrue("Fine correction — unavailable" in source)
     }
 }

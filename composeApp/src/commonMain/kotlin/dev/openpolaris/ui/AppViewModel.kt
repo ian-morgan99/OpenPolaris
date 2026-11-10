@@ -55,9 +55,20 @@ import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
+import dev.openpolaris.core.domain.MotionStopReason
+import dev.openpolaris.core.domain.MotionStopResult
 import dev.openpolaris.core.domain.RateAxis
-import dev.openpolaris.core.domain.SlowMotionDemoController
+import dev.openpolaris.core.domain.SlowMotionActionResult
+import dev.openpolaris.core.domain.SlowMotionAcquireResult
+import dev.openpolaris.core.domain.SlowMotionCalibration
+import dev.openpolaris.core.domain.SlowMotionController
 import dev.openpolaris.core.domain.SlowMotionDemoSnapshot
+import dev.openpolaris.core.domain.SlowMotionLease
+import dev.openpolaris.core.domain.SlowMotionPlanner
+import dev.openpolaris.core.domain.SlowMotionTarget
+import dev.openpolaris.core.domain.SlowMotionTransport
+import dev.openpolaris.core.domain.SlowMotionTransportResult
+import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createPreviewTransport
@@ -95,6 +106,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+
+/**
+ * Transport used only by the Demo SLOW owner. It records the exact logical
+ * scheduler output but never serializes or sends a firmware frame.
+ */
+private class DemoSlowMotionTransport : SlowMotionTransport {
+    private val events = mutableListOf<SlowScheduleCommand>()
+
+    override suspend fun apply(command: SlowScheduleCommand): SlowMotionTransportResult {
+        events += command
+        return SlowMotionTransportResult.Accepted
+    }
+
+    override suspend fun stop(reason: MotionStopReason): MotionStopResult =
+        MotionStopResult.Stopped
+
+    fun drainEvents(): List<SlowScheduleCommand> {
+        if (events.isEmpty()) return emptyList()
+        return events.toList().also { events.clear() }
+    }
+}
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
@@ -442,9 +474,16 @@ class AppViewModel(
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
-    // Demo-only SLOW model. It shares the planner/scheduler but never owns a
-    // MountSession and never emits a 532/533/534 or AC 4A frame.
-    private val demoSlowMotion = SlowMotionDemoController()
+    // Demo-only SLOW owner. It uses the same exclusive lease, scheduler and
+    // dead-man renewal contract as the future live adapter, but its transport
+    // records logical commands only and never emits a firmware frame.
+    private val demoSlowMotionTransport = DemoSlowMotionTransport()
+    private val demoSlowMotion = SlowMotionController(
+        transport = demoSlowMotionTransport,
+        planner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
+    )
+    private var demoSlowMotionLease: SlowMotionLease? = null
+    private var demoSlowMotionJob: Job? = null
     var slowMotionDemoState by mutableStateOf(SlowMotionDemoSnapshot())
         private set
     /**
@@ -882,9 +921,9 @@ class AppViewModel(
         // always.)
         reconnectGeneration++
         disconnect()
+        stopDemoSlowMotionForDisconnect()
         demoMode = false
-        demoSlowMotion.reset(SystemMillis.now().coerceAtLeast(0L))
-        slowMotionDemoState = demoSlowMotion.state.value
+        slowMotionDemoState = SlowMotionDemoSnapshot()
         setEndpointHealth(
             phase = EndpointPhase.CONTROL_CHECKING,
             control = EndpointService.UNKNOWN,
@@ -1323,6 +1362,7 @@ class AppViewModel(
     }
 
     fun disconnect() {
+        stopDemoSlowMotionForDisconnect()
         sessionTearingDown = true
         programmeConfirmation?.complete(null)
         programmeConfirmation = null
@@ -1860,26 +1900,149 @@ class AppViewModel(
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
         }
-        val snapshot = demoSlowMotion.start(axis, direction, level, SystemMillis.now().coerceAtLeast(0L))
-        slowMotionDemoState = snapshot
-        statusMessage = "Demo slow motion: ${snapshot.label} (${snapshot.lastEvents.size} logical transitions; no hardware command)"
+        if (direction !in -1..1 || direction == 0 || level !in 1..5) {
+            statusMessage = "Invalid Demo slow-motion request"
+            return
+        }
+
+        val previous = demoSlowMotionJob
+        demoSlowMotionJob = scope.launch {
+            previous?.cancelAndJoin()
+            demoSlowMotionLease?.let { lease ->
+                when (demoSlowMotion.state.value) {
+                    is dev.openpolaris.core.domain.SlowMotionState.Armed ->
+                        demoSlowMotion.release(lease)
+                    is dev.openpolaris.core.domain.SlowMotionState.Holding ->
+                        demoSlowMotion.release(lease)
+                    else -> Unit
+                }
+            }
+            demoSlowMotionLease = null
+
+            val lease = when (val acquired = demoSlowMotion.acquire()) {
+                is SlowMotionAcquireResult.Granted -> acquired.lease
+                is SlowMotionAcquireResult.Busy ->
+                    return@launch.also { statusMessage = "Demo motion owner is busy" }
+                is SlowMotionAcquireResult.Blocked ->
+                    return@launch.also { statusMessage = "Demo motion blocked: ${acquired.reason}" }
+            }
+            val calibration = SlowMotionCalibration.REFERENCE.levels.getValue(level)
+            val rate = ((calibration.stateOneRate + calibration.stateTwoRate) / 2.0) * direction
+            val targets = RateAxis.entries.associateWith { candidate ->
+                if (candidate == axis) SlowMotionTarget(rate, hold = true)
+                else SlowMotionTarget(0.0, hold = false)
+            }
+            val now = SystemMillis.now().coerceAtLeast(0L)
+            if (demoSlowMotion.start(lease, targets, now) != SlowMotionActionResult.Started) {
+                demoSlowMotion.release(lease)
+                statusMessage = "Demo slow-motion plan was rejected"
+                return@launch
+            }
+            demoSlowMotionLease = lease
+            demoSlowMotion.tick(lease, now)
+            val initialEvents = demoSlowMotionTransport.drainEvents()
+            slowMotionDemoState = SlowMotionDemoSnapshot(
+                running = true,
+                axis = axis,
+                direction = direction,
+                level = level,
+                lastEvents = initialEvents.takeLast(8),
+            )
+            statusMessage = "Demo slow motion: ${slowMotionDemoState.label} (logical owner active; no hardware command)"
+
+            while (isActive && demoMode && demoSlowMotionLease == lease) {
+                delay(50L)
+                val tickNow = SystemMillis.now().coerceAtLeast(now)
+                val renewed = demoSlowMotion.renew(lease, tickNow)
+                if (renewed != SlowMotionActionResult.Renewed) {
+                    slowMotionDemoState = slowMotionDemoState.copy(
+                        running = false,
+                        direction = 0,
+                        level = 0,
+                    )
+                    demoSlowMotionLease = null
+                    break
+                }
+                val result = demoSlowMotion.tick(lease, tickNow)
+                val events = demoSlowMotionTransport.drainEvents()
+                if (events.isNotEmpty()) {
+                    slowMotionDemoState = slowMotionDemoState.copy(
+                        lastEvents = (slowMotionDemoState.lastEvents + events).takeLast(8),
+                    )
+                }
+                if (result is SlowMotionActionResult.Unknown ||
+                    result == SlowMotionActionResult.Rejected
+                ) {
+                    slowMotionDemoState = slowMotionDemoState.copy(
+                        running = false,
+                        direction = 0,
+                        level = 0,
+                    )
+                    demoSlowMotionLease = null
+                    break
+                }
+            }
+        }
     }
 
-    /** Advance the logical Demo scheduler; this never touches MountSession. */
-    fun demoSlowMotionTick() {
-        if (!demoMode || !demoSlowMotion.state.value.running) return
-        slowMotionDemoState = demoSlowMotion.tick(SystemMillis.now().coerceAtLeast(0L))
-    }
-
-    /** Stop the logical Demo-mode SLOW session; this is not a live stop path. */
+    /**
+     * Stop the logical Demo-mode SLOW session through the shared owner. The
+     * UI only asserts/relinquishes the hold; it does not own a repeat timer.
+     */
     fun demoSlowMotionStop() {
         if (!demoMode) {
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
         }
-        val snapshot = demoSlowMotion.stop(SystemMillis.now().coerceAtLeast(0L))
-        slowMotionDemoState = snapshot
-        statusMessage = "Demo slow motion stopped (${snapshot.lastEvents.size} logical stop transitions)"
+        val previous = demoSlowMotionJob
+        demoSlowMotionJob = null
+        scope.launch {
+            previous?.cancelAndJoin()
+            val lease = demoSlowMotionLease
+            if (lease != null) {
+                when (val result = demoSlowMotion.release(lease)) {
+                    SlowMotionActionResult.Stopped -> Unit
+                    is SlowMotionActionResult.Unknown ->
+                        statusMessage = "Demo slow-motion stop outcome unknown: ${result.reason}"
+                    else -> Unit
+                }
+            }
+            demoSlowMotionLease = null
+            val stops = RateAxis.entries.map { axis ->
+                SlowScheduleCommand(axis, dev.openpolaris.core.domain.SlowScheduleKind.STOP)
+            }
+            slowMotionDemoState = slowMotionDemoState.copy(
+                running = false,
+                direction = 0,
+                level = 0,
+                lastEvents = stops,
+            )
+            statusMessage = "Demo slow motion stopped (${stops.size} logical stop transitions)"
+        }
+    }
+
+    /**
+     * Disconnect/background teardown for the Demo owner. A live adapter must
+     * use the same boundary with a physical stop proof before reconnecting.
+     */
+    private fun stopDemoSlowMotionForDisconnect() {
+        val previous = demoSlowMotionJob
+        demoSlowMotionJob = null
+        previous?.cancel()
+        val lease = demoSlowMotionLease
+        demoSlowMotionLease = null
+        if (lease != null) {
+            scope.launch {
+                when (demoSlowMotion.state.value) {
+                    is dev.openpolaris.core.domain.SlowMotionState.Holding ->
+                        demoSlowMotion.onDisconnected(lease)
+                    is dev.openpolaris.core.domain.SlowMotionState.Armed ->
+                        demoSlowMotion.release(lease)
+                    else -> Unit
+                }
+            }
+        }
+        slowMotionDemoState = SlowMotionDemoSnapshot()
     }
 
     fun jog(code: Int) = scope.launch {

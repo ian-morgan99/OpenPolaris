@@ -13,12 +13,12 @@
 | WBS-02 | Connection, session and health | Direct AP, BT wake, PC bridge, LAN, reconnect and truthful health | WBS-00 | ACTIVE |
 | WBS-03 | Motion ownership and slow-motion control | Fast jog, SLOW manual motion, fine-rate seam, safety arbitration | WBS-00 | ACTIVE |
 | WBS-04 | Camera and capture workspace | Dynamic camera controls, preview, M/B capture and file lifecycle | WBS-02 | ACTIVE |
-| WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | PLANNED |
-| WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
+| WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | ACTIVE |
+| WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | ACTIVE |
 | WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | ACTIVE |
 | WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | ACTIVE |
 | WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | ACTIVE |
-| WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | PLANNED |
+| WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | ACTIVE |
 | WBS-11 | Physical qualification and release gate | Named-device evidence and honest capability matrix | WBS-02..10 | QUALIFICATION |
 
 ## WBS-00 — Product contract and evidence ledger — DONE
@@ -111,6 +111,8 @@
 - Exit: exact app/gimbal hashes, fake-head fault suite, no-camera physical stop/reconnect/rate matrix.
 
 - **2026-11-10 — WBS-03.5 ACTIVE (transport-neutral owner):** added a SLOW controller seam with exclusive ownership, separate dead-man renewal, scheduler ticks, explicit release/emergency/disconnect stops, and terminal unknown/recovery states. It sends no wire frame; exact firmware mapping remains blocked.
+- **2026-11-10 — WBS-03.5/03.6 ACTIVE (owner-driven Demo SLOW):** moved the demo scheduler loop out of the Compose pane and into the shared SlowMotionController owner. Demo pointer/key holds now acquire a lease, renew it separately from scheduler ticks, record logical commands through a transport-neutral adapter, and release through the explicit stop path; disconnect cancels the owner and uses the disconnect stop boundary. Live 532/533/534 and AC 4A transport remains hard-gated.
+
 
 ### WBS-03.6 — Motion UX — P1 — ACTIVE (disabled surface)
 
@@ -372,4 +374,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — WBS-05.2 ACTIVE (alignment UX):** added a bounded named-star chooser and a last-plate-solve identity action to the shared Slew/Alignment surface; selecting an identity never slews, and Record star remains an explicit separate action.
 - **2026-11-10 — verification:** `GotoAlignmentSelectionContractTest` covers the visible chooser, plate-solve identity path and explicit centre-then-record wording.
 - **2026-11-10 — WBS-09.2 ACTIVE (night UX):** added a reversible dim-red palette and tagged Bright/Dim toggle to the shared phone and desktop status strips; it changes presentation only and persists no hardware or network state.
+
+- **2026-11-10 — WBS-10.1/10.2 verification:** rebuilt the Linux desktop app image from a clean checkout and verified embedded source provenance; Android debug Kotlin, release-path compilation and desktop JVM compilation remain green. A local signed Android release could not be rebuilt because the ignored release keystore is absent; the repository CI release path still requires its protected signing secrets. Windows/macOS installers remain host-specific qualification tasks.
+- **2026-11-10 — verification:** :shared:jvmTest, :composeApp:jvmTest, :composeApp:compileKotlinJvm and :androidApp:compileDebugKotlinAndroid passed after the owner-driven Demo SLOW change.
 - **Next:** extend execution only after separately qualifying exposure and motion owners; WBS-07 thumbnail/full-file derivation remains separate, and 772/773/774/781/782 transfer payloads remain blocked until their corpus-only formats are replay-tested and hardware-qualified.

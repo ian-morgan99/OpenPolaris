@@ -89,6 +89,7 @@ import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
 import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
+import dev.openpolaris.core.domain.AstroWebUiWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -516,6 +517,56 @@ fun ConnectionPane(
             if (!FeatureFlags.isEnabled("astroWebUiKeepWifiWrite")) {
                 Text(
                     "Keep-Wi-Fi writes are disabled until bridge, alignment and recovery behaviour are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            HorizontalDivider()
+            Text("Astro Wi-Fi", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Read-only interface and saved-network evidence from the resident Astro WebUI. This is separate from the app's Bluetooth wake and PC bridge phases.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiWifiStatus"),
+                    onClick = vm::refreshAstroWebUiWifi,
+                ) { Text("Refresh Wi-Fi") }
+                when (val wifi = vm.astroWebUiWifi) {
+                    AstroWebUiWifiUiState.Idle -> Text(
+                        "State not checked.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    AstroWebUiWifiUiState.Loading -> Text(
+                        "Reading Wi-Fi state…",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiWifiUiState.Failed -> Text(
+                        wifi.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    is AstroWebUiWifiUiState.Ready -> {
+                        Text(
+                            "AP " + (wifi.state.apIp.ifBlank { "unknown" }) +
+                                " · station " + (wifi.state.stationIp.ifBlank { "none" }),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            "SSID " + (wifi.state.ssid.ifBlank { "none" }) +
+                                " · configured " + if (wifi.state.configured) "yes" else "no" +
+                                " · autojoin " + if (wifi.state.autojoin) "yes" else "no",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiWifiStatus")) {
+                Text(
+                    "Astro Wi-Fi readback is disabled by config.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -878,3 +878,15 @@ The current implementation slice must not send a new motor frame, alter firmware
   packaging and Android APK assembly passed. This remains simulator/package
   evidence only; no live SLOW route or physical stop qualification was
   performed.
+
+- **2026-11-10 - WBS-03.1/03.5/05.3 ACTIVE (Astro session boundary):**
+  Astro WebUI leave and tracking-change requests now settle an active SLOW
+  lease before the request is sent. This closes the remaining direct Astro
+  mode-change path: an ambiguous SLOW stop prevents the WebUI request, while
+  the accepted request remains separately confirmed by its existing status
+  readback.
+- **2026-11-10 - verification:** AppViewModelAstroWebUiSessionControlTest
+  proves Astro leave stops a Demo SLOW hold before the preview-port request;
+  the full shared/Compose JVM, Android compilation, desktop packaging and APK
+  build passed. No live Astro WebUI, mount or physical SLOW operation was
+  exercised.

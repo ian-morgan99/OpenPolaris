@@ -3312,6 +3312,11 @@ class AppViewModel(
         restoreCaptureWorkloads()
     }
 
+    /** Test seam for a positively observed camera release-mode readback. */
+    internal fun testSetCameraParams(params: dev.openpolaris.core.domain.CameraController.Params) {
+        camera = params
+    }
+
     // ---- catalog & comets (Tonight pane) ----------------------------------
     //
     // The bundled shards (catalog.json, stars.json, ngc.json, comets.json)

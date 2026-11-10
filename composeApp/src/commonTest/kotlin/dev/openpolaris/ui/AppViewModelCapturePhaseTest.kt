@@ -164,6 +164,35 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun demoFocusAndVideoRehearsalUsesAcknowledgedSourceAlignedRoutes() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection())
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            assertTrue(vm.cameraAttachment?.isAttached == true)
+
+            vm.adjustFocusNear()
+            vm.adjustFocusFar(fast = true)
+            runCurrent()
+            assertTrue(vm.focusStatus?.contains("Far focus acknowledged") == true)
+
+            vm.setVideoRecording(true)
+            runCurrent()
+            assertEquals(true, vm.videoRecording)
+
+            vm.capture()
+            assertTrue(vm.statusMessage.contains("Stop video"))
+
+            vm.setVideoRecording(false)
+            runCurrent()
+            assertEquals(false, vm.videoRecording)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication() = runTest(UnconfinedTestDispatcher()) {
         val vm = vm(this, FakeConnection())
         try {

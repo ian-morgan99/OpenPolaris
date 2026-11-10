@@ -167,6 +167,12 @@ class SimulatedMount {
                     "1&" + Codes.BenroCamera.SET_VIDEO_RECORD_STATUS + "&2&state:" +
                         (fields["state"] ?: "0") + ";ret:0;#"
                 )
+                Codes.BenroCamera.SET_FOCUS -> queue(
+                    "1&" + Codes.BenroCamera.SET_FOCUS + "&2&ret:0;#"
+                )
+                Codes.BenroCamera.SET_FOCUS_ADJ -> queue(
+                    "1&" + Codes.BenroCamera.SET_FOCUS_ADJ + "&2&ret:0;#"
+                )
                 Codes.CAM_GET_EV -> if (fields.containsKey("state") || fields.containsKey("bulb") || fields.containsKey("c")) {
                     val state = fields["state"]?.toIntOrNull() ?: 1
                     val bulb = fields["bulb"]?.toIntOrNull() ?: 0

@@ -4374,8 +4374,8 @@ class AppViewModel(
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
-        if (!FeatureFlags.isEnabled("experimentalCamera") ||
-            !FeatureFlags.isEnabled("cameraFocusControl")
+        if ((!FeatureFlags.isEnabled("experimentalCamera") ||
+            !FeatureFlags.isEnabled("cameraFocusControl")) && !demoMode
         ) {
             statusMessage = "Manual focus is read-only until camera direction is qualified"
             return
@@ -4397,8 +4397,8 @@ class AppViewModel(
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
-        if (!FeatureFlags.isEnabled("experimentalCamera") ||
-            !FeatureFlags.isEnabled("cameraVideo")
+        if ((!FeatureFlags.isEnabled("experimentalCamera") ||
+            !FeatureFlags.isEnabled("cameraVideo")) && !demoMode
         ) {
             statusMessage = "Video control is read-only until its camera lifecycle is qualified"
             return

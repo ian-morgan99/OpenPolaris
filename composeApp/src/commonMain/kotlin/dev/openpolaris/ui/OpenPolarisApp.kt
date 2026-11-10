@@ -135,6 +135,7 @@ fun OpenPolarisApp(
     var dialog by remember { mutableStateOf<Callout?>(null) }
     var missionOpen by remember { mutableStateOf(false) }
     var galleryOpen by remember { mutableStateOf(false) }
+    var dimMode by remember { mutableStateOf(false) }
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
     // Compact *height* (typically 360 dp) which can't host a full 9-item
     // rail without the items being shrunk to glyph-sized labels — exactly
@@ -145,7 +146,7 @@ fun OpenPolarisApp(
     val heightCompact = windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact
     val wide = !widthCompact && !heightCompact
 
-    OpenPolarisTheme {
+    OpenPolarisTheme(dim = dimMode) {
         Surface(Modifier.fillMaxSize()) {
             if (wide) {
                 Row(
@@ -158,6 +159,8 @@ fun OpenPolarisApp(
                             Modifier.fillMaxWidth(),
                             onOpenDetails = { missionOpen = true },
                             onOpenGallery = { galleryOpen = true },
+                            dimMode = dimMode,
+                            onToggleDim = { dimMode = !dimMode },
                         )
                         PositionReadout(vm, Modifier.fillMaxWidth())
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -173,6 +176,8 @@ fun OpenPolarisApp(
                         Modifier.fillMaxWidth(),
                         onOpenDetails = { missionOpen = true },
                         onOpenGallery = { galleryOpen = true },
+                        dimMode = dimMode,
+                        onToggleDim = { dimMode = !dimMode },
                     )
                     PositionReadout(vm, Modifier.fillMaxWidth())
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -395,6 +400,8 @@ private fun StatusStrip(
     modifier: Modifier = Modifier,
     onOpenDetails: (() -> Unit)? = null,
     onOpenGallery: (() -> Unit)? = null,
+    dimMode: Boolean = false,
+    onToggleDim: (() -> Unit)? = null,
 ) {
     val s = vm.mount
     val endpoint = vm.endpointHealth
@@ -431,6 +438,12 @@ private fun StatusStrip(
                         onClick = open,
                         modifier = Modifier.testTag("open-gallery"),
                     ) { Text("Gallery") }
+                }
+                onToggleDim?.let { toggle ->
+                    TextButton(
+                        onClick = toggle,
+                        modifier = Modifier.testTag("night-dim-toggle"),
+                    ) { Text(if (dimMode) "Bright" else "Dim") }
                 }
                 Text(
                     buildString {

@@ -38,6 +38,22 @@ private val NightColors = darkColorScheme(
  * are bumped to 13sp so the rail reads as text, not a glyph cluster.
  * Fixes the "text not readable" complaint from issues #45 and #46.
  */
+private val DimNightColors = darkColorScheme(
+    primary = Color(0xFF9E1B17),
+    onPrimary = Color(0xFF0D0000),
+    secondary = Color(0xFF8A642D),
+    onSecondary = Color(0xFF0D0800),
+    tertiary = Color(0xFF5D805F),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFF9A9A9A),
+    surface = Color(0xFF080808),
+    onSurface = Color(0xFF9A9A9A),
+    surfaceVariant = Color(0xFF111111),
+    onSurfaceVariant = Color(0xFF7D7D7D),
+    error = Color(0xFFB76560),
+    outline = Color(0xFF3D100E),
+)
+
 private val NightTypography = Typography(
     displayLarge = TextStyle(fontSize = 36.sp, fontWeight = FontWeight.SemiBold),
     displayMedium = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.SemiBold),
@@ -56,11 +72,11 @@ private val NightTypography = Typography(
     labelSmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
 )
 
-/** Always-night theme wrapper for the whole app. */
+/** Night theme wrapper; dim mode reduces red/amber luminance for field use. */
 @Composable
-fun OpenPolarisTheme(content: @Composable () -> Unit) {
+fun OpenPolarisTheme(dim: Boolean = false, content: @Composable () -> Unit) {
     // Night mode is mandatory by design; isSystemInDarkTheme() kept for future
     // optional day theme. Suppress unused warning via explicit reference.
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
-    MaterialTheme(colorScheme = NightColors, typography = NightTypography, content = content)
+    MaterialTheme(colorScheme = if (dim) DimNightColors else NightColors, typography = NightTypography, content = content)
 }

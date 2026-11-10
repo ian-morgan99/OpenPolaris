@@ -503,3 +503,34 @@ the known libandroidx.graphics.path.so strip warning and Gradle 9
 deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
 qualification was performed. This is host-side build evidence, not hardware
 qualification.
+
+
+## Latest committed verification - c3d8197
+
+Commit under test: c3d8197 (fix: guard queued emergency stop).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests
+passed, including the queued Demo-session emergency-stop regression, session
+marker persistence and cancellation regressions, capture lifecycle, bridge/
+Bluetooth lifecycle, SLOW transport/controller and wire replay, Astro WebUI
+and support-bundle tests. Android debug Kotlin compilation and APK assembly
+passed, and the Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 98f2c8eee4aea22c541357da3c710c1426c1e94a42158fdf31669b0aefbbb274
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-c3d8197.tar.gz
+  SHA-256: fda4bf86dba6da8d4afae07f73fee8ece72d8ba3aae433de4cdc08b9649d47ec
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9
+deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
+qualification was performed. This is host-side build evidence, not hardware
+qualification.

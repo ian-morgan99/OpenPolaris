@@ -1410,3 +1410,18 @@ explicit unavailable-feature dialog instead of silently doing nothing.
 The responsive contract tests pin both behaviors. This is source/package UX
 evidence; real phone rendering, VR host availability, Bluetooth, camera, Astro
 WebUI lifecycle and physical SLOW qualification remain separate gates.
+
+### WBS-01.2/09.1 - Android runtime resource packaging
+
+Commit `16e487c` fixes issue #87's high-severity asset gap. The Android host now
+synchronises both `shared/src/commonMain/resources` and
+`composeApp/src/commonMain/resources` into application assets for debug and
+release variants. This makes the offline manual, embedded screenshot and
+Tonight catalogue shards available to the existing Android `AssetManager`
+reader. A real merged-assets verification task names every required file and
+runs from the Android assemble tasks; a JVM source-contract test protects the
+Gradle wiring.
+
+The merged debug and release trees contain all six required resources. This is
+source/package evidence; the installed phone Guide/Tonight panes still need a
+deliberate runtime check.

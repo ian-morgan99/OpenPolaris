@@ -2487,3 +2487,32 @@ Android debug APK:
 The result is ready for a deliberate phone UI check. Physical phone rendering,
 mount, camera, Bluetooth, Astro WebUI shutter/file lifecycle and live SLOW
 qualification remain unverified.
+
+## Latest committed verification - 16e487c
+
+Commit under test: `16e487c` (fix: package common resources into Android assets).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AndroidAssetPackagingContractTest :androidApp:verifyCommonRuntimeAssets --console=plain --no-daemon
+~~~
+
+The real `:androidApp:verifyCommonRuntimeAssets` task passed for both debug and
+release merged asset trees, containing `USER-MANUAL.md`, the embedded desktop
+PNG and `catalog.json`, `stars.json`, `ngc.json`, and `comets.json`.
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+- SHA-256: `ad5404f33533b5506e2ed38ff3044bb77c64a1aebfac4f09528ae4b81fd53651`
+
+The APK is ready for an installed phone Guide/Tonight check. No physical mount,
+camera, Bluetooth, Astro WebUI or SLOW qualification was performed.

@@ -1940,3 +1940,35 @@ Artifacts:
 The synthetic preview is simulator/package UX evidence only. No live Astro
 WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was
 performed.
+
+
+## Latest committed verification - 67d3d76
+
+Commit under test: 67d3d76 (test: rehearse demo focus and video controls).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: e686f2f5fc2de38d87a09295422b5b840ae7bbf0881d439d905dc87e8d09c05f
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-camera-controls.tar.gz
+  SHA-256: a7f047cc7b2c62c45986ffb16fdfbf188f614b107e2d467baa25468be3de8387
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The focus/video rehearsal is simulator/package evidence only. No live Astro
+WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was
+performed.

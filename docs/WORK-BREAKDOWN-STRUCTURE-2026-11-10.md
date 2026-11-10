@@ -975,3 +975,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-04.2/09.1 ACTIVE (Demo preview rehearsal):** Demo preview now uses a bounded local synthetic PNG, feeds the same PreviewController collector and local pixel-analysis path, and labels the frame as rehearsal-only. Demo never opens the MJPEG transport; live preview still keeps its dedicated endpoint, frame-age and empty-stream evidence boundaries.
 - **2026-11-10 - verification:** PreviewControllerTest and AppViewModelPreviewPortTest cover synthetic streaming and the no-network Demo branch. Focused and full cross-platform builds passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.
+
+
+- **2026-11-10 - WBS-04.4/09.1 ACTIVE (Demo focus and video rehearsal):** Demo now acknowledges the source-aligned 262 focus jog, 311 manual focus adjustment and 263 video state routes. Camera UI exposes these controls in Demo with explicit no-hardware wording; live focus direction, video lifecycle and recovery gates remain unchanged.
+- **2026-11-10 - verification:** AppViewModelCapturePhaseTest.demoFocusAndVideoRehearsalUsesAcknowledgedSourceAlignedRoutes covers focus acknowledgements, video start/stop and still-capture blocking while recording. Focused and full cross-platform builds passed. No live camera, Astro WebUI, Bluetooth, mount or physical SLOW operation was exercised.

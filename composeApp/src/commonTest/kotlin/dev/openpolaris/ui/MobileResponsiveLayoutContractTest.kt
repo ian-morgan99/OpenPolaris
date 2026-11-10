@@ -118,6 +118,17 @@ class MobileResponsiveLayoutContractTest {
         )
     }
 
+    @Test
+    fun phonePrimaryNavigationUsesStandardNavigationBarSemantics() {
+        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val noComments = stripComments(src)
+        assertTrue("NavigationBar(" in noComments, "phone navigation must use a standard NavigationBar")
+        assertTrue("NavigationBarItem(" in noComments, "phone navigation must expose semantic navigation items")
+        assertTrue("alwaysShowLabel = true" in noComments, "primary destinations must remain readable without hover")
+        assertTrue("testTag(\"primary-navigation\")" in noComments, "primary navigation needs a stable automation target")
+        assertTrue("testTag(\"destination-more\")" in noComments, "advanced actions must remain reachable through More")
+    }
+
     // --- (3) Three tall panes redesigned ----------------------------
 
     @Test

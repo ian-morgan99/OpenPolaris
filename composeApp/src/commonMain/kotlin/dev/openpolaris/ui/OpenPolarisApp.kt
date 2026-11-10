@@ -20,6 +20,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -448,20 +450,47 @@ private fun PrimaryDestinationBar(
     onAdvancedSelect: (Callout) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        primaryAppDestinations.forEach { destination ->
-            DestinationButton(
-                destination = destination,
-                selected = selected == destination,
-                onClick = { onSelect(destination) },
-                modifier = Modifier.weight(1f),
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier) {
+        NavigationBar(
+            modifier = Modifier.fillMaxWidth().testTag("primary-navigation"),
+        ) {
+            primaryAppDestinations.forEach { destination ->
+                NavigationBarItem(
+                    selected = selected == destination,
+                    onClick = { onSelect(destination) },
+                    icon = { Text(destination.label.take(1)) },
+                    label = { Text(destination.label) },
+                    alwaysShowLabel = true,
+                    modifier = Modifier.testTag("destination-" + destination.name.lowercase()),
+                )
+            }
+            NavigationBarItem(
+                selected = expanded,
+                onClick = { expanded = true },
+                icon = { Text("...") },
+                label = { Text("More") },
+                alwaysShowLabel = true,
+                modifier = Modifier.testTag("destination-more"),
             )
         }
-        AdvancedMenuButton(onSelect = onAdvancedSelect)
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.align(Alignment.TopEnd),
+        ) {
+            AdvancedItems.forEachIndexed { i, callout ->
+                if (i > 0) HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(callout.glyph) },
+                    modifier = Modifier.testTag("destination-more-" + callout.name.lowercase()),
+                    onClick = {
+                        expanded = false
+                        onAdvancedSelect(callout)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -510,35 +539,6 @@ private val AdvancedItems: List<Callout> = listOf(
     Callout.Connection,
     Callout.Preview,
 ) + MoreItems
-
-@Composable
-private fun AdvancedMenuButton(onSelect: (Callout) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        TextButton(
-            onClick = { expanded = true },
-            modifier = Modifier.testTag("destination-more"),
-        ) {
-            Text("More", style = MaterialTheme.typography.labelMedium)
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            AdvancedItems.forEachIndexed { i, callout ->
-                if (i > 0) HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(callout.glyph) },
-                    modifier = Modifier.testTag("callout-" + callout.name.lowercase()),
-                    onClick = {
-                        expanded = false
-                        onSelect(callout)
-                    },
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun CalloutRail(

@@ -74,6 +74,7 @@ class FeatureFlagsTest {
         assertTrue(FeatureFlags.isEnabled("fileManagerReadOnly"), "File browse is safe to leave on")
         assertTrue(FeatureFlags.isEnabled("astroWebUiMedia"), "Astro WebUI media reads are read-only")
         assertTrue(FeatureFlags.isEnabled("astroWebUiSolveStatus"), "Astro WebUI solve status is read-only")
+        assertTrue(FeatureFlags.isEnabled("astroWebUiRunState"), "Astro WebUI run state is read-only")
         assertFalse(FeatureFlags.isEnabled("astroWebUiCapture"), "Astro WebUI shutter must remain off until lifecycle qualification")
     }
 

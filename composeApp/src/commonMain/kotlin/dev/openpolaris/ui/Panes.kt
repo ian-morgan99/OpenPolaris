@@ -72,6 +72,7 @@ import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiStatusState
+import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
 import dev.openpolaris.core.domain.AstroWebUiTrackRate
@@ -578,10 +579,12 @@ fun MissionDashboardPane(
     DisposableEffect(vm) {
         vm.startAstroWebUiStatusPolling()
         vm.startAstroWebUiSolvePolling()
+        vm.startAstroWebUiRunStatePolling()
         vm.startAstroWebUiProgrammePolling()
         onDispose {
             vm.stopAstroWebUiStatusPolling()
             vm.stopAstroWebUiSolvePolling()
+            vm.stopAstroWebUiRunStatePolling()
             vm.stopAstroWebUiProgrammePolling()
         }
     }
@@ -724,6 +727,78 @@ fun MissionDashboardPane(
                         "Read-only file-backed solve evidence; it does not prove mount alignment or tracking.",
                         style = MaterialTheme.typography.labelSmall,
                     )
+                }
+            }
+            HorizontalDivider()
+            Text("Astro run state", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Automatic reads use file and log state only. Mount position is read only by the explicit button when the resident WebUI permits it.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiRunState"),
+                    onClick = vm::refreshAstroWebUiRunState,
+                ) { Text("Refresh run state") }
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiRunState"),
+                    onClick = vm::readAstroWebUiMountPosition,
+                ) { Text("Read mount position") }
+            }
+            when (val state = vm.astroWebUiRunState) {
+                AstroWebUiRunStateUiState.Idle -> Text(
+                    "Run state not checked.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                AstroWebUiRunStateUiState.Loading -> Text(
+                    "Reading Astro WebUI run state...",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiRunStateUiState.Failed -> Text(
+                    state.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is AstroWebUiRunStateUiState.Ready -> {
+                    val run = state.state
+                    Text(
+                        "Status " + run.status + ", elapsed " + run.elapsedSeconds + " s",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "Alignment " + if (run.aligned) "yes" else "no" +
+                            ", tracking " + if (run.tracking) "yes" else "no",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    if (run.mountRead) {
+                        Text(
+                            "Mount position: alt " + run.altitudeDeg + " deg, az " + run.azimuthDeg + " deg",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    } else if (run.mountBlocked) {
+                        Text(
+                            "Mount position read was blocked by the resident WebUI safety check.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text(
+                            "Mount position not read; use the explicit button only when required.",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    run.solution?.let { solution ->
+                        Text(
+                            "Solution " + if (solution.solved == true) "solved" else "not confirmed",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    if (run.log.isNotBlank()) {
+                        Text("Log: " + run.log, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
             HorizontalDivider()

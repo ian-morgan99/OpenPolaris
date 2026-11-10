@@ -448,3 +448,20 @@ Verification passed:
 ~~~
 
 This validates the UI safety contract and Compose compilation. No live GoTo, mount or hardware was exercised in this environment.
+
+### WBS-05.1/08.2 - Astro WebUI run-state evidence
+
+Added the source-aligned read-only /api/state seam:
+
+- The bounded parser preserves status, elapsed time, mount-read versus mount-blocked state, altitude, azimuth, alignment, tracking, optional solution coordinates and the source log.
+- Automatic Mission polling uses only /api/state at the existing two-second visible-surface cadence.
+- /api/state?mount=1 is never polled automatically; it is available only through an explicit Read mount position action and the UI states that the resident WebUI may block it unless alignment permits.
+- A feature flag keeps the read-only surface discoverable by default, while disconnect resets its state and lifecycle jobs.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiRunStateTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiRunStateTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The focused ViewModel report contains three passing tests for preview-port routing, two-second polling without mount reads and explicit mount-position reads. No live Astro WebUI, mount or hardware was exercised.

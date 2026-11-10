@@ -21,6 +21,9 @@ import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiStatusResult
+import dev.openpolaris.core.domain.AstroWebUiRunStateClient
+import dev.openpolaris.core.domain.AstroWebUiRunStateResult
+import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveClient
 import dev.openpolaris.core.domain.AstroWebUiSolveResult
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
@@ -118,6 +121,7 @@ import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
+import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
@@ -254,6 +258,7 @@ class AppViewModel(
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
+    private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
@@ -1587,6 +1592,11 @@ class AppViewModel(
         astroWebUiSolvePollJob?.cancel()
         astroWebUiSolvePollJob = null
         astroWebUiSolve = AstroWebUiSolveUiState.Idle
+        astroWebUiRunStateJob?.cancel()
+        astroWebUiRunStateJob = null
+        astroWebUiRunStatePollJob?.cancel()
+        astroWebUiRunStatePollJob = null
+        astroWebUiRunState = AstroWebUiRunStateUiState.Idle
         astroWebUiSessionControlJob?.cancel()
         astroWebUiSessionControlJob = null
         astroWebUiSessionControl = AstroWebUiSessionControlState.Idle
@@ -3634,6 +3644,8 @@ class AppViewModel(
         private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
+    var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
+        private set
     var astroWebUiSessionControl by mutableStateOf<AstroWebUiSessionControlState>(
         AstroWebUiSessionControlState.Idle,
     )
@@ -3652,6 +3664,8 @@ class AppViewModel(
     private var astroWebUiStatusPollJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
+    private var astroWebUiRunStateJob: Job? = null
+    private var astroWebUiRunStatePollJob: Job? = null
     private var astroWebUiSessionControlJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
@@ -3660,6 +3674,7 @@ class AppViewModel(
     private var astroWebUiProgrammeStartJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
+    private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
@@ -3802,6 +3817,76 @@ class AppViewModel(
     fun stopAstroWebUiSolvePolling() {
         astroWebUiSolvePollJob?.cancel()
         astroWebUiSolvePollJob = null
+    }
+
+    private suspend fun readAstroWebUiRunState(readMount: Boolean, announce: Boolean) {
+        astroWebUiRunStateReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiRunState")) {
+                astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
+                    "Astro WebUI run state disabled by config",
+                )
+                return@withLock
+            }
+            if (session == null) {
+                astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI run state",
+                )
+                return@withLock
+            }
+            astroWebUiRunState = AstroWebUiRunStateUiState.Loading
+            when (val result = astroWebUiRunStateClient.read(host, previewPort, readMount)) {
+                is AstroWebUiRunStateResult.Success -> {
+                    astroWebUiRunState = AstroWebUiRunStateUiState.Ready(result.state)
+                    if (announce) {
+                        statusMessage = if (readMount) {
+                            "Astro WebUI mount position read"
+                        } else {
+                            "Astro WebUI run state refreshed"
+                        }
+                    }
+                }
+                is AstroWebUiRunStateResult.Failure -> {
+                    astroWebUiRunState = AstroWebUiRunStateUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiRunState() {
+        astroWebUiRunStateJob?.cancel()
+        astroWebUiRunStateJob = scope.launch {
+            readAstroWebUiRunState(readMount = false, announce = true)
+        }
+    }
+
+    fun readAstroWebUiMountPosition() {
+        astroWebUiRunStateJob?.cancel()
+        astroWebUiRunStateJob = scope.launch {
+            readAstroWebUiRunState(readMount = true, announce = true)
+        }
+    }
+
+    /** Poll file/log-backed state only; mount=1 remains explicit-action-only. */
+    fun startAstroWebUiRunStatePolling() {
+        astroWebUiRunStatePollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiRunState")) {
+            astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
+                "Astro WebUI run state disabled by config",
+            )
+            return
+        }
+        astroWebUiRunStatePollJob = scope.launch {
+            while (isActive) {
+                readAstroWebUiRunState(readMount = false, announce = false)
+                delay(2_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiRunStatePolling() {
+        astroWebUiRunStatePollJob?.cancel()
+        astroWebUiRunStatePollJob = null
     }
 
     private fun runAstroWebUiSessionControl(

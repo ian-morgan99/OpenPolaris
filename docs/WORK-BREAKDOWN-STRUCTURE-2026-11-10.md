@@ -195,6 +195,8 @@
 
 - **2026-11-10 - WBS-05.2/08.2 ACTIVE (Astro WebUI solve evidence):** added a bounded read-only /api/astro/solve client and Mission readout for the source target and last-frame files. The parser preserves solved/not-solved metadata, coordinates, rotation, drift and quality fields while rejecting unsafe shapes/ranges; two-second visible-surface polling is lifecycle-scoped. This is solve evidence only and cannot mark mount alignment or tracking complete.
 
+- **2026-11-10 - WBS-05.1/08.2 ACTIVE (Astro WebUI run-state):** added a bounded read-only /api/state client and Mission readout for source status, elapsed time, alignment/tracking indicators, solution summary, log and altitude/azimuth fields. Automatic two-second polling uses /api/state only; /api/state?mount=1 is explicit-action-only and visibly labels blocked reads. The parser rejects malformed shapes, unsafe ranges, contradictory mount flags and oversized logs.
+
 ### WBS-05.2 — Alignment — P1
 
 - Plate solve, phone compass and manual bearing alternatives with confidence/provenance.

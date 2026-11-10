@@ -123,6 +123,8 @@ object FeatureFlags {
     const val astroWebUiSite: Boolean = true
     /** Optional read-only Astro WebUI target/last-frame solve state. */
     const val astroWebUiSolveStatus: Boolean = true
+    /** Optional read-only Astro WebUI run state; mount position is explicit-only. */
+    const val astroWebUiRunState: Boolean = true
     /** Optional read-only Astro WebUI programme status. */
     const val astroWebUiProgrammeStatus: Boolean = true
     /** Astro WebUI enter/leave/track writes; disabled until route and recovery qualification. */
@@ -246,6 +248,7 @@ object FeatureFlags {
         "astroWebUiStatus" -> astroWebUiStatus
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiSolveStatus" -> astroWebUiSolveStatus
+        "astroWebUiRunState" -> astroWebUiRunState
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
         "astroWebUiSessionControls" -> astroWebUiSessionControls
         "astroWebUiProgrammeControls" -> astroWebUiProgrammeControls

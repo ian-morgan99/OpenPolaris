@@ -15,6 +15,7 @@ class MissionReadinessTest {
         tracking: Boolean? = true,
         captureInProgress: Boolean = false,
         activeMotionOwner: MotionOwner? = null,
+        motionFault: String? = null,
     ) = MissionReadinessInput(
         control = control,
         mountConnected = mountConnected,
@@ -25,6 +26,7 @@ class MissionReadinessTest {
         tracking = tracking,
         captureInProgress = captureInProgress,
         activeMotionOwner = activeMotionOwner,
+        motionFault = motionFault,
     )
 
     @Test
@@ -80,6 +82,17 @@ class MissionReadinessTest {
         assertEquals(ReadinessLevel.ATTENTION, byId.getValue("motion").level)
         assertEquals("Owned by SLOW_MOVE", byId.getValue("motion").summary)
         assertEquals(ReadinessLevel.READY, byId.getValue("capture").level)
+    }
+
+    @Test
+    fun motionStopFaultIsBlockedAndActionable() {
+        val card = MissionReadiness.evaluate(
+            input(motionFault = "stop acknowledgement unknown"),
+        ).first { it.id == "motion" }
+
+        assertEquals(ReadinessLevel.BLOCKED, card.level)
+        assertEquals("Motion stop fault: stop acknowledgement unknown", card.summary)
+        assertEquals("Open motion", card.actionLabel)
     }
 
     @Test

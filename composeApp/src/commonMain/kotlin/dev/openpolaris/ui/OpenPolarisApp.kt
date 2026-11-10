@@ -636,6 +636,7 @@ private fun StatusStrip(
             tracking = s.tracking,
             captureInProgress = captureInProgress,
             activeMotionOwner = activeMotionOwner,
+            motionFault = (motionState as? MotionState.Faulted)?.reason,
         ),
     )
     val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }

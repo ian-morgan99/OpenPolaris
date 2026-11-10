@@ -26,6 +26,7 @@ data class MissionReadinessInput(
     val tracking: Boolean?,
     val captureInProgress: Boolean,
     val activeMotionOwner: MotionOwner? = null,
+    val motionFault: String? = null,
 )
 
 /**
@@ -237,6 +238,13 @@ object MissionReadiness {
     }
 
     private fun motion(input: MissionReadinessInput): ReadinessCard = when {
+        !input.motionFault.isNullOrBlank() -> ReadinessCard(
+            id = "motion",
+            label = "Motion",
+            level = ReadinessLevel.BLOCKED,
+            summary = "Motion stop fault: " + input.motionFault,
+            actionLabel = "Open motion",
+        )
         !input.mountConnected -> ReadinessCard(
             id = "motion",
             label = "Motion",

@@ -875,6 +875,11 @@ fun MissionDashboardPane(
         }
     }
     val endpoint = vm.endpointHealth
+    val motionState by vm.motionState.collectAsState()
+    val activeMotionOwner =
+        (motionState as? dev.openpolaris.core.domain.MotionState.Owned)?.lease?.owner
+    val motionFault =
+        (motionState as? dev.openpolaris.core.domain.MotionState.Faulted)?.reason
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
         vm.capturePhase is AppViewModel.CapturePhase.Busy
     val cards = MissionReadiness.evaluate(
@@ -887,6 +892,8 @@ fun MissionDashboardPane(
             alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
             tracking = vm.mount.tracking,
             captureInProgress = captureInProgress,
+            activeMotionOwner = activeMotionOwner,
+            motionFault = motionFault,
         ),
     )
     var selectedAstroRate by remember { mutableStateOf(AstroWebUiTrackRate.SIDEREAL) }

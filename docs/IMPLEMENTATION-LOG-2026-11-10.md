@@ -961,3 +961,33 @@ Verification passed:
 Result: BUILD SUCCESSFUL; source contract, form validation, preview/start
 separation and session lifecycle tests passed. No live Astro WebUI, mount or
 camera operation was exercised.
+
+
+### WBS-06.4/08.2 - Gated Astro WebUI extended motion programmes
+
+Added the remaining source-backed Astro WebUI motion-programme seam for PLC,
+path-lapse and Holy Grail:
+
+- PLC supports live-pose keyframe capture and clearing, photo interval/count,
+  hold-final-pose, preview, and explicit `confirm=1` start.
+- Path-lapse supports waypoint capture/clearing, per-leg frame count,
+  interval, preview, and explicit `confirm=1` start.
+- Holy Grail supports the source curve form, optional priority/ISO/aperture/
+  shutter constraints, preview with `valid=true`, `preview=true` and
+  inferred-frame evidence, explicit apply, disable and status. The status
+  endpoint is accepted without assuming an `ok` field because that is how
+  Astro WebUI serves it.
+- The shared Mission UI uses one mobile/desktop surface, keeps write actions
+  behind `astroWebUiProgrammeStarts`, requires preview before the second
+  action, labels movement/camera risk, and preserves accepted-vs-physical
+  completion semantics.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiMotionProgrammesTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiMotionProgrammesTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; all four source-contract tests and all three
+ViewModel lifecycle/default-gate tests passed. No live Astro WebUI, mount,
+camera or physical SLOW command was exercised.

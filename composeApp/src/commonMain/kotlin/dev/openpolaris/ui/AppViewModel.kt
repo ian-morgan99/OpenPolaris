@@ -48,6 +48,14 @@ import dev.openpolaris.core.domain.AstroWebUiSunProgrammeClient
 import dev.openpolaris.core.domain.AstroWebUiSunParameters
 import dev.openpolaris.core.domain.AstroWebUiSunResult
 import dev.openpolaris.core.domain.AstroWebUiSunState
+import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeClient
+import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeResult
+import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeState
+import dev.openpolaris.core.domain.AstroWebUiPlcKeyRequest
+import dev.openpolaris.core.domain.AstroWebUiPlcParameters
+import dev.openpolaris.core.domain.AstroWebUiPathLapseParameters
+import dev.openpolaris.core.domain.AstroWebUiPathWaypointRequest
+import dev.openpolaris.core.domain.AstroWebUiGrailParameters
 import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
@@ -151,6 +159,7 @@ import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSunProgrammeClient
+import dev.openpolaris.core.domain.createAstroWebUiMotionProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeStartClient
@@ -293,6 +302,7 @@ class AppViewModel(
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
     private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
     private val astroWebUiSunProgrammeClient: AstroWebUiSunProgrammeClient = createAstroWebUiSunProgrammeClient(),
+    private val astroWebUiMotionProgrammeClient: AstroWebUiMotionProgrammeClient = createAstroWebUiMotionProgrammeClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
     private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
 ) {
@@ -1825,6 +1835,7 @@ class AppViewModel(
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Idle
         astroWebUiSunState = AstroWebUiSunState.Idle
+        astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -4188,6 +4199,10 @@ class AppViewModel(
         private set
     var astroWebUiSunState by mutableStateOf<AstroWebUiSunState>(AstroWebUiSunState.Idle)
         private set
+    var astroWebUiMotionProgrammeState by mutableStateOf<AstroWebUiMotionProgrammeState>(
+        AstroWebUiMotionProgrammeState.Idle,
+    )
+        private set
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
@@ -4204,6 +4219,7 @@ class AppViewModel(
     private var astroWebUiProgrammeControlJob: Job? = null
     private var astroWebUiProgrammeStartJob: Job? = null
     private var astroWebUiSunJob: Job? = null
+    private var astroWebUiMotionProgrammeJob: Job? = null
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
@@ -4706,6 +4722,124 @@ class AppViewModel(
     fun startAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
         runAstroWebUiProgrammeStart("focus start") { client ->
             client.startFocus(host, previewPort, parameters)
+        }
+    }
+
+    fun addAstroWebUiPlcKey(request: AstroWebUiPlcKeyRequest) =
+        runAstroWebUiMotionProgramme("add PLC keyframe") { client ->
+            client.addPlcKey(host, previewPort, request)
+        }
+
+    fun clearAstroWebUiPlcKeys() =
+        runAstroWebUiMotionProgramme("clear PLC keyframes") { client ->
+            client.clearPlcKeys(host, previewPort)
+        }
+
+    fun previewAstroWebUiPlc(parameters: AstroWebUiPlcParameters) =
+        runAstroWebUiMotionProgramme("PLC preview") { client ->
+            client.previewPlc(host, previewPort, parameters)
+        }
+
+    fun startAstroWebUiPlc(parameters: AstroWebUiPlcParameters) =
+        runAstroWebUiMotionProgramme("PLC start") { client ->
+            client.startPlc(host, previewPort, parameters)
+        }
+
+    fun addAstroWebUiPathWaypoint(request: AstroWebUiPathWaypointRequest) =
+        runAstroWebUiMotionProgramme("add path-lapse waypoint") { client ->
+            client.addPathWaypoint(host, previewPort, request)
+        }
+
+    fun clearAstroWebUiPathWaypoints() =
+        runAstroWebUiMotionProgramme("clear path-lapse waypoints") { client ->
+            client.clearPathWaypoints(host, previewPort)
+        }
+
+    fun previewAstroWebUiPathLapse(parameters: AstroWebUiPathLapseParameters) =
+        runAstroWebUiMotionProgramme("path-lapse preview") { client ->
+            client.previewPathLapse(host, previewPort, parameters)
+        }
+
+    fun startAstroWebUiPathLapse(parameters: AstroWebUiPathLapseParameters) =
+        runAstroWebUiMotionProgramme("path-lapse start") { client ->
+            client.startPathLapse(host, previewPort, parameters)
+        }
+
+    fun previewAstroWebUiGrail(parameters: AstroWebUiGrailParameters) =
+        runAstroWebUiMotionProgramme("Holy Grail preview") { client ->
+            client.previewGrail(host, previewPort, parameters)
+        }
+
+    fun applyAstroWebUiGrail(parameters: AstroWebUiGrailParameters) =
+        runAstroWebUiMotionProgramme("Holy Grail apply") { client ->
+            client.applyGrail(host, previewPort, parameters)
+        }
+
+    fun disableAstroWebUiGrail() =
+        runAstroWebUiMotionProgramme("Holy Grail disable") { client ->
+            client.disableGrail(host, previewPort)
+        }
+
+    fun refreshAstroWebUiGrailStatus() =
+        runAstroWebUiMotionProgramme("Holy Grail status") { client ->
+            client.grailStatus(host, previewPort)
+        }
+
+    private fun runAstroWebUiMotionProgramme(
+        action: String,
+        request: suspend (AstroWebUiMotionProgrammeClient) -> AstroWebUiMotionProgrammeResult,
+    ) {
+        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
+            astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(
+                "Extended Astro WebUI programmes are disabled until named-head qualification",
+            )
+            statusMessage = "Extended Astro WebUI programmes are disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(
+                "Connect to a mount before using an extended Astro WebUI programme",
+            )
+            statusMessage = "Connect to a mount before using an extended Astro WebUI programme"
+            return
+        }
+        if (astroWebUiMotionProgrammeJob?.isActive == true) {
+            statusMessage = "An extended Astro WebUI programme request is already in progress"
+            return
+        }
+        astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Loading(action)
+        astroWebUiMotionProgrammeJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                request(astroWebUiMotionProgrammeClient)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiMotionProgrammeResult.Failure(
+                    error.message ?: "Astro WebUI $action failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiMotionProgrammeResult.Count ->
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Count(action, result.count)
+                is AstroWebUiMotionProgrammeResult.Preview ->
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Preview(action, result.frame, result.count, result.inferred)
+                AstroWebUiMotionProgrammeResult.Accepted -> {
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Accepted(action)
+                    readAstroWebUiProgramme(announce = false)
+                }
+                is AstroWebUiMotionProgrammeResult.Disabled ->
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Disabled(result.enabled)
+                is AstroWebUiMotionProgrammeResult.Status ->
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Status(result.enabled, result.brightness)
+                is AstroWebUiMotionProgrammeResult.Failure ->
+                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(result.reason)
+            }
+            if (result !is AstroWebUiMotionProgrammeResult.Failure) {
+                statusMessage = "Astro WebUI $action completed at the HTTP/protocol layer; physical completion remains status-gated"
+            }
         }
     }
 

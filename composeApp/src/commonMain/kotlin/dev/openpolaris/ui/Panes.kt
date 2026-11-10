@@ -75,6 +75,13 @@ import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
 import dev.openpolaris.core.domain.AstroWebUiSunParameters
 import dev.openpolaris.core.domain.AstroWebUiSunState
+import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeState
+import dev.openpolaris.core.domain.AstroWebUiPlcKeyRequest
+import dev.openpolaris.core.domain.AstroWebUiPlcParameters
+import dev.openpolaris.core.domain.AstroWebUiPathLapseParameters
+import dev.openpolaris.core.domain.AstroWebUiPathWaypointRequest
+import dev.openpolaris.core.domain.AstroWebUiGrailNode
+import dev.openpolaris.core.domain.AstroWebUiGrailParameters
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
@@ -1087,6 +1094,8 @@ fun MissionDashboardPane(
             HorizontalDivider()
             AstroWebUiSunComposer(vm)
             HorizontalDivider()
+            AstroWebUiExtendedProgrammeComposer(vm)
+            HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Read-only checks from the current session; nothing here starts a motor, changes limits or fires the camera.",
@@ -1453,6 +1462,194 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
+    var kind by remember { mutableStateOf("PLC") }
+    var armed by remember { mutableStateOf(false) }
+    var plcKeyTime by remember { mutableStateOf("0") }
+    var plcInterval by remember { mutableStateOf("5") }
+    var plcShots by remember { mutableStateOf("-1") }
+    var plcHold by remember { mutableStateOf(false) }
+    var pathFrames by remember { mutableStateOf("10") }
+    var pathInterval by remember { mutableStateOf("4") }
+    var grailNodeMinutes by remember { mutableStateOf("60") }
+    var grailNodeEv by remember { mutableStateOf("1") }
+    var grailEnabled by remember { mutableStateOf(true) }
+
+    val enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStarts")
+    val state = vm.astroWebUiMotionProgrammeState
+    val preview = state as? AstroWebUiMotionProgrammeState.Preview
+    val plc = runCatching {
+        AstroWebUiPlcParameters(
+            photoIntervalSeconds = plcInterval.toDoubleOrNull() ?: Double.NaN,
+            photoCount = plcShots.toIntOrNull() ?: Int.MIN_VALUE,
+            hold = plcHold,
+        )
+    }.getOrNull()
+    val path = runCatching {
+        AstroWebUiPathLapseParameters(pathInterval.toDoubleOrNull() ?: Double.NaN)
+    }.getOrNull()
+    val grail = runCatching {
+        AstroWebUiGrailParameters(
+            enabled = grailEnabled,
+            curve = listOf(
+                AstroWebUiGrailNode(0, 0.0),
+                AstroWebUiGrailNode(
+                    grailNodeMinutes.toIntOrNull() ?: -1,
+                    grailNodeEv.toDoubleOrNull() ?: Double.NaN,
+                ),
+            ),
+            priority = listOf(0, 1, 2),
+        )
+    }.getOrNull()
+    val previewMatches = preview != null && (
+        (kind == "PLC" && preview.action == "PLC preview") ||
+            (kind == "Path-lapse" && preview.action == "path-lapse preview") ||
+            (kind == "Holy Grail" && preview.action == "Holy Grail preview")
+        )
+
+    Text("Extended Astro programmes", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "PLC and path-lapse capture live head poses as server-side waypoints. Holy Grail uploads a day-to-night exposure curve. Preview is non-committing; starts and uploads remain qualification-gated.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    if (!enabled) {
+        Text(
+            "PLC, path-lapse and Holy Grail writes are disabled until named-head route, recovery and physical evidence are qualified.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        return
+    }
+
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        listOf("PLC", "Path-lapse", "Holy Grail").forEach { option ->
+            FilterChip(
+                selected = kind == option,
+                onClick = { kind = option; armed = false },
+                label = { Text(option) },
+            )
+        }
+    }
+
+    when (kind) {
+        "PLC" -> {
+            OutlinedTextField(
+                value = plcKeyTime,
+                onValueChange = { plcKeyTime = it },
+                label = { Text("Next keyframe time (seconds)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = plcKeyTime.toDoubleOrNull()?.let { it >= 0.0 } == true,
+                    onClick = {
+                        plcKeyTime.toDoubleOrNull()?.let { vm.addAstroWebUiPlcKey(AstroWebUiPlcKeyRequest(it)) }
+                    },
+                ) { Text("Capture live pose") }
+                OutlinedButton(onClick = { vm.clearAstroWebUiPlcKeys() }) { Text("Clear keys") }
+            }
+            OutlinedTextField(value = plcInterval, onValueChange = { plcInterval = it; armed = false }, label = { Text("Photo interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = plcShots, onValueChange = { plcShots = it; armed = false }, label = { Text("Photo count (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = plcHold, onCheckedChange = { plcHold = it; armed = false })
+                Text("Hold final pose", style = MaterialTheme.typography.bodySmall)
+            }
+            Button(
+                enabled = plc != null,
+                onClick = {
+                    plc?.let {
+                        if (previewMatches && armed) {
+                            vm.startAstroWebUiPlc(it)
+                            armed = false
+                        } else {
+                            vm.previewAstroWebUiPlc(it)
+                            armed = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (previewMatches && armed) "Run PLC - this may move/fire" else "Preview PLC") }
+        }
+        "Path-lapse" -> {
+            OutlinedTextField(value = pathFrames, onValueChange = { pathFrames = it }, label = { Text("Frames on next leg (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = pathFrames.toIntOrNull()?.let { it == -1 || it > 0 } == true,
+                    onClick = { pathFrames.toIntOrNull()?.let { vm.addAstroWebUiPathWaypoint(AstroWebUiPathWaypointRequest(it)) } },
+                ) { Text("Capture waypoint") }
+                OutlinedButton(onClick = { vm.clearAstroWebUiPathWaypoints() }) { Text("Clear waypoints") }
+            }
+            OutlinedTextField(value = pathInterval, onValueChange = { pathInterval = it; armed = false }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Button(
+                enabled = path != null,
+                onClick = {
+                    path?.let {
+                        if (previewMatches && armed) {
+                            vm.startAstroWebUiPathLapse(it)
+                            armed = false
+                        } else {
+                            vm.previewAstroWebUiPathLapse(it)
+                            armed = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (previewMatches && armed) "Run path-lapse - this may move/fire" else "Preview path-lapse") }
+        }
+        else -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = grailEnabled, onCheckedChange = { grailEnabled = it; armed = false })
+                Text("Enable Holy Grail ramp", style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedTextField(value = grailNodeMinutes, onValueChange = { grailNodeMinutes = it; armed = false }, label = { Text("Second curve node (minutes)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = grailNodeEv, onValueChange = { grailNodeEv = it; armed = false }, label = { Text("Second curve node (EV)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { vm.refreshAstroWebUiGrailStatus() }) { Text("Refresh ramp status") }
+                OutlinedButton(onClick = { vm.disableAstroWebUiGrail() }) { Text("Disable ramp") }
+            }
+            Button(
+                enabled = grail != null,
+                onClick = {
+                    grail?.let {
+                        if (previewMatches && armed) {
+                            vm.applyAstroWebUiGrail(it)
+                            armed = false
+                        } else {
+                            vm.previewAstroWebUiGrail(it)
+                            armed = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (previewMatches && armed) "Upload Holy Grail ramp" else "Preview Holy Grail ramp") }
+        }
+    }
+
+    when (state) {
+        AstroWebUiMotionProgrammeState.Idle -> Unit
+        is AstroWebUiMotionProgrammeState.Loading -> Text(state.action + "…", style = MaterialTheme.typography.labelSmall)
+        is AstroWebUiMotionProgrammeState.Count -> Text(state.action + " accepted; count=" + state.count, style = MaterialTheme.typography.labelSmall)
+        is AstroWebUiMotionProgrammeState.Preview -> Text(
+            state.action + " ready" + (state.count?.let { " · count=" + it } ?: "") +
+                (if (state.inferred) " · inferred frame" else "") + " · " + state.frame,
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiMotionProgrammeState.Accepted -> Text(
+            state.action + " accepted; resident status remains the completion authority.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiMotionProgrammeState.Disabled -> Text("Holy Grail enabled=" + state.enabled, style = MaterialTheme.typography.labelSmall)
+        is AstroWebUiMotionProgrammeState.Status -> Text(
+            "Holy Grail enabled=" + state.enabled + " · brightness=" + (state.brightness ?: "unavailable"),
+            style = MaterialTheme.typography.labelSmall,
+        )
+        is AstroWebUiMotionProgrammeState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
     }
 }
 

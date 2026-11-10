@@ -659,3 +659,18 @@ The current implementation slice must not send a new motor frame, alter firmware
   separation, invalid-window/host rejection, default blocking, preview-port
   routing and late-result disconnect ownership. No live Astro WebUI, mount or
   camera operation was exercised.
+
+
+- **2026-11-10 - WBS-06.4/08.2 ACTIVE (Astro WebUI extended motion programmes):**
+  added source-aligned PLC, path-lapse and Holy Grail contracts for keyframe/
+  waypoint capture, preview, explicit confirm starts, inferred Holy Grail
+  frames, enable/disable and status. The shared Mission composer exposes these
+  on Android and desktop with preview-before-write, visible motion/camera
+  warnings, and default-off qualification gating. HTTP acceptance is not
+  treated as physical completion; resident programme status remains the
+  authority after accepted starts.
+- **2026-11-10 - verification:** AstroWebUiMotionProgrammesTest and
+  AppViewModelAstroWebUiMotionProgrammesTest passed, including exact source
+  form bodies, Holy Grail status responses without an `ok` field, default
+  blocking, preview-port routing and late-result disconnect ownership. No live
+  Astro WebUI, mount, camera or physical SLOW command was exercised.

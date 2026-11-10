@@ -1425,3 +1425,15 @@ Gradle wiring.
 The merged debug and release trees contain all six required resources. This is
 source/package evidence; the installed phone Guide/Tonight panes still need a
 deliberate runtime check.
+
+### WBS-01.3/09.1 - Issue #87 preview and firmware-picker guidance
+
+Commit `2be65d6` closes the remaining source-level accessibility gap from the
+runtime-first UI review. The Firmware pane's file picker now has a stable
+`firmware-pick` target and explicit `Pick firmware ZIP` content description
+while retaining the familiar visible label. A regression contract also pins
+the Preview pane to the actual `vm.previewPort` rather than the control port
+9090; the dedicated preview-port implementation was already present at HEAD.
+
+The issue remains open only for installed-phone Guide/Tonight rendering and the
+requested screenshot/UI-dump re-capture.

@@ -2516,3 +2516,29 @@ Android debug APK:
 
 The APK is ready for an installed phone Guide/Tonight check. No physical mount,
 camera, Bluetooth, Astro WebUI or SLOW qualification was performed.
+
+## Latest committed verification - 2be65d6
+
+Commit under test: `2be65d6` (fix: label firmware picker for accessibility).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.Issue87UiGuidanceContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed with exit code 0, including the real
+Android debug/release merged-asset check:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+- SHA-256: `32d197fba745cb9b6b8a2bdb27bf7f494b4cd25bdce9bfdd16a48cb40cd896b8`
+
+No installed-phone screenshot/UI-dump, mount, camera, Bluetooth, Astro WebUI or
+physical SLOW qualification was performed.

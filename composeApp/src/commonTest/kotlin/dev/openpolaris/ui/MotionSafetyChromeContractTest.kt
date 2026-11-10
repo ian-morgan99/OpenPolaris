@@ -19,6 +19,9 @@ class MotionSafetyChromeContractTest {
                 assertTrue("MotionState.Faulted" in source)
                 assertTrue("testTag(\"emergency-stop\")" in source)
                 assertTrue("onClick = vm::emergencyStopMotion" in source)
+                assertTrue("onOpenMissionAction: ((String) -> Unit)?" in source)
+                assertTrue("testTag(\"mission-next-action\")" in source)
+                assertTrue("activeMotionOwner = activeMotionOwner" in source)
                 return
             }
             directory = directory?.parentFile

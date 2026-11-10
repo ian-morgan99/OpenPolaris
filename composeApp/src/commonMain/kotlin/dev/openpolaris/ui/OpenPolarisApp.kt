@@ -244,6 +244,7 @@ fun OpenPolarisApp(
                             Modifier.fillMaxWidth(),
                             onOpenDetails = { openDestination(AppDestination.MISSION) },
                             onOpenGallery = { openDestination(AppDestination.GALLERY) },
+                            onOpenMissionAction = ::openMissionAction,
                             dimMode = dimMode,
                             onToggleDim = { setDimMode(!dimMode) },
                         )
@@ -264,6 +265,7 @@ fun OpenPolarisApp(
                         Modifier.fillMaxWidth(),
                         onOpenDetails = { openDestination(AppDestination.MISSION) },
                         onOpenGallery = { openDestination(AppDestination.GALLERY) },
+                        onOpenMissionAction = ::openMissionAction,
                         dimMode = dimMode,
                         onToggleDim = { setDimMode(!dimMode) },
                     )
@@ -613,11 +615,14 @@ private fun StatusStrip(
     modifier: Modifier = Modifier,
     onOpenDetails: (() -> Unit)? = null,
     onOpenGallery: (() -> Unit)? = null,
+    onOpenMissionAction: ((String) -> Unit)? = null,
     dimMode: Boolean = false,
     onToggleDim: (() -> Unit)? = null,
 ) {
     val s = vm.mount
     val endpoint = vm.endpointHealth
+    val motionState by vm.motionState.collectAsState()
+    val activeMotionOwner = (motionState as? MotionState.Owned)?.lease?.owner
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
         vm.capturePhase is AppViewModel.CapturePhase.Busy
     val readiness = MissionReadiness.evaluate(
@@ -630,10 +635,10 @@ private fun StatusStrip(
             alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
             tracking = s.tracking,
             captureInProgress = captureInProgress,
+            activeMotionOwner = activeMotionOwner,
         ),
     )
     val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }
-    val motionState by vm.motionState.collectAsState()
     Card(modifier) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
@@ -713,7 +718,14 @@ private fun StatusStrip(
                     modifier = Modifier.testTag("mission-readiness-summary"),
                 )
                 next.actionLabel?.let { action ->
-                    Text(
+                    onOpenMissionAction?.let { open ->
+                        TextButton(
+                            onClick = { open(next.id) },
+                            modifier = Modifier.testTag("mission-next-action"),
+                        ) {
+                            Text("Next: $action")
+                        }
+                    } ?: Text(
                         "Action: $action",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

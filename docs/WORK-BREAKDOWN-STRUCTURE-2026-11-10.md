@@ -736,3 +736,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-05.6/08.2 ACTIVE (Astro WebUI target controls):** added source-aligned compass alignment plus preview-then-confirm GoTo contracts. RA/Dec/name input is bounded before transport; preview requires positive `valid=true` and `preview=true` evidence; confirmation requires an exact matching preview and adds the explicit `confirm=1` guard. Motion writes and alignment remain separately default-off, while the safe preview path is available for UI rehearsal.
 - **2026-11-10 - verification:** AstroWebUiTargetControlTest, AppViewModelAstroWebUiTargetTest, FeatureFlagsTest and Compose JVM compilation passed. No live Astro WebUI, alignment, GoTo, mount or physical SLOW operation was exercised.
+
+
+- **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI solve controls):** added source-aligned solve latest/capture/wait start routes plus explicit cancel and apply-last-solution adapters. Busy responses, stale/unknown acknowledgements and resident status are preserved as non-success outcomes; all solve mutations remain behind a separate default-off gate because capture and apply can affect camera/mount state. Mission exposes the actions with the qualification boundary visible.
+- **2026-11-10 - verification:** AstroWebUiSolveControlTest, AppViewModelAstroWebUiSolveControlTest, FeatureFlagsTest and Compose JVM compilation passed. No live solver, camera capture, alignment apply or mount operation was exercised.

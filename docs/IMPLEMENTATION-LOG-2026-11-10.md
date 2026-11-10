@@ -1135,3 +1135,7 @@ exercised.
 
 - **2026-11-10 - WBS-05.6/08.2 ACTIVE (Astro target controls):** implemented typed `/api/astro/align` and `/api/astro/goto` clients with source-aligned form bodies, bounded RA/Dec/name validation, positive acknowledgement evidence and explicit preview/confirm separation. Mission exposes preview, exact-preview confirmation and compass alignment with physical motion warnings; ViewModel jobs are session-owned and late results are discarded after disconnect. Target writes remain default-off.
 - **2026-11-10 - verification:** focused adapter, feature-policy, ViewModel lifecycle and Compose compilation tests passed after correcting RA validation to the source-aligned `[0,360)` range. No live Astro WebUI, mount or physical SLOW qualification was performed.
+
+
+- **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro solve controls):** implemented typed `/api/solve`, `/api/cancel` and `/api/apply` clients with fixed source query modes, strict started/busy/cancelled/applied evidence, preview-port routing, session-owned ViewModel jobs and visible default-off controls. Apply is explicitly described as an alignment-affecting action and does not imply mount success; resident `/api/state` and solve readback remain authoritative.
+- **2026-11-10 - verification:** focused adapter, feature-policy, ViewModel lifecycle and Compose compilation tests passed. No live Astro WebUI, solver, camera, mount or physical SLOW qualification was performed.

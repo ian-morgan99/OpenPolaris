@@ -1068,3 +1068,33 @@ Artifacts:
   SHA-256: 3cf50b19bed0bded516164802fbdd93306b95e30e81e5fb6cb8015d37018d3af
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No live Astro WebUI, compass alignment, GoTo, mount, camera or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.
+
+
+## Latest committed verification - 7e9c3ba
+
+Commit under test: 7e9c3ba (test: annotate astro solve control coroutine tests), including the preceding f5feb97 solve-control implementation.
+
+Focused solve-control verification:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSolveControlTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSolveControlTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL; solve-control adapter, feature-policy, ViewModel lifecycle and Compose compilation tests passed.
+
+Full build command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests passed, Android debug Kotlin compilation and APK assembly passed, and the Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 296dd4e0c5332a30373e10db56e8aab03bd1ec04ee2c0e644f2b60c5a1c752cd
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-7e9c3ba.tar.gz
+  SHA-256: adfa49c1f270b8ff045144c32e3991863a41ce6fece2194d89e327ec0e2a11b4
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No live Astro WebUI, solver, camera, alignment apply, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.

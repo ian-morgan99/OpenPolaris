@@ -46,4 +46,27 @@ class AppViewModelFastJogTest {
             vm.preview.shutdown()
         }
     }
+    @Test
+    fun emergencyStopClearsTheDemoFastJogOwner() = runTest(UnconfinedTestDispatcher()) {
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+        )
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            vm.startFastJog(Codes.GIMBAL_VADJ_SPEED)
+            runCurrent()
+            assertIs<MotionState.Owned>(vm.motionState.value)
+
+            vm.emergencyStopMotion()
+            runCurrent()
+
+            assertEquals(MotionState.Idle, vm.motionState.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
 }

@@ -183,6 +183,17 @@ class FastJogController(
         }
     }
 
+    suspend fun emergencyStop(lease: FastJogLease): FastJogActionResult = lock.withLock {
+        val currentLease = when (val current = mutableState.value) {
+            is FastJogState.Armed -> current.lease
+            is FastJogState.Holding -> current.lease
+            is FastJogState.Faulted -> current.lease
+            FastJogState.Idle -> null
+        }
+        if (currentLease != lease) FastJogActionResult.Rejected
+        else stopLocked(lease, MotionStopReason.EMERGENCY)
+    }
+
     suspend fun disconnect(lease: FastJogLease): FastJogActionResult = lock.withLock {
         val current = (mutableState.value as? FastJogState.Holding)?.lease
         if (current != lease) return@withLock FastJogActionResult.Rejected

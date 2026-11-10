@@ -507,3 +507,27 @@ Verification passed:
 ~~~
 
 Four existing alignment ViewModel tests passed; no live alignment or hardware was exercised.
+
+### WBS-03.1/03.6 - Common emergency stop
+
+Replaced the demo-only STOP ALL behavior with a shared emergency-stop path for
+the Motion dock. The active owner is inspected before dispatch:
+
+- FAST_JOG and SLOW_MOVE use their lease-scoped controller emergency boundary,
+  so a stale UI action cannot stop or clear another owner's lease.
+- GoTo and alignment use the MotionSupervisor emergency boundary, then cancel
+  their local jobs only after a non-unknown result.
+- A rejected, unknown or already-faulted result remains visible; the UI never
+  converts an uncertain stop into idle.
+- The action is available only while the shared supervisor reports an owned
+  motion lease.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.FastJogControllerTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFastJogTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The focused run passed, including the lease-scoped emergency-stop controller
+test and the ViewModel test that clears a demo fast-jog owner. No live mount or
+hardware was exercised; physical emergency-stop observation remains open.

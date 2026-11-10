@@ -142,6 +142,25 @@ class FastJogControllerTest {
     }
 
     @Test
+    fun emergencyStopUsesTheSameLeaseScopedBoundary() = kotlinx.coroutines.test.runTest {
+        val transport = FakeTransport()
+        val stopTransport = object : MotionStopTransport {
+            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
+                MotionStopResult.Stopped
+        }
+        val supervisor = MotionSupervisor(stopTransport)
+        val controller = FastJogController(transport, motionSupervisor = supervisor)
+        val lease = assertIs<FastJogAcquireResult.Granted>(
+            controller.acquire(Codes.GIMBAL_VADJ_SPEED),
+        ).lease
+        assertEquals(FastJogActionResult.Accepted, controller.start(lease, 0L))
+
+        assertEquals(FastJogActionResult.Stopped, controller.emergencyStop(lease))
+        assertEquals(FastJogState.Idle, controller.state.value)
+        assertEquals(MotionState.Idle, supervisor.state.value)
+    }
+
+    @Test
     fun rejectedStartRetainsFaultUntilExplicitStop() = kotlinx.coroutines.test.runTest {
         val transport = FakeTransport().also { it.nextSend = FastJogSendResult.Rejected }
         val stopTransport = object : MotionStopTransport {

@@ -2401,6 +2401,88 @@ class AppViewModel(
         }
     }
 
+    /**
+     * Highest-priority common stop for the Motion dock. It settles the active
+     * controller before clearing its local lease; an unknown result remains a
+     * visible fault and is never converted into idle.
+     */
+    fun emergencyStopMotion() {
+        fastJogJob?.cancel()
+        fastJogJob = null
+        scope.launch {
+            when (val state = motionSupervisor.state.value) {
+                MotionState.Idle -> statusMessage = "No active motion owner"
+                is MotionState.Faulted -> {
+                    statusMessage = "Motion stop already faulted: " + state.reason
+                }
+                is MotionState.Owned -> {
+                    when (state.lease.owner) {
+                        MotionOwner.FAST_JOG -> {
+                            val lease = fastJogLease
+                            if (lease == null) {
+                                reportEmergencyStop(motionSupervisor.emergencyStop())
+                            } else {
+                                when (val result = fastJogController.emergencyStop(lease)) {
+                                    FastJogActionResult.Stopped -> {
+                                        fastJogLease = null
+                                        statusMessage = "Emergency stop sent"
+                                    }
+                                    is FastJogActionResult.Unknown -> statusMessage = result.reason
+                                    else -> statusMessage = "Fast jog emergency stop not confirmed"
+                                }
+                            }
+                        }
+                        MotionOwner.SLOW_MOVE -> {
+                            val lease = demoSlowMotionLease
+                            if (lease == null) {
+                                reportEmergencyStop(motionSupervisor.emergencyStop())
+                            } else {
+                                when (val result = demoSlowMotion.emergencyStop(lease)) {
+                                    SlowMotionActionResult.Stopped -> {
+                                        demoSlowMotionLease = null
+                                        slowMotionDemoState = slowMotionDemoState.copy(
+                                            running = false,
+                                            direction = 0,
+                                            level = 0,
+                                        )
+                                        statusMessage = "Emergency stop sent"
+                                    }
+                                    is SlowMotionActionResult.Unknown -> statusMessage = result.reason
+                                    else -> statusMessage = "Slow-motion emergency stop not confirmed"
+                                }
+                            }
+                        }
+                        MotionOwner.GOTO,
+                        MotionOwner.ALIGNMENT -> {
+                            val result = motionSupervisor.emergencyStop()
+                            if (result is MotionStopResult.Unknown) {
+                                statusMessage = "Emergency stop outcome unknown: " + result.reason
+                            } else {
+                                gotoMotionLease = null
+                                alignmentMotionLease = null
+                                slewJob?.cancelAndJoin()
+                                slewJob = null
+                                alignmentJob?.cancelAndJoin()
+                                alignmentJob = null
+                                slewInProgress = false
+                                statusMessage = "Emergency stop sent"
+                            }
+                        }
+                        else -> reportEmergencyStop(motionSupervisor.emergencyStop())
+                    }
+                }
+            }
+        }
+    }
+
+    private fun reportEmergencyStop(result: MotionStopResult) {
+        statusMessage = when (result) {
+            MotionStopResult.Stopped -> "Emergency stop sent"
+            MotionStopResult.Rejected -> "Emergency stop rejected"
+            is MotionStopResult.Unknown -> "Emergency stop outcome unknown: " + result.reason
+        }
+    }
+
     /** Compatibility one-shot: one bounded source beat followed by stop. */
     fun jog(code: Int) {
         startFastJog(code)

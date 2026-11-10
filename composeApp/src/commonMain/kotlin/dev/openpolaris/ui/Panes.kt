@@ -1418,8 +1418,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     onRelease = vm::demoSlowMotionStop,
                 )
                 Button(
-                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStop() },
-                    enabled = controlsEnabled,
+                    onClick = vm::emergencyStopMotion,
+                    enabled = motionState is dev.openpolaris.core.domain.MotionState.Owned,
                     modifier = Modifier.weight(1f),
                 ) { Text("STOP ALL") }
                 SlowDemoHoldButton(

@@ -1,0 +1,279 @@
+# OpenPolaris UX parity work breakdown structure
+
+**Baseline:** `main` at the commit containing the companion product plan  
+**Status key:** `PLANNED`, `ACTIVE`, `DONE`, `BLOCKED`, `QUALIFICATION`  
+**Rule:** no item is marked done by source inspection alone when its outcome depends on a real Polaris, camera, firmware or physical stop.
+
+## Work-package map
+
+| ID | Work package | Primary outcome | Depends on | Status |
+|---|---|---|---|---|
+| WBS-00 | Product contract and evidence ledger | Plan, capability vocabulary, UX invariants, provenance rules | — | DONE |
+| WBS-01 | Shared app shell and responsive mission UX | Mobile/tablet/PC information architecture and status chrome | WBS-00 | PLANNED |
+| WBS-02 | Connection, session and health | Direct AP, BT wake, PC bridge, LAN, reconnect and truthful health | WBS-00 | PLANNED |
+| WBS-03 | Motion ownership and slow-motion control | Fast jog, SLOW manual motion, fine-rate seam, safety arbitration | WBS-00 | ACTIVE |
+| WBS-04 | Camera and capture workspace | Dynamic camera controls, preview, M/B capture and file lifecycle | WBS-02 | PLANNED |
+| WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | PLANNED |
+| WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
+| WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | PLANNED |
+| WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | PLANNED |
+| WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | PLANNED |
+| WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | PLANNED |
+| WBS-11 | Physical qualification and release gate | Named-device evidence and honest capability matrix | WBS-02..10 | QUALIFICATION |
+
+## WBS-00 — Product contract and evidence ledger — DONE
+
+### WBS-00.1 — Freeze product principles
+
+- Deliverable: `docs/PRODUCT-UX-PARITY-PLAN-2026-11-10.md`.
+- Exit: truth-before-reassurance, one-owner, night-safe, capability honesty and evidence boundaries are explicit.
+
+### WBS-00.2 — Freeze parity inventory
+
+- Deliverable: mapping of Astro WebUI areas to OpenPolaris surfaces, controllers, platforms and gates.
+- Exit: each visible WebUI capability has an OpenPolaris destination or a documented reason to remain external/blocked.
+
+### WBS-00.3 — Freeze evidence vocabulary
+
+- Deliverable: consistent `source`, `simulator`, `hardware`, `supported`, `available`, `unqualified`, `blocked`, `unknown` terms in docs and UI.
+- Exit: no release or UI acceptance test uses `PASS` for a capability without its required evidence class.
+
+## WBS-01 — Shared app shell and responsive mission UX
+
+### WBS-01.1 — Navigation model — P0
+
+- Add typed destinations for Mission, Control, Camera, Astro, Gallery and Settings.
+- Keep current callout mode working while introducing an adaptive shell behind tests.
+- Exit: the same destinations are reachable by touch, mouse, keyboard and accessibility semantics.
+
+### WBS-01.2 — Mission dashboard — P0
+
+- Add a compact readiness summary: connection, mount, camera, preview, storage, alignment, tracking and active owner.
+- Each warning links to the next safe action.
+- Exit: a fresh user can explain why an action is disabled without reading logs.
+
+### WBS-01.3 — Responsive layout — P1
+
+- Mobile bottom navigation/sheets; tablet master-detail; PC rail/workspace/inspector.
+- Preserve dark adaptation and large touch targets.
+- Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
+
+## WBS-02 — Connection, session and health
+
+### WBS-02.1 — Typed endpoint profiles — P0
+
+- Model Direct AP, home-LAN, PC bridge and demo endpoints with control/preview ports.
+- Show endpoint, route, age, link phase and last failure.
+- Exit: no pane invents host/port state; endpoint health is simulator-tested.
+
+### WBS-02.2 — Single session owner — P0
+
+- Audit all controllers for connection ownership, reconnect and teardown ordering.
+- Make motion/camera/preview/programme ownership visible to the UI.
+- Exit: connect/drop/reconnect tests prove no orphan reader, duplicate poller or competing socket.
+
+### WBS-02.3 — Bluetooth and Wi-Fi bridge UX — P1
+
+- Present wake requested, GATT opened, Wi-Fi route ready, control reachable, preview reachable and teardown separately.
+- Keep the home LAN default route isolated from the Polaris route.
+- Exit: fake bridge tests plus read-only host diagnostics; physical network changes remain operator-gated.
+
+## WBS-03 — Motion ownership and slow-motion control
+
+### WBS-03.1 — Typed motion arbitration — P0
+
+- Add one `MotionSupervisor` that arbitrates fast jog, SLOW, GoTo, alignment, tracking corrections and programme motion.
+- Define owner, preemption, stop priority and `OutcomeUnknown` states.
+- Exit: simulator proves only one owner drives at a time; emergency stop wins over queued work.
+
+### WBS-03.2 — Fast jog dead-man contract — P0
+
+- Preserve 513/514/521 semantics separately from slow/fine rate.
+- Implement pointer capture, lease renewal, release/cancel/background stop and explicit active feedback.
+- Exit: UI and controller tests cover touch cancellation, keyboard release, disconnect and stop ordering.
+
+### WBS-03.3 — Slow-motion abstract model — P0
+
+- Add capability identity, physical axis names, signed targets, bounds, request versions and state flow.
+- Start with no live adapter and a deterministic simulator.
+- Exit: malformed/NaN/out-of-range/stale requests fail closed; stop/disconnect clears state.
+
+### WBS-03.4 — SLOW planner and scheduler — P1
+
+- Port/reimplement the pure planning concepts: shared level, adjacent rung duty, minimum dwell, reversal and explicit stop.
+- Keep values as calibration data; do not expose degrees/sec until measured.
+- Exit: property tests cover all three axes, zero hold, duty extremes, dwell and stop priority.
+
+### WBS-03.5 — SLOW wire seam — P1, blocked by firmware evidence
+
+- Add an adapter for exact 532/533/534 payloads only after target firmware route, signs, acknowledgement, stop and watchdog are proven.
+- Keep alternative `AC 4A` route isolated until its receiver/units are proven.
+- Exit: exact app/gimbal hashes, fake-head fault suite, no-camera physical stop/reconnect/rate matrix.
+
+### WBS-03.6 — Motion UX — P1
+
+- Add mobile Motion dock, PC control panel, speed ladder, axis legend, owner state and emergency stop.
+- Add disabled Fine correction sheet before live qualification.
+- Exit: UI can be reviewed end-to-end without sending a live motor command; live controls appear only on an allow-list.
+
+### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
+
+- Apply bounded signed corrections around verified base tracking.
+- Add confidence/freshness/rotation gates from plate solve and a watchdog.
+- Exit: drift loop cannot command a rate on stale/low-confidence/rotated solutions and normal capture remains unchanged.
+
+## WBS-04 — Camera and capture workspace
+
+### WBS-04.1 — Camera capability registry — P0
+
+- Render dynamic options, readback age, write verification and model/firmware qualification.
+- Unsupported fields explain why rather than displaying broken controls.
+
+### WBS-04.2 — Preview workspace — P1
+
+- Separate control port health from 8080 MJPEG health.
+- Add frame age, empty-stream terminal state, overlays, histogram/focus-peaking hooks and fullscreen.
+
+### WBS-04.3 — Source-aligned M/B capture — P0
+
+- Keep ordinary and Bulb paths distinct; mode-read before dispatch; no blind subtype retry.
+- Show queued/exposing/writing/published/complete/failed/unknown states.
+- Exit: deterministic replay tests and named-camera lifecycle evidence.
+
+### WBS-04.4 — Focus and video — P2
+
+- Add manual focus hold/jog, video toggle and explicit hardware gates.
+- Exit: no focus direction claim without physical observation; no video UI without 263 evidence.
+
+## WBS-05 — Astro mission workflow
+
+### WBS-05.1 — Session prepare — P1
+
+- Guided checklist for physical kit, camera, storage, level, tilt compensation, limits and focus mode.
+
+### WBS-05.2 — Alignment — P1
+
+- Plate solve, phone compass and manual bearing alternatives with confidence/provenance.
+- Preserve star-alignment fallback.
+
+### WBS-05.3 — Target and tracking — P1
+
+- Catalogue search, altitude/sun/filter safety, GoTo, arrival and solve-refine.
+- Keep Sidereal/Lunar and ½ speed semantics explicit.
+
+### WBS-05.4 — Guiding and dither — P2
+
+- Frame freshness/confidence gates, drift/rotation chart, bounded correction, dither only between captures.
+
+### WBS-05.5 — Autofocus — P2
+
+- Relative sweep, settle/backlash settings, HFR curve, cancel and restore.
+
+## WBS-06 — Observation programmes
+
+### WBS-06.1 — Common programme engine — P1
+
+- Plan validation, progress, pause/resume/stop, one-shot de-duplication, durable events and recovery.
+
+### WBS-06.2 — Lapse and stacking — P1
+
+- Client-driven lapse first; resident 272 adapter only after file/lifecycle evidence.
+
+### WBS-06.3 — Panorama/HDR/focus stack — P2
+
+- Implement each as a capability-gated plan with explicit camera settings, output set and cancellation.
+
+### WBS-06.4 — PLC/path-lapse/Sun/Holy Grail — P3
+
+- Define safety and time-dependent contracts before exposing controls; no unattended solar or long-exposure operation by default.
+
+## WBS-07 — Gallery and export
+
+### WBS-07.1 — Safe media index — P1
+
+- Typed categories, pagination, stable IDs and thumbnail/full-file states.
+- Reject traversal and non-media paths.
+
+### WBS-07.2 — Viewer and export — P1
+
+- Full-size view, metadata, download/share/save, transfer progress and retry only when idempotent.
+
+## WBS-08 — System, diagnostics and interoperability
+
+### WBS-08.1 — Settings and site — P1
+
+- Persist validated location and user preferences locally with clear scope; distinguish head-persisted values.
+
+### WBS-08.2 — Health/evidence centre — P1
+
+- Event timeline, raw frame/log export, build identity, firmware identity, capability matrix and support bundle.
+
+### WBS-08.3 — Firmware/network controls — P2
+
+- Keep destructive operations off by default, require manifests/rollback and show exact installed provenance.
+
+### WBS-08.4 — Alpaca/INDI/LX200 — P3
+
+- Desktop-first adapters with ownership arbitration; no hidden second capture/motion path.
+
+## WBS-09 — Accessibility, night UX and polish
+
+### WBS-09.1 — Interaction quality — P1
+
+- Touch target audit, focus order, screen reader text, keyboard shortcuts, reduced motion and text scaling.
+
+### WBS-09.2 — Night and field conditions — P1
+
+- Red/dim mode, glove-friendly controls, state not dependent on colour, offline help and battery/network awareness.
+
+### WBS-09.3 — Performance — P2
+
+- Bound recomposition, preview decode, event/log volume, gallery memory and long-session battery use.
+
+## WBS-10 — Platform packaging and release
+
+### WBS-10.1 — Android — P1
+
+- Build/install/permissions, background/foreground session policy, orientation and share/export.
+
+### WBS-10.2 — Linux/Windows/macOS desktop — P1/P2
+
+- Package and launch safely, remote desktop policy, window scaling, keyboard and native file picker.
+
+### WBS-10.3 — Release evidence — P0
+
+- Source SHA, build flags, artifact hashes, tests, known gaps, device matrix and rollback notes.
+
+## WBS-11 — Physical qualification and release gate
+
+### WBS-11.1 — Device matrix
+
+- Named Polaris firmware and gimbal payloads, K-3 III/K-1 II and any other supported cameras, direct AP and PC bridge.
+
+### WBS-11.2 — Motion gate
+
+- No-camera axis/sign/rate/stop/disconnect/reconnect tests before any camera or plate-solve loop.
+
+### WBS-11.3 — Capture gate
+
+- M, timed B, untimed B, cancellation, RAW/JPEG publication, repeatability and recovery.
+
+### WBS-11.4 — Astro mission gate
+
+- Prepare → align → track → target → focus → guide → capture → gallery, with evidence at each boundary.
+
+### WBS-11.5 — Release decision
+
+- `PASS`, `FAIL`, `UNKNOWN`, `BLOCKED` per capability; no aggregate green result hides an unknown hardware gate.
+
+## Execution order now
+
+The first implementation slice is deliberately safe and useful:
+
+1. commit this plan and WBS;
+2. add the abstract rate-control state/request/capability seam and deterministic tests;
+3. add the disabled Fine correction presentation and feature gate;
+4. build the MotionSupervisor around existing fast-jog and GoTo ownership;
+5. only after those contracts are green, implement the rest of WBS-01/WBS-02 and the camera workspace.
+
+The first slice must not send a new motor frame, alter firmware, alter network configuration or claim hardware support.

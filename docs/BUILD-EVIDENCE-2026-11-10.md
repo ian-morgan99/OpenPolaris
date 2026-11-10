@@ -47,7 +47,9 @@ in /tmp is a local handoff artifact, not a tracked release asset.
 - The formatter pins M1/M2/M3 to 532/533/534, formats
   `key:<0|1>;state:<0|1|2>;level:<1..5>;`, emits subtype 3 through the
   subtype-aware builder, and turns a retained-point STOP into state 0.
-- `SlowMotionWireTest` and the complete `:shared:jvmTest` suite passed.
+- `SlowMotionWireTest` and `SlowMotionWireReplayTest` passed, including all-axis
+  replay, stale host lease expiry, malformed-frame rejection and repeated STOP
+  rejection; the complete `:shared:jvmTest` suite remains green.
 - This is replay/fake-head preparation only. It does not connect the formatter
   to `MountSession`, enable live SLOW, or qualify target-firmware stop behavior.
 

@@ -2160,3 +2160,29 @@ Debian package:
 
 This is simulator/package evidence only. Live mount, Bluetooth, camera,
 Astro WebUI and physical slow-motion qualification remain unverified.
+
+
+## Latest committed verification - 0b4cdb6
+
+Commit under test: 0b4cdb6 (feat: arbitrate slow-motion dock holds).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 5ead6c38e67ce6028270aa5cb513983c7b70bbf34fade7edd4825844b879a5ac
+
+This is simulator/package evidence only. Live mount, Bluetooth, camera,
+Astro WebUI and physical slow-motion qualification remain unverified.

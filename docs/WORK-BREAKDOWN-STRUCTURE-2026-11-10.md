@@ -503,3 +503,11 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AppViewModelSessionMarkerTest proves a queued
   Demo connection is cancelled before marker persistence. No live mount or
   network operation was exercised.
+
+- **2026-11-10 - WBS-02.3 ACTIVE (bridge/wake handoff):** the full bridge
+  bring-up now cancels and takes ownership from a prior standalone Bluetooth
+  Wake action, so the two host operations cannot publish competing progress or
+  terminal state.
+- **2026-11-10 - verification:** AppViewModelSessionLifecycleTest covers the
+  handoff as well as disconnect cancellation for both operations. No live
+  Bluetooth or network operation was exercised.

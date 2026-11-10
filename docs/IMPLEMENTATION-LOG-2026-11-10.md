@@ -693,3 +693,20 @@ Verification passed:
 Result: BUILD SUCCESSFUL; the session-marker suite passed, including the new
 queued-Demo cancellation regression. No live mount or network operation was
 exercised.
+
+### WBS-02.3 - Bridge and standalone wake handoff
+
+Made the full bridge operation the owner of host bring-up when a user starts
+it during a standalone Bluetooth Wake. The prior wake is cancelled before
+bridge progress begins, eliminating competing status writers while preserving
+the explicit disconnect cancellation boundary.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionLifecycleTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the bridge/wake handoff and disconnect-cancellation
+tests passed. No live Bluetooth, network, mount or camera operation was
+exercised.

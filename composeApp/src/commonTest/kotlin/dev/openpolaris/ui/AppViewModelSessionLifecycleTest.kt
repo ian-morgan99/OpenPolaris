@@ -64,6 +64,37 @@ class AppViewModelSessionLifecycleTest {
     }
 
     @Test
+    fun bridgeTakesOwnershipFromAStandaloneWake() = runTest {
+        var wakeCancelled = false
+        var bridgeStarted = false
+        val wakeProbe: suspend (suspend (String) -> Unit) -> Unit = {
+            suspendCancellableCoroutine<Unit> { continuation: CancellableContinuation<Unit> ->
+                continuation.invokeOnCancellation { wakeCancelled = true }
+            }
+        }
+        val connectWifi: suspend (suspend (String) -> Unit) -> Boolean = {
+            bridgeStarted = true
+            suspendCancellableCoroutine<Boolean> { _: CancellableContinuation<Boolean> -> }
+        }
+        val vm = vm(this, connectWifi = connectWifi, wakeProbe = wakeProbe)
+        try {
+            vm.wake()
+            runCurrent()
+            assertTrue(vm.waking.value)
+
+            vm.connectWifi()
+            runCurrent()
+
+            assertTrue(wakeCancelled, "bridge bring-up must cancel a prior standalone wake")
+            assertTrue(bridgeStarted, "bridge bring-up should own the active operation")
+            assertFalse(vm.waking.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun disconnectCancelsAnInFlightBluetoothWake() = runTest {
         var cancelled = false
         val wakeProbe: suspend (suspend (String) -> Unit) -> Unit = {

@@ -1316,6 +1316,15 @@ class AppViewModel(
         // guard against double-tap so two overlapping launches do not
         // race to write the same status line.
         if (_reconnecting.value || connectWifiJob?.isActive == true) return
+        // The full bridge bring-up includes its own wake pulse. If the user
+        // started the standalone Wake action first, hand status ownership to
+        // this operation instead of letting both host jobs publish progress.
+        val activeWake = wakeJob
+        if (activeWake?.isActive == true) {
+            activeWake.cancel()
+            wakeJob = null
+            _waking.value = false
+        }
         _reconnecting.value = true
         connectWifiJob = scope.launch {
             try {

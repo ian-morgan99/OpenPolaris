@@ -1797,7 +1797,9 @@ class AppViewModel(
         startAutoLevel(sim.session)
         demoConnectJob = scope.launch {
             try {
-                sim.session.connect()
+                if (!sim.session.connect()) {
+                    throw IllegalStateException("simulated mount handshake failed")
+                }
                 demoFineRateRehearsalEvidence = false
                 demoFineRate.setCapability(demoFineRateCapability)
                 updateDemoFineRateContext()
@@ -1806,6 +1808,8 @@ class AppViewModel(
                 // simulates intermittent failure should gate this on the
                 // return value the same way `connect()` does.)
                 saveMarker()
+                startCaptureEventObserver(sim.session)
+                startCameraAttachmentPolling(sim.session)
                 setEndpointHealth(
                     phase = EndpointPhase.READY,
                     control = EndpointService.REACHABLE,

@@ -164,6 +164,35 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun demoCaptureCompletesWithSimulatedCameraLifecycleAndPublication() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection())
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            assertTrue(vm.cameraAttachment?.isAttached == true, "demo must expose a confirmed camera")
+            vm.capture()
+            advanceTimeBy(850)
+            runCurrent()
+
+            assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertEquals("/demo/DCIM/IMG_0001.JPG", vm.lastCapturePublication?.path)
+            assertEquals(12_345L, vm.lastCapturePublication?.sizeBytes)
+            assertEquals(
+                listOf(
+                    AppViewModel.CaptureTimelineStage.REQUESTED,
+                    AppViewModel.CaptureTimelineStage.ACTIVE,
+                    AppViewModel.CaptureTimelineStage.PUBLISHED,
+                    AppViewModel.CaptureTimelineStage.CONFIRMED,
+                ),
+                vm.captureTimeline.map { it.stage },
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun disconnectCancelsQueuedCaptureDispatch() = runTest {
         val conn = FakeConnection()
         val vm = vm(this, conn)

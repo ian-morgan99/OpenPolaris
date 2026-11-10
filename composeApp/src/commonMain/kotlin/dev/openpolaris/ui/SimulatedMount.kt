@@ -1,6 +1,7 @@
 package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,8 @@ class SimulatedMount {
     var fNumIndex = 3
     var evIndex = 4
 
+    private var demoCaptureNumber = 0
+
     private val conn = SimConnection()
     val session = dev.openpolaris.core.domain.MountSession(
         connectionFactory = { conn },
@@ -77,6 +80,11 @@ class SimulatedMount {
 
         private fun handle(code: Int, fields: Map<String, String>, subtype: Int) {
             when (code) {
+                Codes.APP_PASSWORD_INFO -> queue("1&" + Codes.APP_PASSWORD_INFO + "&2&needed:0;#")
+                Codes.APP_HELLO -> queue("1&" + Codes.APP_HELLO + "&2&app:openpolaris;ver:demo;ret:0;#")
+                Codes.CAM_INFO -> queue(
+                    "1&" + Codes.CAM_INFO + "&2&manufacturer:sony;model:A7;state:0;storage:128;photoFormat:1;#"
+                )
                 284 -> queue(
                     "1&284&2&mode:${if (tracking) 2 else 0};battery:76;charge:0;" +
                         "track:${if (tracking) 1 else 0};halfSpeed:${if (halfSpeed) 0 else 1};" +
@@ -100,10 +108,21 @@ class SimulatedMount {
                 261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
                 262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
                 263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
-                264 -> if (subtype == 4) {
-                    queue("1&264&2&state:1;bulb:0;c:-1;#")
+                Codes.CAM_CAPTURE -> if (subtype == Codes.CAM_CAPTURE_SUBTYPE) {
+                    val state = fields["state"]?.toIntOrNull() ?: 1
+                    val bulb = fields["bulb"]?.toIntOrNull() ?: 0
+                    val c = fields["c"]?.toIntOrNull() ?: -1
+                    queue("1&" + Codes.CAM_CAPTURE + "&2&state:$state;bulb:$bulb;c:$c;#")
+                    if (state == 1) {
+                        val imageName = "IMG_" + (++demoCaptureNumber).toString().padStart(4, '0') + ".JPG"
+                        queue(
+                            "1&" + Codes.FILE_DOWNLOAD_DATA +
+                                "&2&type:1;path:/demo/DCIM/$imageName;size:12345;#"
+                        )
+                        queue("1&" + Codes.CAM_CAPTURE + "&2&state:0;bulb:0;c:$c;#")
+                    }
                 } else {
-                    queue("1&264&2&ev:$evIndex;ret:0;#")
+                    queue("1&" + Codes.CAM_GET_EV + "&2&ev:$evIndex;ret:0;#")
                 }
                 265 -> { evIndex = fields["ev"]?.toIntOrNull() ?: evIndex; queue("1&265&2&ret:0;#") }
                 266 -> queue("1&266&2&state:${if (tracking) 1 else 0};bulb:0;c:0;#")

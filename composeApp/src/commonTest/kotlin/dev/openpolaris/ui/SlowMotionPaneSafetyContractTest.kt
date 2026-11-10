@@ -23,7 +23,7 @@ class SlowMotionPaneSafetyContractTest {
         val source = sourceText()
         assertTrue("val liveTransportQualified = capabilityRecord.liveReady" in source)
         assertTrue("val liveControlsEnabled = gateOpen && liveTransportQualified" in source)
-        assertTrue("val controlsEnabled = liveControlsEnabled || demoControlsEnabled" in source)
+        assertTrue("val controlsEnabled = (liveControlsEnabled || demoControlsEnabled)" in source)
         assertTrue("enabled = controlsEnabled" in source)
         assertTrue("enabled = controlsEnabled && demoControlsEnabled" !in source)
         assertTrue("onPress = { vm.demoSlowMotionStart" in source)

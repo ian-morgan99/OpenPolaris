@@ -255,6 +255,16 @@ class MountSession(
      * lock is held only for O(1) map operations so contention is bounded.
      */
     private val pending = mutableMapOf<Int, CompletableDeferred<ResponseParser.Frame>>()
+    /**
+     * Response codes whose camera-specific request timed out in this session.
+     *
+     * The protocol has no request identifier: after a timeout, a late frame
+     * with the same numeric code cannot be associated safely with a newer
+     * request. Camera INFO callers therefore quarantine that code until the
+     * session is re-established. Ordinary polling callers retain their
+     * existing retry semantics by leaving [quarantineOnTimeout] false.
+     */
+    private val quarantinedResponseCodes = mutableSetOf<Int>()
     private val pendingMutex = Mutex()
 
     /**
@@ -288,6 +298,11 @@ class MountSession(
             try {
                 conn.connect(host, port, timeoutMs = 5000)
                 connection = conn
+                // A newly established TCP/session boundary is the only safe
+                // point at which a timed-out camera response code may be
+                // attempted again. The old socket can no longer deliver a
+                // late frame into this session.
+                pendingMutex.withLock { quarantinedResponseCodes.clear() }
                 // Clear any previous protocol error so observers can tell
                 // "the mount came back" from "no error has happened yet".
                 _state.value = _state.value.copy(connected = true, lastErrorMessage = null)
@@ -647,6 +662,12 @@ class MountSession(
         payload: String = EMPTY_CONTENT,
         timeoutMs: Long = 2000,
         subtype: Int = REQUEST_TYPE,
+        /**
+         * Quarantine this numeric response code if the request times out.
+         * Use only where a late same-code frame would be unsafe to apply to
+         * a newer request, such as camera INFO reads.
+         */
+        quarantineOnTimeout: Boolean = false,
         parse: (ResponseParser.Frame) -> T?,
     ): CmdResult<T> {
         val conn = connection
@@ -656,7 +677,23 @@ class MountSession(
             return err
         }
         val waiter = CompletableDeferred<ResponseParser.Frame>()
-        pendingMutex.withLock { pending[code] = waiter }
+        val registrationError = pendingMutex.withLock {
+            when {
+                code in quarantinedResponseCodes ->
+                    "response code $code is quarantined after a timeout; reconnect required"
+                pending[code] != null ->
+                    "response code $code already has a request in flight"
+                else -> {
+                    pending[code] = waiter
+                    null
+                }
+            }
+        }
+        if (registrationError != null) {
+            val err = CmdResult.ProtocolError(registrationError)
+            recordError(err)
+            return err
+        }
         return try {
             sendMutex.withLock {
                 try {
@@ -673,7 +710,12 @@ class MountSession(
             } catch (_: TimeoutCancellationException) {
                 // Defensive: the reader should have removed/completed the
                 // waiter, but a slow response could still time out here.
-                pendingMutex.withLock { pending.remove(code) }
+                pendingMutex.withLock {
+                    if (pending[code] === waiter) {
+                        pending.remove(code)
+                        if (quarantineOnTimeout) quarantinedResponseCodes += code
+                    }
+                }
                 return CmdResult.Timeout
             }
             val parsed = parse(frame)

@@ -566,6 +566,17 @@ class AppViewModel(
         val detail: String,
     )
 
+    enum class CaptureKind {
+        NORMAL,
+        BULB,
+    }
+
+    /** The owner of the current release, so native Bulb stop cannot cross into Astro WebUI. */
+    enum class CaptureSource {
+        NATIVE,
+        ASTRO_WEB_UI,
+    }
+
     sealed interface CapturePhase {
         data object Idle : CapturePhase
         data object Requested : CapturePhase
@@ -574,6 +585,17 @@ class AppViewModel(
         data class OutcomeUnknown(val reason: String) : CapturePhase
         data class Failed(val reason: String) : CapturePhase
     }
+
+    /** The requested shutter kind is independent from lifecycle/busy state. */
+    var captureKind by mutableStateOf<CaptureKind?>(null)
+        private set
+
+    var captureSource by mutableStateOf<CaptureSource?>(null)
+        private set
+
+    /** Native Bulb only: Astro WebUI has a separate stop route and must not use 264/state:0 here. */
+    val nativeBulbCaptureActive: Boolean
+        get() = captureKind == CaptureKind.BULB && captureSource == CaptureSource.NATIVE
 
     var capturePhase by mutableStateOf<CapturePhase>(CapturePhase.Idle)
         private set
@@ -1984,6 +2006,7 @@ class AppViewModel(
         cameraInfo = null
         cameraAttachment = null
         cameraReadbackAtMs = null
+        cameraReadbackStatuses = emptyMap()
         focusStatus = null
         videoRecording = null
         deviceInfo = null
@@ -2003,6 +2026,8 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
+        captureKind = null
+        captureSource = null
         captureEvidence.clear()
         pendingCapturePublication = null
         lastCapturePublication = null
@@ -2356,6 +2381,8 @@ class AppViewModel(
             capturePhase = CapturePhase.Completed
         }
         statusMessage = "Capture completed"
+        captureKind = null
+        captureSource = null
         if (!sequenceActive) restoreCaptureWorkloads()
     }
 
@@ -3980,6 +4007,14 @@ class AppViewModel(
     /** Time of the last explicit dynamic camera-parameter readback. */
     var cameraReadbackAtMs by mutableStateOf<Long?>(null)
         private set
+
+    /**
+     * Per-field result from the last refresh. A failed refresh never erases a
+     * last-known-good value, but the field status remains visible to the UI.
+     */
+    var cameraReadbackStatuses by mutableStateOf<Map<String, CameraController.InfoStatus>>(emptyMap())
+        private set
+
     var focusStatus by mutableStateOf<String?>(null)
         private set
     var videoRecording by mutableStateOf<Boolean?>(null)
@@ -4028,7 +4063,16 @@ class AppViewModel(
         return dev.openpolaris.core.domain.IntervalometerController(
             camera = cam,
             scope = scope,
-            beforeCapture = { suspendCaptureWorkloads() },
+            beforeCapture = {
+                val ownerSession = session
+                if (ownerSession == null || !ownsSession(ownerSession) || cameraController !== cam) {
+                    throw IllegalStateException("capture session changed before sequence shutter")
+                }
+                verifyCaptureReadiness(ownerSession, cam)?.let { reason ->
+                    throw IllegalStateException("camera readiness failed: $reason")
+                }
+                suspendCaptureWorkloads()
+            },
             onStateChange = { s ->
                 sequenceState = s
                 // A shutter may still be in flight while Running (between shots)
@@ -4178,6 +4222,14 @@ class AppViewModel(
         if (sequenceActive) {
             return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("another capture sequence owns the shutter")
         }
+        val ownerSession = session
+            ?: return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("capture session is not connected")
+        val readinessFailure = verifyCaptureReadiness(ownerSession, camera)
+        if (readinessFailure != null) {
+            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected(
+                "camera readiness failed: $readinessFailure",
+            )
+        }
         capturePhase = CapturePhase.Requested
         pendingCapturePublication = null
         programmeConfirmation = CompletableDeferred()
@@ -4305,7 +4357,10 @@ class AppViewModel(
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
-        cameraRefreshJob?.cancel()
+        if (cameraRefreshJob?.isActive == true) {
+            statusMessage = "Camera parameter refresh already in progress"
+            return
+        }
         cameraRefreshJob = scope.launch {
             val iso = ownerController.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
             val wb = ownerController.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
@@ -4313,25 +4368,39 @@ class AppViewModel(
             val shutter = ownerController.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
             val aperture = ownerController.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
             if (!ownsSession(ownerSession)) return@launch
-            camera = camera.copy(
-                isoIndex = iso.index,
-                wbIndex = wb.index,
-                evIndex = ev.index,
-                shutterIndex = shutter.index,
-                fNumIndex = aperture.index,
-                isoOptions = iso.options,
-                wbOptions = wb.options,
-                evOptions = ev.options,
-                shutterOptions = shutter.options,
-                fNumOptions = aperture.options,
+
+            fun usable(info: CameraController.Info): Boolean =
+                info.status == CameraController.InfoStatus.VALID
+
+            val current = camera
+            camera = current.copy(
+                isoIndex = if (usable(iso)) iso.index else current.isoIndex,
+                wbIndex = if (usable(wb)) wb.index else current.wbIndex,
+                evIndex = if (usable(ev)) ev.index else current.evIndex,
+                shutterIndex = if (usable(shutter)) shutter.index else current.shutterIndex,
+                fNumIndex = if (usable(aperture)) aperture.index else current.fNumIndex,
+                isoOptions = if (usable(iso) && iso.options.isNotEmpty()) iso.options else current.isoOptions,
+                wbOptions = if (usable(wb) && wb.options.isNotEmpty()) wb.options else current.wbOptions,
+                evOptions = if (usable(ev) && ev.options.isNotEmpty()) ev.options else current.evOptions,
+                shutterOptions = if (usable(shutter) && shutter.options.isNotEmpty()) shutter.options else current.shutterOptions,
+                fNumOptions = if (usable(aperture) && aperture.options.isNotEmpty()) aperture.options else current.fNumOptions,
             )
-            cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
+            cameraReadbackStatuses = mapOf(
+                "ISO" to iso.status,
+                "WB" to wb.status,
+                "EV" to ev.status,
+                "Shutter" to shutter.status,
+                "Aperture" to aperture.status,
+            )
+            if (listOf(iso, wb, ev, shutter, aperture).any(::usable)) {
+                cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
+            }
             val readings = listOf(
-                "ISO[265]=${iso.raw.ifBlank { "<empty>" }}",
-                "WB[266]=${wb.raw.ifBlank { "<empty>" }}",
-                "EV[267]=${ev.raw.ifBlank { "<empty>" }}",
-                "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }}",
-                "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }}",
+                "ISO[265]=${iso.raw.ifBlank { "<empty>" }} (${iso.status.name.lowercase()})",
+                "WB[266]=${wb.raw.ifBlank { "<empty>" }} (${wb.status.name.lowercase()})",
+                "EV[267]=${ev.raw.ifBlank { "<empty>" }} (${ev.status.name.lowercase()})",
+                "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }} (${shutter.status.name.lowercase()})",
+                "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }} (${aperture.status.name.lowercase()})",
             )
             statusMessage = if (demoMode) {
                 "Demo camera readback ready: " + shutter.raw.ifBlank { "unknown" }
@@ -4352,6 +4421,74 @@ class AppViewModel(
             return false
         }
         return true
+    }
+
+    /**
+     * Fresh capture admission check. Camera INFO values are not cached for a
+     * release decision: a late same-code frame can otherwise make a later
+     * shutter look ready when the camera has actually disappeared or changed
+     * mode. MountSession quarantines timed-out response codes until reconnect.
+     */
+    private suspend fun verifyCaptureReadiness(
+        ownerSession: MountSession,
+        ownerController: CameraController,
+        requiredMode: dev.openpolaris.core.domain.CameraReleaseMode? = null,
+    ): String? {
+        val attachmentResult = ownerSession.request(
+            code = Codes.CAM_INFO,
+            timeoutMs = CAMERA_READINESS_TIMEOUT_MS,
+            quarantineOnTimeout = true,
+        ) { CommandTable.CAM_INFO.parse!!(it) }
+        when (attachmentResult) {
+            is MountSession.CmdResult.Ok -> {
+                val attachment = attachmentResult.value
+                cameraAttachment = attachment
+                if (!attachment.isAttached) {
+                    return "no camera detected by the mount"
+                }
+            }
+            is MountSession.CmdResult.Timeout ->
+                return "camera readiness check timed out"
+            is MountSession.CmdResult.ProtocolError ->
+                return "camera readiness unavailable: ${attachmentResult.message}"
+        }
+
+        val shutter = ownerController.queryBenroInfo(
+            Codes.BenroCamera.GET_SHUTTER_INFO,
+            "shutter",
+        )
+        cameraReadbackStatuses = cameraReadbackStatuses + ("Shutter" to shutter.status)
+        val shutterIndex = shutter.index
+        if (shutter.status != CameraController.InfoStatus.VALID ||
+            shutterIndex == null ||
+            shutter.options.isEmpty() ||
+            shutterIndex !in shutter.options.indices
+        ) {
+            return "camera shutter readback unavailable (${shutter.status.name.lowercase()})"
+        }
+
+        camera = camera.copy(
+            shutterIndex = shutterIndex,
+            shutterOptions = shutter.options,
+        )
+        cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
+        val observedMode = dev.openpolaris.core.domain.CameraReleaseMode.fromOption(
+            shutter.options[shutterIndex],
+        )
+        if (requiredMode != null && observedMode != requiredMode) {
+            return "camera is not in ${requiredMode.label} mode (fresh readback: ${observedMode.label})"
+        }
+        return null
+    }
+
+    private fun failCaptureAdmission(reason: String) {
+        captureKind = null
+        captureSource = null
+        captureEvidence.fail(reason)
+        capturePhase = CapturePhase.Failed(reason)
+        appendCaptureTimeline(CaptureTimelineStage.FAILED, "Capture blocked: $reason")
+        statusMessage = "Capture blocked: $reason"
+        restoreCaptureWorkloads()
     }
 
     private fun rejectUnverifiedCameraWrite() {
@@ -4482,7 +4619,9 @@ class AppViewModel(
      */
     fun capture() {
         if (blockCaptureDuringSlowMotion()) return
-        if (cameraController == null) { statusMessage = "Not connected"; return }
+        val ownerSession = session
+        val ownerController = cameraController
+        if (ownerSession == null || ownerController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
         if (videoRecording == true) {
             statusMessage = "Stop video before a still capture"
@@ -4506,12 +4645,21 @@ class AppViewModel(
             return
         }
         captureDispatchJob = scope.launch {
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            val admissionFailure = verifyCaptureReadiness(ownerSession, ownerController)
+            if (admissionFailure != null) {
+                failCaptureAdmission(admissionFailure)
+                return@launch
+            }
+            captureKind = CaptureKind.NORMAL
+            captureSource = CaptureSource.NATIVE
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
             beginCaptureTimeline("Still release sent")
             suspendCaptureWorkloads()
-            cameraController?.capture()
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            ownerController.capture()
             statusMessage = "Capture sent"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
@@ -4533,7 +4681,9 @@ class AppViewModel(
     fun captureBulb(seconds: Int) {
         if (blockCaptureDuringSlowMotion()) return
         if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
-        if (cameraController == null) { statusMessage = "Not connected"; return }
+        val ownerSession = session
+        val ownerController = cameraController
+        if (ownerSession == null || ownerController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
         if (videoRecording == true) {
             statusMessage = "Stop video before a Bulb capture"
@@ -4545,16 +4695,30 @@ class AppViewModel(
             statusMessage = "Capture in progress — wait for it to finish"; return
         }
         captureDispatchJob = scope.launch {
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            val admissionFailure = verifyCaptureReadiness(
+                ownerSession,
+                ownerController,
+                requiredMode = dev.openpolaris.core.domain.CameraReleaseMode.BULB,
+            )
+            if (admissionFailure != null) {
+                failCaptureAdmission(admissionFailure)
+                return@launch
+            }
+            captureKind = CaptureKind.BULB
+            captureSource = CaptureSource.NATIVE
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
             beginCaptureTimeline("Bulb release sent")
             suspendCaptureWorkloads()
-            val controller = cameraController ?: return@launch
-            val result = controller.captureBulb(seconds)
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            val result = ownerController.captureBulb(seconds)
             if (!result.accepted) {
                 val reason = result.error ?: result.raw ?: "no explicit state:1 acknowledgement"
                 captureEvidence.fail(reason)
+                captureKind = null
+                captureSource = null
                 capturePhase = CapturePhase.Failed("Bulb command rejected: $reason")
                 appendCaptureTimeline(CaptureTimelineStage.FAILED, "Bulb command rejected: $reason")
                 statusMessage = "Bulb command rejected: $reason"
@@ -4576,11 +4740,13 @@ class AppViewModel(
         }
     }
 
-    /** Request the matching 264 state-0 edge for an active Bulb capture. */
+    /** Request the matching 264 state-0 edge for an active native Bulb capture. */
     fun stopBulb() {
         val phase = capturePhase
-        if (phase !is CapturePhase.Requested && phase !is CapturePhase.Busy) {
-            statusMessage = "No Bulb capture is active"
+        if (!nativeBulbCaptureActive ||
+            (phase !is CapturePhase.Requested && phase !is CapturePhase.Busy)
+        ) {
+            statusMessage = "No native Bulb capture is active"
             return
         }
         val controller = cameraController
@@ -4617,6 +4783,8 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
+        captureKind = null
+        captureSource = null
         captureEvidence.clear()
         pendingCapturePublication = null
         captureTimeline = emptyList()
@@ -6676,7 +6844,8 @@ class AppViewModel(
             return
         }
         val ownerSession = session
-        if (ownerSession == null || cameraController == null) {
+        val ownerController = cameraController
+        if (ownerSession == null || ownerController == null) {
             statusMessage = "Connect a mount and camera before using Astro WebUI capture"
             return
         }
@@ -6713,10 +6882,27 @@ class AppViewModel(
         astroWebUiBulbStopQueued = false
         astroWebUiCaptureJob?.cancel()
         astroWebUiCaptureJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
+            val admissionFailure = verifyCaptureReadiness(
+                ownerSession,
+                ownerController,
+                requiredMode = mode,
+            )
+            if (admissionFailure != null) {
+                captureEvidence.fail(admissionFailure)
+                captureKind = null
+                captureSource = null
+                capturePhase = CapturePhase.Failed(admissionFailure)
+                astroWebUiCaptureStatus = "Astro WebUI capture blocked: $admissionFailure"
+                appendCaptureTimeline(CaptureTimelineStage.FAILED, admissionFailure)
+                statusMessage = astroWebUiCaptureStatus.orEmpty()
+                astroWebUiCaptureDispatching = false
+                restoreCaptureWorkloads()
+                return@launch
+            }
             beginCaptureTimeline("Astro WebUI ${mode.label} release queued")
             suspendCaptureWorkloads()
-            if (!ownsSession(ownerSession)) return@launch
+            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
             val result = runCatching {
                 astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)
             }.getOrElse { error ->
@@ -6728,6 +6914,12 @@ class AppViewModel(
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiCaptureResult.Queued -> {
+                    captureKind = if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB) {
+                        CaptureKind.BULB
+                    } else {
+                        CaptureKind.NORMAL
+                    }
+                    captureSource = CaptureSource.ASTRO_WEB_UI
                     astroWebUiCaptureDispatching = false
                     astroWebUiCaptureActive = true
                     astroWebUiBulbActive = mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB
@@ -6743,6 +6935,8 @@ class AppViewModel(
                             val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle and/or 773 file evidence is missing"
                             captureEvidence.unknown(reason)
                             capturePhase = CapturePhase.OutcomeUnknown(reason)
+                            captureKind = null
+                            captureSource = null
                             astroWebUiCaptureActive = false
                             astroWebUiCaptureDispatching = false
                             astroWebUiBulbActive = false
@@ -6754,6 +6948,8 @@ class AppViewModel(
                 }
                 is AstroWebUiCaptureResult.Failed -> {
                     captureEvidence.fail(result.reason)
+                    captureKind = null
+                    captureSource = null
                     capturePhase = CapturePhase.Failed(result.reason)
                     astroWebUiCaptureActive = false
                     astroWebUiCaptureDispatching = false
@@ -7247,6 +7443,9 @@ class AppViewModel(
          * pipeline instead of leaving the UI stuck on "Busy" forever.
          */
         private const val CAPTURE_TIMEOUT_MS: Long = 15_000L
+
+        /** Fresh camera identity/release-mode admission budget before any 264 write. */
+        private const val CAMERA_READINESS_TIMEOUT_MS: Long = 4_000L
 
         /**
          * #89: per-request timeout for the 1 Hz 284/517 pose poll. The

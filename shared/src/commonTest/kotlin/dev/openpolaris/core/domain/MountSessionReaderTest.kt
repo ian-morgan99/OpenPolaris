@@ -291,6 +291,30 @@ class MountSessionReaderTest {
     }
 
     @Test
+    fun timedOutCameraInfoIsQuarantinedUntilReconnect() = runTest {
+        val conn = FakeConnection()
+        val s = MountSession({ conn }, readerScope = this)
+        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        assertTrue(s.connect())
+
+        val first = s.request(268, timeoutMs = 100, quarantineOnTimeout = true) { it }
+        assertIs<MountSession.CmdResult.Timeout>(first)
+
+        // A late same-code frame is not allowed to satisfy a later camera read.
+        conn.responses += "1&268&2&V:0;R:M,B;RD:1;#".toByteArray(Charsets.US_ASCII)
+        runCurrent()
+        val second = s.request(268, timeoutMs = 100, quarantineOnTimeout = true) { it }
+        val error = assertIs<MountSession.CmdResult.ProtocolError>(second)
+        assertTrue(error.message.contains("reconnect required"))
+        assertEquals(
+            1,
+            conn.written.count { String(it, Charsets.US_ASCII).startsWith("1&268&") },
+        )
+        s.disconnect()
+    }
+
+    @Test
     fun readerCancelsCleanlyOnDisconnect() = runTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)

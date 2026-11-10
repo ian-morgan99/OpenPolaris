@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.config.FeatureFlags
+import dev.openpolaris.core.domain.CameraController
 import dev.openpolaris.core.astro.AstroMath
 import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
@@ -3325,11 +3326,11 @@ fun CameraPane(
             // half its controls below the callout dialog fold (#45).
             val cameraWriteEnabled = (qualificationArmed || vm.demoMode) && attachment?.isAttached == true
             val steppers: List<@Composable () -> Unit> = listOf(
-                { StepperRow("ISO", c.isoIndex, c.isoOptions, cameraWriteEnabled, vm::setIso) },
-                { StepperRow("WB", c.wbIndex, c.wbOptions, cameraWriteEnabled, vm::setWb) },
-                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, cameraWriteEnabled, vm::setFNum) },
-                { StepperRow("EV", c.evIndex, c.evOptions, cameraWriteEnabled, vm::setEv) },
-                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, cameraWriteEnabled, vm::setShutter) },
+                { StepperRow("ISO", c.isoIndex, c.isoOptions, vm.cameraReadbackStatuses["ISO"], cameraWriteEnabled, vm::setIso) },
+                { StepperRow("WB", c.wbIndex, c.wbOptions, vm.cameraReadbackStatuses["WB"], cameraWriteEnabled, vm::setWb) },
+                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, vm.cameraReadbackStatuses["Aperture"], cameraWriteEnabled, vm::setFNum) },
+                { StepperRow("EV", c.evIndex, c.evOptions, vm.cameraReadbackStatuses["EV"], cameraWriteEnabled, vm::setEv) },
+                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, vm.cameraReadbackStatuses["Shutter"], cameraWriteEnabled, vm::setShutter) },
             )
             val midpoint = (steppers.size + 1) / 2
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -3396,8 +3397,10 @@ fun CameraPane(
             }
             CaptureTimelinePane(vm, Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                val bulbInFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
-                    phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
+                val bulbInFlight = vm.nativeBulbCaptureActive && (
+                    phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
+                        phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
+                    )
                 OutlinedTextField(
                     value = bulbSecondsText,
                     onValueChange = { if (it.all(Char::isDigit)) bulbSecondsText = it },
@@ -3813,6 +3816,7 @@ private fun StepperRow(
     label: String,
     value: Int?,
     options: List<String>,
+    status: CameraController.InfoStatus?,
     enabled: Boolean,
     onChange: (Int) -> Unit,
 ) {
@@ -3827,6 +3831,23 @@ private fun StepperRow(
             "$label: ${value?.let { options.getOrNull(it) } ?: "unavailable"}" +
                 if (value != candidate) " → ${options.getOrNull(candidate) ?: candidate}" else "",
             style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            when (status) {
+                null -> "Readback: not read"
+                CameraController.InfoStatus.VALID -> "Readback: current"
+                CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE -> "Readback: empty / unavailable; last value retained"
+                CameraController.InfoStatus.TIMED_OUT -> "Readback: timed out; last value retained"
+                CameraController.InfoStatus.PROTOCOL_ERROR -> "Readback: protocol error; last value retained"
+                CameraController.InfoStatus.STALE -> "Readback: stale; reconnect required"
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = if (status == null || status == CameraController.InfoStatus.VALID) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            },
             modifier = Modifier.fillMaxWidth(),
         )
         Row(

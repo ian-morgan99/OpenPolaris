@@ -34,6 +34,7 @@ class AppViewModelCapturePhaseTest {
             val response = when {
                 wire.startsWith("1&284&") -> "1&284&2&mode:0;#"
                 wire.startsWith("1&286&") -> cameraFrame
+                wire.startsWith("1&268&") -> "1&268&2&V:0;R:M,B;RD:1;#"
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&823&") -> "1&823&2&app:openpolaris;ver:test;#"
                 wire.startsWith("1&770&") -> "1&770&2&type:1;page:2;count:2;id:11;name:SP_0011.dng;prot:0;id:12;name:SP_0012.jpg;prot:1;#"
@@ -143,6 +144,26 @@ class AppViewModelCapturePhaseTest {
             assertEquals(0, conn.count(264), "unknown camera status must not reach the shutter command")
             assertTrue(vm.statusMessage.contains("status not verified"))
         } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun capturePreflightRechecksCameraBeforeSendingTheShutter() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection()
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            conn.cameraFrame = "1&286&2&manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;#"
+
+            vm.capture()
+            runCurrent()
+
+            assertEquals(0, conn.count(264), "fresh absence must block the shutter")
+            assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+            assertTrue(vm.statusMessage.contains("no camera detected"))
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
     }
 
     @Test
@@ -393,6 +414,15 @@ class AppViewModelCapturePhaseTest {
         try {
             connect(this, vm)
             vm.capture(); advanceTimeBy(3_000)
+            val writesBeforeIncorrectBulbStop = conn.count(264)
+            vm.stopBulb()
+            runCurrent()
+            assertEquals(
+                writesBeforeIncorrectBulbStop,
+                conn.count(264),
+                "ordinary capture must never send the native Bulb stop edge",
+            )
+            assertTrue(vm.statusMessage.contains("native Bulb"))
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Busy>(vm.capturePhase)
@@ -450,7 +480,7 @@ class AppViewModelCapturePhaseTest {
             val attachmentPollsBeforeCapture = conn.count(286)
             vm.capture(); advanceTimeBy(20_000)
             assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
-            assertEquals(attachmentPollsBeforeCapture, conn.count(286), "camera attachment polling must stay quiesced after an unknown outcome")
+            assertEquals(attachmentPollsBeforeCapture + 1, conn.count(286), "only the one-shot readiness preflight may read camera attachment")
             vm.capture(); advanceTimeBy(100)
             assertEquals(1, conn.count(264), "unknown outcome requires operator recovery")
             assertTrue(vm.statusMessage.contains("in progress"))

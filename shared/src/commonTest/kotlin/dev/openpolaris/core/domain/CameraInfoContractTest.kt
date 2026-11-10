@@ -19,6 +19,7 @@ class CameraInfoContractTest {
         assertEquals(0, info.ready)
         assertEquals(5, info.index)
         assertEquals(listOf("f/1.4", "f/1.6", "f/1.8", "f/2"), info.options)
+        assertEquals(CameraController.InfoStatus.VALID, info.status)
     }
 
     @Test
@@ -31,5 +32,6 @@ class CameraInfoContractTest {
 
         assertNull(info.index)
         assertEquals(emptyList(), info.options)
+        assertEquals(CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE, info.status)
     }
 }

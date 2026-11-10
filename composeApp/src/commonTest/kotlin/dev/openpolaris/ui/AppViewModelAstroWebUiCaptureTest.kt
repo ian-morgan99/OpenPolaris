@@ -32,6 +32,8 @@ class AppViewModelAstroWebUiCaptureTest {
     private class FakeConnection : Connection {
         private val channel = Channel<ByteArray>(Channel.BUFFERED)
 
+        var shutterFrame = "1&268&2&V:0;R:M,B;RD:1;#"
+
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit
 
         override suspend fun write(data: ByteArray) {
@@ -39,6 +41,7 @@ class AppViewModelAstroWebUiCaptureTest {
             val response = when {
                 wire.startsWith("1&284&") -> "1&284&2&mode:0;#"
                 wire.startsWith("1&286&") -> "1&286&2&manufacturer:Pentax;model:K-3 III;state:1;storage:128;photoFormat:1;#"
+                wire.startsWith("1&268&") -> shutterFrame
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&823&") -> "1&823&2&app:openpolaris;ver:test;#"
                 else -> null
@@ -117,7 +120,8 @@ class AppViewModelAstroWebUiCaptureTest {
     fun manualAstroWebUiCaptureUsesEvidenceGateForCompletion() = runTest(UnconfinedTestDispatcher()) {
         FeatureFlags.enable("astroWebUiCapture")
         val transport = RecordingTransport()
-        val vm = vm(this, FakeConnection(), AstroWebUiCaptureClient(transport))
+        val connection = FakeConnection()
+        val vm = vm(this, connection, AstroWebUiCaptureClient(transport))
         try {
             connect(this, vm)
             vm.testSetCameraParams(CameraController.Params(shutterIndex = 0, shutterOptions = listOf("M")))
@@ -174,7 +178,10 @@ class AppViewModelAstroWebUiCaptureTest {
     fun bulbAstroWebUiCaptureUsesBStopAndKeepsEvidencePending() = runTest(UnconfinedTestDispatcher()) {
         FeatureFlags.enable("astroWebUiCapture")
         val transport = RecordingTransport()
-        val vm = vm(this, FakeConnection(), AstroWebUiCaptureClient(transport))
+        val connection = FakeConnection().apply {
+            shutterFrame = "1&268&2&V:1;R:M,B;RD:1;#"
+        }
+        val vm = vm(this, connection, AstroWebUiCaptureClient(transport))
         try {
             connect(this, vm)
             vm.testSetCameraParams(CameraController.Params(shutterIndex = 0, shutterOptions = listOf("B")))

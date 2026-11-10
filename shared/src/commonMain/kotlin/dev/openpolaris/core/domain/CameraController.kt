@@ -17,12 +17,23 @@ import kotlinx.coroutines.delay
  */
 class CameraController(private val session: MountSession) {
 
+    /** Why a dynamic camera INFO field is or is not usable. */
+    enum class InfoStatus {
+        VALID,
+        EMPTY_OR_UNAVAILABLE,
+        TIMED_OUT,
+        PROTOCOL_ERROR,
+        STALE,
+    }
+
     data class Info(
         val code: Int,
         val raw: String,
         val index: Int?,
         val options: List<String> = emptyList(),
         val ready: Int? = null,
+        val status: InfoStatus = InfoStatus.VALID,
+        val detail: String? = null,
     )
 
     data class QualificationResult(
@@ -113,14 +124,41 @@ class CameraController(private val session: MountSession) {
     suspend fun queryCaptureMode(): Int? = queryIndex(Codes.CAM_GET_CAPTURE_MODE, "captureMode")
     suspend fun setCaptureMode(index: Int) = session.send(Codes.CAM_SET_CAPTURE_MODE, "captureMode:$index;")
 
+    /**
+     * Read one dynamic INFO list with a camera-specific timeout. A timed-out
+     * code is quarantined by [MountSession] for the remainder of this session:
+     * the protocol has no request id, so applying a late same-code frame to a
+     * later refresh would be worse than requiring reconnect recovery.
+     */
     suspend fun queryBenroInfo(code: Int, key: String): Info =
-        when (val result = session.request(code) { it }) {
+        when (
+            val result = session.request(
+                code = code,
+                timeoutMs = CAMERA_INFO_TIMEOUT_MS,
+                quarantineOnTimeout = true,
+            ) { it }
+        ) {
             is MountSession.CmdResult.Ok -> {
                 val frame = result.value
                 parseBenroInfo(code, key, frame)
             }
-            is MountSession.CmdResult.Timeout -> Info(code, "TIMEOUT", null)
-            is MountSession.CmdResult.ProtocolError -> Info(code, "ERROR: ${result.message}", null)
+            is MountSession.CmdResult.Timeout -> Info(
+                code = code,
+                raw = "TIMEOUT",
+                index = null,
+                status = InfoStatus.TIMED_OUT,
+                detail = "no response within ${CAMERA_INFO_TIMEOUT_MS}ms",
+            )
+            is MountSession.CmdResult.ProtocolError -> {
+                val quarantined = result.message.contains("quarantined after a timeout")
+                Info(
+                    code = code,
+                    raw = "ERROR: ${result.message}",
+                    index = null,
+                    status = if (quarantined) InfoStatus.STALE else InfoStatus.PROTOCOL_ERROR,
+                    detail = result.message,
+                )
+            }
         }
 
     suspend fun qualifyBenroSetting(
@@ -669,6 +707,8 @@ class CameraController(private val session: MountSession) {
         ?.toIntOrNull()
 
     private companion object {
+        /** K-1 II settings can answer after the old 2 s global request budget. */
+        const val CAMERA_INFO_TIMEOUT_MS = 4_000L
         val FOCUS_JOG_SPEEDS = setOf(0, 1, 2, 4, 5, 6)
         val MANUAL_FOCUS_ADJUSTMENTS = setOf(-4, -1, 1, 4)
         // Task-3 (docs/PROTOCOL.md §3.4.3): APK-observed values only.
@@ -686,16 +726,28 @@ internal fun parseBenroInfo(
     code: Int,
     key: String,
     frame: dev.openpolaris.core.protocol.ResponseParser.Frame,
-): CameraController.Info = CameraController.Info(
-    code = code,
-    raw = frame.raw.orEmpty(),
-    index = frame.int("V") ?: frame.int(key) ?: frame.raw
-        ?.trim()
-        ?.removeSuffix(";")
-        ?.toIntOrNull(),
-    options = frame["R"].orEmpty()
+): CameraController.Info {
+    val raw = frame.raw.orEmpty()
+    val index = frame.int("V") ?: frame.int(key) ?: raw
+        .trim()
+        .removeSuffix(";")
+        .toIntOrNull()
+    val options = frame["R"].orEmpty()
         .split(',')
         .map(String::trim)
-        .filter(String::isNotEmpty),
-    ready = frame.int("RD"),
-)
+        .filter(String::isNotEmpty)
+    val status = when {
+        frame.int("ret")?.let { it < 0 } == true -> CameraController.InfoStatus.PROTOCOL_ERROR
+        index != null || options.isNotEmpty() -> CameraController.InfoStatus.VALID
+        else -> CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE
+    }
+    return CameraController.Info(
+        code = code,
+        raw = raw,
+        index = index,
+        options = options,
+        ready = frame.int("RD"),
+        status = status,
+        detail = if (status == CameraController.InfoStatus.VALID) null else "response contained no usable value/options",
+    )
+}

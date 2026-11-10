@@ -1276,3 +1276,17 @@ The UI labels the result as unknown, tells the operator not to retry the shutter
 Commit ff427fd adds a shared BluetoothWakeState with explicit requested, discovering, connecting-GATT, succeeded, failed and cancelled phases. AppViewModel now updates it from the standalone Benro-style GATT wake pulse, the PC bridge progress callback, the mobile host status callback and disconnect cancellation.
 
 The Connection workspace renders the phase and detail with a durable explanation: Bluetooth wakes the mount but is not the control socket, preview service or camera lifecycle. EndpointHealth remains authoritative for route/control/preview readiness.
+
+
+### WBS-03.6/03.7/09.1 — Simulator fine-rate rehearsal
+
+Commit `ea3436c` adds a Demo-only fine-rate interaction to make the safety contract exercisable on both mobile and PC without implying hardware support:
+
+- Demo preparation arms synthetic evidence only; the real plate-solve cache is not overwritten.
+- Tracking, half-speed, exclusive ownership and the existing solve-policy thresholds remain visible gates.
+- A logical request uses the selected axis and ±0.1°/s target, enters `SafeRateAdjustController`, and acquires the shared `TRACKING_CORRECTION` owner.
+- SLOW and fast-jog paths cannot acquire while fine correction owns motion.
+- STOP, tracking stop, half-speed enable, emergency stop and disconnect provide explicit teardown; ambiguous outcomes remain visible and are not retried.
+- The simulator transport has no `MountSession` and emits no 532/533/534 or AC 4A frame.
+
+This is a rehearsal of UI/state/ownership behavior, not a live rate qualification.

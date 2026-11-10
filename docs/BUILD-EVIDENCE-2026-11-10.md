@@ -1454,3 +1454,29 @@ Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
 the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
 notices. This is host/package evidence only; no live Bluetooth, bridge,
 camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - ea3436c
+
+Commit under test: `ea3436c` (`feat: rehearse fine-rate control in demo`).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.RateAdjustControllerTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFineRateDemoTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --tests dev.openpolaris.ui.AppViewModelFastJogTest --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+  SHA-256: `1794c2eabbeeb109d821719de7ed14269731a612e9b4f4639b00c71ed4f528ea`
+- Linux x64 desktop archive: `/tmp/OpenPolaris-linux-x64-ea3436c.tar.gz`
+  SHA-256: `939bb0dc24bff383400060552d390268692bb871e5e97b95f6e4f06920c0e357`
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. These are host/package checks only; no live fine-rate, solve, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

@@ -1248,3 +1248,33 @@ Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
 the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
 notices. This is host/package evidence only; no live Astro WebUI, Bluetooth,
 bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+
+## Latest committed verification - bc0b782
+
+Commit under test: bc0b782 (feat: add astro panorama interval control).
+
+Focused panorama-control verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiProgrammeControlTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeControlTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 233f77376d43e5366d5a2850fba958ef4982203417d5d689aff83060e460449e
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-bc0b782.tar.gz
+  SHA-256: 16a1b327add0dc5dfd97f37e3a8620c93b4ce0b2c6b650b4318466d9c1a75237
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
+notices. Host/package evidence only; no live Astro WebUI, Bluetooth, bridge,
+camera, mount or physical SLOW qualification was exercised.

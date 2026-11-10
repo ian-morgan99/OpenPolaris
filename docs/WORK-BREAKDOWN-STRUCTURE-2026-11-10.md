@@ -773,3 +773,18 @@ The current implementation slice must not send a new motor frame, alter firmware
   AstroWebUiProgrammeComposerContractTest, FeatureFlagsTest, shared JVM tests,
   Compose JVM tests and Compose JVM compilation passed. No live Astro WebUI,
   camera, mount, Bluetooth or physical SLOW operation was exercised.
+
+
+
+- **2026-11-10 - WBS-06.1/08.2 ACTIVE (Astro panorama interval control):**
+  added the source /api/prog/pano/interval resident-programme control. The
+  seconds value is bounded before transport, uses the dedicated preview/WebUI
+  port, remains behind the existing programme-write gate, and is only shown
+  for an observed panorama run. Mission labels the change as a request and
+  keeps resident programme polling authoritative; default configuration still
+  sends no write.
+- **2026-11-10 - verification:** AstroWebUiProgrammeControlTest and
+  AppViewModelAstroWebUiProgrammeControlTest passed for exact route/body,
+  unsafe-range rejection, default blocking and preview-port routing. Full
+  shared/Compose/Android/desktop build passed. No live Astro WebUI or mount
+  operation was exercised.

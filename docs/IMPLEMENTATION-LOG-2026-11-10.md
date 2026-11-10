@@ -1182,3 +1182,25 @@ Focused verification passed:
 
 No live Astro WebUI, camera, mount, Bluetooth or physical SLOW operation was
 exercised.
+
+
+
+### WBS-06.1/08.2 — Astro WebUI panorama interval control
+
+Commit bc0b782 adds the source /api/prog/pano/interval route to the existing
+programme-control seam.
+
+- The shared adapter validates 0..3600 seconds before transport and sends the
+  exact seconds form field to the dedicated WebUI port.
+- The Mission surface shows the field only for an observed panorama and only
+  inside the existing default-off programme-write gate.
+- The ViewModel keeps the action session-owned and reports HTTP acceptance as a
+  request; /api/prog polling remains authoritative.
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiProgrammeControlTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeControlTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+No live Astro WebUI or mount operation was exercised.

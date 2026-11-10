@@ -2690,6 +2690,32 @@ class AppViewModel(
             statusMessage = "Invalid Demo fine-rate direction"
             return
         }
+        val amount = 0.1 * direction
+        demoFineRateApplyTargets(
+            m1Pan = if (axis == RateAxis.M1_PAN) amount else 0.0,
+            m2Tilt = if (axis == RateAxis.M2_TILT) amount else 0.0,
+            m3Rotation = if (axis == RateAxis.M3_ROTATION) amount else 0.0,
+            statusLabel = "${axis.name} ${if (direction > 0) "A" else "B"} · 0.1°/s",
+        )
+    }
+
+    /**
+     * Apply a complete multi-axis logical fine-rate request.
+     *
+     * Draft values remain in the UI until this method is called. Validation is
+     * repeated here before taking the shared motion lease, so malformed or
+     * out-of-range mobile input cannot reserve the mount owner.
+     */
+    fun demoFineRateApplyTargets(
+        m1Pan: Double,
+        m2Tilt: Double,
+        m3Rotation: Double,
+        statusLabel: String = "M1 ${formatDemoRate(m1Pan)} · M2 ${formatDemoRate(m2Tilt)} · M3 ${formatDemoRate(m3Rotation)}",
+    ) {
+        if (!demoMode) {
+            statusMessage = "Fine-rate transport is not qualified for live hardware"
+            return
+        }
         if (demoFineRateJob?.isActive == true) return
         demoFineRateJob = scope.launch {
             try {
@@ -2697,6 +2723,19 @@ class AppViewModel(
                 val ready = demoFineRate.state.value as? RateAdjustState.Ready
                 if (ready == null) {
                     statusMessage = "Fine correction unavailable: ${demoFineRateStateReason()}"
+                    return@launch
+                }
+                val request = RateAdjustRequest(
+                    baseProfile = TrackingRate.SIDEREAL,
+                    m1Pan = m1Pan,
+                    m2Tilt = m2Tilt,
+                    m3Rotation = m3Rotation,
+                    version = demoFineRateVersion + 1,
+                    capability = ready.capability.identity,
+                )
+                val validation = ready.capability.validate(request)
+                if (validation != null) {
+                    statusMessage = "Fine correction rejected: ${validation}"
                     return@launch
                 }
                 val lease = when (val acquired = motionSupervisor.acquire(MotionOwner.TRACKING_CORRECTION)) {
@@ -2711,18 +2750,10 @@ class AppViewModel(
                     }
                 }
                 demoFineRateLease = lease
-                val amount = 0.1 * direction
-                val request = RateAdjustRequest(
-                    baseProfile = TrackingRate.SIDEREAL,
-                    m1Pan = if (axis == RateAxis.M1_PAN) amount else 0.0,
-                    m2Tilt = if (axis == RateAxis.M2_TILT) amount else 0.0,
-                    m3Rotation = if (axis == RateAxis.M3_ROTATION) amount else 0.0,
-                    version = ++demoFineRateVersion,
-                    capability = ready.capability.identity,
-                )
+                demoFineRateVersion = request.version
                 when (val result = demoFineRate.apply(request)) {
                     is RateCommandResult.Accepted -> {
-                        statusMessage = "Demo fine correction active: ${axis.name} ${if (direction > 0) "A" else "B"} · 0.1°/s (no hardware command)"
+                        statusMessage = "Demo fine correction active: ${statusLabel} (no hardware command)"
                     }
                     is RateCommandResult.Rejected -> {
                         demoFineRateLease = null
@@ -2740,6 +2771,9 @@ class AppViewModel(
             }
         }
     }
+
+    private fun formatDemoRate(value: Double): String =
+        if (value == 0.0) "0.0°/s" else "${value}°/s"
 
     /** Stop logical fine correction before releasing its shared motion owner. */
     fun demoFineRateStop() {

@@ -2995,6 +2995,15 @@ private fun DemoFineRateCard(
     modifier: Modifier = Modifier,
 ) {
     val state by vm.fineRateDemoState.collectAsState()
+    var m1PanDraft by remember { mutableStateOf("0.0") }
+    var m2TiltDraft by remember { mutableStateOf("0.0") }
+    var m3RotationDraft by remember { mutableStateOf("0.0") }
+    val m1Pan = m1PanDraft.toDoubleOrNull()
+    val m2Tilt = m2TiltDraft.toDoubleOrNull()
+    val m3Rotation = m3RotationDraft.toDoubleOrNull()
+    val draftValid = listOf(m1Pan, m2Tilt, m3Rotation).all { value ->
+        value != null && value.isFinite() && value in -1.0..1.0
+    }
     val active = state is dev.openpolaris.core.domain.RateAdjustState.Active ||
         state is dev.openpolaris.core.domain.RateAdjustState.Applying
     val stopRequired = active || state is dev.openpolaris.core.domain.RateAdjustState.Stale
@@ -3003,7 +3012,7 @@ private fun DemoFineRateCard(
         is dev.openpolaris.core.domain.RateAdjustState.Ready -> "Ready for logical rehearsal"
         is dev.openpolaris.core.domain.RateAdjustState.Applying -> "Applying logical request…"
         is dev.openpolaris.core.domain.RateAdjustState.Active ->
-            "Active · ${value.request.target(selectedAxis)}°/s on ${selectedAxis.name}"
+            "Active · M1 ${value.request.m1Pan} · M2 ${value.request.m2Tilt} · M3 ${value.request.m3Rotation}°/s"
         is dev.openpolaris.core.domain.RateAdjustState.Stale -> "Recovery required: ${value.reason}"
         is dev.openpolaris.core.domain.RateAdjustState.Faulted -> "Faulted: ${value.reason}"
     }
@@ -3031,6 +3040,84 @@ private fun DemoFineRateCard(
                 modifier = Modifier.fillMaxWidth().testTag("fine-rate-demo-prepare"),
             ) {
                 Text("Prepare synthetic solve for demo")
+            }
+            Text(
+                "Draft targets · range −1.0 to +1.0°/s · apply sends one complete request",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .testTag("fine-rate-demo-target-row"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OutlinedTextField(
+                    value = m1PanDraft,
+                    onValueChange = { m1PanDraft = it },
+                    label = { Text("M1 °/s") },
+                    singleLine = true,
+                    isError = !m1PanDraft.toDoubleOrNull().let { it != null && it in -1.0..1.0 },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.width(92.dp).testTag("fine-rate-demo-m1"),
+                )
+                OutlinedTextField(
+                    value = m2TiltDraft,
+                    onValueChange = { m2TiltDraft = it },
+                    label = { Text("M2 °/s") },
+                    singleLine = true,
+                    isError = !m2TiltDraft.toDoubleOrNull().let { it != null && it in -1.0..1.0 },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.width(92.dp).testTag("fine-rate-demo-m2"),
+                )
+                OutlinedTextField(
+                    value = m3RotationDraft,
+                    onValueChange = { m3RotationDraft = it },
+                    label = { Text("M3 °/s") },
+                    singleLine = true,
+                    isError = !m3RotationDraft.toDoubleOrNull().let { it != null && it in -1.0..1.0 },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.width(92.dp).testTag("fine-rate-demo-m3"),
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Button(
+                    onClick = {
+                        vm.demoFineRateApplyTargets(
+                            m1Pan = m1Pan ?: Double.NaN,
+                            m2Tilt = m2Tilt ?: Double.NaN,
+                            m3Rotation = m3Rotation ?: Double.NaN,
+                        )
+                    },
+                    enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready && draftValid,
+                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-apply"),
+                ) {
+                    Text("Apply targets")
+                }
+                OutlinedButton(
+                    onClick = {
+                        m1PanDraft = "0.0"
+                        m2TiltDraft = "0.0"
+                        m3RotationDraft = "0.0"
+                    },
+                    enabled = !active,
+                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-cancel"),
+                ) {
+                    Text("Cancel draft")
+                }
             }
             Row(
                 Modifier.fillMaxWidth(),

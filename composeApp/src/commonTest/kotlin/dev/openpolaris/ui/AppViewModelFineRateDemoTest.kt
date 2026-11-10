@@ -55,6 +55,67 @@ class AppViewModelFineRateDemoTest {
         }
 
     @Test
+    fun demoFineRateAppliesCompleteMultiAxisDraftAtomically() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+                vm.startTracking()
+                runCurrent()
+                vm.prepareDemoFineRate()
+                runCurrent()
+
+                vm.demoFineRateApplyTargets(m1Pan = 0.25, m2Tilt = -0.5, m3Rotation = 0.75)
+                runCurrent()
+
+                val active = assertIs<RateAdjustState.Active>(vm.fineRateDemoState.value)
+                assertEquals(0.25, active.request.m1Pan)
+                assertEquals(-0.5, active.request.m2Tilt)
+                assertEquals(0.75, active.request.m3Rotation)
+                assertTrue(vm.statusMessage.contains("M1 0.25°/s"))
+                assertTrue(vm.statusMessage.contains("M2 -0.5°/s"))
+                assertTrue(vm.statusMessage.contains("M3 0.75°/s"))
+
+                vm.demoFineRateStop()
+                runCurrent()
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
+    fun invalidDemoFineRateDraftDoesNotReserveMotionOwner() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+                vm.startTracking()
+                runCurrent()
+                vm.prepareDemoFineRate()
+                runCurrent()
+
+                vm.demoFineRateApplyTargets(m1Pan = 1.1, m2Tilt = 0.0, m3Rotation = 0.0)
+                runCurrent()
+
+                assertIs<RateAdjustState.Ready>(vm.fineRateDemoState.value)
+                assertEquals(MotionState.Idle, vm.motionState.value)
+                assertTrue(vm.statusMessage.contains("outside the qualified range"))
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
     fun fineRateRehearsalBlocksConcurrentSlowMotionOwner() =
         runTest(UnconfinedTestDispatcher()) {
             val vm = AppViewModel(

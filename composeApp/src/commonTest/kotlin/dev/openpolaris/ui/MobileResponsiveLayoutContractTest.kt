@@ -119,14 +119,17 @@ class MobileResponsiveLayoutContractTest {
     }
 
     @Test
-    fun phonePrimaryNavigationUsesStandardNavigationBarSemantics() {
+    fun phonePrimaryNavigationUsesCompactTextTargets() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = stripComments(src)
-        assertTrue("NavigationBar(" in noComments, "phone navigation must use a standard NavigationBar")
-        assertTrue("NavigationBarItem(" in noComments, "phone navigation must expose semantic navigation items")
-        assertTrue("alwaysShowLabel = true" in noComments, "primary destinations must remain readable without hover")
+        assertTrue("CompactDestinationBar(" in noComments, "phone layout must use the compact destination bar")
+        assertTrue("CompactDestinationItem(" in noComments, "each primary destination needs a compact semantic target")
+        assertTrue("height(48.dp)" in noComments, "compact navigation must retain a safe 48 dp touch row")
+        assertTrue("PaddingValues(horizontal = 2.dp)" in noComments, "compact destinations must remove the oversized icon-slot padding")
+        assertFalse("NavigationBarItem(" in noComments, "phone navigation must not restore the oversized icon-and-label items")
         assertTrue("testTag(\"primary-navigation\")" in noComments, "primary navigation needs a stable automation target")
         assertTrue("testTag(\"destination-more\")" in noComments, "advanced actions must remain reachable through More")
+        assertTrue("role = Role.Tab" in noComments, "compact destinations must retain navigation semantics")
     }
 
     // --- (3) Three tall panes redesigned ----------------------------

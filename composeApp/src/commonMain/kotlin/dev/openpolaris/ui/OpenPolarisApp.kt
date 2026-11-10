@@ -9,7 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,8 +21,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -271,7 +272,7 @@ fun OpenPolarisApp(
                     CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     StatusStrip(
                         vm,
                         Modifier.fillMaxWidth(),
@@ -289,7 +290,7 @@ fun OpenPolarisApp(
                         onOpenGallery = { openDestination(AppDestination.GALLERY) },
                         compassHeadingSource = compassHeadingSource,
                     )
-                    PrimaryDestinationBar(
+                    CompactDestinationBar(
                         selected = activeDestination,
                         onSelect = ::openDestination,
                         onAdvancedSelect = ::openAdvanced,
@@ -455,40 +456,63 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Primary workflow navigation. The existing callout model remains available
- * for advanced and diagnostic actions, while these typed destinations provide
- * the same stable information architecture on phone, tablet and PC.
+ * Compact phone navigation: text-only, one 48 dp touch row.
+ *
+ * Material3 NavigationBar reserves a large icon slot above every label. That
+ * is useful on a tablet, but wastes most of a phone's vertical workspace when
+ * the labels already identify the destinations. The row keeps the accessible
+ * 48 dp touch target while removing the oversized glyphs and reducing the
+ * visual bar to one line.
  */
 @Composable
-private fun PrimaryDestinationBar(
+private fun CompactDestinationBar(
     selected: AppDestination,
     onSelect: (AppDestination) -> Unit,
     onAdvancedSelect: (Callout) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier) {
-        NavigationBar(
-            modifier = Modifier.fillMaxWidth().testTag("primary-navigation"),
+    Box(
+        modifier
+            .height(48.dp)
+            .testTag("primary-navigation"),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             primaryAppDestinations.forEach { destination ->
-                NavigationBarItem(
+                CompactDestinationItem(
+                    label = destination.label,
                     selected = selected == destination,
                     onClick = { onSelect(destination) },
-                    icon = { Text(destination.label.take(1)) },
-                    label = { Text(destination.label) },
-                    alwaysShowLabel = true,
-                    modifier = Modifier.testTag("destination-" + destination.name.lowercase()),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .testTag("destination-" + destination.name.lowercase()),
                 )
             }
-            NavigationBarItem(
-                selected = expanded,
+            TextButton(
                 onClick = { expanded = true },
-                icon = { Text("...") },
-                label = { Text("More") },
-                alwaysShowLabel = true,
-                modifier = Modifier.testTag("destination-more"),
-            )
+                contentPadding = PaddingValues(horizontal = 2.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .testTag("destination-more")
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "More destinations"
+                        stateDescription = if (expanded) "Expanded" else "Collapsed"
+                        role = Role.Tab
+                    },
+            ) {
+                Text(
+                    "More",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    fontWeight = if (expanded) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
         }
         DropdownMenu(
             expanded = expanded,
@@ -507,6 +531,31 @@ private fun PrimaryDestinationBar(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CompactDestinationItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 2.dp),
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = label
+            stateDescription = if (selected) "Selected" else "Not selected"
+            role = Role.Tab
+        },
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 

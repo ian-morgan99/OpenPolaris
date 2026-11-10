@@ -25,4 +25,15 @@ class RollingReleaseWorkflowContractTest {
         assertTrue("test -s apk-signer-sha256.txt" in workflow)
         assertFalse("awk -F': *' '/SHA-256 digest/ {print $2}' | head -1 > apk-sha256.txt" in workflow)
     }
+    @Test
+    fun rollingReleaseIsPushOrManualOnly() {
+        val workflow = source(".github/workflows/publish-rolling.yml")
+
+        assertTrue("push:" in workflow)
+        assertTrue("branches: [main]" in workflow)
+        assertTrue("workflow_dispatch:" in workflow)
+        assertFalse("schedule:" in workflow)
+        assertFalse("cron:" in workflow)
+    }
+
 }

@@ -16,11 +16,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    # Keep a usable phone-test build available even during stretches with no
-    # merge activity. The rolling release remains a prerelease and is never
-    # promoted to a stable version by this schedule.
-    - cron: '0 18 * * 5'
 
 permissions:
   contents: write

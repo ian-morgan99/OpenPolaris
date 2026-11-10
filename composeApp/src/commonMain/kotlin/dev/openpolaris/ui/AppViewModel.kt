@@ -681,6 +681,7 @@ class AppViewModel(
     )
     private var demoSlowMotionLease: SlowMotionLease? = null
     private var demoSlowMotionJob: Job? = null
+    private var demoSlowMotionStopJob: Job? = null
     var slowMotionDemoState by mutableStateOf(SlowMotionDemoSnapshot())
         private set
     /**
@@ -2259,7 +2260,12 @@ class AppViewModel(
         }
 
         val previous = demoSlowMotionJob
+        val pendingStop = demoSlowMotionStopJob
         demoSlowMotionJob = scope.launch {
+            // A release requested by the previous press/release cycle owns
+            // the same SLOW controller. Finish that boundary before a new
+            // direction can acquire it again.
+            pendingStop?.join()
             previous?.cancelAndJoin()
             demoSlowMotionLease?.let { lease ->
                 when (demoSlowMotion.state.value) {
@@ -2347,31 +2353,40 @@ class AppViewModel(
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
         }
+        if (demoSlowMotionStopJob?.isActive == true) return
         val previous = demoSlowMotionJob
         demoSlowMotionJob = null
-        scope.launch {
-            previous?.cancelAndJoin()
-            val lease = demoSlowMotionLease
-            if (lease != null) {
-                when (val result = demoSlowMotion.release(lease)) {
-                    SlowMotionActionResult.Stopped -> Unit
-                    is SlowMotionActionResult.Unknown ->
-                        statusMessage = "Demo slow-motion stop outcome unknown: ${result.reason}"
-                    else -> Unit
+        val stopJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
+            try {
+                previous?.cancelAndJoin()
+                val lease = demoSlowMotionLease
+                if (lease != null) {
+                    when (val result = demoSlowMotion.release(lease)) {
+                        SlowMotionActionResult.Stopped -> Unit
+                        is SlowMotionActionResult.Unknown ->
+                            statusMessage = "Demo slow-motion stop outcome unknown: ${result.reason}"
+                        else -> Unit
+                    }
+                }
+                demoSlowMotionLease = null
+                val stops = RateAxis.entries.map { axis ->
+                    SlowScheduleCommand(axis, dev.openpolaris.core.domain.SlowScheduleKind.STOP)
+                }
+                slowMotionDemoState = slowMotionDemoState.copy(
+                    running = false,
+                    direction = 0,
+                    level = 0,
+                    lastEvents = stops,
+                )
+                statusMessage = "Demo slow motion stopped (${stops.size} logical stop transitions)"
+            } finally {
+                if (demoSlowMotionStopJob === currentCoroutineContext()[Job]) {
+                    demoSlowMotionStopJob = null
                 }
             }
-            demoSlowMotionLease = null
-            val stops = RateAxis.entries.map { axis ->
-                SlowScheduleCommand(axis, dev.openpolaris.core.domain.SlowScheduleKind.STOP)
-            }
-            slowMotionDemoState = slowMotionDemoState.copy(
-                running = false,
-                direction = 0,
-                level = 0,
-                lastEvents = stops,
-            )
-            statusMessage = "Demo slow motion stopped (${stops.size} logical stop transitions)"
         }
+        demoSlowMotionStopJob = stopJob
+        stopJob.start()
     }
 
     /**
@@ -2382,10 +2397,17 @@ class AppViewModel(
         val previous = demoSlowMotionJob
         demoSlowMotionJob = null
         previous?.cancel()
+        demoSlowMotionStopJob?.cancel()
+        demoSlowMotionStopJob = null
         val lease = demoSlowMotionLease
         demoSlowMotionLease = null
         if (lease != null) {
-            scope.launch {
+            // Disconnect is a hard session boundary. The Demo transport is
+            // local today, but this synchronous owner release preserves the
+            // same stop-before-reconnect contract required by a future
+            // qualified physical adapter and prevents a queued stop job from
+            // publishing stale status after disconnect.
+            runBlocking {
                 when (demoSlowMotion.state.value) {
                     is dev.openpolaris.core.domain.SlowMotionState.Holding ->
                         demoSlowMotion.onDisconnected(lease)

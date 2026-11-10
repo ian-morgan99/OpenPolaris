@@ -2,6 +2,7 @@ package dev.openpolaris.ui
 
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountMode
+import dev.openpolaris.core.domain.RateAxis
 import dev.openpolaris.core.session.SessionMarker
 import dev.openpolaris.core.session.SessionStore
 import kotlinx.coroutines.CancellationException
@@ -787,6 +788,33 @@ class AppViewModelSessionMarkerTest {
         } finally {
             vm.disconnect()
             markerIo.releaseAndJoin()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectCancelsPendingDemoSlowStopStatus() = runTest {
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.connectDemo(startPolling = false)
+            advanceUntilIdle()
+
+            vm.demoSlowMotionStart(RateAxis.M1_PAN, direction = 1, level = 1)
+            runCurrent()
+            assertTrue(vm.slowMotionDemoState.running, "precondition: Demo SLOW should be active")
+
+            vm.demoSlowMotionStop()
+            vm.disconnect()
+            runCurrent()
+
+            assertFalse(vm.slowMotionDemoState.running)
+            assertFalse(
+                vm.statusMessage.contains("Demo slow motion stopped"),
+                "a queued Demo SLOW stop must not publish stale status after disconnect",
+            )
+        } finally {
+            vm.disconnect()
             vm.preview.shutdown()
         }
     }

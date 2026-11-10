@@ -532,3 +532,14 @@ The current implementation slice must not send a new motor frame, alter firmware
   queued marker write, disconnects, then releases the dispatcher; the
   persisted marker remains absent. The full session-marker suite passed. No
   live mount or network operation was exercised.
+
+
+- **2026-11-10 - WBS-03.6/02.2 ACTIVE (Demo SLOW stop ownership):** Demo
+  SLOW release is now a retained job with explicit ordering against the next
+  direction. Disconnect cancels queued UI stop work, synchronously settles the
+  owner lease through the disconnect boundary, resets the logical state and
+  prevents a stale post-disconnect stop status.
+- **2026-11-10 - verification:** AppViewModelSessionMarkerTest proves a
+  queued Demo SLOW stop cannot publish its completion status after disconnect.
+  Live SLOW remains disabled pending firmware, acknowledgement and physical
+  qualification evidence.

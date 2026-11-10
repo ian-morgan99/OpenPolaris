@@ -746,3 +746,22 @@ Verification passed:
 Result: BUILD SUCCESSFUL; 40 session-marker tests passed, including the gated
 queued-marker cancellation regression. No live mount or network operation was
 exercised.
+
+
+### WBS-03.6/02.2 - Demo SLOW stop ownership
+
+Closed a lifecycle race in the Demo SLOW interaction. Press-release stop is
+now retained as a job, repeated direction input waits for the prior release,
+and disconnect cancels queued UI stop work before synchronously settling the
+Demo owner lease. The disconnect path resets the logical SLOW snapshot without
+allowing a stale stop coroutine to overwrite the disconnected status.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionMarkerTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the session-marker suite passed, including the Demo
+SLOW disconnect regression. Live SLOW remains gated and no hardware operation
+was exercised.

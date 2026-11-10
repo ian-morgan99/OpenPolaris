@@ -288,3 +288,4 @@ The first slice must not send a new motor frame, alter firmware, alter network c
 - **Next:** build the pure SLOW planner/scheduler and MotionSupervisor tests. No live motor adapter is enabled.
 
 - **2026-11-10 — WBS-03.4 DONE (pure seam):** added the calibration-driven SLOW planner and clock-driven scheduler with shared levels, torque-preserving zero holds, minimum dwell and one-shot STOP events; no transport adapter is connected.
+- **2026-11-10 — WBS-03.1 DONE (contract only):** added the shared MotionSupervisor ownership/lease seam with emergency-stop priority, wrong-lease rejection and fault blocking; no controller is wired to a new live transport.

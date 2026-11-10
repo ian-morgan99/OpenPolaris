@@ -204,6 +204,8 @@
 
 - Persist validated location and user preferences locally with clear scope; distinguish head-persisted values.
 
+- **2026-11-10 — WBS-08.1 ACTIVE:** added a bounded, versioned UserPreferencesStore separate from mount session identity. Desktop injects it into the shared shell so the red/dim choice survives restart; mobile hosts can inject an app-sandbox path. Passwords and mount state remain excluded.
+
 ### WBS-08.2 — Health/evidence centre — P1
 
 - Event timeline, raw frame/log export, build identity, firmware identity, capability matrix and support bundle.

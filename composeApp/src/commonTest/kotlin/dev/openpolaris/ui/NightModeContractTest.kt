@@ -23,5 +23,8 @@ class NightModeContractTest {
         assertTrue("OpenPolarisTheme(dim = dimMode)" in shell)
         assertTrue("night-dim-toggle" in shell)
         assertTrue("Bright" in shell)
+        assertTrue("preferenceStore" in shell)
+        assertTrue("UserPreferences" in shell)
+        assertTrue("setDimMode(!dimMode)" in shell)
     }
 }

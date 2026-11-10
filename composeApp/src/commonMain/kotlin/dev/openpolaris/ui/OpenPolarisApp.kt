@@ -26,6 +26,7 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +45,12 @@ import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.UserPreferences
+import dev.openpolaris.core.session.UserPreferencesStore
 import dev.openpolaris.core.session.path.defaultSessionPath
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -71,6 +77,11 @@ fun OpenPolarisApp(
     onLaunchVr: (() -> Unit)? = null,
     viewModel: AppViewModel? = null,
     sessionStore: SessionStore? = null,
+    /**
+     * Optional durable preferences store. Desktop injects a file-backed store;
+     * mobile hosts can inject an app-sandbox path. Null keeps the UI session-only.
+     */
+    preferenceStore: UserPreferencesStore? = null,
     /**
      * Desktop-only: bridge the segregated Wi-Fi interface to the gimbal.
      * Receives a `progress: (String) -> Unit` callback the bridge calls
@@ -135,7 +146,29 @@ fun OpenPolarisApp(
     var dialog by remember { mutableStateOf<Callout?>(null) }
     var missionOpen by remember { mutableStateOf(false) }
     var galleryOpen by remember { mutableStateOf(false) }
+    var preferences by remember { mutableStateOf(UserPreferences()) }
     var dimMode by remember { mutableStateOf(false) }
+
+    LaunchedEffect(preferenceStore) {
+        if (preferenceStore != null) {
+            val loaded = withContext(Dispatchers.IO) { preferenceStore.read() }
+            if (loaded != null) {
+                preferences = loaded
+                dimMode = loaded.dimMode
+            }
+        }
+    }
+
+    fun setDimMode(value: Boolean) {
+        dimMode = value
+        preferences = preferences.copy(dimMode = value)
+        preferenceStore?.let { store ->
+            val snapshot = preferences
+            scope.launch(Dispatchers.IO) {
+                store.write(snapshot)
+            }
+        }
+    }
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
     // Compact *height* (typically 360 dp) which can't host a full 9-item
     // rail without the items being shrunk to glyph-sized labels — exactly
@@ -160,7 +193,7 @@ fun OpenPolarisApp(
                             onOpenDetails = { missionOpen = true },
                             onOpenGallery = { galleryOpen = true },
                             dimMode = dimMode,
-                            onToggleDim = { dimMode = !dimMode },
+                            onToggleDim = { setDimMode(!dimMode) },
                         )
                         PositionReadout(vm, Modifier.fillMaxWidth())
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -177,7 +210,7 @@ fun OpenPolarisApp(
                         onOpenDetails = { missionOpen = true },
                         onOpenGallery = { galleryOpen = true },
                         dimMode = dimMode,
-                        onToggleDim = { dimMode = !dimMode },
+                        onToggleDim = { setDimMode(!dimMode) },
                     )
                     PositionReadout(vm, Modifier.fillMaxWidth())
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {

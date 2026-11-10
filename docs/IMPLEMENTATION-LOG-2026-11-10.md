@@ -1329,3 +1329,9 @@ Focused and full cross-platform verification passed. The APK remains package/sim
 Commit `8672e9d` fixes the Android host's recomposition boundary: `remember` now retains the single AppViewModel for the Activity composition, while `onResume`, the Wi-Fi scan flow and the shared shell continue to use that same instance. The previous direct constructor could replace a live session during any state-driven recomposition.
 
 Focused and full cross-platform verification passed. This closes a lifecycle defect in source and package evidence; it does not claim live hardware qualification.
+
+### WBS-10.3 - Rolling phone-test checksum provenance
+
+Commit `9d24d06` fixes the rolling release evidence contract. The published `apk-sha256.txt` now hashes the APK artifact itself; `apk-signer-sha256.txt` separately identifies the release certificate. `RollingReleaseWorkflowContractTest` prevents the previous signer/artifact confusion from returning.
+
+The workflow still requires the protected release keystore secrets and an external push to `main`; no GitHub job or phone installation was claimed from this local test.

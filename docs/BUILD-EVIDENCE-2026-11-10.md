@@ -2290,3 +2290,18 @@ Android debug APK:
 This is package/source-contract evidence only. Live Android recomposition,
 station-LAN listener reachability, phone Bluetooth GATT wake, mount, camera,
 Astro WebUI and physical SLOW qualification remain unverified.
+
+## Latest committed verification - 9d24d06
+
+Commit under test: 9d24d06 (fix: publish correct rolling APK checksum).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.RollingReleaseWorkflowContractTest :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+The workflow now computes `sha256sum "${APK}" > apk-sha256.txt` and separately
+records the signing certificate digest in `apk-signer-sha256.txt`. This is a
+source-contract check only; GitHub execution, signing secrets and phone install
+remain external verification.

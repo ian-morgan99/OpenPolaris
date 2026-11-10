@@ -1972,3 +1972,35 @@ Artifacts:
 The focus/video rehearsal is simulator/package evidence only. No live Astro
 WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was
 performed.
+
+
+## Latest committed verification - ef52ca2
+
+Commit under test: ef52ca2 (feat: rehearse demo observation programmes).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM XML reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 97860b843bcb1282a707baa19786099117e2ba3ce7313ecd092ac2cb87a192bf
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-programmes.tar.gz
+  SHA-256: 4e04062bf473057a37967f26b39440628f5783898f431c7890adeb73043550c8
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The HDR observation-programme rehearsal is simulator/package evidence only.
+Live non-lapse programme execution, Astro WebUI, Bluetooth, bridge, camera, SD
+card, mount and physical SLOW qualification remain unverified.

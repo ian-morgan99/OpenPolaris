@@ -2438,6 +2438,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
+    var showShortcuts by remember { mutableStateOf(false) }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
@@ -2531,6 +2532,19 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            OutlinedButton(
+                onClick = { showShortcuts = !showShortcuts },
+                modifier = Modifier.testTag("slow-motion-shortcuts"),
+            ) {
+                Text(if (showShortcuts) "Hide shortcuts" else "Keyboard shortcuts")
+            }
+            if (showShortcuts) {
+                Text(
+                    "Keyboard: Tab to a direction, hold Enter or Space to move, and release the key to stop. Focus leaving a direction also stops it. Tab to STOP ALL for the emergency boundary. These shortcuts exercise the same owner as touch; they never create a second repeat loop.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("slow-motion-shortcuts-help"),
+                )
+            }
 
             Text("Speed rail", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

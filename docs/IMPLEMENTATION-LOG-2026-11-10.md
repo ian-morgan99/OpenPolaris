@@ -195,6 +195,29 @@ No programme write route, resident Astro WebUI, camera, mount or physical
 hardware was exercised. The Compose composer/two-tap controls and named-head
 qualification remain the next UX/field slices.
 
+### WBS-01.1/01.3 - Typed responsive destinations
+
+Added the first adaptive-shell navigation layer shared by phone and PC:
+
+- Mission, Control, Camera, Astro and Gallery are typed primary destinations.
+- Compact layouts use a five-destination bar plus a More overflow for
+  connection, preview, helpers, firmware, guide, VR and settings.
+- Wide layouts use a primary destination rail and retain a separate advanced
+  callout rail.
+- Mission and Astro open the existing readiness surface with truthful titles;
+  Control and Camera preserve their existing gated panes; Gallery preserves
+  its export lifecycle.
+
+The old callout routes remain available during this transitional shell slice;
+the next shell work is to replace modal primary surfaces with responsive
+inline workspaces and add rendered semantics/screenshot coverage.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --rerun-tasks --console=plain --no-daemon
+~~~
+
 ### WBS-03.1/03.2 - Fast-jog ownership seam
 
 FastJogController now accepts the shared MotionSupervisor. A verified duration

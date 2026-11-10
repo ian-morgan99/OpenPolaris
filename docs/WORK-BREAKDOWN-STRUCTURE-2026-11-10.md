@@ -334,6 +334,12 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused MissionReadiness and mobile-layout tests passed after adding storage/alignment boundaries.
 - **2026-11-10 — WBS-01.1/01.3 ACTIVE (transitional shell):** added a touch/mouse/keyboard-accessible Mission details sheet from the persistent status strip, with endpoint identity, phase and all readiness rows; existing responsive callout navigation remains intact while the adaptive shell is expanded.
 - **2026-11-10 — verification:** Compose JVM suite passed after the Mission details integration.
+- **2026-11-10 - WBS-01.1/01.3 ACTIVE (typed destinations):** added a shared
+  primary destination model and responsive Mission/Control/Camera/Astro/Gallery
+  navigation. Phone layouts use a compact destination bar with an advanced
+  overflow; wide layouts use a primary rail plus the existing advanced rail.
+  The original callout routes remain available and the navigation is still a
+  transitional shell rather than the final inline workspace.
 - **2026-11-10 — WBS-02.3 ACTIVE (truthful route UX):** Connection now shows endpoint identity, control/preview service state, phase and last failure; Bluetooth wake and PC bridge phases are represented separately, and the bridge callback now returns a verified Boolean so a false route result cannot claim readiness.
 - **2026-11-10 — verification:** focused preview/bridge tests passed, including false bridge result → FAILED endpoint evidence.
 - **2026-11-10 — WBS-04.1 ACTIVE (camera safety slice):** camera setting writes, single M/B capture and intervalometer admission now stop unless the mount's 286 snapshot positively reports an attached camera; explicit absence and unknown status are both non-optimistic, and the existing correlated 264/773 completion path is unchanged.

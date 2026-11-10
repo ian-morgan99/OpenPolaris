@@ -145,7 +145,9 @@ fun OpenPolarisApp(
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     var missionOpen by remember { mutableStateOf(false) }
+    var missionTitle by remember { mutableStateOf("Mission readiness") }
     var galleryOpen by remember { mutableStateOf(false) }
+    var activeDestination by remember { mutableStateOf(AppDestination.MISSION) }
     var preferences by remember { mutableStateOf(UserPreferences()) }
     var dimMode by remember { mutableStateOf(false) }
 
@@ -169,6 +171,37 @@ fun OpenPolarisApp(
             }
         }
     }
+
+    fun openDestination(destination: AppDestination) {
+        activeDestination = destination
+        dialog = null
+        missionOpen = false
+        galleryOpen = false
+        when (destination) {
+            AppDestination.MISSION -> {
+                missionTitle = "Mission readiness"
+                missionOpen = true
+            }
+            AppDestination.CONTROL -> dialog = Callout.Slew
+            AppDestination.CAMERA -> dialog = Callout.Camera
+            AppDestination.ASTRO -> {
+                missionTitle = "Astro mission"
+                missionOpen = true
+            }
+            AppDestination.GALLERY -> galleryOpen = true
+        }
+    }
+
+    fun openAdvanced(callout: Callout) {
+        missionOpen = false
+        galleryOpen = false
+        if (callout == Callout.VR) {
+            onLaunchVr?.invoke()
+        } else {
+            dialog = callout
+        }
+    }
+
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
     // Compact *height* (typically 360 dp) which can't host a full 9-item
     // rail without the items being shrunk to glyph-sized labels — exactly
@@ -186,12 +219,17 @@ fun OpenPolarisApp(
                     Modifier.fillMaxSize().padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    PrimaryDestinationRail(
+                        selected = activeDestination,
+                        onSelect = ::openDestination,
+                        modifier = Modifier.fillMaxHeight(),
+                    )
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatusStrip(
                             vm,
                             Modifier.fillMaxWidth(),
-                            onOpenDetails = { missionOpen = true },
-                            onOpenGallery = { galleryOpen = true },
+                            onOpenDetails = { openDestination(AppDestination.MISSION) },
+                            onOpenGallery = { openDestination(AppDestination.GALLERY) },
                             dimMode = dimMode,
                             onToggleDim = { setDimMode(!dimMode) },
                         )
@@ -200,15 +238,15 @@ fun OpenPolarisApp(
                             JogPane(vm, Modifier.width(260.dp))
                         }
                     }
-                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { dialog = it }
+                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusStrip(
                         vm,
                         Modifier.fillMaxWidth(),
-                        onOpenDetails = { missionOpen = true },
-                        onOpenGallery = { galleryOpen = true },
+                        onOpenDetails = { openDestination(AppDestination.MISSION) },
+                        onOpenGallery = { openDestination(AppDestination.GALLERY) },
                         dimMode = dimMode,
                         onToggleDim = { setDimMode(!dimMode) },
                     )
@@ -218,7 +256,12 @@ fun OpenPolarisApp(
                         // pad keeps the buttons at a tappable size.
                         JogPane(vm, Modifier.width(if (heightCompact) 220.dp else 300.dp))
                     }
-                    CalloutRail(vertical = false, Modifier.fillMaxWidth(), onLaunchVr) { dialog = it }
+                    PrimaryDestinationBar(
+                        selected = activeDestination,
+                        onSelect = ::openDestination,
+                        onAdvancedSelect = ::openAdvanced,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -276,7 +319,7 @@ fun OpenPolarisApp(
             }
 
             if (missionOpen) {
-                CalloutDialog("Mission readiness", { missionOpen = false }) {
+                CalloutDialog(missionTitle, { missionOpen = false }) {
                     MissionDashboardPane(
                         vm,
                         Modifier.fillMaxWidth(),
@@ -361,11 +404,109 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Phone layout: an Operate row (4 items) + a "More…" button that
- * drops down the remaining 6 items. Replaces the v0.1.7 10-item
- * horizontal rail which clipped icons to glyph-sized labels at 320
- * dp / 568 dp widths.
+ * Primary workflow navigation. The existing callout model remains available
+ * for advanced and diagnostic actions, while these typed destinations provide
+ * the same stable information architecture on phone, tablet and PC.
  */
+@Composable
+private fun PrimaryDestinationBar(
+    selected: AppDestination,
+    onSelect: (AppDestination) -> Unit,
+    onAdvancedSelect: (Callout) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        primaryAppDestinations.forEach { destination ->
+            DestinationButton(
+                destination = destination,
+                selected = selected == destination,
+                onClick = { onSelect(destination) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        AdvancedMenuButton(onSelect = onAdvancedSelect)
+    }
+}
+
+@Composable
+private fun PrimaryDestinationRail(
+    selected: AppDestination,
+    onSelect: (AppDestination) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier.width(92.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        primaryAppDestinations.forEach { destination ->
+            DestinationButton(
+                destination = destination,
+                selected = selected == destination,
+                onClick = { onSelect(destination) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DestinationButton(
+    destination: AppDestination,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.testTag("destination-" + destination.name.lowercase()),
+    ) {
+        Text(
+            destination.label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
+}
+
+private val AdvancedItems: List<Callout> = listOf(
+    Callout.Connection,
+    Callout.Preview,
+) + MoreItems
+
+@Composable
+private fun AdvancedMenuButton(onSelect: (Callout) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("destination-more"),
+        ) {
+            Text("More", style = MaterialTheme.typography.labelMedium)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AdvancedItems.forEachIndexed { i, callout ->
+                if (i > 0) HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(callout.glyph) },
+                    modifier = Modifier.testTag("callout-" + callout.name.lowercase()),
+                    onClick = {
+                        expanded = false
+                        onSelect(callout)
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun CalloutRail(
     vertical: Boolean,
@@ -383,7 +524,7 @@ private fun CalloutRail(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            (OperateItems + MoreItems).forEach { c -> CalloutButton(c, handle) }
+            AdvancedItems.forEach { c -> CalloutButton(c, handle) }
         }
     } else {
         // Phone layout: 4-item Operate row + "More…" overflow button.
@@ -409,7 +550,7 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            MoreItems.forEachIndexed { i, c ->
+            AdvancedItems.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
         DropdownMenuItem(
                     text = { Text(c.glyph) },

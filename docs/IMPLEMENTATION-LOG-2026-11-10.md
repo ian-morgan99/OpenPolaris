@@ -608,3 +608,12 @@ Verification passed:
 
 The SLOW controller, motion safety chrome, fast-jog owner and Astro WebUI
 capture lifecycle tests passed. No live mount or hardware was exercised.
+### WBS-03.5 - Qualification-gated SLOW runtime adapter
+
+Added QualifiedSlowMotionTransport as the first runtime-shaped seam between the owner-driven SLOW scheduler and the source-aligned 532/533/534 wire formatter. The adapter requires an evidence-backed SlowMotionCapabilityRecord.liveReady result before the sender callback can be reached, never falls back to AC 4A, treats the scheduler's first idle-axis STOP as a logical no-op, retains acknowledged active points for explicit STOP frames, and keeps the retained point after an UNKNOWN stop result so recovery cannot be reported as successful by accident. The default record remains unqualified and no live adapter is installed in AppViewModel.
+
+Focused verification passed:
+
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --tests dev.openpolaris.core.protocol.SlowMotionWireTest --tests dev.openpolaris.core.protocol.SlowMotionWireReplayTest :shared:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+
+Result: BUILD SUCCESSFUL; 22 tests passed. This is host-side contract evidence only. Exact firmware/gimbal/source-app identity, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence remain required before enabling live SLOW.

@@ -127,6 +127,8 @@ object FeatureFlags {
     const val astroWebUiCapture: Boolean = false
     /** Astro WebUI programme pause/stop writes; disabled until route qualification. */
     const val astroWebUiProgrammeControls: Boolean = false
+    /** Astro WebUI lapse/panorama/HDR/focus start writes; disabled until named-head qualification. */
+    const val astroWebUiProgrammeStarts: Boolean = false
 
     /** Delete / rename / protect are gated separately so a user can browse
      *  files without exposing the destructive actions. */
@@ -241,6 +243,7 @@ object FeatureFlags {
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
         "astroWebUiProgrammeControls" -> astroWebUiProgrammeControls
+        "astroWebUiProgrammeStarts" -> astroWebUiProgrammeStarts
         "astroWebUiCapture" -> astroWebUiCapture
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate

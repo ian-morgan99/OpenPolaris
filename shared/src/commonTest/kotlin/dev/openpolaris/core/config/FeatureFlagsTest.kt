@@ -57,6 +57,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("cameraFocusControl"), "Focus direction and repeat/stop behaviour must be qualified first")
         assertFalse(FeatureFlags.isEnabled("cameraVideo"), "Video lifecycle must be qualified first")
         assertFalse(FeatureFlags.isEnabled("astroWebUiProgrammeControls"), "Astro programme writes must remain off until route qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiProgrammeStarts"), "Astro programme starts must remain off until named-head qualification")
     }
 
     @Test

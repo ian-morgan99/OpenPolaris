@@ -28,6 +28,13 @@ import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
 import dev.openpolaris.core.domain.AstroWebUiProgrammeResult
+import dev.openpolaris.core.domain.AstroWebUiProgrammeStartClient
+import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
+import dev.openpolaris.core.domain.AstroWebUiProgrammeStartState
+import dev.openpolaris.core.domain.AstroWebUiLapseParameters
+import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
+import dev.openpolaris.core.domain.AstroWebUiHdrParameters
+import dev.openpolaris.core.domain.AstroWebUiFocusParameters
 import dev.openpolaris.core.domain.AstroWebUiProgrammeState
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
@@ -102,6 +109,7 @@ import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
+import dev.openpolaris.core.domain.createAstroWebUiProgrammeStartClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -234,6 +242,7 @@ class AppViewModel(
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
+    private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
@@ -1515,7 +1524,10 @@ class AppViewModel(
         astroWebUiProgrammePollJob = null
         astroWebUiProgrammeControlJob?.cancel()
         astroWebUiProgrammeControlJob = null
+        astroWebUiProgrammeStartJob?.cancel()
+        astroWebUiProgrammeStartJob = null
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
+        astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3527,6 +3539,10 @@ class AppViewModel(
         private set
     var astroWebUiProgramme by mutableStateOf<AstroWebUiProgrammeState>(AstroWebUiProgrammeState.Idle)
         private set
+    var astroWebUiProgrammeStartState by mutableStateOf<AstroWebUiProgrammeStartState>(
+        AstroWebUiProgrammeStartState.Idle,
+    )
+        private set
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
@@ -3534,6 +3550,7 @@ class AppViewModel(
     private var astroWebUiProgrammeJob: Job? = null
     private var astroWebUiProgrammePollJob: Job? = null
     private var astroWebUiProgrammeControlJob: Job? = null
+    private var astroWebUiProgrammeStartJob: Job? = null
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
@@ -3697,6 +3714,96 @@ class AppViewModel(
         val desired = !paused
         runAstroWebUiProgrammeControl(if (desired) "pause" else "resume") { client ->
             client.setPanoramaPaused(host, previewPort, desired)
+        }
+    }
+
+    fun startAstroWebUiLapse(parameters: AstroWebUiLapseParameters) {
+        runAstroWebUiProgrammeStart("timelapse start") { client ->
+            client.startLapse(host, previewPort, parameters)
+        }
+    }
+
+    fun previewAstroWebUiPanorama(parameters: AstroWebUiPanoramaParameters) {
+        runAstroWebUiProgrammeStart("panorama preview") { client ->
+            client.previewPanorama(host, previewPort, parameters)
+        }
+    }
+
+    fun startAstroWebUiPanorama(parameters: AstroWebUiPanoramaParameters) {
+        runAstroWebUiProgrammeStart("panorama start") { client ->
+            client.startPanorama(host, previewPort, parameters)
+        }
+    }
+
+    fun previewAstroWebUiHdr(parameters: AstroWebUiHdrParameters) {
+        runAstroWebUiProgrammeStart("HDR preview") { client ->
+            client.previewHdr(host, previewPort, parameters)
+        }
+    }
+
+    fun startAstroWebUiHdr(parameters: AstroWebUiHdrParameters) {
+        runAstroWebUiProgrammeStart("HDR start") { client ->
+            client.startHdr(host, previewPort, parameters)
+        }
+    }
+
+    fun validateAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
+        runAstroWebUiProgrammeStart("focus validation") { client ->
+            client.validateFocus(host, previewPort, parameters)
+        }
+    }
+
+    fun previewAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
+        runAstroWebUiProgrammeStart("focus preview") { client ->
+            client.previewFocus(host, previewPort, parameters)
+        }
+    }
+
+    fun startAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
+        runAstroWebUiProgrammeStart("focus start") { client ->
+            client.startFocus(host, previewPort, parameters)
+        }
+    }
+
+    private fun runAstroWebUiProgrammeStart(
+        action: String,
+        request: suspend (AstroWebUiProgrammeStartClient) -> AstroWebUiProgrammeStartResult,
+    ) {
+        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
+            astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
+                "Astro WebUI programme starts are disabled until named-head qualification",
+            )
+            statusMessage = "Astro WebUI programme starts are disabled until named-head qualification"
+            return
+        }
+        if (session == null) {
+            astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
+                "Connect to a mount before starting an Astro WebUI programme",
+            )
+            statusMessage = "Connect to a mount before starting an Astro WebUI programme"
+            return
+        }
+        if (astroWebUiProgrammeStartJob?.isActive == true) {
+            statusMessage = "An Astro WebUI programme request is already in progress"
+            return
+        }
+        astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Loading
+        astroWebUiProgrammeStartJob = scope.launch {
+            when (val result = request(astroWebUiProgrammeStartClient)) {
+                is AstroWebUiProgrammeStartResult.Preview -> {
+                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Preview(result)
+                    statusMessage = "Astro WebUI $action is ready; no programme was started"
+                }
+                is AstroWebUiProgrammeStartResult.Accepted -> {
+                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Accepted(result.kind)
+                    statusMessage = "Astro WebUI $action accepted; confirming through programme status"
+                    readAstroWebUiProgramme(announce = false)
+                }
+                is AstroWebUiProgrammeStartResult.Failure -> {
+                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
         }
     }
 

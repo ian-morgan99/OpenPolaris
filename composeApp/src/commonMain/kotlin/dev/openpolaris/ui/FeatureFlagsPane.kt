@@ -143,6 +143,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads resident timelapse, panorama, HDR, focus and other programme progress without starting, pausing or cancelling anything.", safe = true),
     FlagSpec("astroWebUiProgrammeControls", "Astro WebUI programme pause/stop (not qualified)",
         "Source-aligned pause/resume and stop requests remain disabled until write-route and hardware recovery evidence is recorded.", safe = false),
+    FlagSpec("astroWebUiProgrammeStarts", "Astro WebUI programme starts (not qualified)",
+        "Source-aligned lapse, panorama, HDR and focus start/preview routes remain disabled until named-head validation and recovery evidence are recorded.", safe = false),
     FlagSpec("astroWebUiCapture", "Astro WebUI shutter (M/B, queue-only)",
         "Source-aligned 264 dispatch for M/B capture. Default OFF until lifecycle, file-publication and named-firmware qualification are complete.", safe = false),
     FlagSpec("fileManager", "SD file list (702)",

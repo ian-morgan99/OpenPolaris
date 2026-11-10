@@ -163,3 +163,34 @@ Verification command:
 Added source-aligned /api/prog/cancel and /api/prog/pano/pause adapters and exposed their safety-gated Mission actions. The default remains disabled because the endpoints can alter a live resident run; an accepted HTTP acknowledgement is followed by a /api/prog read and is never treated as proof of physical completion.
 
 Verification is covered by AstroWebUiProgrammeControlTest. No live write route or hardware command was exercised.
+
+### WBS-06.3/08.2 — Astro WebUI programme preview/start seam
+
+Added a source-aligned, bounded programme client for the resident Astro WebUI:
+
+- Timelapse start uses /api/prog/lapse with the source interval, shots, bulb,
+  fps, confirm=1 form contract and rejects overlapping Bulb intervals before
+  transport.
+- Panorama preview/start use the /api/prog two-step contract. Preview exposes
+  the exact returned frame and preserves the source inferred marker; start adds
+  confirm=1.
+- HDR preview exposes the resolved frame/shutter summary; start adds confirm=1.
+- Focus validation, preview and start preserve the source distinction between
+  validation, preview=1 and confirm=1.
+- All four kinds validate the source bounds, use the dedicated WebUI/preview
+  port, enforce the safe-host policy and distinguish non-committing Preview
+  from Accepted start. Accepted is not completion; /api/prog remains the
+  status authority.
+- AppViewModel exposes lifecycle-safe, duplicate-request-blocked actions behind
+  a new default-off astroWebUiProgrammeStarts flag. Disconnect cancels the job
+  and clears stale start state.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiProgrammeStartTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeStartTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+No programme write route, resident Astro WebUI, camera, mount or physical
+hardware was exercised. The Compose composer/two-tap controls and named-head
+qualification remain the next UX/field slices.

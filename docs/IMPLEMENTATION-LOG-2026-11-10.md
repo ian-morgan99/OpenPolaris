@@ -145,3 +145,15 @@ Verification passed:
 ./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon
 ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon
 ```
+
+### WBS-06.1/08.2 — Astro WebUI programme polling parity
+
+The Mission readiness sheet now owns the read-only /api/prog poll lifecycle while it is visible. It follows Astro WebUI's source cadence: one-second reads during a resident programme and four-second reads while idle.
+
+- Manual Refresh and the visible-sheet poller are serialized by a shared mutex.
+- Leaving the Mission sheet or disconnecting cancels the poller; no background read survives the owner lifecycle.
+- Polling never starts, pauses, cancels or otherwise mutates a programme.
+
+Verification command:
+
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --rerun-tasks --console=plain --no-daemon

@@ -30,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.contentDescription
@@ -490,6 +491,10 @@ fun MissionDashboardPane(
     modifier: Modifier = Modifier,
     onAction: ((String) -> Unit)? = null,
 ) {
+    DisposableEffect(vm) {
+        vm.startAstroWebUiProgrammePolling()
+        onDispose { vm.stopAstroWebUiProgrammePolling() }
+    }
     val endpoint = vm.endpointHealth
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
         vm.capturePhase is AppViewModel.CapturePhase.Busy
@@ -579,6 +584,10 @@ fun MissionDashboardPane(
             }
             HorizontalDivider()
             Text("Resident programmes", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Read-only status refreshes every 4 s while idle and every 1 s while a resident run is active.",
+                style = MaterialTheme.typography.bodySmall,
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStatus"),

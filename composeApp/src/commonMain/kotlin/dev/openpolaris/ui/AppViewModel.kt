@@ -132,6 +132,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -1505,6 +1507,8 @@ class AppViewModel(
         astroWebUiSite = AstroWebUiSiteState.Idle
         astroWebUiProgrammeJob?.cancel()
         astroWebUiProgrammeJob = null
+        astroWebUiProgrammePollJob?.cancel()
+        astroWebUiProgrammePollJob = null
         astroWebUiProgramme = AstroWebUiProgrammeState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
@@ -3522,6 +3526,8 @@ class AppViewModel(
     private var astroWebUiStatusJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
+    private var astroWebUiProgrammePollJob: Job? = null
+    private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
     fun selectAstroMediaCategory(category: String?) {
@@ -3606,33 +3612,66 @@ class AppViewModel(
         }
     }
 
-    fun refreshAstroWebUiProgramme() {
-        astroWebUiProgrammeJob?.cancel()
-        astroWebUiProgrammeJob = scope.launch {
+    private suspend fun readAstroWebUiProgramme(announce: Boolean): Boolean =
+        astroWebUiProgrammeReadMutex.withLock {
             if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
                 astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
-                return@launch
+                return@withLock false
             }
             if (session == null) {
                 astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Connect to a mount before reading its Astro WebUI programme status")
-                return@launch
+                return@withLock false
             }
             astroWebUiProgramme = AstroWebUiProgrammeState.Loading
             when (val result = astroWebUiProgrammeClient.read(host, previewPort)) {
                 is AstroWebUiProgrammeResult.Success -> {
                     astroWebUiProgramme = AstroWebUiProgrammeState.Ready(result.programme)
-                    statusMessage = if (result.programme.kind == "none") {
-                        "Astro WebUI has no programme running"
-                    } else {
-                        "Astro WebUI programme: " + result.programme.kind
+                    if (announce) {
+                        statusMessage = if (result.programme.kind == "none") {
+                            "Astro WebUI has no programme running"
+                        } else {
+                            "Astro WebUI programme: " + result.programme.kind
+                        }
                     }
+                    result.programme.kind != "none"
                 }
                 is AstroWebUiProgrammeResult.Failure -> {
                     astroWebUiProgramme = AstroWebUiProgrammeState.Failed(result.reason)
-                    statusMessage = result.reason
+                    if (announce) statusMessage = result.reason
+                    false
                 }
             }
         }
+
+    fun refreshAstroWebUiProgramme() {
+        astroWebUiProgrammeJob?.cancel()
+        astroWebUiProgrammeJob = scope.launch {
+            readAstroWebUiProgramme(announce = true)
+        }
+    }
+
+    /**
+     * Mirror Astro WebUI's visible-programme polling contract: idle reads are
+     * quiet, while a resident run is refreshed once per second. The poller is
+     * owned by the Mission sheet and performs only GET /api/prog reads.
+     */
+    fun startAstroWebUiProgrammePolling() {
+        astroWebUiProgrammePollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
+            astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
+            return
+        }
+        astroWebUiProgrammePollJob = scope.launch {
+            while (isActive) {
+                val running = readAstroWebUiProgramme(announce = false)
+                delay(if (running) 1_000L else 4_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiProgrammePolling() {
+        astroWebUiProgrammePollJob?.cancel()
+        astroWebUiProgrammePollJob = null
     }
 
     fun refreshAstroMedia() {

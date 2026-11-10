@@ -2128,3 +2128,35 @@ Android debug APK:
 
 The change is package/simulator evidence only. Live camera, Astro WebUI,
 Bluetooth, mount, SD-card and physical slow-motion qualification remain open.
+
+
+## Latest committed verification - a3d4d9b
+
+Commit under test: a3d4d9b (fix: recover cancelled slow-motion pointer holds).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --no-daemon --console=plain
+./gradlew :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 31a27c507c210a2a03e1e2b7a41704c3b0e5c280b6eb3870827e888b3d6abb1f
+
+Debian package:
+
+- desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+- SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+This is simulator/package evidence only. Live mount, Bluetooth, camera,
+Astro WebUI and physical slow-motion qualification remain unverified.

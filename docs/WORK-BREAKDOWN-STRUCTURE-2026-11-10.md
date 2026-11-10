@@ -1016,3 +1016,7 @@ The current implementation slice must not send a new motor frame, alter firmware
   simulator/package evidence; live K-1 II/K-3 III shutter, camera mode
   transition, Astro WebUI and physical hardware qualification are still
   required.
+
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW hold cancellation UX):** hardened the shared pointer/key dead-man control so a cancelled pointer sequence releases the motion owner and clears the pending Button-click suppression flag. A later accessible or keyboard activation can no longer be swallowed after a pointer cancellation, and the held direction is visible in the button label as HOLDING. The live 532/533/534 transport remains qualification-gated.
+- **2026-11-10 - verification:** SlowMotionPaneSafetyContractTest now covers the cancellation branch and held-state feedback. The focused test and full shared/Compose JVM, Android compilation, desktop packaging and Android debug APK build passed. No live mount, Bluetooth, camera, Astro WebUI or physical SLOW operation was exercised.

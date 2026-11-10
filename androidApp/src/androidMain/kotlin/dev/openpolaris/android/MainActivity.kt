@@ -191,11 +191,16 @@ class MainActivity : ComponentActivity() {
             val wsc = calculateWindowSizeClass(this)
             val scope = rememberCoroutineScope()
             val compassHeadingSource = remember { AndroidCompassHeadingSource(this@MainActivity) }
-            viewModel = AppViewModel(
-                scope = scope,
-                connectionFactory = { JvmConnection() },
-                sessionStore = sessionStore,
-            )
+            // Keep one VM for the whole Activity composition. Recomposition
+            // must not replace session, motion, capture or preference state.
+            val retainedViewModel = remember {
+                AppViewModel(
+                    scope = scope,
+                    connectionFactory = { JvmConnection() },
+                    sessionStore = sessionStore,
+                )
+            }
+            viewModel = retainedViewModel
 
             // Drain the picker bridge: if a result was published (in this
             // activity instance OR the previous one before rotation), apply

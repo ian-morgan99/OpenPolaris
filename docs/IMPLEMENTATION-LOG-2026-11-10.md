@@ -414,3 +414,21 @@ Verification passed:
 ~~~
 
 No solve, alignment, mount or camera write route was exercised.
+
+### WBS-03.5/03.6 - Named SLOW capability allow-list
+
+Replaced the anonymous live-transport boolean in the Motion workspace with an
+immutable SlowMotionCapabilityRecord. A live SLOW adapter cannot become
+eligible until the record carries named firmware, gimbal and source-app
+provenance plus route/unit, signs, measured envelope, acknowledgement,
+watchdog, physical stop, disconnect recovery and limit evidence.
+
+The default record is deliberately unqualified and the UI lists its missing
+gates. This improves the mobile/PC explanation without opening 532/533/534 or
+AC 4A transport.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SlowMotionCapabilityTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~

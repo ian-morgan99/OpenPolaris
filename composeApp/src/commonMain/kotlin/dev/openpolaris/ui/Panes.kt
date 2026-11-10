@@ -83,6 +83,7 @@ import dev.openpolaris.core.domain.AstroWebUiLapseParameters
 import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
 import dev.openpolaris.core.domain.AstroWebUiHdrParameters
 import dev.openpolaris.core.domain.AstroWebUiFocusParameters
+import dev.openpolaris.core.domain.SlowMotionCapabilities
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -1222,7 +1223,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
     // This hard gate is intentionally not configuration-controlled: a flag
     // cannot imply that the target firmware transport is qualified.
-    val liveTransportQualified = false
+    val liveTransportQualified = SlowMotionCapabilities.current.liveReady
     val liveControlsEnabled = gateOpen && liveTransportQualified && vm.mount.connected
     val demoControlsEnabled = vm.demoMode
     val controlsEnabled = liveControlsEnabled || demoControlsEnabled
@@ -1267,6 +1268,14 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 },
                 modifier = Modifier.testTag("motion-owner-state"),
             )
+            if (!liveTransportQualified) {
+                Text(
+                    "Live qualification blockers: " +
+                        SlowMotionCapabilities.current.blockers.joinToString(", ") + ".",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (demoControlsEnabled && vm.slowMotionDemoState.lastEvents.isNotEmpty()) {
                 Text("Logical scheduler trace", style = MaterialTheme.typography.labelSmall)
                 vm.slowMotionDemoState.lastEvents.takeLast(4).forEach { event ->

@@ -1335,3 +1335,9 @@ Focused and full cross-platform verification passed. This closes a lifecycle def
 Commit `9d24d06` fixes the rolling release evidence contract. The published `apk-sha256.txt` now hashes the APK artifact itself; `apk-signer-sha256.txt` separately identifies the release certificate. `RollingReleaseWorkflowContractTest` prevents the previous signer/artifact confusion from returning.
 
 The workflow still requires the protected release keystore secrets and an external push to `main`; no GitHub job or phone installation was claimed from this local test.
+
+### WBS-02.2/09.1 - Android rotation-safe session owner
+
+Commit `646fbfd` moves Android session retention from a Compose `remember` boundary to an Activity-retained `ViewModelProvider` owner. The shared AppViewModel and scope survive configuration changes; `onCleared()` disconnects the mount and cancels the retained scope. The Android host still supplies the same shared VM to the common UI and keeps protocol logic platform-neutral.
+
+Focused and full cross-platform verification passed. This is source/package evidence; live rotation and hardware qualification still require a phone and named mount.

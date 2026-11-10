@@ -2305,3 +2305,29 @@ The workflow now computes `sha256sum "${APK}" > apk-sha256.txt` and separately
 records the signing certificate digest in `apk-signer-sha256.txt`. This is a
 source-contract check only; GitHub execution, signing secrets and phone install
 remain external verification.
+
+## Latest committed verification - 646fbfd
+
+Commit under test: 646fbfd (fix: retain Android sessions across rotation).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AndroidViewModelLifetimeContractTest :androidApp:compileDebugKotlinAndroid --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 6f244f64a9f98d58823c337d7364b4daa55200955eb304a3de813b315e2857d9
+
+This is source/package evidence only. Physical rotation with a live session,
+station-LAN reachability, phone Bluetooth GATT wake, mount, camera, Astro
+WebUI and physical SLOW qualification remain unverified.

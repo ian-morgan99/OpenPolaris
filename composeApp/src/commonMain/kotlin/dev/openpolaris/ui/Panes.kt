@@ -72,6 +72,9 @@ import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.AstroWebUiStatusState
+import dev.openpolaris.core.domain.AstroWebUiSessionControlState
+import dev.openpolaris.core.domain.AstroWebUiTrackRate
+import dev.openpolaris.core.domain.AstroWebUiTrackRequest
 import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
 import dev.openpolaris.core.domain.AstroWebUiProgrammeStartState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeState
@@ -593,6 +596,8 @@ fun MissionDashboardPane(
             captureInProgress = captureInProgress,
         ),
     )
+    var selectedAstroRate by remember { mutableStateOf(AstroWebUiTrackRate.SIDEREAL) }
+    var selectedAstroHalfSpeed by remember { mutableStateOf(false) }
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -656,6 +661,89 @@ fun MissionDashboardPane(
                         )
                     }
                 }
+            }
+            HorizontalDivider()
+            Text("Astro session controls", style = MaterialTheme.typography.titleMedium)
+            val sessionControlsEnabled = FeatureFlags.isEnabled("astroWebUiSessionControls")
+            val observedAstroStatus =
+                (vm.astroWebUiStatus as? AstroWebUiStatusState.Ready)?.status
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = sessionControlsEnabled && observedAstroStatus?.active != true,
+                    onClick = vm::enterAstroWebUi,
+                ) { Text("Enter Astro") }
+                Button(
+                    enabled = sessionControlsEnabled && observedAstroStatus?.active == true,
+                    onClick = vm::leaveAstroWebUi,
+                ) { Text("Leave Astro") }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = selectedAstroRate == AstroWebUiTrackRate.SIDEREAL,
+                    onClick = { selectedAstroRate = AstroWebUiTrackRate.SIDEREAL },
+                    enabled = sessionControlsEnabled,
+                    label = { Text("Sidereal") },
+                )
+                FilterChip(
+                    selected = selectedAstroRate == AstroWebUiTrackRate.LUNAR,
+                    onClick = { selectedAstroRate = AstroWebUiTrackRate.LUNAR },
+                    enabled = sessionControlsEnabled,
+                    label = { Text("Lunar") },
+                )
+                Switch(
+                    checked = selectedAstroHalfSpeed,
+                    onCheckedChange = { selectedAstroHalfSpeed = it },
+                    enabled = sessionControlsEnabled,
+                )
+                Text("Half rate", style = MaterialTheme.typography.labelSmall)
+            }
+            Button(
+                enabled = sessionControlsEnabled && observedAstroStatus?.active == true,
+                onClick = {
+                    val currentlyRequested = observedAstroStatus?.trackRequested == true
+                    vm.setAstroWebUiTracking(
+                        AstroWebUiTrackRequest(
+                            on = !currentlyRequested,
+                            rate = selectedAstroRate.index,
+                            halfSpeed = selectedAstroHalfSpeed,
+                        ),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (observedAstroStatus?.trackRequested == true) {
+                        "Stop Astro tracking"
+                    } else {
+                        "Start Astro tracking"
+                    },
+                )
+            }
+            when (val state = vm.astroWebUiSessionControl) {
+                AstroWebUiSessionControlState.Idle -> Unit
+                is AstroWebUiSessionControlState.Working -> Text(
+                    "Requesting " + state.action + "...",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiSessionControlState.Accepted -> Text(
+                    "Accepted " + state.action + "; confirming by /api/astro readback.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                is AstroWebUiSessionControlState.Failed -> Text(
+                    state.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (!sessionControlsEnabled) {
+                Text(
+                    "Enter/leave and tracking writes are source-aligned but disabled until route ownership and physical recovery are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             HorizontalDivider()
             Text("Astro mission", style = MaterialTheme.typography.titleMedium)

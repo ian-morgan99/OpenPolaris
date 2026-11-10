@@ -21,6 +21,10 @@ import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AstroWebUiStatusClient
 import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiStatusResult
+import dev.openpolaris.core.domain.AstroWebUiSessionControlClient
+import dev.openpolaris.core.domain.AstroWebUiSessionControlResult
+import dev.openpolaris.core.domain.AstroWebUiSessionControlState
+import dev.openpolaris.core.domain.AstroWebUiTrackRequest
 import dev.openpolaris.core.domain.AstroWebUiSiteClient
 import dev.openpolaris.core.domain.AstroWebUiSiteResult
 import dev.openpolaris.core.domain.AstroWebUiSiteState
@@ -110,6 +114,7 @@ import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createAstroWebUiStatusClient
+import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
 import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
@@ -243,6 +248,7 @@ class AppViewModel(
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
     private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
+    private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
     private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
     private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
@@ -1544,6 +1550,9 @@ class AppViewModel(
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
         astroWebUiStatus = AstroWebUiStatusState.Idle
+        astroWebUiSessionControlJob?.cancel()
+        astroWebUiSessionControlJob = null
+        astroWebUiSessionControl = AstroWebUiSessionControlState.Idle
         astroWebUiSiteJob?.cancel()
         astroWebUiSiteJob = null
         astroWebUiSite = AstroWebUiSiteState.Idle
@@ -3564,6 +3573,10 @@ class AppViewModel(
         private set
     var astroWebUiStatus by mutableStateOf<AstroWebUiStatusState>(AstroWebUiStatusState.Idle)
         private set
+    var astroWebUiSessionControl by mutableStateOf<AstroWebUiSessionControlState>(
+        AstroWebUiSessionControlState.Idle,
+    )
+        private set
     var astroWebUiSite by mutableStateOf<AstroWebUiSiteState>(AstroWebUiSiteState.Idle)
         private set
     var astroWebUiProgramme by mutableStateOf<AstroWebUiProgrammeState>(AstroWebUiProgrammeState.Idle)
@@ -3576,6 +3589,7 @@ class AppViewModel(
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
     private var astroWebUiStatusPollJob: Job? = null
+    private var astroWebUiSessionControlJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
     private var astroWebUiProgrammePollJob: Job? = null
@@ -3671,6 +3685,58 @@ class AppViewModel(
     fun stopAstroWebUiStatusPolling() {
         astroWebUiStatusPollJob?.cancel()
         astroWebUiStatusPollJob = null
+    }
+
+    private fun runAstroWebUiSessionControl(
+        action: String,
+        request: suspend (AstroWebUiSessionControlClient) -> AstroWebUiSessionControlResult,
+    ) {
+        if (astroWebUiSessionControl is AstroWebUiSessionControlState.Working) return
+        astroWebUiSessionControlJob?.cancel()
+        astroWebUiSessionControlJob = scope.launch {
+            if (!FeatureFlags.isEnabled("astroWebUiSessionControls")) {
+                astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(
+                    "Astro WebUI session controls are disabled by config",
+                )
+                return@launch
+            }
+            if (session == null) {
+                astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(
+                    "Connect to a mount before changing its Astro WebUI session",
+                )
+                return@launch
+            }
+            astroWebUiSessionControl = AstroWebUiSessionControlState.Working(action)
+            when (val result = request(astroWebUiSessionControlClient)) {
+                is AstroWebUiSessionControlResult.Accepted -> {
+                    astroWebUiSessionControl = AstroWebUiSessionControlState.Accepted(result.action)
+                    statusMessage = "Astro WebUI " + result.action + " request accepted; confirming by status read"
+                    readAstroWebUiStatus(announce = false)
+                }
+                is AstroWebUiSessionControlResult.Failure -> {
+                    astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun enterAstroWebUi() {
+        runAstroWebUiSessionControl("enter") { client ->
+            client.enter(host, previewPort)
+        }
+    }
+
+    fun leaveAstroWebUi() {
+        runAstroWebUiSessionControl("leave") { client ->
+            client.leave(host, previewPort)
+        }
+    }
+
+    fun setAstroWebUiTracking(request: AstroWebUiTrackRequest) {
+        runAstroWebUiSessionControl(if (request.on) "start tracking" else "stop tracking") { client ->
+            client.setTracking(host, previewPort, request)
+        }
     }
 
     fun refreshAstroWebUiSite() {

@@ -366,3 +366,28 @@ Verification passed:
 ~~~
 
 No live Astro WebUI endpoint, mount, camera or hardware was exercised.
+
+### WBS-05.3/08.2 - Astro WebUI session-control seam
+
+Added the source-aligned session writes from the Astro WebUI:
+
+- POST /api/astro/enter and /api/astro/leave;
+- POST /api/astro/track with on, rate (sidereal 0 or lunar 2) and half fields;
+- bounded acknowledgement parsing and safe-host validation;
+- status readback on the dedicated preview/WebUI port after acceptance;
+- lifecycle cancellation and disconnect reset in AppViewModel.
+
+The responsive Astro mission surface exposes Enter Astro, Leave Astro, rate
+selection, half-rate selection and Start/Stop Astro tracking, but the separate
+astroWebUiSessionControls flag defaults OFF and the UI explains that ownership,
+route and physical recovery evidence are still required. The seam does not
+claim that an HTTP acknowledgement proves the mount entered Astro mode or is
+tracking; /api/astro readback and mount telemetry remain separate evidence.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSessionControlTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSessionControlTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+No live Astro WebUI write route, mount, camera or hardware was exercised.

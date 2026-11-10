@@ -187,6 +187,8 @@
 
 - **2026-11-10 - WBS-05.1/08.2 ACTIVE (Astro WebUI status polling):** the visible Mission/Astro workspace now owns a read-only /api/astro poller at the source WebUI cadence of two seconds. Manual refresh and polling share a mutex, the poller stops with the Compose surface and disconnect, and status fields remain labelled as session/request evidence rather than physical tracking or alignment proof.
 
+- **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI session-control seam):** added source-aligned enter, leave and sidereal/lunar track requests with the source half-rate form field, dedicated preview-port routing, positive acknowledgement parsing, status readback and a default-off feature gate. The Mission surface exposes the controls with explicit qualification text; no write is enabled by the default build.
+
 ### WBS-05.2 — Alignment — P1
 
 - Plate solve, phone compass and manual bearing alternatives with confidence/provenance.

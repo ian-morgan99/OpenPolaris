@@ -141,6 +141,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Reads the saved observing latitude/longitude from the resident Astro WebUI without changing it.", safe = true),
     FlagSpec("astroWebUiProgrammeStatus", "Astro WebUI programme status (read-only)",
         "Reads resident timelapse, panorama, HDR, focus and other programme progress without starting, pausing or cancelling anything.", safe = true),
+    FlagSpec("astroWebUiSessionControls", "Astro WebUI session/tracking controls (not qualified)",
+        "Source-aligned enter, leave and sidereal/lunar tracking requests remain disabled until route, ownership and physical recovery evidence are recorded.", safe = false),
     FlagSpec("astroWebUiProgrammeControls", "Astro WebUI programme pause/stop (not qualified)",
         "Source-aligned pause/resume and stop requests remain disabled until write-route and hardware recovery evidence is recorded.", safe = false),
     FlagSpec("astroWebUiProgrammeStarts", "Astro WebUI programme starts (not qualified)",

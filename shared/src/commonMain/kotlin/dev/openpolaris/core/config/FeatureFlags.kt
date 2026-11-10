@@ -123,6 +123,8 @@ object FeatureFlags {
     const val astroWebUiSite: Boolean = true
     /** Optional read-only Astro WebUI programme status. */
     const val astroWebUiProgrammeStatus: Boolean = true
+    /** Astro WebUI enter/leave/track writes; disabled until route and recovery qualification. */
+    const val astroWebUiSessionControls: Boolean = false
     /** Astro WebUI 264 M/B dispatch; queue-only until lifecycle/file qualification. */
     const val astroWebUiCapture: Boolean = false
     /** Astro WebUI programme pause/stop writes; disabled until route qualification. */
@@ -242,6 +244,7 @@ object FeatureFlags {
         "astroWebUiStatus" -> astroWebUiStatus
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
+        "astroWebUiSessionControls" -> astroWebUiSessionControls
         "astroWebUiProgrammeControls" -> astroWebUiProgrammeControls
         "astroWebUiProgrammeStarts" -> astroWebUiProgrammeStarts
         "astroWebUiCapture" -> astroWebUiCapture

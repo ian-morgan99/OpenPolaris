@@ -95,6 +95,8 @@ import dev.openpolaris.core.domain.AstroWebUiGotoRequest
 import dev.openpolaris.core.domain.AstroWebUiTargetUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
+import dev.openpolaris.core.domain.AstroWebUiSolveControlUiState
+import dev.openpolaris.core.domain.AstroWebUiSolveMode
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
 import dev.openpolaris.core.domain.AstroWebUiTrackRate
 import dev.openpolaris.core.domain.AstroWebUiTrackRequest
@@ -951,6 +953,42 @@ fun MissionDashboardPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
+            }
+            Text("Solve controls", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Solve start, cancel and apply are resident-server actions. Apply can change the mount alignment; all three remain disabled until solver, camera and recovery qualification is complete.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
+                    onClick = { vm.startAstroWebUiSolve(AstroWebUiSolveMode.LATEST) },
+                ) { Text("Solve latest") }
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
+                    onClick = { vm.startAstroWebUiSolve(AstroWebUiSolveMode.CAPTURE) },
+                ) { Text("Solve fresh frame") }
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
+                    onClick = vm::cancelAstroWebUiSolve,
+                ) { Text("Cancel solve") }
+                OutlinedButton(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
+                    onClick = vm::applyAstroWebUiSolve,
+                ) { Text("Apply last solution") }
+            }
+            when (val control = vm.astroWebUiSolveControl) {
+                AstroWebUiSolveControlUiState.Idle -> Unit
+                AstroWebUiSolveControlUiState.Loading -> Text("Sending solve action…", style = MaterialTheme.typography.labelSmall)
+                is AstroWebUiSolveControlUiState.Accepted -> Text(control.action, style = MaterialTheme.typography.labelSmall)
+                is AstroWebUiSolveControlUiState.Failed -> Text(
+                    control.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             HorizontalDivider()
             Text("Astro target and alignment", style = MaterialTheme.typography.titleMedium)

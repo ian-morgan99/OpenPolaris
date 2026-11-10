@@ -65,6 +65,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("astroWebUiFocalWrite"), "Astro WebUI focal writes must remain off until solve mutation and recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"), "Astro WebUI keep-Wi-Fi writes must remain off until recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiTargetWrites"), "Astro WebUI compass alignment and GoTo writes must remain off until motion recovery qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiSolveControls"), "Astro WebUI solve/apply controls must remain off until solver and alignment recovery qualification")
     }
 
     @Test

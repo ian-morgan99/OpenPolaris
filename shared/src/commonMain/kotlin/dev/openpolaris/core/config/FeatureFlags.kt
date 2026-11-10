@@ -149,6 +149,8 @@ object FeatureFlags {
     const val astroWebUiSiteWrite: Boolean = false
     /** Optional read-only Astro WebUI target/last-frame solve state. */
     const val astroWebUiSolveStatus: Boolean = true
+    /** Astro WebUI solve start/cancel/apply writes; disabled until solver and alignment recovery qualify. */
+    const val astroWebUiSolveControls: Boolean = false
     /** Optional read-only Astro WebUI run state; mount position is explicit-only. */
     const val astroWebUiRunState: Boolean = true
     /** Optional read-only Astro WebUI programme status. */
@@ -287,6 +289,7 @@ object FeatureFlags {
         "astroWebUiSite" -> astroWebUiSite
         "astroWebUiSiteWrite" -> astroWebUiSiteWrite
         "astroWebUiSolveStatus" -> astroWebUiSolveStatus
+        "astroWebUiSolveControls" -> astroWebUiSolveControls
         "astroWebUiRunState" -> astroWebUiRunState
         "astroWebUiProgrammeStatus" -> astroWebUiProgrammeStatus
         "astroWebUiSessionControls" -> astroWebUiSessionControls

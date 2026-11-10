@@ -57,6 +57,11 @@ import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveClient
 import dev.openpolaris.core.domain.AstroWebUiSolveResult
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
+import dev.openpolaris.core.domain.AstroWebUiSolveControlClient
+import dev.openpolaris.core.domain.AstroWebUiSolveControlResult
+import dev.openpolaris.core.domain.AstroWebUiSolveControlUiState
+import dev.openpolaris.core.domain.AstroWebUiSolveMode
+import dev.openpolaris.core.domain.AstroWebUiSolveRequest
 import dev.openpolaris.core.domain.AstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.AstroWebUiSessionControlResult
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -186,6 +191,7 @@ import dev.openpolaris.core.domain.createAstroWebUiWifiClient
 import dev.openpolaris.core.domain.createAstroWebUiTargetClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
+import dev.openpolaris.core.domain.createAstroWebUiSolveControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteClient
 import dev.openpolaris.core.domain.createAstroWebUiSiteControlClient
@@ -332,6 +338,7 @@ class AppViewModel(
     private val astroWebUiWifiClient: AstroWebUiWifiClient = createAstroWebUiWifiClient(),
     private val astroWebUiTargetClient: AstroWebUiTargetClient = createAstroWebUiTargetClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
+    private val astroWebUiSolveControlClient: AstroWebUiSolveControlClient = createAstroWebUiSolveControlClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
     private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
@@ -1870,6 +1877,9 @@ class AppViewModel(
         astroWebUiTarget = AstroWebUiTargetUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
+        astroWebUiSolveControlJob?.cancel()
+        astroWebUiSolveControlJob = null
+        astroWebUiSolveControl = AstroWebUiSolveControlUiState.Idle
         astroWebUiSolvePollJob?.cancel()
         astroWebUiSolvePollJob = null
         astroWebUiSolve = AstroWebUiSolveUiState.Idle
@@ -4258,6 +4268,8 @@ class AppViewModel(
         private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
+    var astroWebUiSolveControl by mutableStateOf<AstroWebUiSolveControlUiState>(AstroWebUiSolveControlUiState.Idle)
+        private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
         private set
     var astroWebUiSessionControl by mutableStateOf<AstroWebUiSessionControlState>(
@@ -4294,6 +4306,7 @@ class AppViewModel(
     private var astroWebUiWifiJob: Job? = null
     private var astroWebUiTargetJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
+    private var astroWebUiSolveControlJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
     private var astroWebUiRunStatePollJob: Job? = null
@@ -5110,6 +5123,86 @@ class AppViewModel(
         astroWebUiSolvePollJob?.cancel()
         astroWebUiSolvePollJob = null
     }
+
+    private fun runAstroWebUiSolveControl(action: String, block: suspend (String, Int) -> AstroWebUiSolveControlResult) {
+        astroWebUiSolveControlJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiSolveControls")) {
+            astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
+                "Astro WebUI solve controls are disabled until solver and alignment recovery are qualified",
+            )
+            statusMessage = "Astro WebUI solve controls remain disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
+                "Connect to a mount before using Astro WebUI solve controls",
+            )
+            statusMessage = "Connect to a mount before using Astro WebUI solve controls"
+            return
+        }
+        astroWebUiSolveControl = AstroWebUiSolveControlUiState.Loading
+        astroWebUiSolveControlJob = scope.launch {
+            val result = try {
+                block(host, previewPort)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiSolveControlResult.Failure(
+                    error.message ?: "Astro WebUI solve $action failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiSolveControlResult.Started -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted("Solve ${result.request.mode.wireValue} started")
+                    statusMessage = "Astro WebUI solve started; resident run state remains authoritative"
+                    refreshAstroWebUiSolve()
+                }
+                is AstroWebUiSolveControlResult.AlreadyRunning -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
+                        result.reason + (result.elapsedSeconds?.let { " (${it}s elapsed)" } ?: ""),
+                    )
+                    statusMessage = result.reason
+                }
+                is AstroWebUiSolveControlResult.Applied -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted(
+                        "Last solution applied (${result.ageSeconds}s old)",
+                    )
+                    statusMessage = "Astro WebUI last solution applied; verify mount telemetry"
+                    refreshAstroWebUiSolve()
+                }
+                AstroWebUiSolveControlResult.Cancelled -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted("Solve cancelled")
+                    statusMessage = "Astro WebUI solve cancelled"
+                    refreshAstroWebUiSolve()
+                }
+                is AstroWebUiSolveControlResult.NothingToCancel -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+                is AstroWebUiSolveControlResult.Failure -> {
+                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun startAstroWebUiSolve(mode: AstroWebUiSolveMode, apply: Boolean = false) =
+        runAstroWebUiSolveControl("start") { host, port ->
+            astroWebUiSolveControlClient.start(host, port, AstroWebUiSolveRequest(mode, apply))
+        }
+
+    fun applyAstroWebUiSolve() =
+        runAstroWebUiSolveControl("apply") { host, port ->
+            astroWebUiSolveControlClient.apply(host, port)
+        }
+
+    fun cancelAstroWebUiSolve() =
+        runAstroWebUiSolveControl("cancel") { host, port ->
+            astroWebUiSolveControlClient.cancel(host, port)
+        }
 
     private suspend fun readAstroWebUiRunState(readMount: Boolean, announce: Boolean) {
         astroWebUiRunStateReadMutex.withLock {

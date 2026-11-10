@@ -1269,3 +1269,10 @@ Commit d9c8a4f closes a retry affordance gap in the Camera workspace. When the s
 - new client-driven intervalometer sequences.
 
 The UI labels the result as unknown, tells the operator not to retry the shutter, and directs inspection of the camera/card followed by reconnect. This preserves the asynchronous Benro Connect lifecycle contract: HTTP or command acceptance is not completion, and missing lifecycle/file evidence is never silently retriggered.
+
+
+### WBS-02.3/08.2 — Typed Bluetooth wake evidence
+
+Commit ff427fd adds a shared BluetoothWakeState with explicit requested, discovering, connecting-GATT, succeeded, failed and cancelled phases. AppViewModel now updates it from the standalone Benro-style GATT wake pulse, the PC bridge progress callback, the mobile host status callback and disconnect cancellation.
+
+The Connection workspace renders the phase and detail with a durable explanation: Bluetooth wakes the mount but is not the control socket, preview service or camera lifecycle. EndpointHealth remains authoritative for route/control/preview readiness.

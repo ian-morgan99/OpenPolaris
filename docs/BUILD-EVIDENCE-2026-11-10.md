@@ -1425,3 +1425,32 @@ Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
 the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
 notices. This is host/package evidence only; no live shutter, Astro WebUI,
 Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - ff427fd
+
+Commit under test: ff427fd (feat: surface Bluetooth wake evidence).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.BluetoothWakeStateTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelWakeConnectRaceTest --tests dev.openpolaris.ui.AppViewModelSessionLifecycleTest --tests dev.openpolaris.ui.ConnectionPaneBluetoothEvidenceContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: c87c8b3a4e0368e1039a6888f6d05d31f38805a5f5e2966042f33f8e0f117d79
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-ff427fd.tar.gz
+  SHA-256: b3ed4814dcb8b1a1529fb1895b50745198db8cf1d2c1e69b070d6ef0ee626ff1
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
+notices. This is host/package evidence only; no live Bluetooth, bridge,
+camera, mount or physical SLOW qualification was exercised.

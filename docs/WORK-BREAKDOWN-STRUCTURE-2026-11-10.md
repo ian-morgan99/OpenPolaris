@@ -929,3 +929,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   capture-phase regression suite. The focused capture suite and full
   cross-platform build passed. No live camera, Astro WebUI, Bluetooth, mount or
   physical SLOW operation was exercised.
+
+
+- **2026-11-10 - WBS-04.3/06.1 ACTIVE (Demo M/B capture parity):** extended
+  the deterministic demo camera to expose the Benro shutter INFO readback
+  (268, B option) and the overloaded 264 photo-record path. The same correlated
+  lifecycle/publication gate now exercises both ordinary M-style release and
+  the Benro Connect-compatible Bulb path, including the explicit B-mode
+  readback before state:1;bulb:N and the resulting 773 publication.
+- **2026-11-10 - verification:** the
+  demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication
+  regression passed, followed by the full cross-platform build. This is
+  simulator/package evidence only; no live Astro WebUI, camera, mount,
+  Bluetooth or physical SLOW qualification was performed.

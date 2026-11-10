@@ -1781,3 +1781,34 @@ Artifacts:
 
 The demo capture path is simulator/package evidence only. No live Astro WebUI,
 Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - 27c37ff
+
+Commit under test: 27c37ff (test: cover demo manual and bulb capture).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Authoritative JVM test reports contained no failures.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 36a55c34dce8a959363c1af2e1728d7feccb65a4fcced9602ce63d99dccd3a48
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-demo-mb.tar.gz
+  SHA-256: eafda764402a30a201fea47dc7a35adebec4393f1fdfb0491888e6fd9aad9d23
+- Debian package: desktopApp/build/compose/binaries/main/deb/openpolaris_1.0.0_amd64.deb
+  SHA-256: a6a9aa81f711d487f75f0c57c3a36c2e1c210f75489c6f319a8da459a99fa61a
+
+The M/B demo path is simulator/package evidence only. No live Astro WebUI,
+Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

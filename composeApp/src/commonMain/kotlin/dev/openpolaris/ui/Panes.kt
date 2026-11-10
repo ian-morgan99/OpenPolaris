@@ -55,6 +55,9 @@ import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.AstroMissionFlow
 import dev.openpolaris.core.domain.AstroMissionInput
+import dev.openpolaris.core.domain.AstroPrepareCheckState
+import dev.openpolaris.core.domain.AstroPrepareChecklist
+import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -405,6 +408,37 @@ fun MissionDashboardPane(
                             Text("Next: " + actionLabel, style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                }
+            }
+            HorizontalDivider()
+            Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Read-only checks from the current session; nothing here starts a motor, changes limits or fires the camera.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            AstroPrepareChecklist.evaluate(
+                AstroPrepareInput(
+                    controlReady = endpoint.control == EndpointService.REACHABLE,
+                    mountConnected = vm.mount.connected,
+                    cameraAttached = vm.cameraAttachment?.isAttached,
+                    storageReady = vm.sdStatus?.present,
+                    levelWithinTolerance = vm.autoLevelTilt?.withinTolerance,
+                    tiltCompensationEnabled = vm.autoLevelEnabled,
+                    limitsEnabled = vm.limitsEnabled,
+                ),
+            ).forEach { check ->
+                val color = when (check.state) {
+                    AstroPrepareCheckState.READY -> MaterialTheme.colorScheme.primary
+                    AstroPrepareCheckState.BLOCKED -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        check.id.label + " · " + check.state.name.lowercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = color,
+                    )
+                    Text(check.summary, style = MaterialTheme.typography.bodySmall)
                 }
             }
             HorizontalDivider()

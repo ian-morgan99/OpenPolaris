@@ -1245,3 +1245,15 @@ Commit 64d0460 extends the existing SafeRateAdjustController boundary with expli
 - these values are policy defaults for safe integration and are not claims of hardware qualification.
 
 Focused fine-rate tests and the full cross-platform build passed. No live solve, Bluetooth, mount or physical SLOW qualification was performed.
+
+
+### WBS-03.6/03.7/09.1 — Fine-rate readiness UX
+
+Commit a101008 adds a read-only readiness checklist to the shared Motion pane. The checklist makes the future fine-rate contract legible on mobile and PC:
+
+- qualified firmware, route and physical stop;
+- connected mount, confirmed tracking, half-speed disabled and exclusive motion owner;
+- a local plate solve less than five seconds old with at least 0.60 confidence;
+- field rotation within five degrees, currently shown as missing because the app has no rotation-bearing solve evidence.
+
+Solve age is refreshed once per second while evidence is present. The card explicitly says the live rate transport is disabled and that the thresholds are policy defaults rather than hardware qualification. No control path was enabled.

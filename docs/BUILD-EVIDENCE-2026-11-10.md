@@ -162,3 +162,31 @@ Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
 and the known libandroidx.graphics.path.so strip warning. No live mount,
 camera, Astro WebUI or physical SLOW qualification was performed; artifact
 success is not hardware qualification.
+
+## Latest committed verification - 17d317b
+
+Commit under test: 17d317b (fix: settle SLOW faulted emergency stops).
+
+Command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). All shared and Compose JVM
+tests passed, including the SLOW armed/faulted emergency-stop tests, the
+global motion safety chrome test and Astro WebUI capture lifecycle tests.
+Android debug Kotlin compilation and APK assembly passed, and the Linux
+desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 4081b831125a8563f4721c23eed8262378846c8b0a928c55f19e3aaf5200f6d2
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-17d317b.tar.gz
+  SHA-256: ebdb0854072c83d953d6944d4c0b25554cd911f535d7b5662318913ac94ee1d4
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations
+and the known libandroidx.graphics.path.so strip warning. No live mount,
+camera, Astro WebUI or physical SLOW qualification was performed; artifact
+success is not hardware qualification.

@@ -137,6 +137,8 @@ private val flagSpecs: List<FlagSpec> = listOf(
         "Optional source-aligned HTTP index, thumbnail and full-JPEG reads from the resident Astro WebUI. No native file-transfer or destructive command is enabled by this flag.", safe = true),
     FlagSpec("astroWebUiStatus", "Astro WebUI status (read-only)",
         "Reads the resident Astro WebUI /api/astro state without entering Astro mode or sending a mount command.", safe = true),
+    FlagSpec("astroWebUiSite", "Astro WebUI site (read-only)",
+        "Reads the saved observing latitude/longitude from the resident Astro WebUI without changing it.", safe = true),
     FlagSpec("astroWebUiCapture", "Astro WebUI shutter (M/B, queue-only)",
         "Source-aligned 264 dispatch for M/B capture. Default OFF until lifecycle, file-publication and named-firmware qualification are complete.", safe = false),
     FlagSpec("fileManager", "SD file list (702)",

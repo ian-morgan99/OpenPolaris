@@ -68,6 +68,7 @@ import dev.openpolaris.core.domain.AstroMissionInput
 import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
+import dev.openpolaris.core.domain.AstroWebUiSiteState
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.SystemMillis
@@ -552,6 +553,27 @@ fun MissionDashboardPane(
                             Text("Next: " + actionLabel, style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                }
+            }
+            HorizontalDivider()
+            Text("Observing site", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiSite"),
+                    onClick = vm::refreshAstroWebUiSite,
+                ) { Text("Refresh site") }
+                when (val state = vm.astroWebUiSite) {
+                    AstroWebUiSiteState.Idle -> Text("Site not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiSiteState.Loading -> Text("Reading saved site…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiSiteState.Ready -> Text(
+                        if (state.site.havePosition) {
+                            "lat=" + state.site.latitudeDeg + ", lon=" + state.site.longitudeDeg
+                        } else {
+                            "No saved observing site"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiSiteState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
                 }
             }
             HorizontalDivider()

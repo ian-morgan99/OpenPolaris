@@ -111,3 +111,20 @@ Verification passed:
 ```
 
 No live Astro WebUI endpoint or hardware command was exercised.
+
+
+### WBS-05.1 — Astro WebUI read-only observing site
+
+The Mission readiness sheet now offers a source-aligned read of the Astro WebUI's `/api/site` response. It reports whether a saved latitude/longitude exists and validates both coordinates before exposing them to the UI.
+
+- The client is bounded to a 64 KiB JSON response and uses the dedicated preview/WebUI port.
+- A missing saved site is a valid unknown/pending state; it is not treated as a default location.
+- Out-of-range, missing and malformed coordinates fail closed.
+- The path never calls the POST site-save route and does not claim alignment, tracking or GoTo readiness.
+
+Verification passed:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSiteTest --rerun-tasks --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --rerun-tasks --console=plain --no-daemon
+```

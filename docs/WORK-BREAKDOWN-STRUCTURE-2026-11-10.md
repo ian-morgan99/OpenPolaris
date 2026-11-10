@@ -717,3 +717,11 @@ The current implementation slice must not send a new motor frame, alter firmware
   safety state with collision-risk language; limit release is deliberately
   not exposed because the source requires physical attestation and a
   collision-clearance qualification. No 541/542 write was sent.
+
+
+- **2026-11-10 - WBS-02.3/08.2 ACTIVE (Astro WebUI keep-Wi-Fi):** added
+  source-aligned status for enabled/running/aligned/forced helper state and
+  normal, force and off forms. The Connection workspace exposes Refresh and
+  clearly separates helper state from bridge/Bluetooth health; writes remain
+  default-off until alignment, bridge recovery and process teardown are
+  qualified.

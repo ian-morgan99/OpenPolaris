@@ -1094,3 +1094,22 @@ exercised.
   `6dd0e84ce9e3861bdaccd9d1398e21f18964375625a1edc7d6093eaaa248f3c3`.
   No live Astro WebUI, travel-limit write, mount, camera or physical SLOW
   qualification was exercised.
+
+
+- **2026-11-10 - WBS-02.3/08.2 ACTIVE (Astro keep-Wi-Fi):** implemented
+  bounded readback and separately gated normal/force/off control forms on the
+  shared connection surface. The ViewModel confirms accepted changes through
+  readback and drops late results after disconnect. Focused parser,
+  FeatureFlags, ViewModel lifecycle and Compose compilation tests passed. No
+  live bridge or mount operation was exercised.
+
+
+- **2026-11-10 - WBS-02.3/08.2 verification:** full host build for
+  `2b13d40` passed: 103 actionable tasks, shared and Compose JVM tests,
+  Android debug compilation/APK assembly, and desktop distributable creation.
+  APK SHA-256 is
+  `7d920dfb0191f40b5636c6aba93ab245905acb8c39e6620a50bc69e48e84d99b`;
+  desktop archive SHA-256 is
+  `e23629ec3f4cf61537f98bd24f3cc1dede099080fdf1d1239d200a1a659c0b41`.
+  No live Astro WebUI, bridge, Bluetooth, mount, camera or physical SLOW
+  qualification was exercised.

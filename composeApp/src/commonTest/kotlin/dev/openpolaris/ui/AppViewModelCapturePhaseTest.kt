@@ -203,6 +203,52 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun demoFocusStackAndPanoramaProgrammesRehearseWithoutHardwareMetadataWrites() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection())
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            val focusStack = ObservationProgrammePlanner.plan(
+                ObservationProgrammePlanner.Request.FocusStack(
+                    startPosition = 10.0,
+                    endPosition = 20.0,
+                    stepCount = 5,
+                    intervalMs = 0L,
+                ),
+            )
+            assertTrue(vm.startObservationProgramme(focusStack))
+            advanceTimeBy(20_000)
+            runCurrent()
+            val focusCompleted = assertIs<ObservationProgrammeExecutor.State.Completed>(vm.observationProgrammeState)
+            assertEquals(5, focusCompleted.completedSteps)
+
+            val panorama = ObservationProgrammePlanner.plan(
+                ObservationProgrammePlanner.Request.Panorama(
+                    rows = 2,
+                    columns = 3,
+                    yawStepDeg = 30.0,
+                    pitchStepDeg = 10.0,
+                    intervalMs = 0L,
+                ),
+            )
+            assertTrue(vm.startObservationProgramme(panorama))
+            advanceTimeBy(20_000)
+            runCurrent()
+            val panoramaCompleted = assertIs<ObservationProgrammeExecutor.State.Completed>(vm.observationProgrammeState)
+            assertEquals(6, panoramaCompleted.completedSteps)
+            vm.refreshFileList()
+            runCurrent()
+            assertEquals(
+                (1..11).map { "IMG_" + it.toString().padStart(4, '0') + ".JPG" },
+                vm.fileList?.files?.map { it.name },
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun demoHdrProgrammeSupportsPauseAndResumeAtCaptureBoundary() = runTest(UnconfinedTestDispatcher()) {
         val vm = vm(this, FakeConnection())
         try {

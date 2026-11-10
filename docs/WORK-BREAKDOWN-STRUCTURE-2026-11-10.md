@@ -205,6 +205,8 @@
 - Plate solve, phone compass and manual bearing alternatives with confidence/provenance.
 - Preserve star-alignment fallback.
 
+- **2026-11-10 - WBS-03.1/05.2 progress:** discrete 530 alignment-record submissions now acquire the shared ALIGNMENT owner, report contention/blocking, cancel safely on disconnect and release through a cancellation-safe boundary. The record action does not move the mount; live firmware and pointing-model evidence remain separate.
+
 ### WBS-05.3 — Target and tracking — P1
 
 - Catalogue search, altitude/sun/filter safety, GoTo, arrival and solve-refine.

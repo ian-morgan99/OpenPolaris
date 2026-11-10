@@ -490,3 +490,20 @@ Verification passed:
 ~~~
 
 The simulator and deterministic controller tests passed; no live mount or hardware was exercised.
+
+### WBS-03.1/05.2 - Alignment owner boundary
+
+The discrete 530 alignment-record action now participates in the shared
+motion supervisor as an ALIGNMENT owner. It reports contention with fast jog,
+SLOW or GoTo, releases through a cancellation-safe finally block, and is
+explicitly stopped/cleared during disconnect. This owner protects the
+operation boundary; it does not claim that recording a star physically moves
+the mount or proves a pointing model.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAlignmentTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Four existing alignment ViewModel tests passed; no live alignment or hardware was exercised.

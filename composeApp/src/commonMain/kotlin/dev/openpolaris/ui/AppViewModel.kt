@@ -616,6 +616,7 @@ class AppViewModel(
                             fastJogTransport.stop(code, reason)
                         }
                     }
+                    MotionOwner.ALIGNMENT -> MotionStopResult.Stopped
                     MotionOwner.GOTO -> {
                         val activeSession = session
                         if (activeSession == null) {
@@ -675,6 +676,8 @@ class AppViewModel(
      * Created in [connect] / [connectDemo], cleared in [disconnect].
      */
     private var alignmentController: AlignmentController? = null
+    private var alignmentMotionLease: MotionLease? = null
+    private var alignmentJob: Job? = null
     private var autoLevelController: AutoLevelController? = null
     private val autoLevelJobs: MutableList<Job> = mutableListOf()
     // The 3 helper-state collectors (dither/settling/limits) launched by
@@ -1592,6 +1595,12 @@ class AppViewModel(
         previewFrameReceivedAtMs = null
         endpointHealth = EndpointHealth.disconnected()
 
+        alignmentJob?.cancel()
+        alignmentJob = null
+        alignmentMotionLease?.let { lease ->
+            runBlocking { motionSupervisor.stop(lease, MotionStopReason.DISCONNECT) }
+        }
+        alignmentMotionLease = null
         val activeGotoLease = gotoMotionLease
         if (activeGotoLease != null) {
             runBlocking { motionSupervisor.stop(activeGotoLease, MotionStopReason.DISCONNECT) }
@@ -2812,23 +2821,50 @@ class AppViewModel(
         val c = alignmentController ?: run { statusMessage = "Not connected"; return }
         val pos = position ?: run { statusMessage = "No mount position yet"; return }
         val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
-        scope.launch {
-            c.submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
-            // Record the selected star's identity (if any) with the az/alt
-            // it was centred on, so the history is explicit and visible.
-            val rec = selectedAlignmentStar?.copy(
-                azDeg = pos.yaw.toDouble(),
-                altDeg = pos.pitch.toDouble(),
-            ) ?: AlignmentStarRecord(
-                designation = "star-${c.starCount - 1}",
-                raDeg = 0.0,
-                decDeg = 0.0,
-                azDeg = pos.yaw.toDouble(),
-                altDeg = pos.pitch.toDouble(),
-            )
-            _recordedAlignmentStars.add(rec)
-            alignmentStars = c.starCount
-            statusMessage = "Alignment star ${c.starCount} recorded (${rec.designation})"
+        alignmentJob?.cancel()
+        alignmentJob = scope.launch {
+            val acquired = motionSupervisor.acquire(MotionOwner.ALIGNMENT)
+            val lease = when (acquired) {
+                is MotionAcquireResult.Granted -> acquired.lease
+                is MotionAcquireResult.Busy -> {
+                    statusMessage = "Motion busy: " + acquired.active.owner.name.lowercase()
+                    return@launch
+                }
+                is MotionAcquireResult.Blocked -> {
+                    statusMessage = "Motion blocked: " + acquired.reason
+                    return@launch
+                }
+            }
+            alignmentMotionLease = lease
+            try {
+                c.submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
+                // Record the selected star's identity (if any) with the
+                // az/alt it was centred on, so the history is explicit.
+                val rec = selectedAlignmentStar?.copy(
+                    azDeg = pos.yaw.toDouble(),
+                    altDeg = pos.pitch.toDouble(),
+                ) ?: AlignmentStarRecord(
+                    designation = "star-" + (c.starCount - 1),
+                    raDeg = 0.0,
+                    decDeg = 0.0,
+                    azDeg = pos.yaw.toDouble(),
+                    altDeg = pos.pitch.toDouble(),
+                )
+                _recordedAlignmentStars.add(rec)
+                alignmentStars = c.starCount
+                statusMessage = "Alignment star " + c.starCount + " recorded (" + rec.designation + ")"
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                statusMessage = "Alignment failed: " + (error.message ?: "unknown error")
+            } finally {
+                withContext(kotlinx.coroutines.NonCancellable) {
+                    val stopped = motionSupervisor.stop(lease, MotionStopReason.RELEASE)
+                    if (stopped is MotionStopResult.Unknown) {
+                        statusMessage = "Alignment stop outcome unknown: " + stopped.reason
+                    }
+                    alignmentMotionLease = null
+                }
+            }
         }
     }
 

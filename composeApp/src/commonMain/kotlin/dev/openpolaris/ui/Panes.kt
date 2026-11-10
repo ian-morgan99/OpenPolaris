@@ -2589,7 +2589,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     // The allow-list is evidence-backed and independent from configuration: a
     // feature flag cannot manufacture firmware, units, acknowledgement or a
     // physical stop result. The default record remains unqualified.
-    val capabilityRecord = SlowMotionCapabilities.current
+    val capabilityRecord = vm.slowMotionCapability
     val liveTransportQualified = capabilityRecord.liveReady
     val liveControlsEnabled = gateOpen && liveTransportQualified && capabilityRecord.liveReady && vm.mount.connected
     val demoControlsEnabled = vm.demoMode

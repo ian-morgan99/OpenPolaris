@@ -185,6 +185,7 @@ import dev.openpolaris.core.domain.RateUnits
 import dev.openpolaris.core.domain.SafeRateAdjustController
 import dev.openpolaris.core.domain.SlowMotionActionResult
 import dev.openpolaris.core.domain.SlowMotionCapabilities
+import dev.openpolaris.core.domain.SlowMotionCapabilityRecord
 import dev.openpolaris.core.domain.SlowMotionAcquireResult
 import dev.openpolaris.core.domain.SlowMotionCalibration
 import dev.openpolaris.core.domain.SlowMotionController
@@ -382,6 +383,8 @@ class AppViewModel(
     private val astroWebUiMotionProgrammeClient: AstroWebUiMotionProgrammeClient = createAstroWebUiMotionProgrammeClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
     private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
+    /** Evidence-backed SLOW allow-list; production defaults to the unqualified record. */
+    private val slowMotionCapabilityRecord: SlowMotionCapabilityRecord = SlowMotionCapabilities.current,
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -681,7 +684,7 @@ class AppViewModel(
      * and owner lifecycle without allowing a feature flag to open the route.
      */
     private val qualifiedSlowMotionTransport = QualifiedSlowMotionTransport(
-        capability = SlowMotionCapabilities.current,
+        capability = slowMotionCapabilityRecord,
     ) { frame ->
         val activeSession = session
         if (activeSession == null) {
@@ -767,6 +770,10 @@ class AppViewModel(
      */
     val motionState: StateFlow<MotionState>
         get() = motionSupervisor.state
+
+    /** The exact SLOW evidence record used by both the UI and runtime adapter. */
+    val slowMotionCapability: SlowMotionCapabilityRecord
+        get() = slowMotionCapabilityRecord
 
     val fastJogState: StateFlow<FastJogState>
         get() = fastJogController.state
@@ -2675,7 +2682,7 @@ class AppViewModel(
 
     /** Start one logical SLOW direction in Demo or qualified live mode. */
     private fun liveSlowMotionReady(): Boolean =
-        !demoMode && session != null && SlowMotionCapabilities.current.liveReady
+        !demoMode && session != null && slowMotionCapabilityRecord.liveReady
 
     fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
         if (!demoMode && !liveSlowMotionReady()) {
@@ -6399,8 +6406,8 @@ class AppViewModel(
             camera = cameraSummary,
             storage = storageSummary,
             capture = captureSummary,
-            slowMotionLiveReady = SlowMotionCapabilities.current.liveReady,
-            slowMotionBlockers = SlowMotionCapabilities.current.blockers,
+            slowMotionLiveReady = slowMotionCapabilityRecord.liveReady,
+            slowMotionBlockers = slowMotionCapabilityRecord.blockers,
             rawFrameLoggingEnabled = FeatureFlags.isEnabled("rawFrameLog"),
             captureTimeline = captureTimeline.takeLast(20).map {
                 SupportBundleTimelineEntry(it.stage.label, it.detail)

@@ -2186,3 +2186,30 @@ Android debug APK:
 
 This is simulator/package evidence only. Live mount, Bluetooth, camera,
 Astro WebUI and physical slow-motion qualification remain unverified.
+
+
+## Latest committed verification - 435d0be
+
+Commit under test: 435d0be (fix: use source-aligned Android GATT wake).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AndroidBluetoothWakeContractTest :androidApp:compileDebugKotlinAndroid --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: de6e61ec3d9c913c57398d0d5252db54514b8681081ff5fff042c14cedfbe458
+
+This is source-contract/package evidence only. Live phone Bluetooth GATT,
+mount AP wake, camera, Astro WebUI and physical slow-motion qualification
+remain unverified.

@@ -172,6 +172,16 @@ import dev.openpolaris.core.domain.MotionStopResult
 import dev.openpolaris.core.domain.MotionStopTransport
 import dev.openpolaris.core.domain.MotionSupervisor
 import dev.openpolaris.core.domain.RateAxis
+import dev.openpolaris.core.domain.RateAdjustCapability
+import dev.openpolaris.core.domain.RateAdjustContext
+import dev.openpolaris.core.domain.RateAdjustRequest
+import dev.openpolaris.core.domain.RateAdjustState
+import dev.openpolaris.core.domain.RateAdjustTransport
+import dev.openpolaris.core.domain.RateAxisBounds
+import dev.openpolaris.core.domain.RateCapabilityIdentity
+import dev.openpolaris.core.domain.RateCommandResult
+import dev.openpolaris.core.domain.RateUnits
+import dev.openpolaris.core.domain.SafeRateAdjustController
 import dev.openpolaris.core.domain.SlowMotionActionResult
 import dev.openpolaris.core.domain.SlowMotionCapabilities
 import dev.openpolaris.core.domain.SlowMotionAcquireResult
@@ -269,6 +279,14 @@ private class DemoSlowMotionTransport : SlowMotionTransport {
         if (events.isEmpty()) return emptyList()
         return events.toList().also { events.clear() }
     }
+}
+
+/** Accepts logical fine-rate requests without any wire or host transport. */
+private class DemoFineRateTransport : RateAdjustTransport {
+    override suspend fun apply(request: RateAdjustRequest): RateCommandResult =
+        RateCommandResult.Accepted(request.version)
+
+    override suspend fun stop(): RateCommandResult = RateCommandResult.Accepted()
 }
 
 /**
@@ -656,6 +674,23 @@ class AppViewModel(
     // records logical commands only and never emits a firmware frame.
     private val demoSlowMotionTransport = DemoSlowMotionTransport()
     /**
+     * Demo-only fine-rate transport. It records a logical request and never
+     * has access to a MountSession, so the rehearsal cannot emit a firmware
+     * frame accidentally.
+     */
+    private val demoFineRateTransport = DemoFineRateTransport()
+    private val demoFineRateIdentity = RateCapabilityIdentity(
+        firmwareId = "openpolaris-demo",
+        gimbalPayloadSha256 = "demo-only-no-payload",
+        profileId = "fine-rate-rehearsal-v1",
+    )
+    private val demoFineRateCapability = RateAdjustCapability(
+        identity = demoFineRateIdentity,
+        qualified = true,
+        units = RateUnits.DEGREES_PER_SECOND,
+        bounds = RateAxis.entries.associateWith { RateAxisBounds(-1.0, 1.0) },
+    )
+    /**
      * Source-aligned duration jog transport. 513-516 use time:Nms for a
      * bounded beat and state:0 on the same code for an explicit stop.
      * sendOnly is used so a failed write becomes an unknown stop state rather
@@ -707,6 +742,11 @@ class AppViewModel(
             override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
                 when (owner) {
                     MotionOwner.SLOW_MOVE -> demoSlowMotionTransport.stop(reason)
+                    MotionOwner.TRACKING_CORRECTION -> when (val result = demoFineRateTransport.stop()) {
+                        is RateCommandResult.Accepted -> MotionStopResult.Stopped
+                        is RateCommandResult.Rejected -> MotionStopResult.Rejected
+                        is RateCommandResult.Unknown -> MotionStopResult.Unknown(result.reason)
+                    }
                     MotionOwner.FAST_JOG -> {
                         val code = fastJogController.activeCode
                         if (code == null) {
@@ -766,6 +806,15 @@ class AppViewModel(
     private var demoSlowMotionLease: SlowMotionLease? = null
     private var demoSlowMotionJob: Job? = null
     private var demoSlowMotionStopJob: Job? = null
+    private val demoFineRate = SafeRateAdjustController(demoFineRateTransport)
+    private var demoFineRateLease: MotionLease? = null
+    private var demoFineRateJob: Job? = null
+    private var demoFineRateRehearsalEvidence by mutableStateOf(false)
+    private var demoFineRateVersion = 0L
+    val fineRateDemoState: StateFlow<RateAdjustState>
+        get() = demoFineRate.state
+    val fineRateDemoEvidenceArmed: Boolean
+        get() = demoFineRateRehearsalEvidence
     var slowMotionDemoState by mutableStateOf(SlowMotionDemoSnapshot())
         private set
     /**
@@ -1696,6 +1745,9 @@ class AppViewModel(
         demoConnectJob = scope.launch {
             try {
                 sim.session.connect()
+                demoFineRateRehearsalEvidence = false
+                demoFineRate.setCapability(demoFineRateCapability)
+                updateDemoFineRateContext()
                 // SimulatedMount's connect() always returns true; treat as
                 // success for the marker-save path. (A future slice that
                 // simulates intermittent failure should gate this on the
@@ -1759,6 +1811,7 @@ class AppViewModel(
             )
         }
         stopDemoSlowMotionForDisconnect()
+        stopDemoFineRateForDisconnect()
         val activeFastJogLease = fastJogLease
         fastJogLease = null
         fastJogJob?.cancel()
@@ -2112,7 +2165,10 @@ class AppViewModel(
                 coroutineScope {
                     launch {
                         when (val r = s.request(284, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { MountState.fromFrame284(it) }) {
-                            is MountSession.CmdResult.Ok -> mount = r.value
+                            is MountSession.CmdResult.Ok -> {
+                                mount = r.value
+                                updateDemoFineRateContext()
+                            }
                             is MountSession.CmdResult.Timeout -> {}
                             is MountSession.CmdResult.ProtocolError -> statusMessage = "Error: ${r.message}"
                         }
@@ -2415,10 +2471,174 @@ class AppViewModel(
      */
     var trackingRate by mutableStateOf(TrackingRate.DEFAULT)
 
-    fun startTracking() = scope.launch { controller?.start(trackingRate) }
-    fun stopTracking() = scope.launch { controller?.stop() }
-    fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
+    fun startTracking() = scope.launch {
+        controller?.start(trackingRate)
+        updateDemoFineRateContext()
+    }
+
+    fun stopTracking() = scope.launch {
+        if (demoMode) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
+        controller?.stop()
+        updateDemoFineRateContext()
+    }
+
+    fun toggleHalfSpeed(on: Boolean) = scope.launch {
+        if (demoMode && on) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
+        controller?.setHalfSpeed(on)
+        updateDemoFineRateContext()
+    }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
+    /** Refresh the simulator's fine-rate safety contract without manufacturing a live solve. */
+    private fun updateDemoFineRateContext() {
+        val sim = demoSim
+        val solveEvidence = demoMode && demoFineRateRehearsalEvidence
+        val owner = motionSupervisor.state.value
+        val ownerAvailable = owner == MotionState.Idle ||
+            (owner is MotionState.Owned && owner.lease == demoFineRateLease)
+        demoFineRate.updateContext(
+            RateAdjustContext(
+                connected = demoMode && sim != null && session != null,
+                trackingConfirmed = demoMode && sim?.tracking == true,
+                halfSpeedEnabled = demoMode && sim?.halfSpeed == true,
+                exclusiveMotionAvailable = ownerAvailable,
+                solutionAgeMs = if (solveEvidence) 0L else null,
+                solutionConfidence = if (solveEvidence) 0.90 else null,
+                solutionRotationDegrees = if (solveEvidence) 0.0 else null,
+            ),
+        )
+    }
+
+    /** Arm only synthetic solve evidence for the simulator rehearsal. */
+    fun prepareDemoFineRate() {
+        if (!demoMode) {
+            statusMessage = "Fine correction rehearsal is available only in Demo mode"
+            return
+        }
+        demoFineRate.setCapability(demoFineRateCapability)
+        demoFineRateRehearsalEvidence = true
+        updateDemoFineRateContext()
+        statusMessage = if (demoSim?.tracking == true) {
+            "Demo fine correction ready (synthetic solve evidence; no hardware command)"
+        } else {
+            "Demo solve rehearsal prepared; start tracking before applying fine correction"
+        }
+    }
+
+    /** Apply one bounded logical fine-rate request and retain the shared owner lease. */
+    fun demoFineRateApply(axis: RateAxis, direction: Int) {
+        if (!demoMode) {
+            statusMessage = "Fine-rate transport is not qualified for live hardware"
+            return
+        }
+        if (direction !in -1..1 || direction == 0) {
+            statusMessage = "Invalid Demo fine-rate direction"
+            return
+        }
+        if (demoFineRateJob?.isActive == true) return
+        demoFineRateJob = scope.launch {
+            try {
+                updateDemoFineRateContext()
+                val ready = demoFineRate.state.value as? RateAdjustState.Ready
+                if (ready == null) {
+                    statusMessage = "Fine correction unavailable: ${demoFineRateStateReason()}"
+                    return@launch
+                }
+                val lease = when (val acquired = motionSupervisor.acquire(MotionOwner.TRACKING_CORRECTION)) {
+                    is MotionAcquireResult.Granted -> acquired.lease
+                    is MotionAcquireResult.Busy -> {
+                        statusMessage = "Fine correction blocked by ${acquired.active.owner.name.lowercase()}"
+                        return@launch
+                    }
+                    is MotionAcquireResult.Blocked -> {
+                        statusMessage = "Fine correction blocked: ${acquired.reason}"
+                        return@launch
+                    }
+                }
+                demoFineRateLease = lease
+                val amount = 0.1 * direction
+                val request = RateAdjustRequest(
+                    baseProfile = TrackingRate.SIDEREAL,
+                    m1Pan = if (axis == RateAxis.M1_PAN) amount else 0.0,
+                    m2Tilt = if (axis == RateAxis.M2_TILT) amount else 0.0,
+                    m3Rotation = if (axis == RateAxis.M3_ROTATION) amount else 0.0,
+                    version = ++demoFineRateVersion,
+                    capability = ready.capability.identity,
+                )
+                when (val result = demoFineRate.apply(request)) {
+                    is RateCommandResult.Accepted -> {
+                        statusMessage = "Demo fine correction active: ${axis.name} ${if (direction > 0) "A" else "B"} · 0.1°/s (no hardware command)"
+                    }
+                    is RateCommandResult.Rejected -> {
+                        demoFineRateLease = null
+                        motionSupervisor.stop(lease, MotionStopReason.RELEASE)
+                        statusMessage = "Fine correction rejected: ${result.reason}"
+                    }
+                    is RateCommandResult.Unknown -> {
+                        statusMessage = "Fine correction stop/recovery required: ${result.reason}"
+                    }
+                }
+            } finally {
+                if (demoFineRateJob === currentCoroutineContext()[Job]) {
+                    demoFineRateJob = null
+                }
+            }
+        }
+    }
+
+    /** Stop logical fine correction before releasing its shared motion owner. */
+    fun demoFineRateStop() {
+        if (!demoMode) {
+            statusMessage = "Fine-rate transport is not qualified for live hardware"
+            return
+        }
+        scope.launch { stopDemoFineRateNow(MotionStopReason.RELEASE) }
+    }
+
+    private fun demoFineRateStateReason(): String = when (val state = demoFineRate.state.value) {
+        is RateAdjustState.Unavailable -> state.reason
+        is RateAdjustState.Faulted -> state.reason
+        is RateAdjustState.Stale -> state.reason
+        is RateAdjustState.Applying -> "request is still being acknowledged"
+        is RateAdjustState.Active -> "an explicit stop is required before another request"
+        is RateAdjustState.Ready -> "ready"
+    }
+
+    private suspend fun stopDemoFineRateNow(reason: MotionStopReason): RateCommandResult {
+        val applyJob = demoFineRateJob
+        demoFineRateJob = null
+        applyJob?.cancelAndJoin()
+        val result = demoFineRate.stopCorrection()
+        val lease = demoFineRateLease
+        if (lease != null && result is RateCommandResult.Accepted) {
+            when (val ownerResult = motionSupervisor.stop(lease, reason)) {
+                MotionStopResult.Stopped -> demoFineRateLease = null
+                MotionStopResult.Rejected -> statusMessage = "Fine correction owner release was rejected"
+                is MotionStopResult.Unknown -> statusMessage = "Fine correction owner stop unknown: ${ownerResult.reason}"
+            }
+        }
+        updateDemoFineRateContext()
+        if (result is RateCommandResult.Unknown) {
+            statusMessage = "Fine correction stop outcome unknown: ${result.reason}"
+        }
+        return result
+    }
+
+    /** Disconnect boundary for the logical rate owner; no automatic retry. */
+    private fun stopDemoFineRateForDisconnect() {
+        runBlocking {
+            demoFineRateJob?.cancelAndJoin()
+            demoFineRateJob = null
+            demoFineRate.onDisconnected()
+            demoFineRateLease?.let { lease ->
+                if (motionSupervisor.stop(lease, MotionStopReason.DISCONNECT) is MotionStopResult.Stopped) {
+                    demoFineRateLease = null
+                }
+            }
+        }
+        demoFineRateRehearsalEvidence = false
+        demoFineRate.setCapability(null)
+    }
+
     /** Start one logical SLOW direction in Demo mode only. */
     fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
         if (!demoMode) {
@@ -2773,6 +2993,12 @@ class AppViewModel(
                                     is SlowMotionActionResult.Unknown -> statusMessage = result.reason
                                     else -> statusMessage = "Slow-motion emergency stop not confirmed"
                                 }
+                            }
+                        }
+                        MotionOwner.TRACKING_CORRECTION -> {
+                            val result = stopDemoFineRateNow(MotionStopReason.EMERGENCY)
+                            if (result is RateCommandResult.Accepted) {
+                                statusMessage = "Fine correction emergency stop sent"
                             }
                         }
                         MotionOwner.GOTO,

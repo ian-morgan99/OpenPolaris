@@ -2837,8 +2837,16 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
 
-            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Fine correction — unavailable until tracking and rate transport are qualified")
+            if (demoControlsEnabled) {
+                DemoFineRateCard(
+                    vm = vm,
+                    selectedAxis = slowAxis(selectedAxis),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                    Text("Fine correction — unavailable until tracking and rate transport are qualified")
+                }
             }
             Text(
                 "Release, cancel, backgrounding, screen lock, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until explicit recovery.",
@@ -2853,6 +2861,80 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun DemoFineRateCard(
+    vm: AppViewModel,
+    selectedAxis: dev.openpolaris.core.domain.RateAxis,
+    modifier: Modifier = Modifier,
+) {
+    val state by vm.fineRateDemoState.collectAsState()
+    val active = state is dev.openpolaris.core.domain.RateAdjustState.Active ||
+        state is dev.openpolaris.core.domain.RateAdjustState.Applying
+    val stopRequired = active || state is dev.openpolaris.core.domain.RateAdjustState.Stale
+    val stateText = when (val value = state) {
+        is dev.openpolaris.core.domain.RateAdjustState.Unavailable -> "Unavailable: ${value.reason}"
+        is dev.openpolaris.core.domain.RateAdjustState.Ready -> "Ready for logical rehearsal"
+        is dev.openpolaris.core.domain.RateAdjustState.Applying -> "Applying logical request…"
+        is dev.openpolaris.core.domain.RateAdjustState.Active ->
+            "Active · ${value.request.target(selectedAxis)}°/s on ${selectedAxis.name}"
+        is dev.openpolaris.core.domain.RateAdjustState.Stale -> "Recovery required: ${value.reason}"
+        is dev.openpolaris.core.domain.RateAdjustState.Faulted -> "Faulted: ${value.reason}"
+    }
+    Card(modifier = modifier.testTag("fine-rate-demo")) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Fine correction rehearsal", style = MaterialTheme.typography.labelMedium)
+            Text(
+                "Demo only. This rehearses the SafeRateAdjustController and shared TRACKING_CORRECTION owner; it emits no 532/533/534 or AC 4A frame and sends no hardware command.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text("State: $stateText", style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (vm.fineRateDemoEvidenceArmed) {
+                    "Synthetic solve evidence armed: age 0 ms · confidence 0.90 · rotation 0.0°. Start tracking to make the gate ready."
+                } else {
+                    "A synthetic solve is required for rehearsal; it never overwrites the real plate-solve evidence."
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = vm::prepareDemoFineRate,
+                enabled = !vm.fineRateDemoEvidenceArmed && !active,
+                modifier = Modifier.fillMaxWidth().testTag("fine-rate-demo-prepare"),
+            ) {
+                Text("Prepare synthetic solve for demo")
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Button(
+                    onClick = { vm.demoFineRateApply(selectedAxis, 1) },
+                    enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready,
+                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-a"),
+                ) {
+                    Text("A · +0.1°/s")
+                }
+                Button(
+                    onClick = { vm.demoFineRateApply(selectedAxis, -1) },
+                    enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready,
+                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-b"),
+                ) {
+                    Text("B · -0.1°/s")
+                }
+                OutlinedButton(
+                    onClick = vm::demoFineRateStop,
+                    enabled = stopRequired,
+                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-stop"),
+                ) {
+                    Text("STOP")
+                }
+            }
         }
     }
 }

@@ -52,5 +52,10 @@ class SlowMotionPaneSafetyContractTest {
         assertTrue("Field rotation within 5 degrees" in source)
         assertTrue("live rate transport is disabled in this build" in source)
         assertTrue("safety-policy defaults" in source)
+        assertTrue("fine-rate-demo" in source)
+        assertTrue("Prepare synthetic solve for demo" in source)
+        assertTrue("shared TRACKING_CORRECTION owner" in source)
+        assertTrue("no hardware command" in source)
+        assertTrue("fine-rate-demo-stop" in source)
     }
 }

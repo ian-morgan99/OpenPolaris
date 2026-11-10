@@ -1218,3 +1218,33 @@ Artifacts:
   SHA-256: `cc5b235ee74de3f800080e8c944157fedc0286537a9a20fd40d069637aae6b1a`
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known `libandroidx.graphics.path.so` strip warning and Gradle 9 deprecation notices. This is host/package evidence only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+
+## Latest committed verification - 5f05872
+
+Commit under test: 5f05872 (feat: add gated astro in-head capture).
+
+Focused client/ViewModel/UI verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiAstroCaptureTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiAstroCaptureTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: d871304ae7b7c44b30e01ef36e6b6e218aa064a4364a99519c54b0bb0424739f
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-5f05872.tar.gz
+  SHA-256: 26cea892e72e2c2123e966fb0c0a69c163872bb3b8c4dca184b909545ddcb4ef
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
+notices. This is host/package evidence only; no live Astro WebUI, Bluetooth,
+bridge, camera, mount or physical SLOW qualification was exercised.

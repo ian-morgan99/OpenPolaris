@@ -1155,3 +1155,30 @@ exercised.
 
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW PC keyboard guidance):** added a collapsible keyboard-shortcut explanation to the shared Motion dock and extended the SLOW safety contract test for the shortcut surface, held/released state semantics and button role. This is UX rehearsal only; live transport remains hard-gated.
 - **2026-11-10 - verification:** focused SLOW Compose compile/test and the full shared/Compose/Android/desktop build passed. No live hardware, Bluetooth, camera or SLOW qualification was exercised.
+
+
+
+### WBS-04.3/06.1/08.2 — Gated Astro WebUI in-head capture
+
+Commit 5f05872 adds the source-specific /api/astro/capture path as a
+separate capability from the already guarded M/B /api/link/send path.
+
+- AstroWebUiAstroCaptureParameters rejects unsafe interval, shot and bulb
+  combinations before transport; blank shots are encoded as the source's
+  unlimited form.
+- The client requires the source confirm=1 acknowledgement and preserves
+  resident programme status as the authority after HTTP acceptance.
+- The ViewModel owns the request by mount session, drops late results after
+  disconnect, and refreshes /api/prog without claiming a completed capture.
+- Mission uses a two-step arm/start action and displays the source warning
+  about unreliable externally triggered Astro capture. The capability is
+  default-off because it can move the mount and fire the shutter.
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiAstroCaptureTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiAstroCaptureTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+No live Astro WebUI, camera, mount, Bluetooth or physical SLOW operation was
+exercised.

@@ -754,3 +754,22 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW PC keyboard guidance):** added an explicit shortcuts disclosure for desktop and keyboard users. It documents Tab focus, Enter/Space hold/release, focus-loss stop and STOP ALL while stating that UI input shares the motion owner and does not create a second repeat loop.
+
+
+
+- **2026-11-10 - WBS-04.3/06.1/08.2 ACTIVE (Astro WebUI in-head capture):**
+  added a source-aligned, separately gated /api/astro/capture client for the
+  resident 272 capture route. It validates interval, optional shot count and
+  bulb duration, sends the source confirm=1 form (blank shots means
+  unlimited), parses the returned programme acknowledgement, and immediately
+  hands authority to resident /api/prog status. The Mission surface keeps
+  this distinct from ordinary M/B capture, shows the source warning that
+  externally triggered Astro capture can be unreliable, and requires a
+  two-step arm/start action. The feature is default-off because it can move
+  the mount and fire the shutter; no live route, recovery or physical shutter
+  evidence has been claimed.
+- **2026-11-10 - verification:** AstroWebUiAstroCaptureTest,
+  AppViewModelAstroWebUiAstroCaptureTest,
+  AstroWebUiProgrammeComposerContractTest, FeatureFlagsTest, shared JVM tests,
+  Compose JVM tests and Compose JVM compilation passed. No live Astro WebUI,
+  camera, mount, Bluetooth or physical SLOW operation was exercised.

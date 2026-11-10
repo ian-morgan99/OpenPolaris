@@ -245,7 +245,7 @@ fun OpenPolarisApp(
     val heightCompact = windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact
     val wide = !widthCompact && !heightCompact
 
-    OpenPolarisTheme(dim = dimMode) {
+    OpenPolarisTheme(dim = dimMode, compact = !wide) {
         Surface(Modifier.fillMaxSize()) {
             if (wide) {
                 Row(
@@ -413,7 +413,7 @@ private fun InlineDestinationWorkspace(
 ) {
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp),
     ) {
         item {
             when (destination) {
@@ -931,7 +931,10 @@ private fun StatusStrip(
 private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
     val p = vm.position
     Card(modifier) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing()),
+        ) {
             Text(
                 "Az ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt ${p?.pitch?.toDouble()?.format2() ?: "—"}°",
                 style = MaterialTheme.typography.headlineSmall,

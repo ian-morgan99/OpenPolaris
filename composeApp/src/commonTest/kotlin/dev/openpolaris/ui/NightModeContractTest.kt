@@ -20,7 +20,7 @@ class NightModeContractTest {
         val theme = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt")
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         assertTrue("DimNightColors" in theme)
-        assertTrue("OpenPolarisTheme(dim = dimMode)" in shell)
+        assertTrue("OpenPolarisTheme(dim = dimMode, compact = !wide)" in shell)
         assertTrue("night-dim-toggle" in shell)
         assertTrue("Bright" in shell)
         assertTrue("preferenceStore" in shell)

@@ -350,7 +350,7 @@ private fun DestructiveConfirmDialog(
  */
 @Composable
 fun FeatureFlagsPane(modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         FeatureFlagsPaneContent(Modifier.padding(16.dp))
     }
 }

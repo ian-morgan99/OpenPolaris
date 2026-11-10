@@ -21,8 +21,8 @@ fun ReadmePane(modifier: Modifier = Modifier) {
     val h = MaterialTheme.typography.titleSmall
     val body = MaterialTheme.typography.bodySmall
 
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 5.dp else 6.dp)) {
             Text("Readme", style = MaterialTheme.typography.titleMedium)
 
             Text("1. Connect", style = h)

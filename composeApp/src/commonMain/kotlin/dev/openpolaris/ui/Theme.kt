@@ -5,9 +5,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
@@ -72,11 +75,58 @@ private val NightTypography = Typography(
     labelSmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
 )
 
+/**
+ * Phone typography keeps the same contrast and hierarchy as the desktop
+ * theme, but removes the extra label/title growth that makes a narrow phone
+ * feel like it is rendering a tablet UI. Symbols used by the jog pad and
+ * compact navigation inherit these smaller label styles too.
+ */
+private val CompactNightTypography = Typography(
+    displayLarge = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.SemiBold),
+    displayMedium = TextStyle(fontSize = 27.sp, fontWeight = FontWeight.SemiBold),
+    displaySmall = TextStyle(fontSize = 23.sp, fontWeight = FontWeight.SemiBold),
+    headlineLarge = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold),
+    headlineMedium = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+    headlineSmall = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+    titleLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+    titleMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+    titleSmall = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+    bodyLarge = TextStyle(fontSize = 15.sp),
+    bodyMedium = TextStyle(fontSize = 14.sp),
+    bodySmall = TextStyle(fontSize = 12.sp),
+    labelLarge = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+    labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+    labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+)
+
+/** True while the shared UI is hosted in the compact phone shell. */
+val LocalOpenPolarisCompact = staticCompositionLocalOf { false }
+
+/** Shared spacing tokens used by primary panes on phones and larger screens. */
+@Composable
+fun openPolarisCardOuterPadding() = if (LocalOpenPolarisCompact.current) 4.dp else 8.dp
+
+@Composable
+fun openPolarisCardInnerPadding() = if (LocalOpenPolarisCompact.current) 10.dp else 16.dp
+
+@Composable
+fun openPolarisSectionSpacing() = if (LocalOpenPolarisCompact.current) 6.dp else 8.dp
+
 /** Night theme wrapper; dim mode reduces red/amber luminance for field use. */
 @Composable
-fun OpenPolarisTheme(dim: Boolean = false, content: @Composable () -> Unit) {
+fun OpenPolarisTheme(
+    dim: Boolean = false,
+    compact: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     // Night mode is mandatory by design; isSystemInDarkTheme() kept for future
     // optional day theme. Suppress unused warning via explicit reference.
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
-    MaterialTheme(colorScheme = if (dim) DimNightColors else NightColors, typography = NightTypography, content = content)
+    CompositionLocalProvider(LocalOpenPolarisCompact provides compact) {
+        MaterialTheme(
+            colorScheme = if (dim) DimNightColors else NightColors,
+            typography = if (compact) CompactNightTypography else NightTypography,
+            content = content,
+        )
+    }
 }

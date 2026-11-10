@@ -164,7 +164,7 @@ fun EvidenceCentrePane(
         "${profile.label} ${profile.address.host}:${profile.address.controlPort} / preview ${profile.address.previewPort}"
     } ?: "No endpoint selected"
 
-    Card(modifier.padding(8.dp)) {
+    Card(modifier.padding(openPolarisCardOuterPadding())) {
         Column(
             Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -337,9 +337,9 @@ fun ConnectionPane(
     onMountWifiScan: (suspend (suspend (String) -> Unit) -> Unit)? = null,
     onBridgeDown: (() -> Unit)? = null,
 ) {
-    Card(modifier = modifier.padding(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         val scope = rememberCoroutineScope()
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Connection mode", style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
@@ -976,8 +976,8 @@ fun MissionDashboardPane(
             backlash = autofocusBacklash.toIntOrNull() ?: -1,
         )
     }.getOrNull()
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             EndpointHealthSection(
                 vm = vm,
@@ -2590,8 +2590,8 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
 fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val p = vm.position
     val fastJogState by vm.fastJogState.collectAsState()
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Position", style = MaterialTheme.typography.titleMedium)
             Text("Az/Yaw: ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt/Pitch: ${p?.pitch?.toDouble()?.format2() ?: "—"}°")
             Text(
@@ -2698,8 +2698,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         "Solve confidence at least 0.60" to ((solve?.confidence ?: 0.0) >= 0.60),
         "Field rotation within 5 degrees" to false,
     )
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
             Text(
                 when {
@@ -3274,8 +3274,8 @@ private fun JogButton(label: String, code: Int, vm: AppViewModel) {
 @Composable
 fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var alignmentQuery by remember { mutableStateOf("") }
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Slew", style = MaterialTheme.typography.titleMedium)
 
             // v0.1.12: stack the Lat/Lng fields vertically so the
@@ -3449,8 +3449,8 @@ fun CameraPane(
     var bulbSecondsText by remember { mutableStateOf("5") }
     val shutterLabel = c.shutterIndex?.let { c.shutterOptions.getOrNull(it)?.trim() }
     val releaseMode = CameraReleaseMode.fromOption(shutterLabel)
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
             // 286 camera-attachment status (one connect-time snapshot). Without this the
             // pane shows a wall of "unavailable" steppers with no explanation —
@@ -4138,8 +4138,8 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val frameAgeSeconds = vm.previewFrameReceivedAtMs?.let { received ->
         ((nowMs - received).coerceAtLeast(0L) / 1_000L)
     }
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Camera preview", style = MaterialTheme.typography.titleMedium)
             if (vm.demoMode) {
                 Text(
@@ -4390,8 +4390,8 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var step by remember { mutableStateOf(1) }
     val picked = vm.pickedFirmwarePath != null
 
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Firmware update", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Step $step of 3",

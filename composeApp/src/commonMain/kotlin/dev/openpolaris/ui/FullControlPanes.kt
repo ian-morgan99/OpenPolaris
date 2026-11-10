@@ -52,8 +52,8 @@ import dev.openpolaris.core.domain.format2
 
 @Composable
 fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
             Text("Astro helpers", style = MaterialTheme.typography.titleMedium)
             if (!FeatureFlags.isEnabled("advancedAstro") && !FeatureFlags.isEnabled("autoLevel")) {
                 Text(
@@ -195,8 +195,8 @@ private fun AutoLevelRow(vm: AppViewModel) {
 
 @Composable
 fun SystemPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
             Text("System", style = MaterialTheme.typography.titleMedium)
             TimeRow(vm)
             TzRow(vm)
@@ -426,9 +426,9 @@ fun CaptureTimelinePane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp)) {
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 5.dp else 6.dp)) {
                 Text("Latest capture", style = MaterialTheme.typography.titleMedium)
                 val publication = vm.lastCapturePublication
                 if (publication == null) {
@@ -467,8 +467,8 @@ fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Astro WebUI gallery", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Optional resident WebUI index with thumbnail and full-JPEG reads. " +
@@ -661,8 +661,8 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
             Text("SD card files", style = MaterialTheme.typography.titleMedium)
             SdHeaderRow(vm)
             val fileManagerEnabled = FeatureFlags.isEnabled("fileManager")

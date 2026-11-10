@@ -36,9 +36,9 @@ import dev.openpolaris.core.domain.readResourceText
 fun UserManualPane(modifier: Modifier = Modifier) {
     val manualText = remember { readResourceText("USER-MANUAL.md") }
 
-    Surface(modifier = modifier.padding(8.dp)) {
+    Surface(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(openPolarisCardInnerPadding()).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("User Manual", style = MaterialTheme.typography.titleMedium)

@@ -1,0 +1,45 @@
+package dev.openpolaris.ui
+
+import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+/**
+ * Pins the compact phone visual-density boundary. This is source-level
+ * coverage because the common JVM target has no installed-phone screenshot
+ * harness; the release acceptance still needs a real phone render check.
+ */
+class MobileCompactDensityContractTest {
+    private fun source(relativePath: String): String {
+        var directory: java.io.File? = java.io.File(".").canonicalFile
+        repeat(8) {
+            val candidate = directory?.let { java.io.File(it, relativePath) }
+            if (candidate?.isFile == true) return candidate.readText(Charsets.UTF_8)
+            directory = directory?.parentFile
+        }
+        error("Cannot read $relativePath")
+    }
+
+    @Test
+    fun phoneShellSelectsCompactTypographyAndSpacing() {
+        val theme = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt")
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("CompactNightTypography" in theme)
+        assertTrue("LocalOpenPolarisCompact" in theme)
+        assertTrue("labelSmall = TextStyle(fontSize = 11.sp" in theme)
+        assertTrue("OpenPolarisTheme(dim = dimMode, compact = !wide)" in shell)
+        assertTrue("openPolarisCardOuterPadding()" in panes)
+        assertTrue("openPolarisCardInnerPadding()" in panes)
+        assertTrue("openPolarisSectionSpacing()" in panes)
+        assertTrue("Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp)" in shell)
+    }
+
+    @Test
+    fun desktopThemeDoesNotInheritPhoneTypography() {
+        val theme = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt")
+        assertTrue("typography = if (compact) CompactNightTypography else NightTypography" in theme)
+        assertFalse("LocalOpenPolarisCompact provides true" in theme)
+    }
+}

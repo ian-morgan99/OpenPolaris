@@ -67,8 +67,8 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         )
     } else null
 
-    Card(modifier = modifier.padding(8.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 12.dp)) {
             Text("Tonight", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "What is above the horizon right now. Tap Slew to point the mount.",

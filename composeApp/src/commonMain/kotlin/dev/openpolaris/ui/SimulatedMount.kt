@@ -51,6 +51,7 @@ class SimulatedMount {
     var wbIndex = 2
     var fNumIndex = 3
     var evIndex = 4
+    var shutterIndex = 1
 
     private var demoCaptureNumber = 0
     private val demoFiles = mutableListOf<String>()
@@ -86,8 +87,20 @@ class SimulatedMount {
                 Codes.CAM_INFO -> queue(
                     "1&" + Codes.CAM_INFO + "&2&manufacturer:sony;model:A7;state:0;storage:128;photoFormat:1;#"
                 )
+                Codes.BenroCamera.GET_ISO_INFO -> queue(
+                    "1&" + Codes.BenroCamera.GET_ISO_INFO + "&2&V:" + isoIndex + ";R:100,200,400,800,1600;RD:1;#"
+                )
+                Codes.BenroCamera.GET_WB_INFO -> queue(
+                    "1&" + Codes.BenroCamera.GET_WB_INFO + "&2&V:" + wbIndex + ";R:Auto,Daylight,Cloudy,Shade;RD:1;#"
+                )
+                Codes.BenroCamera.GET_EV_INFO -> queue(
+                    "1&" + Codes.BenroCamera.GET_EV_INFO + "&2&V:" + evIndex + ";R:-2,-1,0,1,2;RD:1;#"
+                )
                 Codes.BenroCamera.GET_SHUTTER_INFO -> queue(
-                    "1&" + Codes.BenroCamera.GET_SHUTTER_INFO + "&2&V:1;R:1/100,B;RD:1;#"
+                    "1&" + Codes.BenroCamera.GET_SHUTTER_INFO + "&2&V:" + shutterIndex + ";R:M,B;RD:1;#"
+                )
+                Codes.BenroCamera.GET_FNUM_INFO -> queue(
+                    "1&" + Codes.BenroCamera.GET_FNUM_INFO + "&2&V:" + fNumIndex + ";R:2.8,4,5.6,8,11;RD:1;#"
                 )
                 Codes.FILE_LIST -> {
                     val requestedType = fields["type"]?.toIntOrNull() ?: 0
@@ -130,12 +143,30 @@ class SimulatedMount {
                     pitch = fields["alt"]?.toFloatOrNull() ?: pitch
                     queue("1&519&2&result:ok;#")
                 }
-                258 -> queue("1&258&2&iso:$isoIndex;ret:0;#")
-                259 -> { isoIndex = fields["iso"]?.toIntOrNull() ?: isoIndex; queue("1&259&2&ret:0;#") }
-                260 -> queue("1&260&2&wb:$wbIndex;ret:0;#")
-                261 -> { wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex; queue("1&261&2&ret:0;#") }
-                262 -> queue("1&262&2&fNum:$fNumIndex;ret:0;#")
-                263 -> { fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex; queue("1&263&2&ret:0;#") }
+                Codes.BenroCamera.SET_ISO -> {
+                    isoIndex = fields["iso"]?.toIntOrNull() ?: isoIndex
+                    queue("1&" + Codes.BenroCamera.SET_ISO + "&2&ret:0;#")
+                }
+                Codes.BenroCamera.SET_WB -> {
+                    wbIndex = fields["wb"]?.toIntOrNull() ?: wbIndex
+                    queue("1&" + Codes.BenroCamera.SET_WB + "&2&ret:0;#")
+                }
+                Codes.BenroCamera.SET_EV -> {
+                    evIndex = fields["ev"]?.toIntOrNull() ?: evIndex
+                    queue("1&" + Codes.BenroCamera.SET_EV + "&2&ret:0;#")
+                }
+                Codes.BenroCamera.SET_SHUTTER -> {
+                    shutterIndex = fields["shutter"]?.toIntOrNull()?.coerceIn(0, 1) ?: shutterIndex
+                    queue("1&" + Codes.BenroCamera.SET_SHUTTER + "&2&ret:0;#")
+                }
+                Codes.BenroCamera.SET_FNUM -> {
+                    fNumIndex = fields["fNum"]?.toIntOrNull() ?: fNumIndex
+                    queue("1&" + Codes.BenroCamera.SET_FNUM + "&2&ret:0;#")
+                }
+                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS -> queue(
+                    "1&" + Codes.BenroCamera.SET_VIDEO_RECORD_STATUS + "&2&state:" +
+                        (fields["state"] ?: "0") + ";ret:0;#"
+                )
                 Codes.CAM_GET_EV -> if (fields.containsKey("state") || fields.containsKey("bulb") || fields.containsKey("c")) {
                     val state = fields["state"]?.toIntOrNull() ?: 1
                     val bulb = fields["bulb"]?.toIntOrNull() ?: 0

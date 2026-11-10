@@ -1810,6 +1810,7 @@ class AppViewModel(
                 saveMarker()
                 startCaptureEventObserver(sim.session)
                 startCameraAttachmentPolling(sim.session)
+                refreshCamera()
                 setEndpointHealth(
                     phase = EndpointPhase.READY,
                     control = EndpointService.REACHABLE,
@@ -4266,7 +4267,7 @@ class AppViewModel(
             statusMessage = "Not connected"
             return
         }
-        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
@@ -4298,7 +4299,11 @@ class AppViewModel(
                 "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }}",
                 "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }}",
             )
-            statusMessage = readings.joinToString(" | ")
+            statusMessage = if (demoMode) {
+                "Demo camera readback ready: " + shutter.raw.ifBlank { "unknown" }
+            } else {
+                readings.joinToString(" | ")
+            }
         }
     }
 
@@ -4404,12 +4409,12 @@ class AppViewModel(
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
-        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
         scope.launch {
-            if (rebindForBulb) {
+            if (rebindForBulb && !demoMode) {
                 statusMessage = "Reconnecting camera for Bulb mode…"
                 if (!controller.rebindForModeTransition()) {
                     statusMessage = "Bulb mode rebind failed; shutter write blocked"

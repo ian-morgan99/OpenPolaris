@@ -170,6 +170,15 @@ class AppViewModelCapturePhaseTest {
             vm.connectDemo(startPolling = false)
             runCurrent()
             assertTrue(vm.cameraAttachment?.isAttached == true, "demo must expose a confirmed camera")
+            assertEquals(1, vm.camera.shutterIndex, "demo should read back the current B mode")
+            assertEquals(listOf("M", "B"), vm.camera.shutterOptions)
+
+            vm.setShutter(0)
+            advanceTimeBy(200)
+            runCurrent()
+            assertEquals(0, vm.camera.shutterIndex, "demo should verify a switch to M")
+            assertTrue(vm.statusMessage.contains("Shutter verified"))
+
             vm.capture()
             advanceTimeBy(850)
             runCurrent()
@@ -186,6 +195,11 @@ class AppViewModelCapturePhaseTest {
                 ),
                 vm.captureTimeline.map { it.stage },
             )
+
+            vm.setShutter(1)
+            advanceTimeBy(200)
+            runCurrent()
+            assertEquals(1, vm.camera.shutterIndex, "demo should verify a switch back to B")
 
             vm.captureBulb(3)
             advanceTimeBy(850)

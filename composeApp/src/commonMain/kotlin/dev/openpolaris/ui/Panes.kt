@@ -3295,6 +3295,8 @@ fun CameraPane(
             Text(
                 if (qualificationEnabled)
                     "Qualification mode uses Benro Connect's evidenced INFO/SET map. Changes are sent to the attached camera; verify and restore each original value."
+                else if (vm.demoMode)
+                    "Demo camera controls are simulated locally. M/B changes exercise the same readback and verification flow without touching hardware."
                 else
                     "Camera settings are locked. Enable Camera qualification mode in Settings to test the evidenced Benro mappings.",
                 style = MaterialTheme.typography.bodySmall,
@@ -3321,7 +3323,7 @@ fun CameraPane(
             // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
             // phone in landscape. Was a single 10-row Column that clipped
             // half its controls below the callout dialog fold (#45).
-            val cameraWriteEnabled = qualificationArmed && attachment?.isAttached == true
+            val cameraWriteEnabled = (qualificationArmed || vm.demoMode) && attachment?.isAttached == true
             val steppers: List<@Composable () -> Unit> = listOf(
                 { StepperRow("ISO", c.isoIndex, c.isoOptions, cameraWriteEnabled, vm::setIso) },
                 { StepperRow("WB", c.wbIndex, c.wbOptions, cameraWriteEnabled, vm::setWb) },

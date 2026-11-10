@@ -253,6 +253,7 @@
 ### WBS-10.3 — Release evidence — P0
 
 - Source SHA, build flags, artifact hashes, tests, known gaps, device matrix and rollback notes.
+- Current record: docs/BUILD-EVIDENCE-2026-11-10.md.
 
 ## WBS-11 — Physical qualification and release gate
 

@@ -501,6 +501,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     // cannot imply that the target firmware transport is qualified.
     val liveTransportQualified = false
     val liveControlsEnabled = gateOpen && liveTransportQualified && vm.mount.connected
+    val demoControlsEnabled = vm.demoMode
+    val controlsEnabled = liveControlsEnabled || demoControlsEnabled
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
@@ -510,6 +512,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
             Text(
                 when {
+                    demoControlsEnabled -> "Demo simulation is active: planner and scheduler transitions are shown without sending a hardware command."
                     !gateOpen -> "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
                     !liveTransportQualified -> "Host planner is implemented, but no firmware-bound slow-motion transport is enabled in this build."
                     !vm.mount.connected -> "Connect to a mount before using slow motion."
@@ -518,13 +521,16 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Motion state: Unavailable", style = MaterialTheme.typography.labelMedium)
-                Text(connectionText, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (demoControlsEnabled) "Motion state: Demo ${vm.slowMotionDemoState.label}" else "Motion state: Unavailable",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Text(if (demoControlsEnabled) "No physical transport" else connectionText, style = MaterialTheme.typography.bodySmall)
             }
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
             Text(
-                "Select a physical axis, then hold a direction. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
+                "Select an axis, then tap a direction in Demo mode; a qualified live version will use the shared dead-man hold contract. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -532,7 +538,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     FilterChip(
                         selected = selectedAxis == axis,
                         onClick = { selectedAxis = axis },
-                        enabled = liveControlsEnabled,
+                        enabled = controlsEnabled,
                         label = { Text(axis.substringBefore(" ·")) },
                     )
                 }
@@ -545,18 +551,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
-                    onClick = {},
-                    enabled = liveControlsEnabled,
+                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel) },
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                 ) { Text("Direction A") }
                 Button(
-                    onClick = {},
-                    enabled = false,
+                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStop() },
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                 ) { Text("STOP ALL") }
                 OutlinedButton(
-                    onClick = {},
-                    enabled = liveControlsEnabled,
+                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel) },
+                    enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                 ) { Text("Direction B") }
             }
@@ -577,7 +583,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     FilterChip(
                         selected = selectedLevel == level,
                         onClick = { selectedLevel = level },
-                        enabled = liveControlsEnabled,
+                        enabled = controlsEnabled,
                         label = { Text(levelLabel) },
                     )
                 }
@@ -589,12 +595,16 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Rotation rocker · M3", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {}, enabled = liveControlsEnabled, modifier = Modifier.weight(1f)) {
-                    Text("A · rotate")
-                }
-                OutlinedButton(onClick = {}, enabled = liveControlsEnabled, modifier = Modifier.weight(1f)) {
-                    Text("B · rotate")
-                }
+                OutlinedButton(
+                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel) },
+                    enabled = controlsEnabled,
+                    modifier = Modifier.weight(1f),
+                ) { Text("A · rotate") }
+                OutlinedButton(
+                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel) },
+                    enabled = controlsEnabled,
+                    modifier = Modifier.weight(1f),
+                ) { Text("B · rotate") }
             }
 
             OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
@@ -605,12 +615,22 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
-                "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected.",
+                if (demoControlsEnabled) {
+                    "Demo mode records logical planner/scheduler transitions only; no 532/533/534 or alternative AC 4A frame is emitted."
+                } else {
+                    "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected."
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+}
+
+private fun slowAxis(label: String): dev.openpolaris.core.domain.RateAxis = when (label.substringBefore(" ·")) {
+    "M2" -> dev.openpolaris.core.domain.RateAxis.M2_TILT
+    "M3" -> dev.openpolaris.core.domain.RateAxis.M3_ROTATION
+    else -> dev.openpolaris.core.domain.RateAxis.M1_PAN
 }
 
 @Composable

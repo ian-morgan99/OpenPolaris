@@ -55,6 +55,9 @@ import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.SystemMillis
+import dev.openpolaris.core.domain.RateAxis
+import dev.openpolaris.core.domain.SlowMotionDemoController
+import dev.openpolaris.core.domain.SlowMotionDemoSnapshot
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createPreviewTransport
@@ -439,6 +442,11 @@ class AppViewModel(
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
+    // Demo-only SLOW model. It shares the planner/scheduler but never owns a
+    // MountSession and never emits a 532/533/534 or AC 4A frame.
+    private val demoSlowMotion = SlowMotionDemoController()
+    var slowMotionDemoState by mutableStateOf(SlowMotionDemoSnapshot())
+        private set
     /**
      * Persistent multi-star alignment session (code 530). Owned by the VM so
      * the firmware receives a monotonically increasing `num` index across
@@ -875,6 +883,8 @@ class AppViewModel(
         reconnectGeneration++
         disconnect()
         demoMode = false
+        demoSlowMotion.reset(SystemMillis.now().coerceAtLeast(0L))
+        slowMotionDemoState = demoSlowMotion.state.value
         setEndpointHealth(
             phase = EndpointPhase.CONTROL_CHECKING,
             control = EndpointService.UNKNOWN,
@@ -1844,6 +1854,28 @@ class AppViewModel(
     fun stopTracking() = scope.launch { controller?.stop() }
     fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
+    /** Start one logical SLOW direction in Demo mode only. */
+    fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
+        if (!demoMode) {
+            statusMessage = "Slow-motion transport is not qualified for live hardware"
+            return
+        }
+        val snapshot = demoSlowMotion.start(axis, direction, level, SystemMillis.now().coerceAtLeast(0L))
+        slowMotionDemoState = snapshot
+        statusMessage = "Demo slow motion: ${snapshot.label} (${snapshot.lastEvents.size} logical transitions; no hardware command)"
+    }
+
+    /** Stop the logical Demo-mode SLOW session; this is not a live stop path. */
+    fun demoSlowMotionStop() {
+        if (!demoMode) {
+            statusMessage = "Slow-motion transport is not qualified for live hardware"
+            return
+        }
+        val snapshot = demoSlowMotion.stop(SystemMillis.now().coerceAtLeast(0L))
+        slowMotionDemoState = snapshot
+        statusMessage = "Demo slow motion stopped (${snapshot.lastEvents.size} logical stop transitions)"
+    }
+
     fun jog(code: Int) = scope.launch {
         val c = controller ?: run { statusMessage = "Not connected"; return@launch }
         // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513–516 jog

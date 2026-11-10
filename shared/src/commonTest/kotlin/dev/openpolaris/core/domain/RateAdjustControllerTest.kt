@@ -61,6 +61,9 @@ class RateAdjustControllerTest {
                 trackingConfirmed = true,
                 halfSpeedEnabled = false,
                 exclusiveMotionAvailable = true,
+                solutionAgeMs = 0L,
+                solutionConfidence = 0.9,
+                solutionRotationDegrees = 0.0,
             ),
         )
     }
@@ -75,7 +78,16 @@ class RateAdjustControllerTest {
         assertIs<RateAdjustState.Unavailable>(controller.state.value)
         controller.setCapability(capability)
         assertIs<RateAdjustState.Unavailable>(controller.state.value)
-        controller.updateContext(RateAdjustContext(connected = true, trackingConfirmed = true, exclusiveMotionAvailable = true))
+        controller.updateContext(
+            RateAdjustContext(
+                connected = true,
+                trackingConfirmed = true,
+                exclusiveMotionAvailable = true,
+                solutionAgeMs = 0L,
+                solutionConfidence = 0.9,
+                solutionRotationDegrees = 0.0,
+            ),
+        )
         assertIs<RateAdjustState.Ready>(controller.state.value)
     }
 
@@ -118,6 +130,75 @@ class RateAdjustControllerTest {
         assertIs<RateCommandResult.Rejected>(result)
         assertTrue(transport.applied.isEmpty())
         assertIs<RateAdjustState.Unavailable>(controller.state.value)
+    }
+
+    @Test
+    fun `stale solve blocks correction before transport`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        controller.setCapability(capability)
+        controller.updateContext(
+            RateAdjustContext(
+                connected = true,
+                trackingConfirmed = true,
+                exclusiveMotionAvailable = true,
+                solutionAgeMs = 5_001L,
+                solutionConfidence = 0.9,
+                solutionRotationDegrees = 0.0,
+            ),
+        )
+
+        val result = controller.apply(request())
+
+        assertIs<RateCommandResult.Rejected>(result)
+        assertTrue(result.reason.contains("stale"))
+        assertTrue(transport.applied.isEmpty())
+    }
+
+    @Test
+    fun `low confidence solve blocks correction before transport`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        controller.setCapability(capability)
+        controller.updateContext(
+            RateAdjustContext(
+                connected = true,
+                trackingConfirmed = true,
+                exclusiveMotionAvailable = true,
+                solutionAgeMs = 0L,
+                solutionConfidence = 0.59,
+                solutionRotationDegrees = 0.0,
+            ),
+        )
+
+        val result = controller.apply(request())
+
+        assertIs<RateCommandResult.Rejected>(result)
+        assertTrue(result.reason.contains("confidence"))
+        assertTrue(transport.applied.isEmpty())
+    }
+
+    @Test
+    fun `rotated solve blocks correction before transport`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        controller.setCapability(capability)
+        controller.updateContext(
+            RateAdjustContext(
+                connected = true,
+                trackingConfirmed = true,
+                exclusiveMotionAvailable = true,
+                solutionAgeMs = 0L,
+                solutionConfidence = 0.9,
+                solutionRotationDegrees = 5.1,
+            ),
+        )
+
+        val result = controller.apply(request())
+
+        assertIs<RateCommandResult.Rejected>(result)
+        assertTrue(result.reason.contains("rotation"))
+        assertTrue(transport.applied.isEmpty())
     }
 
     @Test

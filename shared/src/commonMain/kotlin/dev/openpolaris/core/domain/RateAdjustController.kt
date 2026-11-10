@@ -55,10 +55,23 @@ data class RateAdjustCapability(
     val qualified: Boolean,
     val units: RateUnits,
     val bounds: Map<RateAxis, RateAxisBounds>,
+    /** Policy threshold, not a claim that this exact value is hardware-qualified. */
+    val minimumSolutionConfidence: Double = 0.6,
+    /** Maximum solve age permitted while a correction is active. */
+    val maximumSolutionAgeMs: Long = 5_000L,
+    /** Maximum absolute field rotation permitted while a correction is active. */
+    val maximumSolutionRotationDegrees: Double = 5.0,
 ) {
     init {
         require(bounds.keys == RateAxis.entries.toSet()) {
             "rate capability must provide bounds for every physical axis"
+        }
+        require(minimumSolutionConfidence.isFinite() && minimumSolutionConfidence in 0.0..1.0) {
+            "minimum solution confidence must be in [0,1]"
+        }
+        require(maximumSolutionAgeMs > 0L) { "maximum solution age must be positive" }
+        require(maximumSolutionRotationDegrees.isFinite() && maximumSolutionRotationDegrees >= 0.0) {
+            "maximum solution rotation must be finite and non-negative"
         }
     }
 
@@ -82,6 +95,12 @@ data class RateAdjustContext(
     val trackingConfirmed: Boolean = false,
     val halfSpeedEnabled: Boolean = false,
     val exclusiveMotionAvailable: Boolean = false,
+    /** Age of the solve that anchors correction, measured at evaluation time. */
+    val solutionAgeMs: Long? = null,
+    /** Solver confidence in the [0,1] range. */
+    val solutionConfidence: Double? = null,
+    /** Absolute field rotation from the solve, in degrees. */
+    val solutionRotationDegrees: Double? = null,
 )
 
 /** A complete, immutable correction request. UI drafts must not be requests. */
@@ -291,14 +310,31 @@ class SafeRateAdjustController(
         return if (reason == null) RateAdjustState.Ready(cap!!) else RateAdjustState.Unavailable(reason)
     }
 
-    private fun gateReason(cap: RateAdjustCapability?): String? = when {
-        cap == null -> "Rate control is not qualified for this session"
-        !cap.qualified -> "Rate control capability is unqualified for this firmware"
-        !context.connected -> "Connect to the mount before using fine correction"
-        !context.trackingConfirmed -> "Tracking must be confirmed before using fine correction"
-        context.halfSpeedEnabled -> "Fine correction is unavailable while half speed is enabled"
-        !context.exclusiveMotionAvailable -> "Another motion owner currently controls the mount"
-        else -> null
+    private fun gateReason(cap: RateAdjustCapability?): String? {
+        val solutionAgeMs = context.solutionAgeMs
+        val solutionConfidence = context.solutionConfidence
+        val solutionRotationDegrees = context.solutionRotationDegrees
+        return when {
+            cap == null -> "Rate control is not qualified for this session"
+            !cap.qualified -> "Rate control capability is unqualified for this firmware"
+            !context.connected -> "Connect to the mount before using fine correction"
+            !context.trackingConfirmed -> "Tracking must be confirmed before using fine correction"
+            context.halfSpeedEnabled -> "Fine correction is unavailable while half speed is enabled"
+            !context.exclusiveMotionAvailable -> "Another motion owner currently controls the mount"
+            solutionAgeMs == null -> "A fresh plate solve is required before fine correction"
+            solutionAgeMs < 0L -> "Plate-solve age is invalid"
+            solutionAgeMs > cap.maximumSolutionAgeMs ->
+                "Plate solve is stale (${solutionAgeMs} ms > ${cap.maximumSolutionAgeMs} ms)"
+            solutionConfidence == null -> "Plate-solve confidence is unknown"
+            !solutionConfidence.isFinite() -> "Plate-solve confidence is invalid"
+            solutionConfidence < cap.minimumSolutionConfidence ->
+                "Plate-solve confidence is below ${cap.minimumSolutionConfidence}"
+            solutionRotationDegrees == null -> "Plate-solve field rotation is unknown"
+            !solutionRotationDegrees.isFinite() -> "Plate-solve field rotation is invalid"
+            kotlin.math.abs(solutionRotationDegrees) > cap.maximumSolutionRotationDegrees ->
+                "Plate-solve field rotation exceeds ${cap.maximumSolutionRotationDegrees} degrees"
+            else -> null
+        }
     }
 }
 

@@ -628,3 +628,41 @@ the known libandroidx.graphics.path.so strip warning and Gradle 9
 deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
 qualification was performed. This is host-side build evidence, not hardware
 qualification.
+
+
+## Latest committed verification - 24d6b23
+
+Commit under test: 24d6b23 (fix: isolate astro webui reads).
+
+Focused read-side command:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiStatusTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSolveTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiRunStateTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiMediaTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the focused Astro WebUI ViewModel suites passed,
+including the late-result status regression. A prior run exposed and the
+implementation preserved the existing no-session media failure state.
+
+Full build command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests
+passed, Android debug Kotlin compilation and APK assembly passed, and the
+Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 3106592bb59af274ae6a996a10b47345b2fbfbe91056cbfb6e9530bad3c79b2b
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-24d6b23.tar.gz
+  SHA-256: 16effad1a848a25abf6141a7477f8a47c214e08c8f41560536392a8fd71f07e3
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9
+deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
+qualification was performed. This is host-side build evidence, not hardware
+qualification.

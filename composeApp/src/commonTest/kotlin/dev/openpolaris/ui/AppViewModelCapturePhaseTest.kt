@@ -22,7 +22,7 @@ class AppViewModelCapturePhaseTest {
     private class FakeConnection : Connection {
         private val channel = Channel<ByteArray>(Channel.BUFFERED)
         val written = mutableListOf<String>()
-        var cameraFrame: String? = null
+        var cameraFrame: String? = "1&286&2&manufacturer:Pentax;model:K-3 III;state:1;storage:128;photoFormat:1;#"
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit
         override suspend fun write(data: ByteArray) {
@@ -88,6 +88,20 @@ class AppViewModelCapturePhaseTest {
             vm.refreshCameraAttachment()
             runCurrent()
             assertEquals(2, conn.count(286), "refresh is explicit and bounded")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun unknownCameraStatusBlocksCaptureAdmission() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply { cameraFrame = null }
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            assertEquals(null, vm.cameraAttachment)
+
+            vm.capture()
+            assertEquals(0, conn.count(264), "unknown camera status must not reach the shutter command")
+            assertTrue(vm.statusMessage.contains("status not verified"))
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
 

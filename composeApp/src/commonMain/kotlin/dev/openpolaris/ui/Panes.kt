@@ -645,7 +645,13 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
-            if (attachment?.isAttached == false) {
+            if (attachment == null) {
+                Text(
+                    "Camera controls and capture are disabled until camera status is verified. Refresh the camera status before trying again.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else if (!attachment.isAttached) {
                 Text(
                     "Camera controls and capture are disabled until the mount reports an attached camera.",
                     style = MaterialTheme.typography.bodySmall,
@@ -691,7 +697,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             val inFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                 phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::capture, enabled = !inFlight && attachment?.isAttached != false) { Text("Capture") }
+                Button(onClick = vm::capture, enabled = !inFlight && attachment?.isAttached == true) { Text("Capture") }
                 when (phase) {
                     is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ->
                         Text("Sent…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
@@ -718,7 +724,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Button(
                     onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
-                    enabled = !bulbInFlight && attachment?.isAttached != false,
+                    enabled = !bulbInFlight && attachment?.isAttached == true,
                 ) {
                     Text("Bulb capture")
                 }

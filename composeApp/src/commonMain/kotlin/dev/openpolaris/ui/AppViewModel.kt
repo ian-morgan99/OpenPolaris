@@ -2513,7 +2513,12 @@ class AppViewModel(
     }
 
     private fun cameraAttachmentAllowsCommand(): Boolean {
-        if (cameraAttachment?.isAttached == false) {
+        val attachment = cameraAttachment
+        if (attachment == null) {
+            statusMessage = "Camera status not verified — camera command blocked"
+            return false
+        }
+        if (!attachment.isAttached) {
             statusMessage = "No camera detected — camera command blocked"
             return false
         }

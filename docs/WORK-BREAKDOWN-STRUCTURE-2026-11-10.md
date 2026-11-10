@@ -709,3 +709,11 @@ The current implementation slice must not send a new motor frame, alter firmware
   controls; focal writes remain separately default-off, validate 1-100000 mm
   and confirm through readback. No solve, alignment or mount command is
   inferred from focal state.
+
+
+- **2026-11-10 - WBS-05.1/08.2 ACTIVE (Astro WebUI travel-limit
+  readback):** added bounded `GET /api/astro/limits` parsing for enforced,
+  released and unknown states. Mission now refreshes and displays the resident
+  safety state with collision-risk language; limit release is deliberately
+  not exposed because the source requires physical attestation and a
+  collision-clearance qualification. No 541/542 write was sent.

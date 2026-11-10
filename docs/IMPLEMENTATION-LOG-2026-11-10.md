@@ -1075,3 +1075,22 @@ exercised.
   `aa0023697a17bb49bfde95aa242fd9415fcfd880e24a709c6aa459ab83ff2d31`.
   No live Astro WebUI, solve, camera, mount or physical SLOW qualification
   was exercised.
+
+
+- **2026-11-10 - WBS-05.1/08.2 ACTIVE (Astro WebUI travel limits):** added
+  read-only status parsing, a default-on read gate, preview-port routing and
+  disconnect-safe ViewModel/UI ownership. The surface distinguishes enforced,
+  released and unknown rather than assuming a safe value; dangerous release
+  remains unavailable. Focused parser, FeatureFlags, ViewModel lifecycle and
+  Compose compilation tests passed. No live mount operation was exercised.
+
+
+- **2026-11-10 - WBS-05.1/08.2 verification:** full host build for
+  `26cbae0` passed: 103 actionable tasks, shared and Compose JVM tests,
+  Android debug compilation/APK assembly, and desktop distributable creation.
+  APK SHA-256 is
+  `77f90e32f376c85cc3a78685cf78964beb04d756c7dc597f64e5fdae99b3cc9b`;
+  desktop archive SHA-256 is
+  `6dd0e84ce9e3861bdaccd9d1398e21f18964375625a1edc7d6093eaaa248f3c3`.
+  No live Astro WebUI, travel-limit write, mount, camera or physical SLOW
+  qualification was exercised.

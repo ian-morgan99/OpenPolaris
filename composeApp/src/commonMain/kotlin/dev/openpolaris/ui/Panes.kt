@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
@@ -609,6 +610,8 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
     var qualificationArmed by remember { mutableStateOf(false) }
     var bulbSecondsText by remember { mutableStateOf("5") }
+    val shutterLabel = c.shutterIndex?.let { c.shutterOptions.getOrNull(it)?.trim() }
+    val releaseMode = CameraReleaseMode.fromOption(shutterLabel)
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
@@ -639,6 +642,10 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
             Text(
                 "Parameter readback: ${vm.cameraReadbackAgeText}. Dynamic options load only after an explicit qualified refresh.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Release mode: ${releaseMode.label}${shutterLabel?.let { " ($it)" } ?: ""}",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
@@ -728,9 +735,16 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Button(
                     onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
-                    enabled = !bulbInFlight && attachment?.isAttached == true,
+                    enabled = !bulbInFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
                 ) {
                     Text("Bulb capture")
+                }
+                if (attachment?.isAttached == true && releaseMode != CameraReleaseMode.BULB) {
+                    Text(
+                        "Bulb capture requires a verified B / Bulb shutter readback.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (bulbInFlight) {
                     OutlinedButton(onClick = vm::stopBulb) { Text("Stop Bulb") }

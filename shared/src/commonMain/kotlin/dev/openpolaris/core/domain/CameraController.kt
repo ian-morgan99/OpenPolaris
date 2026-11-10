@@ -584,8 +584,7 @@ class CameraController(private val session: MountSession) {
         // shutter transition or overwrite the camera's Bulb timer.
         val shutter = queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
         val shutterLabel = shutter.index?.let { shutter.options.getOrNull(it) }
-            ?.trim()?.lowercase()
-        if (shutterLabel != "b" && shutterLabel != "bulb") return PhotoRecordResult(
+        if (CameraReleaseMode.fromOption(shutterLabel) != CameraReleaseMode.BULB) return PhotoRecordResult(
             code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
             sent = false,
             error = "Camera is not in Bulb shutter mode (reported ${shutter.raw.ifBlank { "unknown" }})",

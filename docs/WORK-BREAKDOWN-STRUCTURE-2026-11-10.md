@@ -311,5 +311,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — WBS-02.3 ACTIVE (preview ownership):** Preview now has one explicit workflow owner and one frame collector; repeated entry is idempotent, leaving releases the stream, and capture suspension only restores a preview that the user actually owned.
 - **2026-11-10 — verification:** preview-port tests passed with repeated-entry and leave/re-entry assertions; no new endpoint or hardware side effect was introduced.
 - **2026-11-10 — WBS-04.1 ACTIVE (camera readback UX):** Camera workspace now exposes the age of the last explicit dynamic parameter readback, keeps unknown/unread state distinct, and continues to leave unqualified fields locked.
-- **2026-11-10 — verification:** full shared/Compose JVM suites passed after the readback state and UI copy change.
-- **Next:** add mode-aware M/B presentation and the qualified focus/video surfaces without widening the live protocol gate.
+- **2026-11-10 — WBS-04.3 ACTIVE (mode-aware release UX):** Shared shutter-label classification now distinguishes M/manual, B/bulb, timed/other and unknown; the UI only offers Bulb capture after positive B readback while normal release remains available for attached cameras.
+- **2026-11-10 — verification:** shared and Compose JVM suites passed after the readback state and mode-aware release changes; CameraReleaseMode has deterministic M/B/unknown coverage.
+- **Next:** add the qualified focus/video surfaces without widening the live protocol gate.

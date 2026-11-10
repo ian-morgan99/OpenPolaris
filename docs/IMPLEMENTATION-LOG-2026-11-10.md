@@ -548,3 +548,21 @@ Verification passed:
 
 The safety contract and Compose JVM compilation passed. No live mount or
 hardware was exercised.
+
+### WBS-03.6/09.1 - Global motion safety chrome
+
+The responsive shell's always-visible status strip now observes the shared
+MotionSupervisor. While an owner is active it shows the owner name and a
+reachable STOP ALL action; if the supervisor is faulted it shows the stop fault
+in the status chrome rather than presenting the mount as idle. This keeps the
+highest-priority safety action available on both the phone layout and the wide
+desktop layout, including when the user is viewing Mission, Camera or Gallery.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MotionSafetyChromeContractTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The shell safety contract and Compose JVM compilation passed. No live mount or
+hardware was exercised.

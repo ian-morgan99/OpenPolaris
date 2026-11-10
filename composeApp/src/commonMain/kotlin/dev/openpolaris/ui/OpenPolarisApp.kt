@@ -28,6 +28,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
+import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.config.FeatureFlags
@@ -607,6 +609,7 @@ private fun StatusStrip(
         ),
     )
     val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }
+    val motionState by vm.motionState.collectAsState()
     Card(modifier) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
@@ -641,6 +644,30 @@ private fun StatusStrip(
                         if (s.halfSpeed) append("  ½×")
                     },
                     style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            when (val motion = motionState) {
+                MotionState.Idle -> Unit
+                is MotionState.Owned -> Row(
+                    modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Motion active: " + motion.lease.owner.name.lowercase().replace('_', ' '),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = vm::emergencyStopMotion,
+                        modifier = Modifier.testTag("emergency-stop"),
+                    ) { Text("STOP ALL") }
+                }
+                is MotionState.Faulted -> Text(
+                    "Motion stop fault: " + motion.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
                 )
             }
             HorizontalDivider()

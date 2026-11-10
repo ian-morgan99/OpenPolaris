@@ -12,7 +12,7 @@ data class AstroWebUiAstroCaptureParameters(
 ) {
     init {
         require(intervalSeconds in 1..3_600) { "interval must be between 1 and 3600 seconds" }
-        require(shots == -1 || shots in 1..100_000) { "shots must be 1..100000, or unlimited" }
+        require(shots == -1 || shots in 1..5_000) { "shots must be 1..5000, or unlimited" }
         require(bulbSeconds.isFinite() && bulbSeconds in 0.0..3_600.0) {
             "bulb must be between 0 and 3600 seconds"
         }

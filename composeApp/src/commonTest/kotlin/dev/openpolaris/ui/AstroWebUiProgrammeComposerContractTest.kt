@@ -42,6 +42,7 @@ class AstroWebUiProgrammeComposerContractTest {
         assertTrue("resident 272 run" in source)
         assertTrue("externally triggered Astro capture can be unreliable" in source)
         assertTrue("Tap again to start in-head Astro capture" in source)
+        assertTrue("delay(4_000L)" in source)
         assertTrue("resident programme status remains authoritative" in source)
     }
 }

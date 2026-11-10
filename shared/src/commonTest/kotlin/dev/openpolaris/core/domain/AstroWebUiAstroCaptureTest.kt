@@ -78,6 +78,9 @@ class AstroWebUiAstroCaptureTest {
             AstroWebUiAstroCaptureParameters(intervalSeconds = 8, shots = 0)
         }
         assertFailsWith<IllegalArgumentException> {
+            AstroWebUiAstroCaptureParameters(intervalSeconds = 8, shots = 5_001)
+        }
+        assertFailsWith<IllegalArgumentException> {
             AstroWebUiAstroCaptureParameters(intervalSeconds = 8, bulbSeconds = 8.0)
         }
     }

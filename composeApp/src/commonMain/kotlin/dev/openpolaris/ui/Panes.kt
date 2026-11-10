@@ -2093,6 +2093,13 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
     var bulb by remember { mutableStateOf("0") }
     var armed by remember { mutableStateOf(false) }
 
+    LaunchedEffect(armed) {
+        if (armed) {
+            delay(4_000L)
+            armed = false
+        }
+    }
+
     val enabled = FeatureFlags.isEnabled("astroWebUiAstroCapture")
     val parameters = runCatching {
         AstroWebUiAstroCaptureParameters(
@@ -2140,7 +2147,7 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
     )
     if (parameters == null) {
         Text(
-            "Enter a positive interval, optional positive shot count, and a bulb exposure shorter than the interval.",
+            "Enter an interval of 1–3600 seconds, up to 5000 shots (blank is unlimited), and a bulb exposure shorter than the interval.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,
         )

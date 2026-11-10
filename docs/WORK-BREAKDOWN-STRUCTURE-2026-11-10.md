@@ -801,3 +801,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   AstroWebUiProgrammeComposerContractTest and the full cross-platform build
   passed. No live Astro WebUI, camera, mount, Bluetooth or physical SLOW
   operation was exercised.
+
+
+
+- **2026-11-10 - WBS-03.7/03.5 ACTIVE (fine-rate cancellation boundary):**
+  fixed the existing SafeRateAdjustController so coroutine cancellation from
+  apply or stop propagates through the transport seam instead of being
+  converted into a synthetic UNKNOWN result. This keeps disconnect and
+  teardown distinguishable from an ambiguous device acknowledgement; the
+  controller remains capability-gated and no live rate transport was enabled.
+- **2026-11-10 - verification:** RateAdjustControllerTest now covers
+  cancellation propagation for both apply and stop, alongside the existing
+  stale, lease, half-speed and unknown-result tests. The full cross-platform
+  build passed.

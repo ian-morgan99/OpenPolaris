@@ -1217,3 +1217,18 @@ the capability remains default-off and no physical action is enabled.
 
 Focused and full verification passed. No live Astro WebUI, camera, mount,
 Bluetooth or physical SLOW operation was exercised.
+
+
+
+### WBS-03.7/03.5 — Fine-rate cancellation truth
+
+Commit e1ab877 corrects a safety boundary in SafeRateAdjustController:
+CancellationException is rethrown from both rate apply and rate stop paths.
+Deliberate teardown can therefore reach the session owner and explicit recovery
+boundary without being mislabeled as a device-level UNKNOWN acknowledgement.
+
+The controller remains unqualified unless its capability identity, units,
+bounds, tracking context, ownership and physical stop evidence are supplied.
+No live rate transport was enabled.
+
+Focused and full cross-platform verification passed.

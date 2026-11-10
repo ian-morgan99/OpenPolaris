@@ -841,6 +841,9 @@ private fun SlowDemoHoldButton(
             }
             true
         }
+        .semantics {
+            contentDescription = "$label. Hold to move; release to stop."
+        }
         .focusable(enabled)
     Button(
         onClick = {

@@ -224,6 +224,8 @@
 
 - Touch target audit, focus order, screen reader text, keyboard shortcuts, reduced motion and text scaling.
 
+- **2026-11-10 — WBS-09.1 ACTIVE:** dead-man Demo SLOW controls now expose an explicit hold/release semantic description while retaining pointer capture, keyboard release and stop ordering.
+
 ### WBS-09.2 — Night and field conditions — P1
 
 - Red/dim mode, glove-friendly controls, state not dependent on colour, offline help and battery/network awareness.

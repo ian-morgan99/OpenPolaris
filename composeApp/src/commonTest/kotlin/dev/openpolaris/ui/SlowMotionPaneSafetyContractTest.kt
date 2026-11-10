@@ -28,6 +28,8 @@ class SlowMotionPaneSafetyContractTest {
         assertTrue("onPress = { vm.demoSlowMotionStart" in source)
         assertTrue("awaitEachGesture" in source)
         assertTrue("onRelease = vm::demoSlowMotionStop" in source)
+        assertTrue("Hold to move; release to stop" in source)
+        assertTrue(".focusable(enabled)" in source)
         assertFalse("enabled = gateOpen" in source)
         assertTrue("no 532/533/534" in source)
         assertTrue("STOP ALL" in source)

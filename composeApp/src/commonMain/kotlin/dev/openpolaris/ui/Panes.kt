@@ -416,12 +416,14 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val gateOpen = dev.openpolaris.core.config.FeatureFlags.isEnabled("slowMotionControl")
-    // The planner/scheduler is deliberately host-only today. Keep this second
-    // gate in the UI so a test/config override cannot imply that 532/533/534
-    // is safe to send before a firmware-bound adapter exists.
+    // This hard gate is intentionally not configuration-controlled: a flag
+    // cannot imply that the target firmware transport is qualified.
     val liveTransportQualified = false
     val liveControlsEnabled = gateOpen && liveTransportQualified && vm.mount.connected
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
+    var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
+    var selectedLevel by remember { mutableStateOf(1) }
+
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
@@ -434,27 +436,91 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(connectionText, style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Motion state: Unavailable", style = MaterialTheme.typography.labelMedium)
+                Text(connectionText, style = MaterialTheme.typography.bodySmall)
+            }
 
-            Text("Physical axes", style = MaterialTheme.typography.labelLarge)
-            Text("M1 · Pan / yaw", style = MaterialTheme.typography.bodySmall)
-            Text("M2 · Tilt / pitch", style = MaterialTheme.typography.bodySmall)
-            Text("M3 · Rotation / roll", style = MaterialTheme.typography.bodySmall)
+            Text("Motion dock", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "Select a physical axis, then hold a direction. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("M1 · Pan / yaw", "M2 · Tilt / pitch", "M3 · Rotation / roll").forEach { axis ->
+                    FilterChip(
+                        selected = selectedAxis == axis,
+                        onClick = { selectedAxis = axis },
+                        enabled = liveControlsEnabled,
+                        label = { Text(axis.substringBefore(" ·")) },
+                    )
+                }
+            }
+            Text("Selected axis: " + selectedAxis, style = MaterialTheme.typography.bodySmall)
 
-            HorizontalDivider()
-            Text("Speed ladder", style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedButton(
+                    onClick = {},
+                    enabled = liveControlsEnabled,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Direction A") }
+                Button(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.weight(1f),
+                ) { Text("STOP ALL") }
+                OutlinedButton(
+                    onClick = {},
+                    enabled = liveControlsEnabled,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Direction B") }
+            }
+            Text(
+                "Pointer capture, dead-man renewal and stop ordering belong to the shared motion owner; the UI must not create its own repeat timer.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Text("Speed rail", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 (1..5).forEach { level ->
+                    val levelLabel = when (level) {
+                        1 -> level.toString() + " Precision"
+                        5 -> level.toString() + " Fast"
+                        else -> level.toString()
+                    }
                     FilterChip(
-                        selected = false,
-                        onClick = {},
+                        selected = selectedLevel == level,
+                        onClick = { selectedLevel = level },
                         enabled = liveControlsEnabled,
-                        label = { Text("$level") },
+                        label = { Text(levelLabel) },
                     )
                 }
             }
             Text(
-                "Levels are calibration steps, not degrees per second. The host planner selects adjacent measured points and time-shares them; it never uses state 0 as a running point.",
+                "Level " + selectedLevel + " is a calibration step, not a degrees-per-second promise. The planner selects adjacent measured points and time-shares them; state 0 is STOP, never a running point.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Text("Rotation rocker · M3", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {}, enabled = liveControlsEnabled, modifier = Modifier.weight(1f)) {
+                    Text("A · rotate")
+                }
+                OutlinedButton(onClick = {}, enabled = liveControlsEnabled, modifier = Modifier.weight(1f)) {
+                    Text("B · rotate")
+                }
+            }
+
+            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                Text("Fine correction — unavailable until tracking and rate transport are qualified")
+            }
+            Text(
+                "Release, cancel, backgrounding, screen lock, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until explicit recovery.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
@@ -462,20 +528,6 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
-            Text("Safety behaviour", style = MaterialTheme.typography.labelLarge)
-            Text(
-                "Release, cancel, backgrounding, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until an explicit reconnect and recovery.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                "Fast jog, tracking, GoTo and fine-rate correction remain separate motion owners. Slow motion cannot silently pre-empt any of them.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-
-            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Emergency stop — unavailable until transport is qualified")
-            }
         }
     }
 }

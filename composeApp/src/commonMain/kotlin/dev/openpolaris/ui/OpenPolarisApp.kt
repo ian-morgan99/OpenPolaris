@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -144,9 +145,6 @@ fun OpenPolarisApp(
             sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
-    var missionOpen by remember { mutableStateOf(false) }
-    var missionTitle by remember { mutableStateOf("Mission readiness") }
-    var galleryOpen by remember { mutableStateOf(false) }
     var activeDestination by remember { mutableStateOf(AppDestination.MISSION) }
     var preferences by remember { mutableStateOf(UserPreferences()) }
     var dimMode by remember { mutableStateOf(false) }
@@ -175,30 +173,24 @@ fun OpenPolarisApp(
     fun openDestination(destination: AppDestination) {
         activeDestination = destination
         dialog = null
-        missionOpen = false
-        galleryOpen = false
-        when (destination) {
-            AppDestination.MISSION -> {
-                missionTitle = "Mission readiness"
-                missionOpen = true
-            }
-            AppDestination.CONTROL -> dialog = Callout.Slew
-            AppDestination.CAMERA -> dialog = Callout.Camera
-            AppDestination.ASTRO -> {
-                missionTitle = "Astro mission"
-                missionOpen = true
-            }
-            AppDestination.GALLERY -> galleryOpen = true
-        }
     }
 
     fun openAdvanced(callout: Callout) {
-        missionOpen = false
-        galleryOpen = false
         if (callout == Callout.VR) {
             onLaunchVr?.invoke()
         } else {
             dialog = callout
+        }
+    }
+
+    fun openMissionAction(actionId: String) {
+        when (actionId) {
+            "connection", "mount" -> openAdvanced(Callout.Connection)
+            "camera", "capture", "prepare", "focus" -> openDestination(AppDestination.CAMERA)
+            "preview" -> openAdvanced(Callout.Preview)
+            "alignment", "tracking", "motion", "target" -> openDestination(AppDestination.CONTROL)
+            "guide" -> openAdvanced(Callout.Helpers)
+            "storage" -> openDestination(AppDestination.GALLERY)
         }
     }
 
@@ -233,10 +225,12 @@ fun OpenPolarisApp(
                             dimMode = dimMode,
                             onToggleDim = { setDimMode(!dimMode) },
                         )
-                        PositionReadout(vm, Modifier.fillMaxWidth())
-                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            JogPane(vm, Modifier.width(260.dp))
-                        }
+                        InlineDestinationWorkspace(
+                            vm = vm,
+                            destination = activeDestination,
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            onMissionAction = ::openMissionAction,
+                        )
                     }
                     CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
                 }
@@ -250,12 +244,12 @@ fun OpenPolarisApp(
                         dimMode = dimMode,
                         onToggleDim = { setDimMode(!dimMode) },
                     )
-                    PositionReadout(vm, Modifier.fillMaxWidth())
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        // Wider dial on Medium-height viewports so the jog
-                        // pad keeps the buttons at a tappable size.
-                        JogPane(vm, Modifier.width(if (heightCompact) 220.dp else 300.dp))
-                    }
+                    InlineDestinationWorkspace(
+                        vm = vm,
+                        destination = activeDestination,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        onMissionAction = ::openMissionAction,
+                    )
                     PrimaryDestinationBar(
                         selected = activeDestination,
                         onSelect = ::openDestination,
@@ -318,35 +312,6 @@ fun OpenPolarisApp(
                 null -> {}
             }
 
-            if (missionOpen) {
-                CalloutDialog(missionTitle, { missionOpen = false }) {
-                    MissionDashboardPane(
-                        vm,
-                        Modifier.fillMaxWidth(),
-                        onAction = { actionId ->
-                            missionOpen = false
-                            dialog = when (actionId) {
-                                "connection", "mount" -> Callout.Connection
-                                "camera", "capture" -> Callout.Camera
-                                "preview" -> Callout.Preview
-                                "alignment", "tracking", "motion" -> Callout.Slew
-                                "target" -> Callout.Slew
-                                "prepare", "focus", "capture" -> Callout.Camera
-                                "guide" -> Callout.Helpers
-                                else -> null
-                            }
-                            if (actionId == "storage") galleryOpen = true
-                        },
-                    )
-                }
-            }
-
-            if (galleryOpen) {
-                CalloutDialog("Gallery", { galleryOpen = false }) {
-                    GalleryPane(vm, Modifier.fillMaxWidth())
-                }
-            }
-
             // 3c.4: surface the "Reconnect to last mount?" prompt whenever the
             // ViewModel populates `reconnectPrompt`. Hosted at the root surface
             // so the dialog floats above the call-out stack and survives
@@ -361,6 +326,46 @@ fun OpenPolarisApp(
                     vm,
                     onDismiss = { vm.setConnectionPassword(null) },
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Inline primary workspace used by the responsive shell. It is intentionally
+ * one LazyColumn with one item: the individual panes do not own a competing
+ * vertical scroll, and the same destination state is used on phone and PC.
+ */
+@Composable
+private fun InlineDestinationWorkspace(
+    vm: AppViewModel,
+    destination: AppDestination,
+    modifier: Modifier = Modifier,
+    onMissionAction: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            when (destination) {
+                AppDestination.MISSION,
+                AppDestination.ASTRO,
+                -> MissionDashboardPane(
+                    vm = vm,
+                    modifier = Modifier.fillMaxWidth(),
+                    title = if (destination == AppDestination.ASTRO) "Astro mission" else "Mission readiness",
+                    onAction = onMissionAction,
+                )
+                AppDestination.CONTROL -> Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PositionReadout(vm, Modifier.fillMaxWidth())
+                    JogPane(vm, Modifier.fillMaxWidth())
+                    SlowMotionPane(vm, Modifier.fillMaxWidth())
+                }
+                AppDestination.CAMERA -> CameraPane(vm, Modifier.fillMaxWidth())
+                AppDestination.GALLERY -> GalleryPane(vm, Modifier.fillMaxWidth())
             }
         }
     }

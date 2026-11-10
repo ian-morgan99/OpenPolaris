@@ -270,3 +270,23 @@ Verification passed:
 ~~~
 
 No live WebUI write route, camera or mount was exercised.
+
+### WBS-01.1/01.3 - Inline primary workspaces
+
+The typed destinations now own the main responsive workspace rather than only
+opening modal copies of the panes:
+
+- Mission and Astro render the readiness/programme workflow inline.
+- Control renders position, jog and the slow-motion dock together.
+- Camera renders the existing evidence-gated camera workspace.
+- Gallery renders the existing Astro WebUI media and export workflow.
+- Mission action callbacks route to typed destinations or advanced callouts
+  without silently starting a connection, shutter, motor or programme action.
+- One LazyColumn owns destination scrolling, avoiding same-axis nested scroll
+  inside the existing CalloutDialog wrapper.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --rerun-tasks --console=plain --no-daemon
+~~~

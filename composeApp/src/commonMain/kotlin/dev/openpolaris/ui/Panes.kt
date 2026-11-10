@@ -495,6 +495,7 @@ fun PasswordDialog(
 fun MissionDashboardPane(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
+    title: String = "Mission readiness",
     onAction: ((String) -> Unit)? = null,
 ) {
     DisposableEffect(vm) {
@@ -518,7 +519,7 @@ fun MissionDashboardPane(
     )
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Mission readiness", style = MaterialTheme.typography.titleMedium)
+            Text(title, style = MaterialTheme.typography.titleMedium)
             endpoint.profile?.let { profile ->
                 Text(
                     "${profile.label} · ${profile.address.host}:${profile.address.controlPort} · ${endpoint.phase}",

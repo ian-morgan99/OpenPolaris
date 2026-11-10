@@ -35,12 +35,13 @@ class UiAccessibilityContractTest {
         assertTrue("onAction: ((String) -> Unit)? = null" in text)
         assertTrue("onAction(card.id)" in text)
         val shell = source("OpenPolarisApp.kt")
-        assertTrue("MissionDashboardPane(" in shell)
-        assertTrue("dialog = when (actionId)" in shell)
-        assertTrue("\"alignment\", \"tracking\", \"motion\" -> Callout.Slew" in shell)
-        assertTrue("if (actionId == \"storage\") galleryOpen = true" in shell)
+        assertTrue("InlineDestinationWorkspace(" in shell)
+        assertTrue("onMissionAction = ::openMissionAction" in shell)
+        assertTrue("fun openMissionAction(actionId: String)" in shell)
+        assertTrue("\"alignment\", \"tracking\", \"motion\", \"target\" -> openDestination(AppDestination.CONTROL)" in shell)
+        assertTrue("\"storage\" -> openDestination(AppDestination.GALLERY)" in shell)
+        assertTrue("\"connection\", \"mount\" -> openAdvanced(Callout.Connection)" in shell)
     }
-
     @Test
     fun `ambiguous camera glyph controls have spoken labels`() {
         val text = source("Panes.kt")

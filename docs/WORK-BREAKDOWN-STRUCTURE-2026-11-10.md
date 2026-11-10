@@ -425,3 +425,13 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** focused AstroWebUiProgrammeStartTest and AppViewModelAstroWebUiProgrammeStartTest passed; no WebUI write route or hardware command was exercised.
 - **2026-11-10 - WBS-06.3/08.2 ACTIVE (Astro WebUI composer):** added the responsive Mission composer with lapse arm/confirm, panorama/HDR preview-then-start, focus validation-then-start, visible returned-frame state and default-off programme-start gating.
 - **2026-11-10 - verification:** Compose JVM compilation/tests passed, including the composer contract; no live WebUI write route or hardware command was exercised.
+
+- **2026-11-10 - WBS-01.1/01.3 ACTIVE (inline workspaces):** primary
+  destinations now render shared inline workspaces on phone and PC. Mission and
+  Astro use the readiness/programme surface, Control contains position/jog/SLOW
+  surfaces, Camera uses the camera pane and Gallery uses the export-aware
+  gallery. A single LazyColumn owns destination scrolling; advanced routes
+  remain modal and gated.
+- **2026-11-10 - verification:** Compose JVM compilation and UI contract tests
+  passed after converting the primary shell from modal-only routing to inline
+  destination content.

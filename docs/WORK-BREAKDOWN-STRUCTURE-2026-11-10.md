@@ -611,3 +611,23 @@ The current implementation slice must not send a new motor frame, alter firmware
   passed, including a cancellation-insensitive late enter-result regression.
   Write routes remain default-off pending named-head qualification; no live
   Astro WebUI command was exercised.
+
+
+- **2026-11-10 - WBS-08.1/05.1 ACTIVE (validated observer-site persistence):**
+  observer latitude/longitude now live in the versioned user-preferences store,
+  restore only as a complete in-range pair, and persist only after both fields
+  are valid. The location remains an OpenPolaris user setting; no Astro WebUI
+  site-write or mount-side mutation was added.
+- **2026-11-10 - verification:** UserPreferencesStore round-trip and
+  AppViewModel observer-location tests passed, including partial, non-finite
+  and out-of-range rejection. No network, mount or camera operation was
+  exercised.
+
+
+- **2026-11-10 - WBS-01.1/08.1 ACTIVE (desktop ViewModel lifetime):** the
+  internally constructed AppViewModel is now remembered by the shared shell,
+  preventing desktop recomposition from replacing session, motion, capture or
+  preference-callback state. Host-supplied Android ViewModels remain accepted.
+- **2026-11-10 - verification:** the focused Compose JVM suite and full
+  cross-platform build remain the required checks; no transport or hardware
+  behavior changed.

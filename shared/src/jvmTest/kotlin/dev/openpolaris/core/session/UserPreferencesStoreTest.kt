@@ -42,7 +42,12 @@ class UserPreferencesStoreTest {
     @Test
     fun roundTripPreservesUserChoicesAndCreatesParents() {
         val nested = UserPreferencesStore(tempDir.resolve("nested/preferences.json").toString())
-        val expected = UserPreferences(dimMode = true, reducedMotion = true)
+        val expected = UserPreferences(
+            dimMode = true,
+            reducedMotion = true,
+            observerLatitudeDeg = 51.5074,
+            observerLongitudeDeg = -0.1278,
+        )
         assertTrue(nested.write(expected).isSuccess)
         assertEquals(expected, nested.read())
     }

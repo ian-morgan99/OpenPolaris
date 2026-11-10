@@ -20,6 +20,8 @@ data class UserPreferences(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val dimMode: Boolean = false,
     val reducedMotion: Boolean = false,
+    val observerLatitudeDeg: Double? = null,
+    val observerLongitudeDeg: Double? = null,
 ) {
     companion object {
         const val CURRENT_SCHEMA_VERSION: Int = 1

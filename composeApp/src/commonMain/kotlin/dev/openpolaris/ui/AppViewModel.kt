@@ -2663,6 +2663,25 @@ class AppViewModel(
 
     var latDeg by mutableStateOf("51.5")
     var lngEastDeg by mutableStateOf("-0.12")
+    private var observerLocationPersistence: ((Double, Double) -> Unit)? = null
+
+    /**
+     * Install the host-owned preference sink. The callback receives only a
+     * complete, range-validated observer location; transient invalid text
+     * entered into either field is never persisted.
+     */
+    internal fun setObserverLocationPersistence(callback: ((Double, Double) -> Unit)?) {
+        observerLocationPersistence = callback
+    }
+
+    /** Restore a previously validated location without writing it back. */
+    internal fun restoreObserverLocation(latitudeDeg: Double?, longitudeDeg: Double?) {
+        if (latitudeDeg == null || longitudeDeg == null) return
+        if (!latitudeDeg.isFinite() || latitudeDeg !in -90.0..90.0) return
+        if (!longitudeDeg.isFinite() || longitudeDeg !in -180.0..180.0) return
+        latDeg = latitudeDeg.toString()
+        lngEastDeg = longitudeDeg.toString()
+    }
 
     /** When true, Slew converts RA/Dec (J2000) to az/alt using location + clock. */
     var raDecMode: Boolean by mutableStateOf(false)
@@ -2676,8 +2695,21 @@ class AppViewModel(
      */
     var advancedMode by mutableStateOf(false)
 
-    fun updateLat(v: String) { latDeg = v }
-    fun updateLng(v: String) { lngEastDeg = v }
+    fun updateLat(v: String) {
+        latDeg = v
+        persistObserverLocationIfValid()
+    }
+
+    fun updateLng(v: String) {
+        lngEastDeg = v
+        persistObserverLocationIfValid()
+    }
+
+    private fun persistObserverLocationIfValid() {
+        parsedLocation()?.let { (latitude, longitude) ->
+            observerLocationPersistence?.invoke(latitude, longitude)
+        }
+    }
     @JvmName("toggleRaDecMode")
     fun setRaDecMode(on: Boolean) { raDecMode = on }
     fun updateRa(v: String) { gotoRa = v }
@@ -2686,7 +2718,8 @@ class AppViewModel(
     private fun parsedLocation(): Pair<Double, Double>? {
         val lat = latDeg.toDoubleOrNull() ?: return null
         val lng = lngEastDeg.toDoubleOrNull() ?: return null
-        if (lat < -90 || lat > 90) return null
+        if (!lat.isFinite() || lat !in -90.0..90.0) return null
+        if (!lng.isFinite() || lng !in -180.0..180.0) return null
         return lat to lng
     }
 

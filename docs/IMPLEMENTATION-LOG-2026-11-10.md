@@ -886,3 +886,34 @@ Result: BUILD SUCCESSFUL; the session-control suite passed, including the
 cancellation-insensitive late enter-result regression. Write routes remain
 default-off pending named-head qualification. No live Astro WebUI command was
 exercised.
+
+
+### WBS-08.1/05.1 - Validated observer-site persistence
+
+Completed the safe local half of Astro WebUI site parity. Observer latitude and
+east-positive longitude are optional fields in the versioned user-preferences
+record. The shared ViewModel restores only a complete, finite pair within
+-90..90 and -180..180, and sends persistence callbacks only after edits produce
+a complete valid pair. Desktop and Android continue to own the preference file;
+the values are never written to the mount or the resident WebUI site endpoint.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.session.UserPreferencesStoreTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelObserverLocationTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; preference round-trip and observer-location tests
+passed. No live Astro WebUI or hardware command was exercised.
+
+
+### WBS-01.1/08.1 - Stable shared-shell ViewModel lifetime
+
+The shared shell now remembers its internally constructed AppViewModel. This
+keeps the desktop session owner, lifecycle jobs and observer-location
+persistence callback stable across Compose recomposition while preserving the
+Android host-supplied ViewModel path.
+
+Verification is included in the focused preference/observer-location suite and
+the subsequent full JVM, Android and desktop build. No transport or hardware
+behavior changed.

@@ -137,39 +137,57 @@ fun OpenPolarisApp(
     versionLabel: String? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val vm: AppViewModel = viewModel
-        ?: AppViewModel(
-            scope = scope,
-            connectionFactory = connectionFactory,
-            connectWifi = connectWifi ?: { false },
-            wakeProbe = wakeProbe ?: {},
-            teardownBridge = teardownBridge ?: {},
-            sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
-        )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     var activeDestination by remember { mutableStateOf(AppDestination.MISSION) }
     var preferences by remember { mutableStateOf(UserPreferences()) }
     var dimMode by remember { mutableStateOf(false) }
 
-    LaunchedEffect(preferenceStore) {
+    fun persistPreferences(updated: UserPreferences) {
+        preferences = updated
+        preferenceStore?.let { store ->
+            scope.launch(Dispatchers.IO) {
+                store.write(updated)
+            }
+        }
+    }
+
+    val vm: AppViewModel = viewModel
+        ?: remember {
+            AppViewModel(
+                scope = scope,
+                connectionFactory = connectionFactory,
+                connectWifi = connectWifi ?: { false },
+                wakeProbe = wakeProbe ?: {},
+                teardownBridge = teardownBridge ?: {},
+                sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
+            )
+        }
+
+    LaunchedEffect(preferenceStore, vm) {
+        vm.setObserverLocationPersistence { latitude, longitude ->
+            persistPreferences(
+                preferences.copy(
+                    observerLatitudeDeg = latitude,
+                    observerLongitudeDeg = longitude,
+                ),
+            )
+        }
         if (preferenceStore != null) {
             val loaded = withContext(Dispatchers.IO) { preferenceStore.read() }
             if (loaded != null) {
                 preferences = loaded
                 dimMode = loaded.dimMode
+                vm.restoreObserverLocation(
+                    loaded.observerLatitudeDeg,
+                    loaded.observerLongitudeDeg,
+                )
             }
         }
     }
 
     fun setDimMode(value: Boolean) {
         dimMode = value
-        preferences = preferences.copy(dimMode = value)
-        preferenceStore?.let { store ->
-            val snapshot = preferences
-            scope.launch(Dispatchers.IO) {
-                store.write(snapshot)
-            }
-        }
+        persistPreferences(preferences.copy(dimMode = value))
     }
 
     fun openDestination(destination: AppDestination) {

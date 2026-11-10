@@ -856,6 +856,7 @@ class AppViewModel(
     private var connectWifiJob: Job? = null
     private var wakeJob: Job? = null
     private var demoConnectJob: Job? = null
+    private var saveMarkerJob: Job? = null
 
     /**
      * Wall-clock provider for the marker-age calculation. Overridable from
@@ -1101,13 +1102,28 @@ class AppViewModel(
             lastRollDeg = pos?.roll?.toDouble(),
             lastPitchDeg = pos?.pitch?.toDouble(),
         )
-        scope.launch {
-            val result = withContext(ioDispatcher) { sessionStore.write(marker) }
-            if (result.isFailure) {
-                // Best-effort: a failed write does not break the live
-                // session, but the user should know the reconnect prompt
-                // will not appear next launch.
-                statusMessage = "Connected (could not save session: ${result.exceptionOrNull()?.message ?: "unknown"})"
+        val markerSession = session
+        saveMarkerJob?.cancel()
+        saveMarkerJob = scope.launch {
+            try {
+                val result = withContext(ioDispatcher) { sessionStore.write(marker) }
+                if (saveMarkerJob === currentCoroutineContext()[Job] &&
+                    session === markerSession &&
+                    !sessionTearingDown &&
+                    result.isFailure
+                ) {
+                    // Best-effort: a failed write does not break the live
+                    // session, but the user should know the reconnect prompt
+                    // will not appear next launch.
+                    statusMessage = "Connected (could not save session: " +
+                        (result.exceptionOrNull()?.message ?: "unknown")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } finally {
+                if (saveMarkerJob === currentCoroutineContext()[Job]) {
+                    saveMarkerJob = null
+                }
             }
         }
     }
@@ -1625,6 +1641,8 @@ class AppViewModel(
             runBlocking { fastJogController.release(activeFastJogLease) }
         }
         sessionTearingDown = true
+        saveMarkerJob?.cancel()
+        saveMarkerJob = null
         programmeConfirmation?.complete(null)
         programmeConfirmation = null
         observationExecutor?.abandon("session disconnected")

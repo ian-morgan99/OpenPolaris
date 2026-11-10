@@ -727,3 +727,22 @@ Verification passed:
 Result: BUILD SUCCESSFUL; the pending-connect cancellation, bridge/wake
 handoff and disconnect-cancellation tests passed. No live mount or network
 operation was exercised.
+
+
+### WBS-02.2 - Session-marker persistence ownership
+
+Made reconnect-marker persistence session-owned. A successful connect now
+retains its marker-write job; disconnect cancels it before clearing the session,
+and the failure status is allowed through only when the original session still
+owns the view model. This prevents delayed marker I/O from publishing stale
+reconnect state after teardown.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionMarkerTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; 40 session-marker tests passed, including the gated
+queued-marker cancellation regression. No live mount or network operation was
+exercised.

@@ -6,9 +6,11 @@ import dev.openpolaris.core.session.SessionMarker
 import dev.openpolaris.core.session.SessionStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -17,6 +19,10 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,6 +54,28 @@ import kotlin.test.assertTrue
  * [AppViewModelSolveNowTest] is `private`, so we redeclare a small
  * one here — we only need a "succeed" / "throw on connect" toggle.
  */
+private class GateDispatcher : CoroutineDispatcher() {
+    private val queued = CountDownLatch(1)
+    private val release = CountDownLatch(1)
+    private val executor = Executors.newSingleThreadExecutor()
+
+    override fun dispatch(context: CoroutineContext, block: Runnable) {
+        executor.execute {
+            queued.countDown()
+            release.await()
+            block.run()
+        }
+    }
+
+    fun awaitQueued(): Boolean = queued.await(5, TimeUnit.SECONDS)
+
+    fun releaseAndJoin() {
+        release.countDown()
+        executor.shutdown()
+        executor.awaitTermination(5, TimeUnit.SECONDS)
+    }
+}
+
 private class MarkerFakeConnection(
     var failConnect: Boolean = false,
     var hangConnect: Boolean = false,
@@ -113,6 +141,8 @@ class AppViewModelSessionMarkerTest {
 
     private fun newViewModel(
         scope: CoroutineScope,
+        markerIoDispatcher: CoroutineDispatcher =
+            UnconfinedTestDispatcher(scope.coroutineContext[TestCoroutineScheduler]),
         connectionFactory: () -> Connection,
     ): AppViewModel = AppViewModel(
         scope = scope,
@@ -121,9 +151,7 @@ class AppViewModelSessionMarkerTest {
         // Use the runTest scheduler so the launched coroutine in
         // tryReconnectIfMarkerExists advances during advanceUntilIdle(),
         // rather than blocking on the real Dispatchers.IO.
-        ioDispatcher = UnconfinedTestDispatcher(
-            scope.coroutineContext[TestCoroutineScheduler]
-        ),
+        ioDispatcher = markerIoDispatcher,
     )
 
     private fun writeMarker(
@@ -723,6 +751,42 @@ class AppViewModelSessionMarkerTest {
             )
         } finally {
             vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectCancelsQueuedMarkerWrite() = runTest {
+        store = newStore()
+        val markerIo = GateDispatcher()
+        // Use an unconfined VM scope so connectDemo() reaches saveMarker()
+        // immediately. The gate confirms the write continuation has been
+        // dispatched, but holds it before SessionStore.write() can run.
+        val vmScope = CoroutineScope(
+            coroutineContext + UnconfinedTestDispatcher(testScheduler)
+        )
+        val vm = newViewModel(
+            vmScope,
+            markerIoDispatcher = markerIo,
+        ) { MarkerFakeConnection() }
+        try {
+            vm.connectDemo(startPolling = false)
+            advanceUntilIdle()
+            assertTrue(
+                markerIo.awaitQueued(),
+                "marker write must reach the controlled I/O dispatcher",
+            )
+            vm.disconnect()
+            markerIo.releaseAndJoin()
+            runCurrent()
+
+            assertNull(
+                store.read(),
+                "disconnect must cancel a marker write that is already queued",
+            )
+        } finally {
+            vm.disconnect()
+            markerIo.releaseAndJoin()
             vm.preview.shutdown()
         }
     }

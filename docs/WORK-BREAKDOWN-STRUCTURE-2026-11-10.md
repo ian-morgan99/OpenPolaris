@@ -520,3 +520,15 @@ The current implementation slice must not send a new motor frame, alter firmware
   pending control connect, while the existing reconnect cancellation and
   bridge/wake tests remain green. No live mount or network operation was
   exercised.
+
+
+- **2026-11-10 - WBS-02.2 ACTIVE (session-marker persistence ownership):**
+  successful connect marker writes are now retained as an explicit session job.
+  Disconnect cancels the write before teardown, and a failed write can update
+  status only while the original session still owns the view model. This
+  prevents a delayed old-session write or error from publishing into a
+  replacement session.
+- **2026-11-10 - verification:** AppViewModelSessionMarkerTest now gates a
+  queued marker write, disconnects, then releases the dispatcher; the
+  persisted marker remains absent. The full session-marker suite passed. No
+  live mount or network operation was exercised.

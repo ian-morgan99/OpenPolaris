@@ -3604,6 +3604,42 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                 style = MaterialTheme.typography.labelSmall,
                 color = if (programmeUnknown) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        } else if (vm.demoMode) {
+            val programmeState = vm.observationProgrammeState
+            val programmeActive = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ||
+                programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused
+            val programmeUnknown = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = { vm.startObservationProgramme(preview) },
+                    enabled = !programmeActive && !programmeUnknown,
+                    modifier = Modifier.semantics { contentDescription = "Run Demo observation programme" },
+                ) { Text("Run Demo programme") }
+                OutlinedButton(
+                    onClick = vm::stopObservationProgramme,
+                    enabled = programmeActive,
+                ) { Text("Stop") }
+            }
+            Text(
+                when (programmeState) {
+                    dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle ->
+                        "Demo-only rehearsal: capture evidence is simulated; exposure, focus and motion metadata do not reach hardware."
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ->
+                        "Demo running: " + programmeState.completedSteps + "/" + programmeState.plan.captureCount + " confirmed"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused ->
+                        "Demo paused: " + programmeState.completedSteps + "/" + programmeState.plan.captureCount + " confirmed"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed ->
+                        "Demo completed: " + programmeState.completedSteps + " captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Stopped ->
+                        "Demo stopped after " + programmeState.completedSteps + " captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Failed ->
+                        "Demo failed: " + programmeState.reason
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown ->
+                        "Demo outcome unknown: " + programmeState.reason
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (programmeUnknown) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         } else {
             Text(
                 "Planner preview only: this programme needs separately qualified exposure or motion controls.",

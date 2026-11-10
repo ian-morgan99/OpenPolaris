@@ -2339,7 +2339,11 @@ class AppViewModel(
         if (sequenceActive || observationProgrammeActive) {
             if (sequenceActive) intervalometer?.markShotDone()
             programmeConfirmation?.complete(confirmedProgrammePublication)
-            programmeConfirmation = null
+            // The programme bridge may not have reached awaitConfirmation yet
+            // when both evidence frames arrive. Keep the completed deferred
+            // discoverable until awaitObservationConfirmation consumes it;
+            // clearing it here creates a false OutcomeUnknown race.
+            if (!observationProgrammeActive) programmeConfirmation = null
             // The executor starts the next programme step by calling begin();
             // keep the confirmed evidence intact until its bridge consumes it.
             if (sequenceActive) {
@@ -4116,9 +4120,15 @@ class AppViewModel(
      */
     fun startObservationProgramme(plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan): Boolean {
         if (blockCaptureDuringSlowMotion()) return false
-        if (plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
-            plan.steps.any { it.exposureIndex != null || it.focusPosition != null || it.yawOffsetDeg != null || it.pitchOffsetDeg != null }
-        ) {
+        val requiresExtraCapability =
+            plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
+                plan.steps.any {
+                    it.exposureIndex != null ||
+                        it.focusPosition != null ||
+                        it.yawOffsetDeg != null ||
+                        it.pitchOffsetDeg != null
+                }
+        if (requiresExtraCapability && !demoMode) {
             statusMessage = "Only a fixed-exposure lapse is qualified for execution"
             return false
         }
@@ -4175,7 +4185,11 @@ class AppViewModel(
         suspendCaptureWorkloads()
         return try {
             camera.capture()
-            statusMessage = "Programme step sent: ${step.label}"
+            statusMessage = if (demoMode) {
+                "Demo programme step sent: " + step.label + " (metadata rehearsal)"
+            } else {
+                "Programme step sent: " + step.label
+            }
             dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Accepted
         } catch (error: Throwable) {
             val reason = error.message ?: "programme shutter dispatch failed"

@@ -3,6 +3,8 @@ package dev.openpolaris.ui
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.PreviewTransport
+import dev.openpolaris.core.domain.ObservationProgrammeExecutor
+import dev.openpolaris.core.domain.ObservationProgrammePlanner
 import dev.openpolaris.core.protocol.ResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -161,6 +163,43 @@ class AppViewModelCapturePhaseTest {
             assertEquals(false, vm.startSequence(shotCount = 1, intervalMs = 0))
             assertEquals(0, conn.count(264), "no-camera sequence must not reach the shutter command")
         } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun demoHdrProgrammeRehearsesPlannerCaptureAndGalleryEvidence() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection())
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            val plan = ObservationProgrammePlanner.plan(
+                ObservationProgrammePlanner.Request.Hdr(
+                    baseExposureIndex = 20,
+                    bracketOffsets = listOf(-1, 0, 1),
+                    intervalMs = 0L,
+                ),
+            )
+
+            assertTrue(vm.startObservationProgramme(plan))
+            advanceTimeBy(8_000)
+            runCurrent()
+
+            val observed = vm.observationProgrammeState
+            assertTrue(
+                observed is ObservationProgrammeExecutor.State.Completed,
+                "state=" + observed + "; status=" + vm.statusMessage,
+            )
+            val completed = observed as ObservationProgrammeExecutor.State.Completed
+            assertEquals(3, completed.completedSteps)
+            vm.refreshFileList()
+            runCurrent()
+            assertEquals(
+                listOf("IMG_0001.JPG", "IMG_0002.JPG", "IMG_0003.JPG"),
+                vm.fileList?.files?.map { it.name },
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
     }
 
     @Test

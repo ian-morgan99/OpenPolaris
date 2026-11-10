@@ -511,3 +511,12 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AppViewModelSessionLifecycleTest covers the
   handoff as well as disconnect cancellation for both operations. No live
   Bluetooth or network operation was exercised.
+
+- **2026-11-10 - WBS-02.2 ACTIVE (cancellation truth):** control connect and
+  bridge teardown now propagate coroutine cancellation rather than converting
+  session teardown into a user-visible connection failure. The connect path
+  cannot report post-connect bootstrap failure for a deliberate disconnect.
+- **2026-11-10 - verification:** AppViewModelSessionLifecycleTest covers a
+  pending control connect, while the existing reconnect cancellation and
+  bridge/wake tests remain green. No live mount or network operation was
+  exercised.

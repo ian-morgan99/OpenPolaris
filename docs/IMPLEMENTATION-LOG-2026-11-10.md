@@ -710,3 +710,20 @@ Verification passed:
 Result: BUILD SUCCESSFUL; the bridge/wake handoff and disconnect-cancellation
 tests passed. No live Bluetooth, network, mount or camera operation was
 exercised.
+
+### WBS-02.2 - Cancellation truth for connect teardown
+
+Closed the remaining cancellation-reporting gap in the session owner:
+control connect, post-connect bootstrap and bridge teardown now rethrow
+CancellationException. Deliberate disconnect therefore cannot overwrite
+endpoint evidence with a synthetic failure message.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionLifecycleTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the pending-connect cancellation, bridge/wake
+handoff and disconnect-cancellation tests passed. No live mount or network
+operation was exercised.

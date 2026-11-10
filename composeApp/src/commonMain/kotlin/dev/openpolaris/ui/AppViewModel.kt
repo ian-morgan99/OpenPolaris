@@ -1236,6 +1236,8 @@ class AppViewModel(
                         startPolling(s)
                         startCaptureEventObserver(s)
                         startCameraAttachmentPolling(s)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Throwable) {
                         // Make sure the half-built session is torn down so a
                         // retry starts from a clean slate. The next connect()
@@ -1272,6 +1274,8 @@ class AppViewModel(
                     } ?: "Could not reach $host"
                     statusMessage = if (reason != null) "$prefix — $reason" else "$prefix. Try Demo mode."
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 // 3e E2: outer catch for anything the inner try did not cover
                 // (e.g. an uncaught throw inside the launching dispatcher, or
@@ -1388,6 +1392,8 @@ class AppViewModel(
             try {
                 statusMessage = "Tearing down mount Wi-Fi…"
                 teardown { msg -> statusMessage = msg }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 statusMessage = "Wi-Fi bridge teardown failed: ${e.message ?: e::class.simpleName}"
             }

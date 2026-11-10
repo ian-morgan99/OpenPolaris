@@ -21,13 +21,28 @@ class AppViewModelSessionLifecycleTest {
         override fun close() = Unit
     }
 
+    private class HangingConnection : Connection {
+        var cancelled = false
+
+        override suspend fun connect(host: String, port: Int, timeoutMs: Int) {
+            suspendCancellableCoroutine<Unit> { continuation: CancellableContinuation<Unit> ->
+                continuation.invokeOnCancellation { cancelled = true }
+            }
+        }
+
+        override suspend fun write(data: ByteArray) = Unit
+        override suspend fun read(buffer: ByteArray, timeoutMs: Int): Int = 0
+        override fun close() = Unit
+    }
+
     private fun vm(
         scope: CoroutineScope,
+        connection: Connection = IdleConnection(),
         connectWifi: (suspend (suspend (String) -> Unit) -> Boolean)? = null,
         wakeProbe: (suspend (suspend (String) -> Unit) -> Unit)? = null,
     ) = AppViewModel(
         scope = scope,
-        connectionFactory = { IdleConnection() },
+        connectionFactory = { connection },
         connectWifi = connectWifi ?: { false },
         wakeProbe = wakeProbe ?: {},
         previewTransportFactory = { _, _ ->
@@ -37,6 +52,25 @@ class AppViewModelSessionLifecycleTest {
             }
         },
     )
+
+    @Test
+    fun disconnectCancelsAConnectWithoutReportingCancellationAsFailure() = runTest {
+        val connection = HangingConnection()
+        val vm = vm(this, connection = connection)
+        try {
+            vm.connect()
+            runCurrent()
+
+            vm.disconnect()
+            runCurrent()
+
+            assertTrue(connection.cancelled, "disconnect must cancel the pending control connect")
+            assertFalse(vm.statusMessage.startsWith("Connect failed:"), "cancellation must not become a failure")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
 
     @Test
     fun disconnectCancelsAnInFlightBridgeAndClearsItsState() = runTest {

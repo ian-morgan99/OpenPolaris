@@ -2435,3 +2435,27 @@ Android debug APK:
 This is source/package evidence. The SLOW selector layout is ready for a
 phone check; live firmware transport and physical stop qualification remain
 blocked on exact target evidence and supervised hardware tests.
+
+## Latest committed verification - 555e029
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFineRateDemoTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest :shared:jvmTest --tests dev.openpolaris.core.domain.RateAdjustControllerTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: e62d65ca8f681d7e598d11bd60c27e33f04acf138326ae5e9c100343327c4e6e
+
+The APK is source/package evidence for phone UI testing. Live fine-rate
+transport, solve freshness, Bluetooth, camera, Astro WebUI lifecycle and
+physical SLOW stop qualification remain separate evidence gates.

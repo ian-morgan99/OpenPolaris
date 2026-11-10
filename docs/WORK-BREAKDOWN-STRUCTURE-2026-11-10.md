@@ -1050,3 +1050,14 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AstroWebUiCaptureTest covers source-compatible M payload, B payload, explicit state-0 stop, typed-boolean/exact-command rejection, oversized response rejection and no-retry failure. AppViewModelAstroWebUiCaptureTest and the full shared/Compose JVM, Android compilation, desktop packaging and Android debug APK build passed. Hardware lifecycle/file qualification remains open.
 - **2026-11-10 - WBS-04.1 ACTIVE (auxiliary camera capability readback):** added an explicit session-owned read-only refresh for the source-aligned task-3 camera values: image format 282, control mode 296, exposure time 298 and interval type 306. The Camera workspace shows each value and readback age without enabling any write route; the simulator emits the source-shaped responses for Demo rehearsal.
 - **2026-11-10 - verification:** AppViewModelCameraRefreshOwnershipTest and SimulatedProtocolTest cover exact queries, response shapes and disconnect ownership. The full shared/Compose JVM, Android compilation, desktop packaging and Android debug APK build passed. Camera write, named-camera lifecycle and physical capture qualification remain separate.
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (multi-axis fine-rate draft/apply):**
+  committed a Demo-only fine correction rehearsal with compact M1/M2/M3
+  target fields, explicit Apply/Cancel/STOP actions, atomic complete-request
+  construction, and pre-lease range validation. The UI draft cannot dispatch
+  on text change, and the shared TRACKING_CORRECTION owner remains the only
+  logical motion owner.
+- **2026-11-10 - verification:** focused fine-rate/controller/UI safety tests,
+  full shared/Compose JVM tests, Android compilation, desktop packaging and
+  Android debug APK assembly passed. No live rate transport, solve, Bluetooth,
+  camera, Astro WebUI or physical SLOW qualification was performed.

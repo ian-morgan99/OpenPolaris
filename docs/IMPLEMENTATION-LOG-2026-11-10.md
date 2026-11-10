@@ -1382,3 +1382,18 @@ unchanged.
 Focused SLOW UI contract tests and the full cross-platform build passed.
 Android debug APK SHA-256:
 cca54d27ee7052b7712f1bd4cfae12114e7ca38a5faec3959f1442c1a5b17da8.
+
+### WBS-03.6/09.1 - Compact multi-axis fine-rate rehearsal
+
+Commit 555e029 adds the product-planned fine correction draft/apply boundary
+to the Demo rehearsal. M1 pan, M2 tilt and M3 rotation targets are edited in
+compact horizontally-scrollable fields and remain UI-local until one explicit
+Apply targets action. Cancel draft restores zero targets; the existing A/B
+quick controls and STOP path remain available. The view-model validates all
+three finite targets against the active capability before acquiring the shared
+TRACKING_CORRECTION owner, so malformed or out-of-range input cannot reserve
+the mount.
+
+Focused and full cross-platform verification passed. This is still Demo-only
+logical evidence: the live rate transport remains qualification-gated and no
+physical mount, solve or Bluetooth operation was exercised.

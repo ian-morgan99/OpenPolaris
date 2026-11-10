@@ -3211,8 +3211,10 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             val phase = vm.capturePhase
             val inFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                 phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
+            val captureOutcomeUnknown = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown
+            val captureLocked = inFlight || captureOutcomeUnknown
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::capture, enabled = !inFlight && attachment?.isAttached == true) { Text("Capture") }
+                Button(onClick = vm::capture, enabled = !captureLocked && attachment?.isAttached == true) { Text("Capture") }
                 when (phase) {
                     is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ->
                         Text("Sent…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
@@ -3222,9 +3224,19 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         Text("Done", style = MaterialTheme.typography.labelMedium)
                     is dev.openpolaris.ui.AppViewModel.CapturePhase.Failed ->
                         Text("Failed: ${phase.reason}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown ->
+                        Text("Unknown", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
                     else -> {}
                 }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
+            }
+            if (phase is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown) {
+                Text(
+                    "Outcome unknown: ${phase.reason}. Do not retry the shutter. Inspect the camera/card and reconnect before another release.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("capture-outcome-unknown"),
+                )
             }
             vm.lastCapturePublication?.let { publication ->
                 Text(
@@ -3246,7 +3258,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Button(
                     onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
-                    enabled = !bulbInFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
+                    enabled = !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
                 ) {
                     Text("Bulb capture")
                 }
@@ -3278,11 +3290,11 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Button(
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.MANUAL) },
-                        enabled = !astroActive && !inFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.MANUAL,
+                        enabled = !astroActive && !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.MANUAL,
                     ) { Text("Astro M") }
                     Button(
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.BULB, bulbSecondsText.toIntOrNull() ?: 0) },
-                        enabled = !astroActive && !inFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
+                        enabled = !astroActive && !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
                     ) { Text("Astro B") }
                     if (vm.astroWebUiBulbActive && !vm.astroWebUiBulbStopQueued) {
                         OutlinedButton(onClick = vm::stopAstroWebUiBulb) { Text("Stop Astro B") }
@@ -3485,7 +3497,8 @@ private fun IntervalometerSection(vm: AppViewModel) {
     val paused = state is dev.openpolaris.core.domain.IntervalometerController.State.Paused
     val active = running || paused
     val outcomeUnknown = state is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown
-    val canStart = !active && !outcomeUnknown
+    val captureOutcomeUnknown = vm.capturePhase is AppViewModel.CapturePhase.OutcomeUnknown
+    val canStart = !active && !outcomeUnknown && !captureOutcomeUnknown
 
     HorizontalDivider()
     Text("Capture sequence", style = MaterialTheme.typography.titleSmall)
@@ -3558,6 +3571,13 @@ private fun IntervalometerSection(vm: AppViewModel) {
             Text("Failed: ${state.reason}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
         is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown ->
             Text("Outcome unknown: ${state.reason}. Reconnect before another shutter.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+    }
+    if (captureOutcomeUnknown) {
+        Text(
+            "A single shutter outcome is unknown; reconnect before starting a sequence.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 

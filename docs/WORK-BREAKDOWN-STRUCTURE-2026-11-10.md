@@ -862,3 +862,19 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - 2026-11-10 - WBS-01.2/03.1/03.6/09.1 ACTIVE (motion-fault readiness): MissionReadiness now treats an explicit MotionState.Faulted stop result as BLOCKED, preserves the fault reason, and exposes Open motion as the direct recovery route from both the persistent status strip and full Mission readiness sheet. An active owner remains ATTENTION; a stop fault is never collapsed to ready/idle.
 - 2026-11-10 - verification: MissionReadinessTest, MotionSafetyChromeContractTest, responsive-layout tests, full shared/Compose JVM tests, Android compilation, desktop packaging and APK assembly passed. No physical stop or live mount operation was exercised.
+
+- **2026-11-10 - WBS-03.1/03.5/03.6 ACTIVE (SLOW mode-change boundary):**
+  tracking start, tracking stop and half-speed changes now settle an active
+  SLOW lease before sending the direct 531/536 mode command. The stop carries
+  an explicit MODE_CHANGE reason, an unknown/rejected outcome blocks re-entry,
+  the faulted lease is retained for recovery, and the Motion pane disables
+  SLOW controls until the operator reconnects and confirms the head stopped.
+  Recovery is lease-scoped so a SLOW recovery action cannot clear another
+  motion owner's fault.
+- **2026-11-10 - verification:** added AppViewModel regression coverage for
+  tracking and half-speed transitions, explicit MODE_CHANGE coverage in the
+  shared SLOW controller, and the lease-scoped recovery path. Shared/Compose
+  JVM tests, Compose compilation, Android Kotlin compilation, desktop
+  packaging and Android APK assembly passed. This remains simulator/package
+  evidence only; no live SLOW route or physical stop qualification was
+  performed.

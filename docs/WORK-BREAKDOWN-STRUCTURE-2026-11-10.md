@@ -788,3 +788,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   unsafe-range rejection, default blocking and preview-port routing. Full
   shared/Compose/Android/desktop build passed. No live Astro WebUI or mount
   operation was exercised.
+
+
+
+- **2026-11-10 - WBS-04.3/06.1/09.1 ACTIVE (Astro capture arm safety):**
+  aligned the in-head Astro capture input bound with the source WebUI maximum
+  of 5000 frames and added the source four-second arm timeout to the shared
+  Mission composer. Editing any parameter still disarms immediately; HTTP
+  acceptance remains distinct from resident programme completion.
+- **2026-11-10 - verification:** AstroWebUiAstroCaptureTest,
+  AppViewModelAstroWebUiAstroCaptureTest,
+  AstroWebUiProgrammeComposerContractTest and the full cross-platform build
+  passed. No live Astro WebUI, camera, mount, Bluetooth or physical SLOW
+  operation was exercised.

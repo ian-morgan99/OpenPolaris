@@ -1278,3 +1278,33 @@ Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
 the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
 notices. Host/package evidence only; no live Astro WebUI, Bluetooth, bridge,
 camera, mount or physical SLOW qualification was exercised.
+
+
+
+## Latest committed verification - b016a1e
+
+Commit under test: b016a1e (fix: align astro capture arm safety).
+
+Focused Astro capture verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiAstroCaptureTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiAstroCaptureTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 4ffae8babfb5f433f66d3b28c67078b6d4e0540a0043a86649f30a445531d248
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-b016a1e.tar.gz
+  SHA-256: 2e052aa86a8a83d10ca54bc4b2d98feff2d62c9cb34ceabc5db809e018092605
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
+notices. Host/package evidence only; no live Astro WebUI, Bluetooth, bridge,
+camera, mount or physical SLOW qualification was exercised.

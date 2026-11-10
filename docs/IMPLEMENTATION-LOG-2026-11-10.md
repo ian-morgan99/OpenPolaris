@@ -1204,3 +1204,16 @@ Focused verification passed:
 ~~~
 
 No live Astro WebUI or mount operation was exercised.
+
+
+
+### WBS-04.3/06.1/09.1 — Astro capture arm safety hardening
+
+Commit b016a1e aligns the source-specific Astro capture form with the source
+WebUI's 5000-frame maximum and automatically clears the two-step arm after
+four seconds. Parameter edits continue to clear the arm immediately. This
+reduces the chance of a stale confirmation being used in a dark field session;
+the capability remains default-off and no physical action is enabled.
+
+Focused and full verification passed. No live Astro WebUI, camera, mount,
+Bluetooth or physical SLOW operation was exercised.

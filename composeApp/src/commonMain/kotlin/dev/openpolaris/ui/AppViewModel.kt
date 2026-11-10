@@ -2394,6 +2394,7 @@ class AppViewModel(
             statusMessage = "Not connected"
             return false
         }
+        if (!cameraAttachmentAllowsCommand()) return false
         if (capturePhase !is CapturePhase.Idle && capturePhase !is CapturePhase.Completed && capturePhase !is CapturePhase.Failed) {
             statusMessage = "Capture outcome is not clear — reconnect before another shutter"
             return false
@@ -2485,6 +2486,14 @@ class AppViewModel(
         }
     }
 
+    private fun cameraAttachmentAllowsCommand(): Boolean {
+        if (cameraAttachment?.isAttached == false) {
+            statusMessage = "No camera detected — camera command blocked"
+            return false
+        }
+        return true
+    }
+
     private fun rejectUnverifiedCameraWrite() {
         statusMessage = "Camera parameter write blocked: protocol mapping is unverified"
     }
@@ -2519,6 +2528,7 @@ class AppViewModel(
     ) {
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
+        if (!cameraAttachmentAllowsCommand()) return
         if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
@@ -2558,6 +2568,7 @@ class AppViewModel(
      */
     fun capture() {
         if (cameraController == null) { statusMessage = "Not connected"; return }
+        if (!cameraAttachmentAllowsCommand()) return
         // §6: a running/paused sequence owns the shutter — a manual single-shot
         // press would race the engine's next trigger. Stop the sequence first.
         if (sequenceActive) {
@@ -2601,6 +2612,7 @@ class AppViewModel(
     fun captureBulb(seconds: Int) {
         if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
         if (cameraController == null) { statusMessage = "Not connected"; return }
+        if (!cameraAttachmentAllowsCommand()) return
         if (sequenceActive) { statusMessage = "Capture sequence in progress — stop it first"; return }
         val phase = capturePhase
         if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {

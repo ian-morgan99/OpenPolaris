@@ -22,6 +22,7 @@ class AppViewModelCapturePhaseTest {
     private class FakeConnection : Connection {
         private val channel = Channel<ByteArray>(Channel.BUFFERED)
         val written = mutableListOf<String>()
+        var cameraFrame: String? = null
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit
         override suspend fun write(data: ByteArray) {
@@ -29,6 +30,7 @@ class AppViewModelCapturePhaseTest {
             written += wire
             val response = when {
                 wire.startsWith("1&284&") -> "1&284&2&mode:0;#"
+                wire.startsWith("1&286&") -> cameraFrame
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&823&") -> "1&823&2&app:openpolaris;ver:test;#"
                 else -> null
@@ -86,6 +88,26 @@ class AppViewModelCapturePhaseTest {
             vm.refreshCameraAttachment()
             runCurrent()
             assertEquals(2, conn.count(286), "refresh is explicit and bounded")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun absentCameraBlocksCaptureAndSequenceAdmission() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply {
+            cameraFrame = "1&286&2&manufacturer:none;model:none;state:-5;storage:0;photoFormat:0;#"
+        }
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            assertEquals(false, vm.cameraAttachment?.isAttached)
+
+            vm.capture()
+            vm.captureBulb(1)
+            assertEquals(0, conn.count(264), "no-camera capture must not reach the shutter command")
+            assertTrue(vm.statusMessage.contains("No camera detected"))
+
+            assertEquals(false, vm.startSequence(shotCount = 1, intervalMs = 0))
+            assertEquals(0, conn.count(264), "no-camera sequence must not reach the shutter command")
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
 

@@ -645,6 +645,13 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+            if (attachment?.isAttached == false) {
+                Text(
+                    "Camera controls and capture are disabled until the mount reports an attached camera.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             if (qualificationEnabled && !qualificationArmed) {
                 Button(onClick = { qualificationArmed = true }) {
                     Text("I understand — arm setting tests")
@@ -653,12 +660,13 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
             // phone in landscape. Was a single 10-row Column that clipped
             // half its controls below the callout dialog fold (#45).
+            val cameraWriteEnabled = qualificationArmed && attachment?.isAttached == true
             val steppers: List<@Composable () -> Unit> = listOf(
-                { StepperRow("ISO", c.isoIndex, c.isoOptions, qualificationArmed, vm::setIso) },
-                { StepperRow("WB", c.wbIndex, c.wbOptions, qualificationArmed, vm::setWb) },
-                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, qualificationArmed, vm::setFNum) },
-                { StepperRow("EV", c.evIndex, c.evOptions, qualificationArmed, vm::setEv) },
-                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, qualificationArmed, vm::setShutter) },
+                { StepperRow("ISO", c.isoIndex, c.isoOptions, cameraWriteEnabled, vm::setIso) },
+                { StepperRow("WB", c.wbIndex, c.wbOptions, cameraWriteEnabled, vm::setWb) },
+                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, cameraWriteEnabled, vm::setFNum) },
+                { StepperRow("EV", c.evIndex, c.evOptions, cameraWriteEnabled, vm::setEv) },
+                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, cameraWriteEnabled, vm::setShutter) },
             )
             val midpoint = (steppers.size + 1) / 2
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -683,7 +691,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             val inFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                 phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::capture, enabled = !inFlight) { Text("Capture") }
+                Button(onClick = vm::capture, enabled = !inFlight && attachment?.isAttached != false) { Text("Capture") }
                 when (phase) {
                     is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ->
                         Text("Sent…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
@@ -710,7 +718,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
                 Button(
                     onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
-                    enabled = !bulbInFlight,
+                    enabled = !bulbInFlight && attachment?.isAttached != false,
                 ) {
                     Text("Bulb capture")
                 }

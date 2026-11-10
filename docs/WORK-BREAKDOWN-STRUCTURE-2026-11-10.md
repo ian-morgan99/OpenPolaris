@@ -286,3 +286,5 @@ The first slice must not send a new motor frame, alter firmware, alter network c
 - **2026-11-10 — WBS-03.6 ACTIVE:** added the disabled Fine correction position control and an explicit explanation that the firmware rate/stop contract is not qualified.
 - **2026-11-10 — verification:** focused rate-control tests passed; the shared and Compose JVM suites passed before the final stale-context hardening, and the focused suite passed again afterward.
 - **Next:** build the pure SLOW planner/scheduler and MotionSupervisor tests. No live motor adapter is enabled.
+
+- **2026-11-10 — WBS-03.4 DONE (pure seam):** added the calibration-driven SLOW planner and clock-driven scheduler with shared levels, torque-preserving zero holds, minimum dwell and one-shot STOP events; no transport adapter is connected.

@@ -740,3 +740,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro WebUI solve controls):** added source-aligned solve latest/capture/wait start routes plus explicit cancel and apply-last-solution adapters. Busy responses, stale/unknown acknowledgements and resident status are preserved as non-success outcomes; all solve mutations remain behind a separate default-off gate because capture and apply can affect camera/mount state. Mission exposes the actions with the qualification boundary visible.
 - **2026-11-10 - verification:** AstroWebUiSolveControlTest, AppViewModelAstroWebUiSolveControlTest, FeatureFlagsTest and Compose JVM compilation passed. No live solver, camera capture, alignment apply or mount operation was exercised.
+
+
+- **2026-11-10 - WBS-02.1/02.3/08.2 ACTIVE (Astro WebUI control-link telemetry):** added bounded read-only `/api/link` parsing for link phase, wanted state, connect/drop/RX/TX/parse/eviction counters, last-frame age, error and capped opcode snapshots. Connection presents this as resident Astro server evidence and keeps it separate from Bluetooth wake, PC bridge and native motion ownership.
+- **2026-11-10 - verification:** AstroWebUiLinkTest, AppViewModelAstroWebUiLinkTest, FeatureFlagsTest and Compose JVM compilation passed. No live Astro server, Bluetooth, bridge or mount operation was exercised.

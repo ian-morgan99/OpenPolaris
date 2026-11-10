@@ -1098,3 +1098,33 @@ Artifacts:
   SHA-256: adfa49c1f270b8ff045144c32e3991863a41ce6fece2194d89e327ec0e2a11b4
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No live Astro WebUI, solver, camera, alignment apply, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.
+
+
+## Latest committed verification - 6f064dc
+
+Commit under test: 6f064dc (feat: add astro link telemetry).
+
+Focused link-telemetry verification:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiLinkTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiLinkTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL; link parser, feature-policy, ViewModel lifecycle and Compose compilation tests passed.
+
+Full build command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests passed, Android debug Kotlin compilation and APK assembly passed, and the Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 3a7845544f87b542f24f4a16bd09420e87b36e478666f66a44593e7072f6549f
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-6f064dc.tar.gz
+  SHA-256: 4a2214c94184c56a4b28ff7e54c5e6fa8fdd3d503661c2b56495d0fa156d00d7
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No live Astro WebUI, Bluetooth, bridge, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.

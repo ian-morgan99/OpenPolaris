@@ -1139,3 +1139,7 @@ exercised.
 
 - **2026-11-10 - WBS-05.3/08.2 ACTIVE (Astro solve controls):** implemented typed `/api/solve`, `/api/cancel` and `/api/apply` clients with fixed source query modes, strict started/busy/cancelled/applied evidence, preview-port routing, session-owned ViewModel jobs and visible default-off controls. Apply is explicitly described as an alignment-affecting action and does not imply mount success; resident `/api/state` and solve readback remain authoritative.
 - **2026-11-10 - verification:** focused adapter, feature-policy, ViewModel lifecycle and Compose compilation tests passed. No live Astro WebUI, solver, camera, mount or physical SLOW qualification was performed.
+
+
+- **2026-11-10 - WBS-02.1/02.3/08.2 ACTIVE (Astro link telemetry):** implemented a bounded `/api/link` read client with strict phase/counter/age validation, dynamic numeric opcode parsing capped at 256 entries, dedicated preview-port routing and session-safe ViewModel refresh. The Connection workspace shows counters, last error and a small opcode snapshot without offering raw link-send or motion bypasses.
+- **2026-11-10 - verification:** focused parser, feature-policy, ViewModel lifecycle and Compose compilation tests passed. No live Astro WebUI, Bluetooth, bridge, mount or physical SLOW qualification was performed.

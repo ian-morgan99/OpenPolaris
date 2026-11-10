@@ -43,6 +43,7 @@ import dev.openpolaris.core.session.PlatformFile
 import dev.openpolaris.core.domain.GoToController
 import dev.openpolaris.core.domain.HelpersController
 import dev.openpolaris.core.domain.CameraController
+import dev.openpolaris.core.domain.CaptureEvidenceGate
 import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
@@ -463,8 +464,8 @@ class AppViewModel(
     // fires, the capture is reported as Failed("timeout") instead of hanging
     // on Busy.
     private var captureWatchdogJob: Job? = null
-    private var captureSawLifecycle = false
-    private var captureSawFile = false
+    /** Shared lifecycle + publication correlation for single shots and programmes. */
+    private val captureEvidence = CaptureEvidenceGate()
     private var pendingCapturePublication: CapturePublication? = null
     // §6: true while an intervalometer sequence is driving captures. The
     // capture-event observer uses this to route a correlated completion into
@@ -1367,8 +1368,7 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
-        captureSawLifecycle = false
-        captureSawFile = false
+        captureEvidence.clear()
         pendingCapturePublication = null
         lastCapturePublication = null
         captureTimeline = emptyList()
@@ -1538,23 +1538,23 @@ class AppViewModel(
                 // Idle alone is not evidence that this shutter began. Require
                 // a post-request non-idle lifecycle state before accepting a
                 // subsequent file notification as correlated.
-                if (state != 0) {
-                    if (!captureSawLifecycle) appendCaptureTimeline(CaptureTimelineStage.ACTIVE, "state $state")
-                    captureSawLifecycle = true
+                if (captureEvidence.observeLifecycle(state)) {
+                    appendCaptureTimeline(CaptureTimelineStage.ACTIVE, "state $state")
                 }
                 capturePhase = CapturePhase.Busy
                 completeCaptureIfCorrelated()
             }
             Codes.FILE_DOWNLOAD_DATA -> {
                 val path = frame["path"]?.trim().orEmpty()
-                if (path.isNotEmpty() && captureSawLifecycle) {
-                    captureSawFile = true
-                    pendingCapturePublication = CapturePublication(
-                        path = path,
-                        type = frame.int("type"),
-                        sizeBytes = frame["size"]?.trim()?.toLongOrNull(),
-                    )
-                    appendCaptureTimeline(CaptureTimelineStage.PUBLISHED, path)
+                if (captureEvidence.observePublication(path, frame.int("type"), frame["size"]?.trim()?.toLongOrNull())) {
+                    captureEvidence.publication?.let { publication ->
+                        pendingCapturePublication = CapturePublication(
+                            path = publication.path,
+                            type = publication.type,
+                            sizeBytes = publication.sizeBytes,
+                        )
+                        appendCaptureTimeline(CaptureTimelineStage.PUBLISHED, publication.path)
+                    }
                     completeCaptureIfCorrelated()
                 }
             }
@@ -1562,7 +1562,7 @@ class AppViewModel(
     }
 
     private fun completeCaptureIfCorrelated() {
-        if (!captureSawLifecycle || !captureSawFile) return
+        if (!captureEvidence.isConfirmed) return
         captureWatchdogJob?.cancel()
         pendingCapturePublication?.let { lastCapturePublication = it }
         pendingCapturePublication = null
@@ -1578,8 +1578,7 @@ class AppViewModel(
             // the per-shot evidence flags and return the phase to Requested so
             // the next shutter's 264/773 frames are still processed. The engine
             // paces shots by its interval, so no per-shot watchdog is needed.
-            captureSawLifecycle = false
-            captureSawFile = false
+            captureEvidence.resetForNext()
             capturePhase = CapturePhase.Requested
         } else {
             capturePhase = CapturePhase.Completed
@@ -2512,8 +2511,7 @@ class AppViewModel(
             preDelayMs = preDelayMs,
         )
         val previousPhase = capturePhase
-        captureSawLifecycle = false
-        captureSawFile = false
+        captureEvidence.begin()
         pendingCapturePublication = null
         beginCaptureTimeline("Sequence requested: $shotCount shots")
         capturePhase = CapturePhase.Requested
@@ -2540,8 +2538,7 @@ class AppViewModel(
     fun resumeSequence() {
         // Re-arm the capture-event observer for the next shot (a pause may have
         // left the phase in a terminal state after the last completed shot).
-        captureSawLifecycle = false
-        captureSawFile = false
+        captureEvidence.begin()
         pendingCapturePublication = null
         capturePhase = CapturePhase.Requested
         intervalometer?.resume()
@@ -2763,8 +2760,7 @@ class AppViewModel(
         }
         scope.launch {
             capturePhase = CapturePhase.Requested
-            captureSawLifecycle = false
-            captureSawFile = false
+            captureEvidence.begin()
             pendingCapturePublication = null
             beginCaptureTimeline("Still release sent")
             suspendCaptureWorkloads()
@@ -2775,6 +2771,7 @@ class AppViewModel(
                 delay(CAPTURE_TIMEOUT_MS)
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
                     val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+                    captureEvidence.unknown(reason)
                     capturePhase = CapturePhase.OutcomeUnknown(reason)
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
                     statusMessage = "Capture outcome unknown — check the card before another shutter"
@@ -2801,8 +2798,7 @@ class AppViewModel(
         }
         scope.launch {
             capturePhase = CapturePhase.Requested
-            captureSawLifecycle = false
-            captureSawFile = false
+            captureEvidence.begin()
             pendingCapturePublication = null
             beginCaptureTimeline("Bulb release sent")
             suspendCaptureWorkloads()
@@ -2810,6 +2806,7 @@ class AppViewModel(
             val result = controller.captureBulb(seconds)
             if (!result.accepted) {
                 val reason = result.error ?: result.raw ?: "no explicit state:1 acknowledgement"
+                captureEvidence.fail(reason)
                 capturePhase = CapturePhase.Failed("Bulb command rejected: $reason")
                 appendCaptureTimeline(CaptureTimelineStage.FAILED, "Bulb command rejected: $reason")
                 statusMessage = "Bulb command rejected: $reason"
@@ -2822,6 +2819,7 @@ class AppViewModel(
                 delay(maxOf(CAPTURE_TIMEOUT_MS, seconds * 1000L + 15_000L))
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
                     val reason = "timeout: missing correlated Bulb lifecycle/file event"
+                    captureEvidence.unknown(reason)
                     capturePhase = CapturePhase.OutcomeUnknown(reason)
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
                     statusMessage = "Bulb outcome unknown — check the card before another shutter"
@@ -2839,6 +2837,7 @@ class AppViewModel(
         }
         val controller = cameraController
         if (controller == null) {
+            captureEvidence.unknown("camera disconnected while stopping Bulb")
             capturePhase = CapturePhase.OutcomeUnknown("camera disconnected while stopping Bulb")
             statusMessage = "Bulb outcome unknown — camera disconnected"
             return
@@ -2849,6 +2848,7 @@ class AppViewModel(
                 statusMessage = "Bulb stop sent; waiting for the image"
             } else {
                 val reason = "Bulb stop was not acknowledged: ${result.error ?: result.raw ?: "unknown"}"
+                captureEvidence.unknown(reason)
                 capturePhase = CapturePhase.OutcomeUnknown(reason)
                 appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
                 statusMessage = "Bulb stop not confirmed — check the card before another shutter"
@@ -2864,8 +2864,7 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
-        captureSawLifecycle = false
-        captureSawFile = false
+        captureEvidence.clear()
         pendingCapturePublication = null
         captureTimeline = emptyList()
         restoreCaptureWorkloads()

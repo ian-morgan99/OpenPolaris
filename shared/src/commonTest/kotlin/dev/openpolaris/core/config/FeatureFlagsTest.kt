@@ -63,6 +63,7 @@ class FeatureFlagsTest {
         assertFalse(FeatureFlags.isEnabled("astroWebUiGuiding"), "Astro WebUI guiding must remain off until solve, ownership and recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiAutofocus"), "Astro WebUI autofocus writes must remain off until camera and recovery qualification")
         assertFalse(FeatureFlags.isEnabled("astroWebUiFocalWrite"), "Astro WebUI focal writes must remain off until solve mutation and recovery qualification")
+        assertFalse(FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"), "Astro WebUI keep-Wi-Fi writes must remain off until recovery qualification")
     }
 
     @Test
@@ -76,6 +77,7 @@ class FeatureFlagsTest {
         assertTrue(FeatureFlags.isEnabled("astroWebUiAutofocusStatus"), "Astro WebUI autofocus progress readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("astroWebUiFocalStatus"), "Astro WebUI focal readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("astroWebUiLimitsStatus"), "Astro WebUI travel-limit readback is safe and should remain visible")
+        assertTrue(FeatureFlags.isEnabled("astroWebUiKeepWifiStatus"), "Astro WebUI keep-Wi-Fi readback is safe and should remain visible")
         assertTrue(FeatureFlags.isEnabled("omsRead"), "OMS read (824/825) verified")
         assertTrue(FeatureFlags.isEnabled("wifiScan"), "WiFi scan (770) verified")
         assertTrue(FeatureFlags.isEnabled("fileManager"), "File list (702) verified")

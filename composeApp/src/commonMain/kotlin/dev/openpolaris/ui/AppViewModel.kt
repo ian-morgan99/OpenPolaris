@@ -40,6 +40,9 @@ import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiLimitsClient
 import dev.openpolaris.core.domain.AstroWebUiLimitsResult
 import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
+import dev.openpolaris.core.domain.AstroWebUiKeepWifiClient
+import dev.openpolaris.core.domain.AstroWebUiKeepWifiResult
+import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateClient
 import dev.openpolaris.core.domain.AstroWebUiRunStateResult
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
@@ -170,6 +173,7 @@ import dev.openpolaris.core.domain.createAstroWebUiGuideClient
 import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
 import dev.openpolaris.core.domain.createAstroWebUiFocalClient
 import dev.openpolaris.core.domain.createAstroWebUiLimitsClient
+import dev.openpolaris.core.domain.createAstroWebUiKeepWifiClient
 import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
 import dev.openpolaris.core.domain.createAstroWebUiSolveClient
 import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
@@ -314,6 +318,7 @@ class AppViewModel(
     private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
     private val astroWebUiFocalClient: AstroWebUiFocalClient = createAstroWebUiFocalClient(),
     private val astroWebUiLimitsClient: AstroWebUiLimitsClient = createAstroWebUiLimitsClient(),
+    private val astroWebUiKeepWifiClient: AstroWebUiKeepWifiClient = createAstroWebUiKeepWifiClient(),
     private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
     private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
     private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
@@ -1842,6 +1847,9 @@ class AppViewModel(
         astroWebUiLimitsJob?.cancel()
         astroWebUiLimitsJob = null
         astroWebUiLimits = AstroWebUiLimitsUiState.Idle
+        astroWebUiKeepWifiJob?.cancel()
+        astroWebUiKeepWifiJob = null
+        astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Idle
         astroWebUiSolveJob?.cancel()
         astroWebUiSolveJob = null
         astroWebUiSolvePollJob?.cancel()
@@ -4224,6 +4232,8 @@ class AppViewModel(
         private set
     var astroWebUiLimits by mutableStateOf<AstroWebUiLimitsUiState>(AstroWebUiLimitsUiState.Idle)
         private set
+    var astroWebUiKeepWifi by mutableStateOf<AstroWebUiKeepWifiUiState>(AstroWebUiKeepWifiUiState.Idle)
+        private set
     var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
         private set
     var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
@@ -4258,6 +4268,7 @@ class AppViewModel(
     private var astroWebUiAutofocusPollJob: Job? = null
     private var astroWebUiFocalJob: Job? = null
     private var astroWebUiLimitsJob: Job? = null
+    private var astroWebUiKeepWifiJob: Job? = null
     private var astroWebUiSolveJob: Job? = null
     private var astroWebUiSolvePollJob: Job? = null
     private var astroWebUiRunStateJob: Job? = null
@@ -4276,6 +4287,7 @@ class AppViewModel(
     private val astroWebUiAutofocusReadMutex = Mutex()
     private val astroWebUiFocalReadMutex = Mutex()
     private val astroWebUiLimitsReadMutex = Mutex()
+    private val astroWebUiKeepWifiReadMutex = Mutex()
     private val astroWebUiSolveReadMutex = Mutex()
     private val astroWebUiRunStateReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
@@ -4469,6 +4481,90 @@ class AppViewModel(
                 is AstroWebUiGuideResult.Success -> astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
                 is AstroWebUiGuideResult.Failure -> {
                     astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    private suspend fun readAstroWebUiKeepWifi(announce: Boolean) {
+        astroWebUiKeepWifiReadMutex.withLock {
+            if (!FeatureFlags.isEnabled("astroWebUiKeepWifiStatus")) {
+                astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
+                    "Astro WebUI keep-Wi-Fi status disabled by config",
+                )
+                return@withLock
+            }
+            val ownerSession = session
+            if (ownerSession == null) {
+                astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
+                    "Connect to a mount before reading Astro WebUI keep-Wi-Fi state",
+                )
+                return@withLock
+            }
+            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Loading
+            val result = astroWebUiKeepWifiClient.read(host, previewPort)
+            if (!ownsSession(ownerSession)) return@withLock
+            when (result) {
+                is AstroWebUiKeepWifiResult.Success -> {
+                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Ready(result.state)
+                    if (announce) statusMessage = "Astro WebUI keep-Wi-Fi state refreshed"
+                }
+                is AstroWebUiKeepWifiResult.Accepted -> Unit
+                is AstroWebUiKeepWifiResult.Failure -> {
+                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(result.reason)
+                    if (announce) statusMessage = result.reason
+                }
+            }
+        }
+    }
+
+    fun refreshAstroWebUiKeepWifi() {
+        astroWebUiKeepWifiJob?.cancel()
+        astroWebUiKeepWifiJob = scope.launch {
+            readAstroWebUiKeepWifi(announce = true)
+        }
+    }
+
+    fun setAstroWebUiKeepWifi(enabled: Boolean, forced: Boolean) {
+        astroWebUiKeepWifiJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiKeepWifiWrite")) {
+            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
+                "Astro WebUI keep-Wi-Fi writes are disabled until recovery qualification",
+            )
+            statusMessage = "Astro WebUI keep-Wi-Fi writes are disabled by config"
+            return
+        }
+        val ownerSession = session
+        if (ownerSession == null) {
+            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
+                "Connect to a mount before changing Astro WebUI keep-Wi-Fi",
+            )
+            statusMessage = "Connect to a mount before changing Astro WebUI keep-Wi-Fi"
+            return
+        }
+        astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Loading
+        astroWebUiKeepWifiJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = try {
+                astroWebUiKeepWifiClient.set(host, previewPort, enabled, forced)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                AstroWebUiKeepWifiResult.Failure(
+                    error.message ?: "Astro WebUI keep-Wi-Fi change failed",
+                )
+            }
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
+                is AstroWebUiKeepWifiResult.Accepted -> {
+                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Accepted(result.enabled, result.forced)
+                    statusMessage = "Astro WebUI keep-Wi-Fi change accepted; confirming by readback"
+                    readAstroWebUiKeepWifi(announce = false)
+                }
+                is AstroWebUiKeepWifiResult.Success -> astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Ready(result.state)
+                is AstroWebUiKeepWifiResult.Failure -> {
+                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(result.reason)
                     statusMessage = result.reason
                 }
             }

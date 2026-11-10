@@ -129,6 +129,10 @@ object FeatureFlags {
     const val astroWebUiFocalStatus: Boolean = true
     /** Optional read-only Astro WebUI travel-limit state. */
     const val astroWebUiLimitsStatus: Boolean = true
+    /** Optional read-only Astro WebUI Wi-Fi keepalive state. */
+    const val astroWebUiKeepWifiStatus: Boolean = true
+    /** Astro WebUI Wi-Fi keepalive writes; disabled until recovery qualification. */
+    const val astroWebUiKeepWifiWrite: Boolean = false
     /** Astro WebUI focal override writes; disabled until solve/recovery qualification. */
     const val astroWebUiFocalWrite: Boolean = false
     /** Astro WebUI autofocus start/stop; disabled until camera/focus recovery qualifies. */
@@ -267,6 +271,8 @@ object FeatureFlags {
         "astroWebUiAutofocusStatus" -> astroWebUiAutofocusStatus
         "astroWebUiFocalStatus" -> astroWebUiFocalStatus
         "astroWebUiLimitsStatus" -> astroWebUiLimitsStatus
+        "astroWebUiKeepWifiStatus" -> astroWebUiKeepWifiStatus
+        "astroWebUiKeepWifiWrite" -> astroWebUiKeepWifiWrite
         "astroWebUiFocalWrite" -> astroWebUiFocalWrite
         "astroWebUiAutofocus" -> astroWebUiAutofocus
         "astroWebUiSite" -> astroWebUiSite

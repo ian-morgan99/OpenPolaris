@@ -88,6 +88,7 @@ import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
 import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
 import dev.openpolaris.core.domain.AstroWebUiFocalUiState
 import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
+import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
 import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
 import dev.openpolaris.core.domain.AstroWebUiSolveUiState
 import dev.openpolaris.core.domain.AstroWebUiSessionControlState
@@ -434,6 +435,91 @@ fun ConnectionPane(
             }
             HorizontalDivider()
             EndpointHealthSection(vm)
+            HorizontalDivider()
+            Text("Astro keep-Wi-Fi", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "The resident helper can keep the mount link awake after alignment. Readback distinguishes enabled, running, aligned and forced; it does not claim the Bluetooth or Wi-Fi bridge is healthy.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiStatus"),
+                    onClick = vm::refreshAstroWebUiKeepWifi,
+                ) { Text("Refresh keep-Wi-Fi") }
+                when (val keepWifi = vm.astroWebUiKeepWifi) {
+                    AstroWebUiKeepWifiUiState.Idle -> Text(
+                        "State not checked.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    AstroWebUiKeepWifiUiState.Loading -> Text(
+                        "Reading or changing keep-Wi-Fi…",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiKeepWifiUiState.Accepted -> Text(
+                        "Change accepted; confirming by readback.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiKeepWifiUiState.Failed -> Text(
+                        keepWifi.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    is AstroWebUiKeepWifiUiState.Ready -> {
+                        Text(
+                            when {
+                                keepWifi.state.running && keepWifi.state.forced -> "Running · forced"
+                                keepWifi.state.running -> "Running · alignment-aware"
+                                keepWifi.state.enabled -> "Enabled · not running"
+                                else -> "Off"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Switch(
+                            checked = keepWifi.state.enabled,
+                            enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"),
+                            onCheckedChange = { enabled ->
+                                vm.setAstroWebUiKeepWifi(enabled, keepWifi.state.forced)
+                            },
+                        )
+                    }
+                }
+            }
+            if (vm.astroWebUiKeepWifi is AstroWebUiKeepWifiUiState.Ready) {
+                val state = (vm.astroWebUiKeepWifi as AstroWebUiKeepWifiUiState.Ready).state
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Aligned: " + if (state.aligned) "yes" else "no" +
+                            " · Forced: " + if (state.forced) "yes" else "no",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    if (state.enabled) {
+                        Switch(
+                            checked = state.forced,
+                            enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"),
+                            onCheckedChange = { forced ->
+                                vm.setAstroWebUiKeepWifi(true, forced)
+                            },
+                        )
+                    }
+                }
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiKeepWifiStatus")) {
+                Text(
+                    "Keep-Wi-Fi readback is disabled by config.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!FeatureFlags.isEnabled("astroWebUiKeepWifiWrite")) {
+                Text(
+                    "Keep-Wi-Fi writes are disabled until bridge, alignment and recovery behaviour are qualified.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
         }
     }

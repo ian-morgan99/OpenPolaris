@@ -14,6 +14,25 @@ class AstroCaptureContractTest {
     }
 
     @Test
+    fun bulbStartAndStopUseExplicitSourceCompatibleEdges() {
+        assertContentEquals(
+            "1&264&2&state:1;bulb:12;c:-1;#".encodeToByteArray(),
+            AstroCaptureContract.bulbStartFrame(12),
+        )
+        assertContentEquals(
+            "1&264&2&state:0;bulb:0;c:-1;#".encodeToByteArray(),
+            AstroCaptureContract.stopFrame(),
+        )
+    }
+
+    @Test
+    fun bulbDurationMustBePositive() {
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            AstroCaptureContract.bulbStartFrame(0)
+        }
+    }
+
+    @Test
     fun acceptanceAndProgrammeProgressNeverClaimCaptureCompletion() {
         assertFalse(AstroCaptureContract.httpAcceptanceIsCaptureComplete())
         assertFalse(AstroCaptureContract.programmeProgressIsCaptureComplete())

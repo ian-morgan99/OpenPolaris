@@ -17,10 +17,22 @@ object AstroCaptureContract {
     const val CAPTURE_SUBTYPE = 2
     const val CAPTURE_PAYLOAD = "state:1;bulb:0;c:-1;"
 
-    /** Exact source-compatible 264 frame used by Astro WebUI ordinary capture. */
-    fun ordinaryStillFrame(): ByteArray = CommandBuilder(CAPTURE_CODE, CAPTURE_SUBTYPE).apply {
-        putRaw(CAPTURE_PAYLOAD)
-    }.build()
+    /** Exact source-compatible 264 frame used by Astro WebUI ordinary M capture. */
+    fun ordinaryStillFrame(): ByteArray = frame(state = 1, bulbSeconds = 0)
+
+    /** Source-compatible B-mode start; the camera owns the exposure duration. */
+    fun bulbStartFrame(seconds: Int): ByteArray {
+        require(seconds > 0) { "Bulb duration must be positive" }
+        return frame(state = 1, bulbSeconds = seconds)
+    }
+
+    /** Explicit B-mode stop edge; never inferred from an HTTP response timeout. */
+    fun stopFrame(): ByteArray = frame(state = 0, bulbSeconds = 0)
+
+    private fun frame(state: Int, bulbSeconds: Int): ByteArray =
+        CommandBuilder(CAPTURE_CODE, CAPTURE_SUBTYPE).apply {
+            putRaw("state:$state;bulb:$bulbSeconds;c:-1;")
+        }.build()
 
     /**
      * The WebUI link endpoint's positive HTTP result is queue/write evidence,

@@ -2,6 +2,8 @@ package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import dev.openpolaris.core.protocol.Codes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,8 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -530,7 +539,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
             Text(
-                "Select an axis, then tap a direction in Demo mode; a qualified live version will use the shared dead-man hold contract. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
+                "Select an axis, then press and hold a direction in Demo mode; release stops the logical session. A qualified live version will use the same dead-man contract. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -550,21 +559,25 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
-                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel) },
-                    enabled = controlsEnabled,
+                SlowDemoHoldButton(
+                    label = "Direction A",
+                    enabled = controlsEnabled && demoControlsEnabled,
                     modifier = Modifier.weight(1f),
-                ) { Text("Direction A") }
+                    onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel) },
+                    onRelease = vm::demoSlowMotionStop,
+                )
                 Button(
                     onClick = { if (demoControlsEnabled) vm.demoSlowMotionStop() },
                     enabled = controlsEnabled,
                     modifier = Modifier.weight(1f),
                 ) { Text("STOP ALL") }
-                OutlinedButton(
-                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel) },
-                    enabled = controlsEnabled,
+                SlowDemoHoldButton(
+                    label = "Direction B",
+                    enabled = controlsEnabled && demoControlsEnabled,
                     modifier = Modifier.weight(1f),
-                ) { Text("Direction B") }
+                    onPress = { vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel) },
+                    onRelease = vm::demoSlowMotionStop,
+                )
             }
             Text(
                 "Pointer capture, dead-man renewal and stop ordering belong to the shared motion owner; the UI must not create its own repeat timer.",
@@ -595,16 +608,20 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Rotation rocker · M3", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel) },
-                    enabled = controlsEnabled,
+                SlowDemoHoldButton(
+                    label = "A · rotate",
+                    enabled = controlsEnabled && demoControlsEnabled,
                     modifier = Modifier.weight(1f),
-                ) { Text("A · rotate") }
-                OutlinedButton(
-                    onClick = { if (demoControlsEnabled) vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel) },
-                    enabled = controlsEnabled,
+                    onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel) },
+                    onRelease = vm::demoSlowMotionStop,
+                )
+                SlowDemoHoldButton(
+                    label = "B · rotate",
+                    enabled = controlsEnabled && demoControlsEnabled,
                     modifier = Modifier.weight(1f),
-                ) { Text("B · rotate") }
+                    onPress = { vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel) },
+                    onRelease = vm::demoSlowMotionStop,
+                )
             }
 
             OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
@@ -631,6 +648,65 @@ private fun slowAxis(label: String): dev.openpolaris.core.domain.RateAxis = when
     "M2" -> dev.openpolaris.core.domain.RateAxis.M2_TILT
     "M3" -> dev.openpolaris.core.domain.RateAxis.M3_ROTATION
     else -> dev.openpolaris.core.domain.RateAxis.M1_PAN
+}
+
+/** Demo-only dead-man control: press starts logical motion and release stops it. */
+@Composable
+private fun SlowDemoHoldButton(
+    label: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onPress: () -> Unit,
+    onRelease: () -> Unit,
+) {
+    var suppressNextClick by remember { mutableStateOf(false) }
+    var keyHeld by remember { mutableStateOf(false) }
+    val inputModifier = modifier
+        .pointerInput(enabled) {
+            if (!enabled) return@pointerInput
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                suppressNextClick = true
+                onPress()
+                try {
+                    while (awaitPointerEvent().changes.any { it.pressed }) Unit
+                } finally {
+                    onRelease()
+                }
+            }
+        }
+        .onKeyEvent { event ->
+            if (!enabled || (event.key != Key.Enter && event.key != Key.Spacebar)) return@onKeyEvent false
+            when (event.type) {
+                KeyEventType.KeyDown -> {
+                    if (!keyHeld) {
+                        keyHeld = true
+                        onPress()
+                    }
+                }
+                KeyEventType.KeyUp -> {
+                    if (keyHeld) {
+                        keyHeld = false
+                        onRelease()
+                    }
+                }
+            }
+            true
+        }
+        .focusable(enabled)
+    Button(
+        onClick = {
+            if (suppressNextClick) suppressNextClick = false
+            else {
+                onPress()
+                onRelease()
+            }
+        },
+        enabled = enabled,
+        modifier = inputModifier,
+    ) {
+        Text(label)
+    }
 }
 
 @Composable

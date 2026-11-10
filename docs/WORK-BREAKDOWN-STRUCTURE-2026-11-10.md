@@ -913,3 +913,19 @@ The current implementation slice must not send a new motor frame, alter firmware
   NavigationBar semantics and primary/overflow targets. Full shared/Compose
   JVM tests, Android compilation, desktop packaging and APK assembly passed.
   No live mount, camera, Bluetooth or Astro WebUI operation was exercised.
+
+
+- **2026-11-10 - WBS-04.3/06.1/07.1/09.1 ACTIVE (Demo capture lifecycle):**
+  completed the in-process demo's camera-readiness and still-capture path. Demo
+  now performs the 284/820/823 session handshake, exposes a confirmed camera
+  attachment through 286, starts the same capture-event observer as a live
+  session, and emits a synthetic 264 lifecycle plus 773 file-publication event.
+  The capture UI can therefore exercise Requested -> Active -> Published ->
+  Confirmed on mobile and PC without hardware. This is a deterministic simulator
+  and package UX slice; it does not claim real-camera shutter or file-transfer
+  qualification.
+- **2026-11-10 - verification:** added
+  demoCaptureCompletesWithSimulatedCameraLifecycleAndPublication to the
+  capture-phase regression suite. The focused capture suite and full
+  cross-platform build passed. No live camera, Astro WebUI, Bluetooth, mount or
+  physical SLOW operation was exercised.

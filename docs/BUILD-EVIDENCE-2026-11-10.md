@@ -87,3 +87,25 @@ From a clean checkout at the source commit, run:
 Then compute SHA-256 with sha256sum and keep the source commit alongside the
 artifact hashes. The desktop provenance verifier must run after the distributable
 is rebuilt from the same clean source commit.
+
+## Latest committed verification - c8584e9
+
+Source commit: `c8584e9` (`fix: preserve explicit SLOW live hard gate`).
+
+Full verification passed from this source state:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+- All shared and Compose JVM tests passed, including `AstroWebUiSolveTest`, `AppViewModelAstroWebUiSolveTest`, `SlowMotionCapabilityTest` and `SlowMotionPaneSafetyContractTest`.
+- Android debug Kotlin compilation and APK assembly passed.
+- Desktop distributable creation passed.
+- Existing warnings only: Kotlin expect/actual, Java/Android deprecations and the known `libandroidx.graphics.path.so` strip warning.
+
+| Artifact | Path | SHA-256 |
+|---|---|---|
+| Android debug APK | `androidApp/build/outputs/apk/debug/androidApp-debug.apk` | `125f2b4ba58ca1ef716e7992d345af71d5578d16fa65d41c24a706455bb7c870` |
+| Linux x64 app-image archive | `/tmp/OpenPolaris-linux-x64-c0ab834.tar.gz` | `39db616423c6b51b50bcab8a982e11a263d5729bdd9257cbe06b84a4eb27f00b` |
+
+The SLOW live hard gate remains false. These are source, test and build artifacts only; they are not physical qualification of a mount, firmware route, acknowledgement, watchdog or stop behavior.

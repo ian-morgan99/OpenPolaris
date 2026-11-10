@@ -1188,3 +1188,33 @@ Artifacts:
   SHA-256: `440b55418b5bd49a8564992ef551e331abf1880cdfdf034215e6e80aefe7aeae`
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known `libandroidx.graphics.path.so` strip warning and Gradle 9 deprecation notices. The build proves host/package integrity only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - ff29943
+
+Commit under test: ff29943 (feat: add slow motion keyboard guidance).
+
+Focused verification:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :composeApp:jvmTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL; the SLOW safety/accessibility contract test and Compose JVM compilation passed.
+
+Full build:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL. Shared and Compose JVM tests passed, Android debug compilation/APK assembly passed, and the Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+  SHA-256: `7f1da9252488bfc258e529fbe1857646aead41df47032b7ac95a7d641d31111e`
+- Linux x64 desktop archive: `/tmp/OpenPolaris-linux-x64-ff29943.tar.gz`
+  SHA-256: `cc5b235ee74de3f800080e8c944157fedc0286537a9a20fd40d069637aae6b1a`
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known `libandroidx.graphics.path.so` strip warning and Gradle 9 deprecation notices. This is host/package evidence only; no live Astro WebUI, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

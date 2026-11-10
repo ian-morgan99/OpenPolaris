@@ -1151,3 +1151,7 @@ exercised.
 
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW rehearsal calibration UX):** the Motion surface now shows the selected host reference level, its two source-aligned planner rungs and an explicit warning that these values are not a live degrees-per-second contract. Hold controls now expose a button role plus Held/Released state to keyboard and accessibility clients. No live transport, 532/533/534 frame or AC 4A path was enabled.
 - **2026-11-10 - verification:** focused Compose compilation and `SlowMotionPaneSafetyContractTest` passed; the full cross-platform build passed on rerun after one isolated timing-sensitive `SessionShutdownLeakTest` failure at cycle 3. No physical SLOW qualification was exercised.
+
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW PC keyboard guidance):** added a collapsible keyboard-shortcut explanation to the shared Motion dock and extended the SLOW safety contract test for the shortcut surface, held/released state semantics and button role. This is UX rehearsal only; live transport remains hard-gated.
+- **2026-11-10 - verification:** focused SLOW Compose compile/test and the full shared/Compose/Android/desktop build passed. No live hardware, Bluetooth, camera or SLOW qualification was exercised.

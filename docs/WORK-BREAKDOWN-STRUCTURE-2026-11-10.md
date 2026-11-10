@@ -751,3 +751,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW rehearsal calibration UX):** added a visible, test-tagged host-reference calibration card for the selected SLOW level and explicit held/released button semantics with button roles. The card labels state-1/state-2 rates as planner rehearsal data, never as live promises; the hard-coded live transport gate and no-wire boundary remain unchanged.
+
+
+- **2026-11-10 - WBS-03.6/09.1 ACTIVE (SLOW PC keyboard guidance):** added an explicit shortcuts disclosure for desktop and keyboard users. It documents Tab focus, Enter/Space hold/release, focus-loss stop and STOP ALL while stating that UI input shares the motion owner and does not create a second repeat loop.

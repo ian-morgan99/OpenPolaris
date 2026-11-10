@@ -888,7 +888,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // confirmed by the capture-event observer correlating the 264
             // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
             IntervalometerSection(vm)
-            ObservationProgrammePreviewSection()
+            ObservationProgrammePreviewSection(vm)
 
             HorizontalDivider()
             Text("Focus and video", style = MaterialTheme.typography.titleSmall)
@@ -943,7 +943,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun ObservationProgrammePreviewSection() {
+private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
     var selectedKind by remember { mutableStateOf(ObservationProgrammePlanner.Kind.LAPSE) }
     var plan by remember { mutableStateOf<ObservationProgrammePlanner.Plan?>(null) }
 
@@ -992,6 +992,47 @@ private fun ObservationProgrammePreviewSection() {
             "${preview.kind.label()} · ${preview.captureCount} captures · ${preview.scheduledDelayMs} ms scheduled delay",
             style = MaterialTheme.typography.bodyMedium,
         )
+        if (preview.kind == ObservationProgrammePlanner.Kind.LAPSE) {
+            val programmeState = vm.observationProgrammeState
+            val programmeActive = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ||
+                programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused
+            val programmeUnknown = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = { vm.startObservationProgramme(preview) },
+                    enabled = !programmeActive && !programmeUnknown,
+                    modifier = Modifier.semantics { contentDescription = "Run qualified lapse programme" },
+                ) { Text("Run qualified lapse") }
+                OutlinedButton(
+                    onClick = vm::pauseObservationProgramme,
+                    enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running,
+                ) { Text("Pause") }
+                OutlinedButton(
+                    onClick = { vm.resumeObservationProgramme() },
+                    enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused,
+                ) { Text("Resume") }
+                OutlinedButton(onClick = vm::stopObservationProgramme, enabled = programmeActive) { Text("Stop") }
+            }
+            Text(
+                when (programmeState) {
+                    dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle -> "Qualified path: fixed-exposure lapse with correlated file evidence"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running -> "Running: ${programmeState.completedSteps}/${programmeState.plan.captureCount} confirmed"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused -> "Paused: ${programmeState.completedSteps}/${programmeState.plan.captureCount} confirmed"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed -> "Completed: ${programmeState.completedSteps} captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Stopped -> "Stopped: ${programmeState.completedSteps} captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Failed -> "Failed: ${programmeState.reason}"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown -> "Outcome unknown: reconnect before another shutter"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (programmeUnknown) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                "Planner preview only: this programme needs separately qualified exposure or motion controls.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         preview.steps.take(5).forEach { step ->
             Text(
                 "${step.ordinal}. ${step.label} · wait ${step.delayBeforeMs} ms" +

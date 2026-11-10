@@ -344,4 +344,72 @@ class AppViewModelCapturePhaseTest {
             assertEquals(3, s.completedShots)
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
+
+    @Test
+    fun qualifiedLapseProgrammeDrivesCorrelatedCapturesThroughTheSharedOwner() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            val plan = dev.openpolaris.core.domain.ObservationProgrammePlanner.plan(
+                dev.openpolaris.core.domain.ObservationProgrammePlanner.Request.Lapse(
+                    shotCount = 2,
+                    intervalMs = 1_000L,
+                ),
+            )
+            assertTrue(vm.startObservationProgramme(plan))
+            runCurrent()
+            advanceTimeBy(850)
+            runCurrent()
+            assertEquals(1, conn.count(264), "programme must issue one shutter for its first step")
+            vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
+            vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/PROGRAMME_0001.dng;size:1;#"))
+            runCurrent()
+
+            advanceTimeBy(1_000)
+            runCurrent()
+            advanceTimeBy(850)
+            runCurrent()
+            assertEquals(2, conn.count(264), "programme must wait for evidence before the next shutter")
+            vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
+            vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/PROGRAMME_0002.dng;size:1;#"))
+            runCurrent()
+
+            assertIs<dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed>(vm.observationProgrammeState)
+            assertEquals(2, conn.count(264), "programme must not duplicate a confirmed step")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun unqualifiedProgrammeKindsRemainPreviewOnly() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            val hdr = dev.openpolaris.core.domain.ObservationProgrammePlanner.plan(
+                dev.openpolaris.core.domain.ObservationProgrammePlanner.Request.Hdr(
+                    baseExposureIndex = 20,
+                    bracketOffsets = listOf(-2, 0, 2),
+                    intervalMs = 1_000L,
+                ),
+            )
+            assertEquals(false, vm.startObservationProgramme(hdr))
+            assertEquals(0, conn.count(264), "unqualified HDR must not send a shutter")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+
+    @Test
+    fun unknownSingleCaptureBlocksAProgrammeUntilSessionRecovery() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.capture()
+            advanceTimeBy(20_000)
+            val plan = dev.openpolaris.core.domain.ObservationProgrammePlanner.plan(
+                dev.openpolaris.core.domain.ObservationProgrammePlanner.Request.Lapse(1, 0L),
+            )
+            assertEquals(false, vm.startObservationProgramme(plan))
+            assertEquals(1, conn.count(264), "unknown capture must block a programme retry")
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
 }

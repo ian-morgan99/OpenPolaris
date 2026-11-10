@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 class ObservationProgrammeExecutor(
     private val scope: CoroutineScope,
     private val owner: OwnerLease,
+    private val onStateChange: ((State) -> Unit)? = null,
     private val executeStep: suspend (ObservationProgrammePlanner.Step) -> StepResult,
 ) {
     interface OwnerLease {
@@ -49,6 +50,11 @@ class ObservationProgrammeExecutor(
     var state: State = State.Idle
         private set
 
+    private fun setState(next: State) {
+        state = next
+        onStateChange?.invoke(next)
+    }
+
     private var job: Job? = null
     private var stepInFlight = false
     private var pauseRequested = false
@@ -58,13 +64,13 @@ class ObservationProgrammeExecutor(
     fun start(plan: ObservationProgrammePlanner.Plan): Boolean {
         if (state is State.Running || state is State.Paused || state is State.OutcomeUnknown) return false
         if (!owner.acquire()) {
-            state = State.Failed("programme owner is already held")
+            setState(State.Failed("programme owner is already held"))
             return false
         }
         ownerHeld = true
         pauseRequested = false
         stopRequested = false
-        state = State.Running(plan, 0)
+        setState(State.Running(plan, 0))
         job = scope.launch { run(plan, fromIndex = 0, completed = 0) }
         return true
     }
@@ -80,13 +86,13 @@ class ObservationProgrammeExecutor(
     fun resume(): Boolean {
         val paused = state as? State.Paused ?: return false
         if (!owner.acquire()) {
-            state = State.Failed("programme owner could not be reacquired")
+            setState(State.Failed("programme owner could not be reacquired"))
             return false
         }
         ownerHeld = true
         pauseRequested = false
         stopRequested = false
-        state = State.Running(paused.plan, paused.completedSteps)
+        setState(State.Running(paused.plan, paused.completedSteps))
         job = scope.launch {
             run(paused.plan, fromIndex = paused.completedSteps, completed = paused.completedSteps)
         }
@@ -101,9 +107,25 @@ class ObservationProgrammeExecutor(
             job?.cancel()
         }
         if (current is State.Paused) {
-            state = State.Stopped(current.plan, current.completedSteps)
+            setState(State.Stopped(current.plan, current.completedSteps))
             releaseOwner()
         }
+    }
+
+    /** Abandon the programme on session loss; an in-flight step becomes unknown. */
+    fun abandon(reason: String) {
+        val current = state
+        when (current) {
+            is State.Running -> setState(State.OutcomeUnknown(reason, current.plan, current.completedSteps))
+            is State.Paused -> setState(State.Stopped(current.plan, current.completedSteps))
+            else -> return
+        }
+        stopRequested = false
+        pauseRequested = false
+        job?.cancel()
+        job = null
+        stepInFlight = false
+        releaseOwner()
     }
 
     private suspend fun run(
@@ -115,12 +137,12 @@ class ObservationProgrammeExecutor(
         try {
             for (index in fromIndex until plan.steps.size) {
                 if (stopRequested) {
-                    state = State.Stopped(plan, completedSteps)
+                    setState(State.Stopped(plan, completedSteps))
                     releaseOwner()
                     return
                 }
                 if (pauseRequested) {
-                    state = State.Paused(plan, completedSteps)
+                    setState(State.Paused(plan, completedSteps))
                     releaseOwner()
                     return
                 }
@@ -128,12 +150,12 @@ class ObservationProgrammeExecutor(
                 val step = plan.steps[index]
                 if (step.delayBeforeMs > 0L) delay(step.delayBeforeMs)
                 if (stopRequested) {
-                    state = State.Stopped(plan, completedSteps)
+                    setState(State.Stopped(plan, completedSteps))
                     releaseOwner()
                     return
                 }
                 if (pauseRequested) {
-                    state = State.Paused(plan, completedSteps)
+                    setState(State.Paused(plan, completedSteps))
                     releaseOwner()
                     return
                 }
@@ -152,36 +174,36 @@ class ObservationProgrammeExecutor(
                 when (result) {
                     StepResult.Confirmed -> {
                         completedSteps = index + 1
-                        state = State.Running(plan, completedSteps)
+                        setState(State.Running(plan, completedSteps))
                         if (stopRequested) {
-                            state = State.Stopped(plan, completedSteps)
+                            setState(State.Stopped(plan, completedSteps))
                             releaseOwner()
                             return
                         }
                         if (pauseRequested) {
-                            state = State.Paused(plan, completedSteps)
+                            setState(State.Paused(plan, completedSteps))
                             releaseOwner()
                             return
                         }
                     }
                     is StepResult.Rejected -> {
-                        state = State.Failed(result.reason)
+                        setState(State.Failed(result.reason))
                         releaseOwner()
                         return
                     }
                     is StepResult.OutcomeUnknown -> {
-                        state = State.OutcomeUnknown(result.reason, plan, completedSteps)
+                        setState(State.OutcomeUnknown(result.reason, plan, completedSteps))
                         releaseOwner()
                         return
                     }
                 }
             }
-            state = State.Completed(plan, completedSteps)
+            setState(State.Completed(plan, completedSteps))
             releaseOwner()
         } catch (cancelled: CancellationException) {
             when {
-                stopRequested -> state = State.Stopped(plan, completedSteps)
-                pauseRequested -> state = State.Paused(plan, completedSteps)
+                stopRequested -> setState(State.Stopped(plan, completedSteps))
+                pauseRequested -> setState(State.Paused(plan, completedSteps))
                 else -> {
                     releaseOwner()
                     throw cancelled

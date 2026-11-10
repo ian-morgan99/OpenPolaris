@@ -17,6 +17,8 @@ class ObservationProgrammePreviewContractTest {
         } ?: error("Cannot read Panes.kt")
         assertTrue("ObservationProgrammePreviewSection" in source)
         assertTrue("Preview plan" in source)
+        assertTrue("Run qualified lapse" in source)
+        assertTrue("startObservationProgramme" in source)
         assertTrue("Read-only" in source)
         assertTrue("ObservationProgrammePlanner" in source)
         assertTrue("Previewing never moves the mount or fires the camera." in source)

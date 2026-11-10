@@ -73,6 +73,7 @@ import dev.openpolaris.core.solver.StarDetector
 import dev.openpolaris.core.solver.SyntheticTestCatalog
 import dev.openpolaris.core.util.Md5
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -467,6 +468,9 @@ class AppViewModel(
     /** Shared lifecycle + publication correlation for single shots and programmes. */
     private val captureEvidence = CaptureEvidenceGate()
     private var pendingCapturePublication: CapturePublication? = null
+    private var programmeConfirmation: CompletableDeferred<CaptureEvidenceGate.Publication?>? = null
+    private var observationProgrammeActive = false
+    private var sessionTearingDown = false
     // §6: true while an intervalometer sequence is driving captures. The
     // capture-event observer uses this to route a correlated completion into
     // [intervalometer].markShotDone() so the engine advances to the next shot
@@ -891,6 +895,7 @@ class AppViewModel(
         controller = TrackingController(s)
         cameraController = CameraController(s)
         intervalometer = createIntervalometer()
+        observationExecutor = createObservationProgrammeExecutor()
         alignmentController = AlignmentController(s)
         wireHelpers(s)
         startAutoLevel(s)
@@ -1252,6 +1257,7 @@ class AppViewModel(
         controller = TrackingController(sim.session)
         cameraController = CameraController(sim.session)
         intervalometer = createIntervalometer()
+        observationExecutor = createObservationProgrammeExecutor()
         alignmentController = AlignmentController(sim.session)
         wireHelpers(sim.session)
 
@@ -1296,6 +1302,13 @@ class AppViewModel(
     }
 
     fun disconnect() {
+        sessionTearingDown = true
+        programmeConfirmation?.complete(null)
+        programmeConfirmation = null
+        observationExecutor?.abandon("session disconnected")
+        observationExecutor = null
+        observationProgrammeActive = false
+        observationProgrammeState = dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle
         pollJob?.cancel()
         captureEventJob?.cancel()
         cameraAttachmentPollJob?.cancel()
@@ -1415,6 +1428,7 @@ class AppViewModel(
                 statusMessage = "Disconnected"
             }
         }
+        sessionTearingDown = false
     }
 
     /**
@@ -1564,22 +1578,29 @@ class AppViewModel(
     private fun completeCaptureIfCorrelated() {
         if (!captureEvidence.isConfirmed) return
         captureWatchdogJob?.cancel()
+        val confirmedProgrammePublication = captureEvidence.publication
         pendingCapturePublication?.let { lastCapturePublication = it }
         pendingCapturePublication = null
         appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file evidence")
         captureWatchdogJob = null
-        // §6: while a sequence is driving captures, this correlated completion
+        // §6: while a sequence or observation programme is driving captures,
+        // this correlated completion releases the current step without
+        // restoring preview ownership between steps.
         // confirms the current shot. Release the engine's in-flight shutter so
         // it advances to the next shot (or completes). A single-shot capture
         // has no engine, so markShotDone() is a harmless no-op there.
-        if (sequenceActive) {
-            intervalometer?.markShotDone()
-            // Keep the capture-event observer active for the *next* shot: reset
-            // the per-shot evidence flags and return the phase to Requested so
-            // the next shutter's 264/773 frames are still processed. The engine
-            // paces shots by its interval, so no per-shot watchdog is needed.
-            captureEvidence.resetForNext()
-            capturePhase = CapturePhase.Requested
+        if (sequenceActive || observationProgrammeActive) {
+            if (sequenceActive) intervalometer?.markShotDone()
+            programmeConfirmation?.complete(confirmedProgrammePublication)
+            programmeConfirmation = null
+            // The executor starts the next programme step by calling begin();
+            // keep the confirmed evidence intact until its bridge consumes it.
+            if (sequenceActive) {
+                captureEvidence.resetForNext()
+                capturePhase = CapturePhase.Requested
+            } else {
+                capturePhase = CapturePhase.Completed
+            }
         } else {
             capturePhase = CapturePhase.Completed
         }
@@ -2106,6 +2127,7 @@ class AppViewModel(
     internal fun testInstallCameraAndIntervalometer(s: MountSession) {
         this.cameraController = CameraController(s)
         this.intervalometer = createIntervalometer()
+        this.observationExecutor = createObservationProgrammeExecutor()
     }
 
     /**
@@ -2429,10 +2451,17 @@ class AppViewModel(
     // observer (see [completeCaptureIfCorrelated]) which calls
     // [dev.openpolaris.core.domain.IntervalometerController.markShotDone].
     private var intervalometer: dev.openpolaris.core.domain.IntervalometerController? = null
+    private var observationExecutor: dev.openpolaris.core.domain.ObservationProgrammeExecutor? = null
 
     /** Live intervalometer state for the UI (mirrors [intervalometer].state). */
     var sequenceState: dev.openpolaris.core.domain.IntervalometerController.State by mutableStateOf(
         dev.openpolaris.core.domain.IntervalometerController.State.Idle
+    )
+        private set
+
+    /** Programme state is separate from the legacy intervalometer state. */
+    var observationProgrammeState: dev.openpolaris.core.domain.ObservationProgrammeExecutor.State by mutableStateOf(
+        dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle,
     )
         private set
 
@@ -2483,6 +2512,146 @@ class AppViewModel(
         )
     }
 
+    private val observationOwner = object : dev.openpolaris.core.domain.ObservationProgrammeExecutor.OwnerLease {
+        override fun acquire(): Boolean {
+            if (observationProgrammeActive || sequenceActive) return false
+            if (session == null || cameraController == null) return false
+            if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy || capturePhase is CapturePhase.OutcomeUnknown) return false
+            if (videoRecording == true) return false
+            if (!cameraAttachmentAllowsCommand()) return false
+            observationProgrammeActive = true
+            return true
+        }
+
+        override fun release() {
+            observationProgrammeActive = false
+            programmeConfirmation?.cancel()
+            programmeConfirmation = null
+            if (!sessionTearingDown) restoreCaptureWorkloads()
+        }
+    }
+
+    private val observationCaptureBridge = dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge(
+        evidence = captureEvidence,
+        trigger = ::triggerObservationProgrammeStep,
+        awaitConfirmation = ::awaitObservationConfirmation,
+    )
+
+    private fun createObservationProgrammeExecutor(): dev.openpolaris.core.domain.ObservationProgrammeExecutor =
+        dev.openpolaris.core.domain.ObservationProgrammeExecutor(
+            scope = scope,
+            owner = observationOwner,
+            onStateChange = { state ->
+                observationProgrammeState = state
+                when (state) {
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ->
+                        statusMessage = "Programme running: ${state.completedSteps}/${state.plan.captureCount}"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused ->
+                        statusMessage = "Programme paused: ${state.completedSteps}/${state.plan.captureCount}"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed ->
+                        statusMessage = "Programme completed: ${state.completedSteps} captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Stopped ->
+                        statusMessage = "Programme stopped after ${state.completedSteps} captures"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Failed ->
+                        statusMessage = "Programme failed: ${state.reason}"
+                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown ->
+                        statusMessage = "Programme outcome unknown — reconnect before another shutter"
+                    dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle -> Unit
+                }
+            },
+            executeStep = observationCaptureBridge::execute,
+        )
+
+    /**
+     * A qualified first execution path for a planner-produced lapse. HDR,
+     * focus-stack and panorama plans remain preview-only until their exposure
+     * and motion contracts are separately qualified.
+     */
+    fun startObservationProgramme(plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan): Boolean {
+        if (plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
+            plan.steps.any { it.exposureIndex != null || it.focusPosition != null || it.yawOffsetDeg != null || it.pitchOffsetDeg != null }
+        ) {
+            statusMessage = "Only a fixed-exposure lapse is qualified for execution"
+            return false
+        }
+        if (observationExecutor == null || cameraController == null || session == null) {
+            statusMessage = "Not connected"
+            return false
+        }
+        if (sequenceActive) {
+            statusMessage = "Capture sequence in progress — stop it first"
+            return false
+        }
+        if (videoRecording == true) {
+            statusMessage = "Stop video before starting a programme"
+            return false
+        }
+        if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy || capturePhase is CapturePhase.OutcomeUnknown) {
+            statusMessage = "Capture outcome is not clear — wait or reconnect"
+            return false
+        }
+        beginCaptureTimeline("Programme requested: ${plan.captureCount} captures")
+        return observationExecutor!!.start(plan).also { started ->
+            if (!started) statusMessage = "Programme owner is busy or unavailable"
+        }
+    }
+
+    fun pauseObservationProgramme() {
+        observationExecutor?.pause()
+    }
+
+    fun resumeObservationProgramme(): Boolean = observationExecutor?.resume() == true
+
+    fun stopObservationProgramme() {
+        observationExecutor?.stop()
+    }
+
+    private suspend fun triggerObservationProgrammeStep(
+        step: dev.openpolaris.core.domain.ObservationProgrammePlanner.Step,
+    ): dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult {
+        val camera = cameraController
+            ?: return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("camera is not connected")
+        if (!cameraAttachmentAllowsCommand()) {
+            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("camera attachment is not confirmed")
+        }
+        if (videoRecording == true) {
+            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("video is recording")
+        }
+        if (sequenceActive) {
+            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("another capture sequence owns the shutter")
+        }
+        capturePhase = CapturePhase.Requested
+        pendingCapturePublication = null
+        programmeConfirmation = CompletableDeferred()
+        beginCaptureTimeline("Programme step ${step.ordinal}: ${step.label}")
+        suspendCaptureWorkloads()
+        return try {
+            camera.capture()
+            statusMessage = "Programme step sent: ${step.label}"
+            dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Accepted
+        } catch (error: Throwable) {
+            val reason = error.message ?: "programme shutter dispatch failed"
+            captureEvidence.unknown(reason)
+            capturePhase = CapturePhase.OutcomeUnknown(reason)
+            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
+            dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.OutcomeUnknown(reason)
+        }
+    }
+
+    private suspend fun awaitObservationConfirmation(): CaptureEvidenceGate.Publication? {
+        val confirmation = programmeConfirmation ?: return null
+        val publication = withTimeoutOrNull(CAPTURE_TIMEOUT_MS) { confirmation.await() }
+        if (publication == null && !confirmation.isCompleted) {
+            val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+            captureEvidence.unknown(reason)
+            capturePhase = CapturePhase.OutcomeUnknown(reason)
+            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
+            statusMessage = "Programme outcome unknown — check the card before another shutter"
+        }
+        programmeConfirmation = null
+        return publication
+    }
+
     /**
      * §6: start a capture sequence (count + interval + optional pre-delay).
      * Each shot is fired by the engine and confirmed by the capture-event
@@ -2494,6 +2663,10 @@ class AppViewModel(
         val engine = intervalometer
         if (engine == null || cameraController == null) {
             statusMessage = "Not connected"
+            return false
+        }
+        if (observationProgrammeActive) {
+            statusMessage = "Observation programme in progress — stop it first"
             return false
         }
         if (!cameraAttachmentAllowsCommand()) return false
@@ -2743,8 +2916,8 @@ class AppViewModel(
         }
         // §6: a running/paused sequence owns the shutter — a manual single-shot
         // press would race the engine's next trigger. Stop the sequence first.
-        if (sequenceActive) {
-            statusMessage = "Capture sequence in progress — stop it before a single shot"
+        if (sequenceActive || observationProgrammeActive) {
+            statusMessage = "Capture programme in progress — stop it before a single shot"
             return
         }
         // Debounce: ignore a second shutter press while a capture is pending,
@@ -2791,7 +2964,7 @@ class AppViewModel(
             statusMessage = "Stop video before a Bulb capture"
             return
         }
-        if (sequenceActive) { statusMessage = "Capture sequence in progress — stop it first"; return }
+        if (sequenceActive || observationProgrammeActive) { statusMessage = "Capture programme in progress — stop it first"; return }
         val phase = capturePhase
         if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
             statusMessage = "Capture in progress — wait for it to finish"; return

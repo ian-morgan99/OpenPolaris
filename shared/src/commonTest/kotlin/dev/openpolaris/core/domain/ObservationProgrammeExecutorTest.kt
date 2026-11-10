@@ -145,4 +145,27 @@ class ObservationProgrammeExecutorTest {
         assertEquals(ObservationProgrammeExecutor.State.Stopped(p, 1), executor.state)
         assertEquals(1, owner.releases)
     }
+
+    @Test
+    fun abandonMarksAnInFlightProgrammeUnknownAndReleasesTheOwner() = runTest {
+        val owner = FakeOwner()
+        val hold = CompletableDeferred<Unit>()
+        val p = plan(0L)
+        val executor = ObservationProgrammeExecutor(this, owner) {
+            hold.await()
+            ObservationProgrammeExecutor.StepResult.Confirmed
+        }
+
+        assertTrue(executor.start(p))
+        runCurrent()
+        executor.abandon("session disconnected")
+        runCurrent()
+
+        assertEquals(
+            ObservationProgrammeExecutor.State.OutcomeUnknown("session disconnected", p, 0),
+            executor.state,
+        )
+        assertEquals(1, owner.releases)
+    }
+
 }

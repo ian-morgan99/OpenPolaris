@@ -395,6 +395,45 @@ private fun ShutdownRow(vm: AppViewModel) {
 }
 
 // =============================================================================
+// Gallery pane: confirmed capture publication + SD-card browse
+// =============================================================================
+
+@Composable
+fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Latest capture", style = MaterialTheme.typography.titleMedium)
+                val publication = vm.lastCapturePublication
+                if (publication == null) {
+                    Text(
+                        "No capture has been confirmed in this session.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    Text(publication.path, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        buildString {
+                            publication.type?.let { append("type $it") }
+                            publication.sizeBytes?.let {
+                                if (isNotEmpty()) append(" · ")
+                                append("${it} bytes")
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        "Published only after the capture lifecycle and file event were correlated.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        }
+        FilesPane(vm, Modifier.fillMaxWidth())
+    }
+}
+
+// =============================================================================
 // Files pane: list / delete / protect / SD format
 // =============================================================================
 

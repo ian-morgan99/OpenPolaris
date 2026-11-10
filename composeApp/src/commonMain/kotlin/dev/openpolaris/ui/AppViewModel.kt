@@ -300,6 +300,12 @@ class AppViewModel(
      * press is ignored (never auto-retried) so a possibly-successful release
      * can't be doubled.
      */
+    data class CapturePublication(
+        val path: String,
+        val type: Int?,
+        val sizeBytes: Long?,
+    )
+
     sealed interface CapturePhase {
         data object Idle : CapturePhase
         data object Requested : CapturePhase
@@ -310,6 +316,10 @@ class AppViewModel(
     }
 
     var capturePhase by mutableStateOf<CapturePhase>(CapturePhase.Idle)
+        private set
+
+    /** Last file publication confirmed by the correlated capture lifecycle. */
+    var lastCapturePublication by mutableStateOf<CapturePublication?>(null)
         private set
 
     /**
@@ -437,6 +447,7 @@ class AppViewModel(
     private var captureWatchdogJob: Job? = null
     private var captureSawLifecycle = false
     private var captureSawFile = false
+    private var pendingCapturePublication: CapturePublication? = null
     // §6: true while an intervalometer sequence is driving captures. The
     // capture-event observer uses this to route a correlated completion into
     // [intervalometer].markShotDone() so the engine advances to the next shot
@@ -1340,6 +1351,8 @@ class AppViewModel(
         capturePhase = CapturePhase.Idle
         captureSawLifecycle = false
         captureSawFile = false
+        pendingCapturePublication = null
+        lastCapturePublication = null
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -1504,6 +1517,11 @@ class AppViewModel(
                 val path = frame["path"]?.trim().orEmpty()
                 if (path.isNotEmpty() && captureSawLifecycle) {
                     captureSawFile = true
+                    pendingCapturePublication = CapturePublication(
+                        path = path,
+                        type = frame.int("type"),
+                        sizeBytes = frame["size"]?.trim()?.toLongOrNull(),
+                    )
                     completeCaptureIfCorrelated()
                 }
             }
@@ -1513,6 +1531,8 @@ class AppViewModel(
     private fun completeCaptureIfCorrelated() {
         if (!captureSawLifecycle || !captureSawFile) return
         captureWatchdogJob?.cancel()
+        pendingCapturePublication?.let { lastCapturePublication = it }
+        pendingCapturePublication = null
         captureWatchdogJob = null
         // §6: while a sequence is driving captures, this correlated completion
         // confirms the current shot. Release the engine's in-flight shutter so
@@ -2454,6 +2474,7 @@ class AppViewModel(
         val previousPhase = capturePhase
         captureSawLifecycle = false
         captureSawFile = false
+        pendingCapturePublication = null
         capturePhase = CapturePhase.Requested
         if (!engine.start(plan)) {
             capturePhase = previousPhase
@@ -2479,6 +2500,7 @@ class AppViewModel(
         // left the phase in a terminal state after the last completed shot).
         captureSawLifecycle = false
         captureSawFile = false
+        pendingCapturePublication = null
         capturePhase = CapturePhase.Requested
         intervalometer?.resume()
     }
@@ -2701,6 +2723,7 @@ class AppViewModel(
             capturePhase = CapturePhase.Requested
             captureSawLifecycle = false
             captureSawFile = false
+            pendingCapturePublication = null
             suspendCaptureWorkloads()
             cameraController?.capture()
             statusMessage = "Capture sent"
@@ -2737,6 +2760,7 @@ class AppViewModel(
             capturePhase = CapturePhase.Requested
             captureSawLifecycle = false
             captureSawFile = false
+            pendingCapturePublication = null
             suspendCaptureWorkloads()
             val controller = cameraController ?: return@launch
             val result = controller.captureBulb(seconds)
@@ -2795,6 +2819,7 @@ class AppViewModel(
         capturePhase = CapturePhase.Idle
         captureSawLifecycle = false
         captureSawFile = false
+        pendingCapturePublication = null
         restoreCaptureWorkloads()
     }
 

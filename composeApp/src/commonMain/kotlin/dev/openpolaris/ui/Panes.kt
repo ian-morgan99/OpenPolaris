@@ -723,6 +723,12 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
                 OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
             }
+            vm.lastCapturePublication?.let { publication ->
+                Text(
+                    "Published: ${publication.path}" + (publication.sizeBytes?.let { " (${it} bytes)" } ?: ""),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 val bulbInFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                     phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy

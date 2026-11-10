@@ -134,6 +134,7 @@ fun OpenPolarisApp(
         )
     var dialog by remember { mutableStateOf<Callout?>(null) }
     var missionOpen by remember { mutableStateOf(false) }
+    var galleryOpen by remember { mutableStateOf(false) }
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
     // Compact *height* (typically 360 dp) which can't host a full 9-item
     // rail without the items being shrunk to glyph-sized labels — exactly
@@ -152,7 +153,12 @@ fun OpenPolarisApp(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusStrip(vm, Modifier.fillMaxWidth(), onOpenDetails = { missionOpen = true })
+                        StatusStrip(
+                            vm,
+                            Modifier.fillMaxWidth(),
+                            onOpenDetails = { missionOpen = true },
+                            onOpenGallery = { galleryOpen = true },
+                        )
                         PositionReadout(vm, Modifier.fillMaxWidth())
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             JogPane(vm, Modifier.width(260.dp))
@@ -162,7 +168,12 @@ fun OpenPolarisApp(
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusStrip(vm, Modifier.fillMaxWidth(), onOpenDetails = { missionOpen = true })
+                    StatusStrip(
+                        vm,
+                        Modifier.fillMaxWidth(),
+                        onOpenDetails = { missionOpen = true },
+                        onOpenGallery = { galleryOpen = true },
+                    )
                     PositionReadout(vm, Modifier.fillMaxWidth())
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         // Wider dial on Medium-height viewports so the jog
@@ -221,6 +232,12 @@ fun OpenPolarisApp(
             if (missionOpen) {
                 CalloutDialog("Mission readiness", { missionOpen = false }) {
                     MissionDashboardPane(vm, Modifier.fillMaxWidth())
+                }
+            }
+
+            if (galleryOpen) {
+                CalloutDialog("Gallery", { galleryOpen = false }) {
+                    GalleryPane(vm, Modifier.fillMaxWidth())
                 }
             }
 
@@ -360,6 +377,7 @@ private fun StatusStrip(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
     onOpenDetails: (() -> Unit)? = null,
+    onOpenGallery: (() -> Unit)? = null,
 ) {
     val s = vm.mount
     val endpoint = vm.endpointHealth
@@ -387,6 +405,9 @@ private fun StatusStrip(
                 Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                 onOpenDetails?.let { open ->
                     TextButton(onClick = open) { Text("Details") }
+                }
+                onOpenGallery?.let { open ->
+                    TextButton(onClick = open) { Text("Gallery") }
                 }
                 Text(
                     buildString {

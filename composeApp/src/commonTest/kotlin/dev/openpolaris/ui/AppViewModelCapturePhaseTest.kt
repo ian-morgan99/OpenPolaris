@@ -157,6 +157,8 @@ class AppViewModelCapturePhaseTest {
             assertIs<AppViewModel.CapturePhase.Busy>(vm.capturePhase)
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0042.dng;size:28198130;#"))
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertEquals("/app/sd/normal/SP_0042.dng", vm.lastCapturePublication?.path)
+            assertEquals(28198130L, vm.lastCapturePublication?.sizeBytes)
             assertEquals(1, conn.count(264))
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
@@ -169,6 +171,7 @@ class AppViewModelCapturePhaseTest {
             vm.capture(); advanceTimeBy(3_000)
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/old.dng;size:42;#"))
             assertIs<AppViewModel.CapturePhase.Requested>(vm.capturePhase)
+            assertEquals(null, vm.lastCapturePublication)
             advanceTimeBy(16_000)
             assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
         } finally { vm.disconnect(); vm.preview.shutdown() }

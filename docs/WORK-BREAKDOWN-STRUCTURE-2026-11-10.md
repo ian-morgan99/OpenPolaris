@@ -15,7 +15,7 @@
 | WBS-04 | Camera and capture workspace | Dynamic camera controls, preview, M/B capture and file lifecycle | WBS-02 | ACTIVE |
 | WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | PLANNED |
 | WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
-| WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | PLANNED |
+| WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | ACTIVE |
 | WBS-08 | System, diagnostics and interoperability | Settings, logs, firmware provenance, Alpaca/INDI/LX200 adapters | WBS-02,WBS-05 | PLANNED |
 | WBS-09 | Accessibility, night UX and polish | Keyboard/screen-reader/touch/contrast/performance quality | WBS-01..08 | PLANNED |
 | WBS-10 | Platform packaging and release | Android/desktop artifacts, install/upgrade/rollback and support docs | WBS-01..09 | PLANNED |
@@ -315,4 +315,6 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — WBS-04.4 ACTIVE (focus/video discovery surface):** Added visible Near/Far focus and Start/Stop video surfaces, with explicit per-capability gates, camera-attachment admission and still/video conflict protection; source-derived controls remain disabled until named-camera qualification.
 - **2026-11-10 — verification:** shared and Compose JVM suites passed after the readback state, mode-aware release and focus/video gate changes; CameraReleaseMode has deterministic M/B/unknown coverage.
 - **2026-11-10 — verification:** AppViewModel regression coverage proves unqualified focus/video controls emit no 311/263 wire commands and leave the user with a read-only explanation.
-- **Next:** continue the camera workspace parity pass with capture timeline and gallery publication surfaces.
+- **2026-11-10 — WBS-07 ACTIVE (first slice):** added a reachable Gallery surface from the persistent status chrome, showing the latest file only after correlated 264 lifecycle + non-empty 773 publication evidence, plus the existing read-only SD-card file browser; camera capture also exposes the confirmed publication path and size.
+- **2026-11-10 — verification:** full `:shared:jvmTest :composeApp:jvmTest` passed after the Gallery/publication increment; uncorrelated file events remain non-published and no new destructive file operation was enabled.
+- **Next:** continue WBS-04/WBS-07 with bounded capture timeline history, thumbnail/preview derivation and safe export contracts; keep destructive file operations gated.

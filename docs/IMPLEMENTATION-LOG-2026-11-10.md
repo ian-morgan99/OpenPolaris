@@ -676,3 +676,20 @@ Result: BUILD SUCCESSFUL; the full capture phase suite passed, including the
 new queued-dispatch regression and the existing M/B lifecycle/publication,
 timeout, sequence and read-only focus/video checks. No live camera operation
 was exercised.
+
+### WBS-02.2 - Simulator session ownership
+
+Made Demo startup obey the same session boundary as a live connection. Its
+queued connect job is retained, cancellation is not converted into a failed
+Demo session, and disconnect cancels it before simulator shutdown and marker
+persistence.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionMarkerTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; the session-marker suite passed, including the new
+queued-Demo cancellation regression. No live mount or network operation was
+exercised.

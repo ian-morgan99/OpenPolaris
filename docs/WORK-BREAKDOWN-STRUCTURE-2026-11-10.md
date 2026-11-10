@@ -494,3 +494,12 @@ The current implementation slice must not send a new motor frame, alter firmware
   capture is cancelled before any 264 shutter write; the existing correlated
   M/B lifecycle, timeout, sequence and publication tests remain green. No
   live camera was exercised.
+
+- **2026-11-10 - WBS-02.2 ACTIVE (simulator session ownership):** Demo session
+  startup now has an explicit lifecycle job and propagates cancellation.
+  Disconnect cancels it before shutting down the simulator, preventing a
+  queued Demo connect from resurrecting endpoint state or writing a stale
+  reconnect marker.
+- **2026-11-10 - verification:** AppViewModelSessionMarkerTest proves a queued
+  Demo connection is cancelled before marker persistence. No live mount or
+  network operation was exercised.

@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import java.io.File
 import java.nio.file.Files
@@ -706,6 +707,25 @@ class AppViewModelSessionMarkerTest {
     // ---------------------------------------------------------------------
     // 3d D1: nullable tilt on the marker
     // ---------------------------------------------------------------------
+
+    @Test
+    fun disconnectCancelsQueuedDemoConnectBeforeMarkerWrite() = runTest {
+        store = newStore()
+        val vm = newViewModel(this) { MarkerFakeConnection() }
+        try {
+            vm.connectDemo(startPolling = false)
+            vm.disconnect()
+            runCurrent()
+
+            assertNull(
+                store.read(),
+                "a queued Demo connect must not write a session marker after disconnect",
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
 
     @Test
     fun connectDemoWritesNullRollAndPitchWhenPositionIsNull() = runTest(UnconfinedTestDispatcher()) {

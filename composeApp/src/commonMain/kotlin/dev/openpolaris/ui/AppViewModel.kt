@@ -855,6 +855,7 @@ class AppViewModel(
     // into a new session after the old UI surface has gone away.
     private var connectWifiJob: Job? = null
     private var wakeJob: Job? = null
+    private var demoConnectJob: Job? = null
 
     /**
      * Wall-clock provider for the marker-age calculation. Overridable from
@@ -1541,7 +1542,7 @@ class AppViewModel(
         wireHelpers(sim.session)
 
         startAutoLevel(sim.session)
-        scope.launch {
+        demoConnectJob = scope.launch {
             try {
                 sim.session.connect()
                 // SimulatedMount's connect() always returns true; treat as
@@ -1561,6 +1562,8 @@ class AppViewModel(
                 // No preview in demo mode: there is no MJPEG endpoint in the
                 // simulator. PreviewController stays Idle, which the pane
                 // renders as "Stream unavailable".
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 // 3e E2: demo mode should never really throw (the
                 // simulator is in-process) but if a future slice adds a
@@ -1575,8 +1578,11 @@ class AppViewModel(
                     failure = failure,
                 )
                 statusMessage = "Demo mode failed: $failure"
+            } finally {
+                if (demoConnectJob === currentCoroutineContext()[Job]) {
+                    demoConnectJob = null
+                }
             }
-
         }
     }
 
@@ -1619,6 +1625,8 @@ class AppViewModel(
         // Tear down the simulated mount's private reader scope so the
         // long-lived reader coroutine does not keep the dispatcher alive
         // past the lifetime of this view model.
+        demoConnectJob?.cancel()
+        demoConnectJob = null
         runCatching { demoSim?.shutdown() }
         demoSim = null
         // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"

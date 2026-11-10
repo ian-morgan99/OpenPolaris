@@ -2747,11 +2747,38 @@ class AppViewModel(
         }
     }
 
+    /** Capture/programme state that must prevent a new SLOW hold. */
+    private fun slowMotionAdmissionBlocker(): String? = when {
+        capturePhase is CapturePhase.Requested ||
+            capturePhase is CapturePhase.Busy ||
+            capturePhase is CapturePhase.OutcomeUnknown ||
+            astroWebUiCaptureDispatching ||
+            astroWebUiCaptureActive ->
+            "Capture is active or unresolved; settle it before moving the mount"
+        sequenceActive || observationProgrammeActive ->
+            "Capture programme is active; stop it before moving the mount"
+        videoRecording == true ->
+            "Video is recording; stop it before moving the mount"
+        else -> null
+    }
+
+    /** Camera/programme starts must not race a currently-held SLOW owner. */
+    private fun blockCaptureDuringSlowMotion(): Boolean {
+        val owner = (motionSupervisor.state.value as? MotionState.Owned)?.lease?.owner
+        if (owner != MotionOwner.SLOW_MOVE) return false
+        statusMessage = "Stop slow motion before starting a capture or programme"
+        return true
+    }
+
     /** Start one logical SLOW direction in Demo or qualified live mode. */
     private fun liveSlowMotionReady(): Boolean =
         !demoMode && session != null && slowMotionCapabilityRecord.liveReady
 
     fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
+        slowMotionAdmissionBlocker()?.let {
+            statusMessage = it
+            return
+        }
         if (!demoMode && !liveSlowMotionReady()) {
             statusMessage = "Slow-motion transport is not qualified for live hardware"
             return
@@ -4063,6 +4090,7 @@ class AppViewModel(
      * and motion contracts are separately qualified.
      */
     fun startObservationProgramme(plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan): Boolean {
+        if (blockCaptureDuringSlowMotion()) return false
         if (plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
             plan.steps.any { it.exposureIndex != null || it.focusPosition != null || it.yawOffsetDeg != null || it.pitchOffsetDeg != null }
         ) {
@@ -4155,6 +4183,7 @@ class AppViewModel(
      * Returns false (and reports why) when no session / camera is attached.
      */
     fun startSequence(shotCount: Int, intervalMs: Long, preDelayMs: Long = 0L): Boolean {
+        if (blockCaptureDuringSlowMotion()) return false
         val engine = intervalometer
         if (engine == null || cameraController == null) {
             statusMessage = "Not connected"
@@ -4409,6 +4438,7 @@ class AppViewModel(
      * [OutcomeUnknown] if correlated lifecycle/file evidence never arrives.
      */
     fun capture() {
+        if (blockCaptureDuringSlowMotion()) return
         if (cameraController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
         if (videoRecording == true) {
@@ -4458,6 +4488,7 @@ class AppViewModel(
 
     /** Trigger a Benro-compatible Bulb exposure from the Manual camera pane. */
     fun captureBulb(seconds: Int) {
+        if (blockCaptureDuringSlowMotion()) return
         if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
         if (cameraController == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
@@ -4528,6 +4559,11 @@ class AppViewModel(
                 statusMessage = "Bulb stop not confirmed — check the card before another shutter"
             }
         }
+    }
+
+    /** Test seam for capture/SLOW admission state-machine coverage. */
+    internal fun testSetCapturePhaseForSafety(phase: CapturePhase) {
+        capturePhase = phase
     }
 
     /** #90 test seam: drive a parsed unsolicited frame without a live device. */
@@ -6032,6 +6068,7 @@ class AppViewModel(
      * /api/prog remains the authority for the run after this returns.
      */
     fun startAstroWebUiAstroCapture(parameters: AstroWebUiAstroCaptureParameters) {
+        if (blockCaptureDuringSlowMotion()) return
         if (!FeatureFlags.isEnabled("astroWebUiAstroCapture")) {
             astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(
                 "Astro WebUI in-head capture is disabled until route, recovery and physical shutter/mount qualification",
@@ -6255,6 +6292,7 @@ class AppViewModel(
         confirm: Boolean,
         request: suspend (AstroWebUiSunProgrammeClient) -> AstroWebUiSunResult,
     ) {
+        if (confirm && blockCaptureDuringSlowMotion()) return
         if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
             astroWebUiSunState = AstroWebUiSunState.Failed(
                 "Astro WebUI programme starts are disabled until named-head qualification",
@@ -6309,6 +6347,7 @@ class AppViewModel(
         action: String,
         request: suspend (AstroWebUiProgrammeStartClient) -> AstroWebUiProgrammeStartResult,
     ) {
+        if (blockCaptureDuringSlowMotion()) return
         if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
             astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
                 "Astro WebUI programme starts are disabled until named-head qualification",
@@ -6587,6 +6626,7 @@ class AppViewModel(
      * watchdog remain the sole completion authority.
      */
     fun captureAstroWebUi(mode: dev.openpolaris.core.domain.CameraReleaseMode, bulbSeconds: Int = 0) {
+        if (blockCaptureDuringSlowMotion()) return
         if (!FeatureFlags.isEnabled("astroWebUiCapture")) {
             astroWebUiCaptureStatus = "Astro WebUI shutter is disabled until lifecycle qualification"
             statusMessage = astroWebUiCaptureStatus.orEmpty()

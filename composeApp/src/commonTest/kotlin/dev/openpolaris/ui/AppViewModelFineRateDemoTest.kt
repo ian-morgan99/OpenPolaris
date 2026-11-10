@@ -83,6 +83,53 @@ class AppViewModelFineRateDemoTest {
         }
 
     @Test
+    fun slowMotionAdmissionBlocksCaptureOverlapInDemo() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+                vm.testSetCapturePhaseForSafety(AppViewModel.CapturePhase.Busy)
+
+                vm.demoSlowMotionStart(RateAxis.M1_PAN, 1, 1)
+                runCurrent()
+
+                assertEquals(MotionState.Idle, vm.motionState.value)
+                assertTrue(vm.statusMessage.contains("Capture"))
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
+    fun captureStartIsBlockedWhileSlowMotionOwnsTheMount() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+                vm.demoSlowMotionStart(RateAxis.M1_PAN, -1, 1)
+                runCurrent()
+                assertEquals(MotionOwner.SLOW_MOVE, assertIs<MotionState.Owned>(vm.motionState.value).lease.owner)
+
+                vm.capture()
+
+                assertTrue(vm.statusMessage.contains("Stop slow motion"))
+                assertEquals(MotionOwner.SLOW_MOVE, assertIs<MotionState.Owned>(vm.motionState.value).lease.owner)
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
     fun startingTrackingStopsAnActiveSlowMotionHoldBeforeModeChange() =
         runTest(UnconfinedTestDispatcher()) {
             val vm = AppViewModel(

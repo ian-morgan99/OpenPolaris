@@ -81,4 +81,54 @@ class AppViewModelFineRateDemoTest {
                 vm.preview.shutdown()
             }
         }
+
+    @Test
+    fun startingTrackingStopsAnActiveSlowMotionHoldBeforeModeChange() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+
+                vm.demoSlowMotionStart(RateAxis.M1_PAN, 1, 1)
+                runCurrent()
+                assertEquals(MotionOwner.SLOW_MOVE, assertIs<MotionState.Owned>(vm.motionState.value).lease.owner)
+
+                vm.startTracking()
+                runCurrent()
+
+                assertEquals(MotionState.Idle, vm.motionState.value)
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
+    fun enablingHalfSpeedStopsAnActiveSlowMotionHoldBeforeModeChange() =
+        runTest(UnconfinedTestDispatcher()) {
+            val vm = AppViewModel(
+                scope = this,
+                connectionFactory = { error("demo does not use the hardware connection") },
+            )
+            try {
+                vm.connectDemo(startPolling = false)
+                runCurrent()
+
+                vm.demoSlowMotionStart(RateAxis.M2_TILT, -1, 2)
+                runCurrent()
+                assertEquals(MotionOwner.SLOW_MOVE, assertIs<MotionState.Owned>(vm.motionState.value).lease.owner)
+
+                vm.toggleHalfSpeed(true)
+                runCurrent()
+
+                assertEquals(MotionState.Idle, vm.motionState.value)
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
 }

@@ -773,6 +773,13 @@ class AppViewModel(
     val motionState: StateFlow<MotionState>
         get() = motionSupervisor.state
 
+    /** True only when the SLOW controller itself owns the faulted recovery state. */
+    val slowMotionFaulted: Boolean
+        get() = slowMotionStateIsFaulted()
+
+    private fun slowMotionStateIsFaulted(): Boolean =
+        demoSlowMotion.state.value is dev.openpolaris.core.domain.SlowMotionState.Faulted
+
     /** The exact SLOW evidence record used by both the UI and runtime adapter. */
     val slowMotionCapability: SlowMotionCapabilityRecord
         get() = slowMotionCapabilityRecord
@@ -2520,17 +2527,23 @@ class AppViewModel(
     var trackingRate by mutableStateOf(TrackingRate.DEFAULT)
 
     fun startTracking() = scope.launch {
+        if (!stopSlowMotionForModeChange()) return@launch
         controller?.start(trackingRate)
         updateDemoFineRateContext()
     }
 
     fun stopTracking() = scope.launch {
+        val slowStopped = stopSlowMotionForModeChange()
         if (demoMode) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
         controller?.stop()
+        if (!slowStopped) {
+            statusMessage = "Tracking stopped; slow-motion recovery is still required"
+        }
         updateDemoFineRateContext()
     }
 
     fun toggleHalfSpeed(on: Boolean) = scope.launch {
+        if (!stopSlowMotionForModeChange()) return@launch
         if (demoMode && on) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
         controller?.setHalfSpeed(on)
         updateDemoFineRateContext()
@@ -2687,6 +2700,53 @@ class AppViewModel(
         demoFineRate.setCapability(null)
     }
 
+    /**
+     * A tracking/half-rate mode change is a physical-motion boundary. SLOW
+     * must settle first; a direct 531/536 write cannot be allowed to race a
+     * live 532/533/534 hold. An ambiguous stop leaves the shared supervisor
+     * faulted and blocks the mode change until explicit recovery.
+     */
+    private suspend fun stopSlowMotionForModeChange(): Boolean {
+        demoSlowMotionStopJob?.let { pending ->
+            if (pending !== currentCoroutineContext()[Job]) pending.join()
+        }
+
+        val owner = motionSupervisor.state.value
+        val lease = demoSlowMotionLease
+        val slowOwnerActive = lease != null ||
+            (owner as? MotionState.Owned)?.lease?.owner == MotionOwner.SLOW_MOVE
+        if (!slowOwnerActive) return true
+
+        if (lease == null) {
+            statusMessage = "Slow-motion owner has no recoverable lease; reconnect and recover before changing mode"
+            return false
+        }
+
+        val previous = demoSlowMotionJob
+        demoSlowMotionJob = null
+        previous?.cancelAndJoin()
+
+        return when (val result = demoSlowMotion.release(lease)) {
+            SlowMotionActionResult.Stopped -> {
+                demoSlowMotionLease = null
+                slowMotionDemoState = slowMotionDemoState.copy(
+                    running = false,
+                    direction = 0,
+                    level = 0,
+                )
+                true
+            }
+            is SlowMotionActionResult.Unknown -> {
+                statusMessage = "Slow-motion stop outcome unknown: " + result.reason
+                false
+            }
+            else -> {
+                statusMessage = "Slow-motion stop was not confirmed"
+                false
+            }
+        }
+    }
+
     /** Start one logical SLOW direction in Demo or qualified live mode. */
     private fun liveSlowMotionReady(): Boolean =
         !demoMode && session != null && slowMotionCapabilityRecord.liveReady
@@ -2718,6 +2778,10 @@ class AppViewModel(
                         demoSlowMotion.release(lease)
                     is dev.openpolaris.core.domain.SlowMotionState.Holding ->
                         demoSlowMotion.release(lease)
+                    is dev.openpolaris.core.domain.SlowMotionState.Faulted -> {
+                        statusMessage = "Slow-motion blocked: explicit recovery is required"
+                        return@launch
+                    }
                     else -> Unit
                 }
             }
@@ -2804,21 +2868,12 @@ class AppViewModel(
             return
         }
         if (demoSlowMotionStopJob?.isActive == true) return
-        val previous = demoSlowMotionJob
-        demoSlowMotionJob = null
         val stopJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             try {
-                previous?.cancelAndJoin()
-                val lease = demoSlowMotionLease
-                if (lease != null) {
-                    when (val result = demoSlowMotion.release(lease)) {
-                        SlowMotionActionResult.Stopped -> Unit
-                        is SlowMotionActionResult.Unknown ->
-                            statusMessage = "Demo slow-motion stop outcome unknown: ${result.reason}"
-                        else -> Unit
-                    }
+                val result = stopDemoSlowMotionNow(MotionStopReason.RELEASE)
+                if (result is SlowMotionActionResult.Unknown) {
+                    statusMessage = "Demo slow-motion stop outcome unknown: " + result.reason
                 }
-                demoSlowMotionLease = null
                 val stops = RateAxis.entries.map { axis ->
                     SlowScheduleCommand(axis, dev.openpolaris.core.domain.SlowScheduleKind.STOP)
                 }
@@ -2828,10 +2883,12 @@ class AppViewModel(
                     level = 0,
                     lastEvents = stops,
                 )
-                statusMessage = if (demoMode) {
-                    "Demo slow motion stopped (${stops.size} logical stop transitions)"
-                } else {
-                    "Qualified slow motion stopped"
+                if (result == SlowMotionActionResult.Stopped) {
+                    statusMessage = if (demoMode) {
+                        "Demo slow motion stopped (" + stops.size + " logical stop transitions)"
+                    } else {
+                        "Qualified slow motion stopped"
+                    }
                 }
             } finally {
                 if (demoSlowMotionStopJob === currentCoroutineContext()[Job]) {
@@ -2841,6 +2898,52 @@ class AppViewModel(
         }
         demoSlowMotionStopJob = stopJob
         stopJob.start()
+    }
+
+    /** Stop SLOW and retain a fault lease when the physical outcome is unknown. */
+    private suspend fun stopDemoSlowMotionNow(reason: MotionStopReason): SlowMotionActionResult {
+        val previous = demoSlowMotionJob
+        demoSlowMotionJob = null
+        previous?.cancelAndJoin()
+
+        val lease = demoSlowMotionLease
+        if (lease == null) {
+            return SlowMotionActionResult.Stopped
+        }
+
+        val result = demoSlowMotion.release(lease, reason)
+        slowMotionDemoState = slowMotionDemoState.copy(
+            running = false,
+            direction = 0,
+            level = 0,
+        )
+        if (result == SlowMotionActionResult.Stopped) {
+            demoSlowMotionLease = null
+        }
+        return result
+    }
+
+    /** Explicit recovery after reconnect and operator confirmation of a stopped head. */
+    fun recoverSlowMotionAfterReconnect() {
+        val lease = demoSlowMotionLease
+        if (!slowMotionStateIsFaulted() || lease == null) {
+            statusMessage = "No recoverable slow-motion fault is owned by this session"
+            return
+        }
+        if (session == null || !mount.connected) {
+            statusMessage = "Reconnect and confirm the mount is stopped before recovery"
+            return
+        }
+        scope.launch {
+            if (demoSlowMotion.recoverAfterReconnect(lease)) {
+                demoSlowMotionLease = null
+                demoSlowMotionJob = null
+                slowMotionDemoState = SlowMotionDemoSnapshot()
+                statusMessage = "Slow-motion fault cleared after explicit recovery"
+            } else {
+                statusMessage = "Slow-motion recovery lease no longer matches this session"
+            }
+        }
     }
 
     /**

@@ -127,6 +127,16 @@ class SlowMotionControllerTest {
     }
 
     @Test
+    fun modeChangeReleasePreservesTheExplicitStopReason() = runTest {
+        val (controller, lease, transport) = ready()
+        assertEquals(
+            SlowMotionActionResult.Stopped,
+            controller.release(lease, MotionStopReason.MODE_CHANGE),
+        )
+        assertEquals(listOf(MotionStopReason.MODE_CHANGE), transport.stops)
+    }
+
+    @Test
     fun unknownCommandIsFaultedAndNeverRetried() = runTest {
         val transport = FakeTransport().also {
             it.nextApply = SlowMotionTransportResult.Unknown("ack lost")

@@ -2600,9 +2600,10 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val liveTransportQualified = capabilityRecord.liveReady
     val liveControlsEnabled = gateOpen && liveTransportQualified && capabilityRecord.liveReady && vm.mount.connected
     val demoControlsEnabled = vm.demoMode
-    val controlsEnabled = liveControlsEnabled || demoControlsEnabled
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     val motionState by vm.motionState.collectAsState()
+    val controlsEnabled = (liveControlsEnabled || demoControlsEnabled) &&
+        motionState !is dev.openpolaris.core.domain.MotionState.Faulted
     val lastSolve by vm.lastSolveResult.collectAsState()
     var nowMs by remember { mutableStateOf(SystemMillis.now()) }
     LaunchedEffect(lastSolve?.timestampMs) {
@@ -2675,6 +2676,15 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 },
                 modifier = Modifier.testTag("motion-owner-state"),
             )
+            if (motionState is dev.openpolaris.core.domain.MotionState.Faulted && vm.slowMotionFaulted) {
+                OutlinedButton(
+                    onClick = vm::recoverSlowMotionAfterReconnect,
+                    enabled = vm.mount.connected,
+                    modifier = Modifier.fillMaxWidth().testTag("slow-motion-recover"),
+                ) {
+                    Text("Recover after confirming stopped")
+                }
+            }
             if (!liveTransportQualified) {
                 Text(
                     "Live qualification blockers: " +

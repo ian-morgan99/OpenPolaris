@@ -176,12 +176,15 @@ class SlowMotionController(
         SlowMotionActionResult.Applied(commands.size)
     }
 
-    suspend fun release(lease: SlowMotionLease): SlowMotionActionResult = lock.withLock {
+    suspend fun release(
+        lease: SlowMotionLease,
+        reason: MotionStopReason = MotionStopReason.RELEASE,
+    ): SlowMotionActionResult = lock.withLock {
         when (val current = mutableState.value) {
             is SlowMotionState.Armed -> {
                 if (current.lease != lease) SlowMotionActionResult.Rejected
                 else {
-                    val supervisorResult = releaseSupervisor(lease, MotionStopReason.RELEASE)
+                    val supervisorResult = releaseSupervisor(lease, reason)
                     if (supervisorResult != MotionStopResult.Stopped) {
                         mutableState.value = SlowMotionState.Faulted(
                             "slow-motion ownership release was not confirmed",
@@ -196,7 +199,7 @@ class SlowMotionController(
             }
             is SlowMotionState.Holding -> {
                 if (current.lease != lease) SlowMotionActionResult.Rejected
-                else stopLocked(lease, MotionStopReason.RELEASE)
+                else stopLocked(lease, reason)
             }
             else -> SlowMotionActionResult.Rejected
         }
@@ -222,6 +225,23 @@ class SlowMotionController(
         }
         if (currentLease != lease) return@withLock SlowMotionActionResult.Rejected
         stopLocked(lease, MotionStopReason.DISCONNECT)
+    }
+
+    /**
+     * Lease-scoped recovery for a host that still retains the faulted SLOW
+     * lease. It cannot clear another motion owner's supervisor state.
+     */
+    suspend fun recoverAfterReconnect(lease: SlowMotionLease): Boolean = lock.withLock {
+        val currentLease = when (val current = mutableState.value) {
+            is SlowMotionState.Armed -> current.lease
+            is SlowMotionState.Holding -> current.lease
+            is SlowMotionState.Faulted -> current.lease
+            SlowMotionState.Idle -> null
+        }
+        if (currentLease != lease) return@withLock false
+        motionSupervisor?.recoverAfterReconnect(lease.supervisorLease)
+        mutableState.value = SlowMotionState.Idle
+        true
     }
 
     suspend fun recoverAfterReconnect() = lock.withLock {

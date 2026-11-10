@@ -846,6 +846,32 @@ class AppViewModelSessionMarkerTest {
     }
 
     @Test
+    fun disconnectCancelsQueuedSlewAndDropsQueuedCancelStatus() = runTest {
+        store = newStore()
+        val vm = newViewModel(this) { error("not used") }
+        try {
+            vm.connectDemo(startPolling = false)
+            advanceUntilIdle()
+            vm.gotoAz = "30.0"
+            vm.gotoAlt = "20.0"
+            vm.goto()
+            vm.cancelSlew()
+            vm.disconnect()
+            runCurrent()
+
+            assertFalse(vm.slewInProgress)
+            assertFalse(
+                vm.statusMessage.contains("Slew cancelled"),
+                "a queued cancel must not publish a post-disconnect status",
+            )
+            assertEquals(dev.openpolaris.core.domain.MotionState.Idle, vm.motionState.value)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
     fun connectDemoWritesNullRollAndPitchWhenPositionIsNull() = runTest(UnconfinedTestDispatcher()) {
         // 3d D1: when the mount never reported a 517 frame before disconnect,
         // the marker must record null for roll/pitch, not 0.0. Recording 0.0

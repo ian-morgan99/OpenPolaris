@@ -563,3 +563,14 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 - verification:** AppViewModelFastJogTest proves a queued Demo
   fast-jog release followed by disconnect leaves both the shared supervisor and
   fast-jog controller idle. No live motion command was exercised.
+
+
+- **2026-11-10 - WBS-03.1/02.2 ACTIVE (queued GoTo cancellation):** disconnect
+  now cancels a GoTo job even when it has not acquired its shared lease yet,
+  and clears the in-progress UI state unconditionally. The Cancel Slew action
+  captures its session at dispatch and suppresses stale terminal status after
+  teardown.
+- **2026-11-10 - verification:** AppViewModelSessionMarkerTest proves a
+  queued GoTo plus queued cancel cannot outlive Demo disconnect or publish
+  "Slew cancelled" into the ended session. No live motion command was
+  exercised.

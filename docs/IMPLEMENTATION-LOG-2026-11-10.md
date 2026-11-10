@@ -802,3 +802,22 @@ Verification passed:
 
 Result: BUILD SUCCESSFUL; the fast-jog suite passed, including the queued
 release/disconnect regression. No live motion command was exercised.
+
+
+### WBS-03.1/02.2 - Queued GoTo cancellation ownership
+
+Closed the pre-lease GoTo teardown gap. Disconnect now always cancels the
+arrival-aware GoTo coroutine and clears its UI state, including the case where
+the coroutine was still queued before it acquired MotionSupervisor ownership.
+Cancel Slew captures the owning session before dispatch, refuses an old-session
+action after teardown, and rechecks ownership before publishing its terminal
+status.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelSessionMarkerTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; 43 session-marker tests passed, including the queued
+GoTo/cancel/disconnect regression. No live motion command was exercised.

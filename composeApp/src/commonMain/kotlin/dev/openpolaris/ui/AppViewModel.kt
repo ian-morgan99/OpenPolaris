@@ -1695,11 +1695,14 @@ class AppViewModel(
         val activeGotoLease = gotoMotionLease
         if (activeGotoLease != null) {
             runBlocking { motionSupervisor.stop(activeGotoLease, MotionStopReason.DISCONNECT) }
-            gotoMotionLease = null
-            slewJob?.cancel()
-            slewJob = null
-            slewInProgress = false
         }
+        // A GoTo coroutine can still be queued before it acquires its shared
+        // lease. Cancel it unconditionally; otherwise disconnect would leave
+        // a stale 519 write and an in-progress UI state behind.
+        slewJob?.cancel()
+        slewJob = null
+        gotoMotionLease = null
+        slewInProgress = false
         session?.let { runBlocking { it.disconnect() } }
         session = null
         controller = null
@@ -2776,22 +2779,38 @@ class AppViewModel(
      * the arrival poll so its terminal status write cannot clobber the
      * "Slew cancelled" line. Idempotent when no slew is in flight.
      */
-    fun cancelSlew() = scope.launch {
-        val lease = gotoMotionLease
-        if (lease != null) {
-            val stopResult = motionSupervisor.stop(lease, MotionStopReason.EMERGENCY)
-            if (stopResult is MotionStopResult.Unknown) {
-                statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
+    fun cancelSlew(): Job {
+        val motionSession = session
+        return scope.launch {
+            // Cancellation is a session-owned UI action. A queued cancel from
+            // a disconnected session must not inspect replacement motion state
+            // or publish a terminal status after teardown.
+            if (motionSession != null &&
+                (session !== motionSession || sessionTearingDown)
+            ) {
+                return@launch
+            }
+            val lease = gotoMotionLease
+            if (lease != null) {
+                val stopResult = motionSupervisor.stop(lease, MotionStopReason.EMERGENCY)
+                if (motionSession != null &&
+                    (session !== motionSession || sessionTearingDown)
+                ) {
+                    return@launch
+                }
+                if (stopResult is MotionStopResult.Unknown) {
+                    statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
+                } else {
+                    statusMessage = "Slew cancelled"
+                }
             } else {
                 statusMessage = "Slew cancelled"
             }
-        } else {
-            statusMessage = "Slew cancelled"
+            slewJob?.cancelAndJoin()
+            gotoMotionLease = null
+            slewJob = null
+            slewInProgress = false
         }
-        slewJob?.cancelAndJoin()
-        gotoMotionLease = null
-        slewJob = null
-        slewInProgress = false
     }
 
     // ---- session persistence + reconnect prompt (issue #27) ----------------

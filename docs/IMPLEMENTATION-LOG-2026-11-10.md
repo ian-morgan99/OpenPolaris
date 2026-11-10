@@ -92,3 +92,22 @@ Verification passed:
 The Android provider and activity-result bridge compile, and the controller/ViewModel
 tests prove exact-byte export and fail-closed rejection. Physical Android chooser
 behaviour and desktop native dialog behaviour remain host-validation tasks.
+
+
+### WBS-05.1/08.2 — Astro WebUI read-only status
+
+The Gallery now has an explicit, read-only status check for the Astro WebUI's `/api/astro` response. The client is bounded to a 64 KiB response, validates the endpoint host, ignores forward-compatible JSON fields, and reports only the source's `active` value.
+
+- The AppViewModel uses the dedicated preview/WebUI port (8080), not the control port.
+- The request is feature-gated, requires an installed session, and resets on disconnect.
+- The UI distinguishes idle, loading, active/inactive and failed states.
+- The path does not call `/api/astro/enter`, `/api/astro/leave`, `/api/astro/track` or any native mount command; it cannot imply tracking or mission completion.
+
+Verification passed:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiStatusTest --rerun-tasks --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiStatusTest --rerun-tasks --console=plain --no-daemon
+```
+
+No live Astro WebUI endpoint or hardware command was exercised.

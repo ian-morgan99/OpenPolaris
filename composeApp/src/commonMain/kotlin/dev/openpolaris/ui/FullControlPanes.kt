@@ -37,6 +37,7 @@ import dev.openpolaris.core.domain.AstroMediaExportState
 import dev.openpolaris.core.domain.AstroMediaPolicy
 import dev.openpolaris.core.domain.AstroMediaState
 import dev.openpolaris.core.domain.AstroMediaTransferKind
+import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.MediaPolicy
 import dev.openpolaris.core.domain.format2
 
@@ -475,6 +476,7 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
             )
             val enabled = FeatureFlags.isEnabled("astroWebUiMedia")
+            val statusEnabled = FeatureFlags.isEnabled("astroWebUiStatus")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     enabled = enabled,
@@ -482,6 +484,21 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 ) { Text("Refresh gallery") }
                 if (!enabled) {
                     Text("Disabled by config", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = statusEnabled,
+                    onClick = vm::refreshAstroWebUiStatus,
+                ) { Text("Refresh Astro status") }
+                when (val state = vm.astroWebUiStatus) {
+                    AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiStatusState.Loading -> Text("Reading Astro mode…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiStatusState.Ready -> Text(
+                        if (state.status.active) "Astro mode active" else "Astro mode inactive",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroWebUiStatusState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
                 }
             }
             when (val state = vm.astroMediaState) {

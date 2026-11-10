@@ -18,6 +18,9 @@ import dev.openpolaris.core.domain.AstroMediaTransferKind
 import dev.openpolaris.core.domain.AstroWebUiCaptureClient
 import dev.openpolaris.core.domain.AstroWebUiCaptureResult
 import dev.openpolaris.core.domain.AstroWebUiMediaClient
+import dev.openpolaris.core.domain.AstroWebUiStatusClient
+import dev.openpolaris.core.domain.AstroWebUiStatusState
+import dev.openpolaris.core.domain.AstroWebUiStatusResult
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.MountSessionTiltSampleSource
@@ -87,6 +90,7 @@ import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
 import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
+import dev.openpolaris.core.domain.createAstroWebUiStatusClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -213,6 +217,7 @@ class AppViewModel(
     private val previewIoDispatcher: CoroutineDispatcher? = null,
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
     private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
+    private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
     private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
@@ -1482,6 +1487,9 @@ class AppViewModel(
         astroMediaExportJob?.cancel()
         astroMediaExportController.reset()
         astroMediaExportState = AstroMediaExportState.Idle
+        astroWebUiStatusJob?.cancel()
+        astroWebUiStatusJob = null
+        astroWebUiStatus = AstroWebUiStatusState.Idle
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -3487,8 +3495,11 @@ class AppViewModel(
         private set
     var astroMediaExportState by mutableStateOf<AstroMediaExportState>(AstroMediaExportState.Idle)
         private set
+    var astroWebUiStatus by mutableStateOf<AstroWebUiStatusState>(AstroWebUiStatusState.Idle)
+        private set
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
+    private var astroWebUiStatusJob: Job? = null
     private var astroMediaExportJob: Job? = null
 
     fun selectAstroMediaCategory(category: String?) {
@@ -3511,6 +3522,35 @@ class AppViewModel(
             if (r is MountSession.CmdResult.Ok) {
                 fileList = r.value
                 statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
+            }
+        }
+    }
+
+    fun refreshAstroWebUiStatus() {
+        astroWebUiStatusJob?.cancel()
+        astroWebUiStatusJob = scope.launch {
+            if (!FeatureFlags.isEnabled("astroWebUiStatus")) {
+                astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
+                return@launch
+            }
+            if (session == null) {
+                astroWebUiStatus = AstroWebUiStatusState.Failed("Connect to a mount before reading its Astro WebUI status")
+                return@launch
+            }
+            astroWebUiStatus = AstroWebUiStatusState.Loading
+            when (val result = astroWebUiStatusClient.read(host, previewPort)) {
+                is AstroWebUiStatusResult.Success -> {
+                    astroWebUiStatus = AstroWebUiStatusState.Ready(result.status)
+                    statusMessage = if (result.status.active) {
+                        "Astro WebUI reports Astro mode active"
+                    } else {
+                        "Astro WebUI reports Astro mode inactive"
+                    }
+                }
+                is AstroWebUiStatusResult.Failure -> {
+                    astroWebUiStatus = AstroWebUiStatusState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
             }
         }
     }

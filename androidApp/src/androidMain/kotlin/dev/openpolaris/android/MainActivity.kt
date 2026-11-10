@@ -28,6 +28,8 @@ import dev.openpolaris.core.io.FilePicker
 import dev.openpolaris.core.io.FilePickerRegistry
 import dev.openpolaris.core.io.PickerBridge
 import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.UserPreferencesStore
+import dev.openpolaris.core.session.path.preferencesStorePathForFilesDir
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
 import dev.openpolaris.ui.AppViewModel
 import dev.openpolaris.ui.OpenPolarisApp
@@ -151,6 +153,9 @@ class MainActivity : ComponentActivity() {
         // marker file is rooted in the app sandbox.
         val sessionStore = SessionStore(
             filePath = sessionStorePathForFilesDir(applicationContext.filesDir),
+        )
+        val preferenceStore = UserPreferencesStore(
+            filePath = preferencesStorePathForFilesDir(applicationContext.filesDir),
         )
 
         setContent {
@@ -412,6 +417,7 @@ class MainActivity : ComponentActivity() {
                     startActivity(intent)
                 },
                 viewModel = viewModel,
+                preferenceStore = preferenceStore,
                 // Build-identity footer in the Settings dialog so the user
                 // can confirm at a glance which app is actually running on
                 // the device. Helps distinguish a real dev.openpolaris.app

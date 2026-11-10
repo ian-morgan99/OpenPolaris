@@ -29,3 +29,10 @@ actual fun defaultSessionPath(): String {
  */
 fun sessionStorePathForFilesDir(filesDir: File): String =
     File(filesDir, "openpolaris").resolve("session.json").absolutePath
+
+/**
+ * Build the per-app preferences file path from Android's private files dir.
+ * It shares the directory with the session marker but never shares its data.
+ */
+fun preferencesStorePathForFilesDir(filesDir: File): String =
+    File(filesDir, "openpolaris").resolve("preferences.json").absolutePath

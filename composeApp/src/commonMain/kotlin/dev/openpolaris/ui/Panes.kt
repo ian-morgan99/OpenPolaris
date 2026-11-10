@@ -3161,6 +3161,7 @@ private fun SlowDemoHoldButton(
     label: String,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    graphic: OpenPolarisGraphic? = null,
     onPress: () -> Unit,
     onRelease: () -> Unit,
 ) {
@@ -3242,29 +3243,43 @@ private fun SlowDemoHoldButton(
             }
         },
         enabled = enabled,
-        modifier = inputModifier,
+        contentPadding = if (graphic == null) {
+            androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+        } else {
+            androidx.compose.foundation.layout.PaddingValues(0.dp)
+        },
+        modifier = if (graphic == null) {
+            inputModifier
+        } else {
+            inputModifier.height(48.dp).width(48.dp)
+        },
     ) {
-        Text(if (holdActive) "$label · HOLDING" else label)
+        if (graphic == null) {
+            Text(if (holdActive) "$label · HOLDING" else label)
+        } else {
+            OpenPolarisGraphicIcon(graphic)
+        }
     }
 }
 
 @Composable
 private fun JogPad(vm: AppViewModel, yawUp: Int, yawDown: Int, pitchUp: Int, pitchDown: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        JogButton("▲", pitchUp, vm)
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            JogButton("◀", yawDown, vm)
-            JogButton("▶", yawUp, vm)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        JogButton(OpenPolarisGraphic.Up, "Pitch up", pitchUp, vm)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            JogButton(OpenPolarisGraphic.Left, "Yaw left", yawDown, vm)
+            JogButton(OpenPolarisGraphic.Right, "Yaw right", yawUp, vm)
         }
-        JogButton("▼", pitchDown, vm)
+        JogButton(OpenPolarisGraphic.Down, "Pitch down", pitchDown, vm)
     }
 }
 
 @Composable
-private fun JogButton(label: String, code: Int, vm: AppViewModel) {
+private fun JogButton(graphic: OpenPolarisGraphic, label: String, code: Int, vm: AppViewModel) {
     SlowDemoHoldButton(
         label = label,
         enabled = vm.mount.connected && FeatureFlags.isEnabled("basicControls"),
+        graphic = graphic,
         onPress = { vm.startFastJog(code) },
         onRelease = vm::stopFastJog,
     )

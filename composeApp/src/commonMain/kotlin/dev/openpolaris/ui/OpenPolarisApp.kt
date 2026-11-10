@@ -21,6 +21,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -449,17 +450,21 @@ private fun InlineDestinationWorkspace(
 // The 4 most-used entries form the "Operate" group on phones; the
 // remaining 6 live in the "More" overflow menu so the visible rail
 // always fits a 320 dp wide phone in portrait AND landscape.
-private enum class Callout(val glyph: String) {
-    Connection("Wi-Fi"),
-    Slew("Slew"),
-    Camera("Camera"),
-    Preview("Preview"),
-    Helpers("Helpers"),
-    Tonight("Tonight"),
-    Firmware("Firmware"),
-    VR("3D view"),
-    Readme("Guide"),
-    Settings("Settings"),
+private enum class Callout(
+    val glyph: String,
+    val graphic: OpenPolarisGraphic,
+    val accessibilityLabel: String,
+) {
+    Connection("Wi-Fi", OpenPolarisGraphic.Connection, "Connection"),
+    Slew("Slew", OpenPolarisGraphic.Slew, "Slew and motion"),
+    Camera("Camera", OpenPolarisGraphic.Camera, "Camera"),
+    Preview("Preview", OpenPolarisGraphic.Preview, "Preview"),
+    Helpers("Helpers", OpenPolarisGraphic.Helpers, "Astro helpers"),
+    Tonight("Tonight", OpenPolarisGraphic.Tonight, "Tonight"),
+    Firmware("Firmware", OpenPolarisGraphic.Firmware, "Firmware"),
+    VR("3D view", OpenPolarisGraphic.View3d, "3D view"),
+    Readme("Guide", OpenPolarisGraphic.Guide, "Guide"),
+    Settings("Settings", OpenPolarisGraphic.Settings, "Settings"),
 }
 
 // Operate group: 4 items shown in the always-visible rail. The
@@ -510,7 +515,7 @@ private fun CompactDestinationBar(
         ) {
             primaryAppDestinations.forEach { destination ->
                 CompactDestinationItem(
-                    label = destination.label,
+                    destination = destination,
                     selected = selected == destination,
                     onClick = { onSelect(destination) },
                     modifier = Modifier
@@ -532,11 +537,9 @@ private fun CompactDestinationBar(
                         role = Role.Tab
                     },
             ) {
-                Text(
-                    "More",
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    fontWeight = if (expanded) FontWeight.Bold else FontWeight.Normal,
+                OpenPolarisGraphicIcon(
+                    OpenPolarisGraphic.More,
+                    tint = if (expanded) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                 )
             }
         }
@@ -562,7 +565,7 @@ private fun CompactDestinationBar(
 
 @Composable
 private fun CompactDestinationItem(
-    label: String,
+    destination: AppDestination,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -571,16 +574,14 @@ private fun CompactDestinationItem(
         onClick = onClick,
         contentPadding = PaddingValues(horizontal = 2.dp),
         modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = label
+            contentDescription = destination.label
             stateDescription = if (selected) "Selected" else "Not selected"
             role = Role.Tab
         },
     ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        OpenPolarisGraphicIcon(
+            graphic = destination.graphic(),
+            tint = if (selected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
         )
     }
 }
@@ -616,12 +617,17 @@ private fun DestinationButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.testTag("destination-" + destination.name.lowercase()),
+        modifier = modifier
+            .testTag("destination-" + destination.name.lowercase())
+            .semantics(mergeDescendants = true) {
+                contentDescription = destination.label
+                stateDescription = if (selected) "Selected" else "Not selected"
+                role = Role.Tab
+            },
     ) {
-        Text(
-            destination.label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        OpenPolarisGraphicIcon(
+            graphic = destination.graphic(),
+            tint = if (selected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
         )
     }
 }
@@ -630,6 +636,15 @@ private val AdvancedItems: List<Callout> = listOf(
     Callout.Connection,
     Callout.Preview,
 ) + MoreItems
+
+private fun AppDestination.graphic(): OpenPolarisGraphic = when (this) {
+    AppDestination.MISSION -> OpenPolarisGraphic.Mission
+    AppDestination.CONTROL -> OpenPolarisGraphic.Slew
+    AppDestination.CAMERA -> OpenPolarisGraphic.Camera
+    AppDestination.ASTRO -> OpenPolarisGraphic.Tonight
+    AppDestination.GALLERY -> OpenPolarisGraphic.Preview
+}
+
 
 @Composable
 private fun CalloutRail(
@@ -667,16 +682,20 @@ private fun CalloutRail(
 private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { expanded = true }) {
-            Text("More\u2026", style = MaterialTheme.typography.labelMedium)
-        }
+        CompactGraphicButton(
+            graphic = OpenPolarisGraphic.More,
+            contentDescription = "More controls",
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("callout-more"),
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
             AdvancedItems.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
-        DropdownMenuItem(
+                DropdownMenuItem(
+                    leadingIcon = { OpenPolarisGraphicIcon(c.graphic) },
                     text = { Text(c.glyph) },
                     modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
                     onClick = {
@@ -691,12 +710,12 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
 
 @Composable
 private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
-    TextButton(
+    CompactGraphicButton(
+        graphic = c.graphic,
+        contentDescription = c.accessibilityLabel,
         onClick = { onSelect(c) },
         modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
-    ) {
-        Text(c.glyph, style = MaterialTheme.typography.labelMedium)
-    }
+    )
 }
 
 /** Compact always-visible status line. */

@@ -57,6 +57,7 @@ import dev.openpolaris.core.domain.AstroMissionFlow
 import dev.openpolaris.core.domain.AstroMissionInput
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
+import dev.openpolaris.core.domain.ObservationProgrammePlanner
 import dev.openpolaris.core.domain.format2
 import dev.openpolaris.core.domain.DeliveryMode
 import kotlinx.coroutines.launch
@@ -887,6 +888,7 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // confirmed by the capture-event observer correlating the 264
             // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
             IntervalometerSection(vm)
+            ObservationProgrammePreviewSection()
 
             HorizontalDivider()
             Text("Focus and video", style = MaterialTheme.typography.titleSmall)
@@ -932,6 +934,85 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/**
+ * Cross-platform, read-only preview of the Astro WebUI-style programme plans.
+ * The preview deliberately does not acquire the camera or motion owner; the
+ * executor and capture evidence bridge are the only future execution path.
+ */
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun ObservationProgrammePreviewSection() {
+    var selectedKind by remember { mutableStateOf(ObservationProgrammePlanner.Kind.LAPSE) }
+    var plan by remember { mutableStateOf<ObservationProgrammePlanner.Plan?>(null) }
+
+    HorizontalDivider()
+    Text("Observation programmes", style = MaterialTheme.typography.titleSmall)
+    Text(
+        "Build a safe plan preview for lapse, HDR, focus-stack or panorama work. Previewing never moves the mount or fires the camera.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ObservationProgrammePlanner.Kind.entries.forEach { kind ->
+            FilterChip(
+                selected = selectedKind == kind,
+                onClick = {
+                    selectedKind = kind
+                    plan = null
+                },
+                label = { Text(kind.label()) },
+            )
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(
+            onClick = {
+                plan = runCatching {
+                    ObservationProgrammePlanner.plan(
+                        when (selectedKind) {
+                            ObservationProgrammePlanner.Kind.LAPSE ->
+                                ObservationProgrammePlanner.Request.Lapse(10, 5_000L)
+                            ObservationProgrammePlanner.Kind.HDR ->
+                                ObservationProgrammePlanner.Request.Hdr(20, listOf(-2, 0, 2), 1_000L)
+                            ObservationProgrammePlanner.Kind.FOCUS_STACK ->
+                                ObservationProgrammePlanner.Request.FocusStack(10.0, 20.0, 5, 1_000L)
+                            ObservationProgrammePlanner.Kind.PANORAMA ->
+                                ObservationProgrammePlanner.Request.Panorama(2, 3, 30.0, 10.0, 1_000L)
+                        },
+                    )
+                }.getOrNull()
+            },
+            modifier = Modifier.semantics { contentDescription = "Preview observation programme plan" },
+        ) { Text("Preview plan") }
+        Text("Read-only", style = MaterialTheme.typography.labelSmall)
+    }
+    plan?.let { preview ->
+        Text(
+            "${preview.kind.label()} · ${preview.captureCount} captures · ${preview.scheduledDelayMs} ms scheduled delay",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        preview.steps.take(5).forEach { step ->
+            Text(
+                "${step.ordinal}. ${step.label} · wait ${step.delayBeforeMs} ms" +
+                    (step.exposureIndex?.let { " · exposure $it" } ?: "") +
+                    (step.focusPosition?.let { " · focus $it" } ?: "") +
+                    (step.yawOffsetDeg?.let { " · yaw $it°" } ?: "") +
+                    (step.pitchOffsetDeg?.let { " · pitch $it°" } ?: ""),
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+        if (preview.steps.size > 5) {
+            Text("… ${preview.steps.size - 5} more planned steps", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+private fun ObservationProgrammePlanner.Kind.label(): String = when (this) {
+    ObservationProgrammePlanner.Kind.LAPSE -> "Lapse"
+    ObservationProgrammePlanner.Kind.HDR -> "HDR"
+    ObservationProgrammePlanner.Kind.FOCUS_STACK -> "Focus stack"
+    ObservationProgrammePlanner.Kind.PANORAMA -> "Panorama"
 }
 
 /**

@@ -942,3 +942,16 @@ The current implementation slice must not send a new motor frame, alter firmware
   regression passed, followed by the full cross-platform build. This is
   simulator/package evidence only; no live Astro WebUI, camera, mount,
   Bluetooth or physical SLOW qualification was performed.
+
+
+- **2026-11-10 - WBS-07.1/07.2/09.1 ACTIVE (Demo capture-to-gallery handoff):**
+  extended the deterministic Demo with a read-only 770 file-list response and
+  775 SD-status response. Captured M and B files are now retained in the
+  simulated card, so the existing Gallery surface can refresh and display the
+  exact published filenames and storage presence after a confirmed capture.
+  Destructive file mutation remains disabled; the Demo remains clearly separate
+  from real SD-card and file-transfer evidence.
+- **2026-11-10 - verification:** the capture regression now verifies the two
+  published files through refreshFileList and confirms SD presence. The full
+  cross-platform build passed. No live camera, SD card, Astro WebUI, Bluetooth,
+  mount or physical SLOW qualification was performed.

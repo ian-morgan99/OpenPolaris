@@ -203,18 +203,24 @@ class SlowMotionController(
     }
 
     suspend fun emergencyStop(lease: SlowMotionLease): SlowMotionActionResult = lock.withLock {
-        val current = mutableState.value
-        if (current !is SlowMotionState.Holding || current.lease != lease) {
-            return@withLock SlowMotionActionResult.Rejected
+        val currentLease = when (val current = mutableState.value) {
+            is SlowMotionState.Armed -> current.lease
+            is SlowMotionState.Holding -> current.lease
+            is SlowMotionState.Faulted -> current.lease
+            SlowMotionState.Idle -> null
         }
+        if (currentLease != lease) return@withLock SlowMotionActionResult.Rejected
         stopLocked(lease, MotionStopReason.EMERGENCY)
     }
 
     suspend fun onDisconnected(lease: SlowMotionLease): SlowMotionActionResult = lock.withLock {
-        val current = mutableState.value
-        if (current !is SlowMotionState.Holding || current.lease != lease) {
-            return@withLock SlowMotionActionResult.Rejected
+        val currentLease = when (val current = mutableState.value) {
+            is SlowMotionState.Armed -> current.lease
+            is SlowMotionState.Holding -> current.lease
+            is SlowMotionState.Faulted -> current.lease
+            SlowMotionState.Idle -> null
         }
+        if (currentLease != lease) return@withLock SlowMotionActionResult.Rejected
         stopLocked(lease, MotionStopReason.DISCONNECT)
     }
 

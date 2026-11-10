@@ -469,3 +469,4 @@ The current implementation slice must not send a new motor frame, alter firmware
   passed after converting the primary shell from modal-only routing to inline
   destination content.
 - **2026-11-10 - WBS-04.3 ACTIVE (Astro WebUI shutter hardening):** M/B dispatch now has an immediate in-flight gate, transport exceptions become explicit failed outcomes, and a Bulb stop can be posted only once until lifecycle/file evidence settles. The UI distinguishes dispatching and queued-stop states; source-aligned M/B payloads and evidence-gated completion remain intact.
+- **2026-11-10 - WBS-03.1 ACTIVE (SLOW emergency edge):** fixed the shared SLOW owner so emergency and disconnect stops also settle an armed lease or a controller-faulted lease. Previously STOP ALL could be rejected after a failed SLOW command while MotionSupervisor still owned the mount. Deterministic armed/faulted recovery tests now cover the boundary.

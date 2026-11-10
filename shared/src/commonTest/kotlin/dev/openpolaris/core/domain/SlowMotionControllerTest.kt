@@ -174,4 +174,30 @@ class SlowMotionControllerTest {
         assertEquals(SlowMotionActionResult.Stopped, controller.emergencyStop(lease))
         assertEquals(listOf(MotionStopReason.EMERGENCY), transport.stops)
     }
+
+    @Test
+    fun emergencyStopSettlesAnArmedLease() = runTest {
+        val transport = FakeTransport()
+        val controller = SlowMotionController(transport)
+        val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+
+        assertEquals(SlowMotionActionResult.Stopped, controller.emergencyStop(lease))
+        assertEquals(listOf(MotionStopReason.EMERGENCY), transport.stops)
+        assertEquals(SlowMotionState.Idle, controller.state.value)
+    }
+
+    @Test
+    fun emergencyStopCanSettleACommandFault() = runTest {
+        val transport = FakeTransport().also {
+            it.nextApply = SlowMotionTransportResult.Unknown("ack lost")
+        }
+        val controller = SlowMotionController(transport)
+        val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(), 0L))
+        assertIs<SlowMotionActionResult.Unknown>(controller.tick(lease, 75L))
+
+        assertEquals(SlowMotionActionResult.Stopped, controller.emergencyStop(lease))
+        assertEquals(listOf(MotionStopReason.EMERGENCY), transport.stops)
+        assertEquals(SlowMotionState.Idle, controller.state.value)
+    }
 }

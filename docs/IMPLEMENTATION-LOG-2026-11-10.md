@@ -590,3 +590,21 @@ Verification passed:
 
 The source-aligned M/B payload tests and ViewModel capture lifecycle tests
 passed. No live Astro WebUI, camera or hardware was exercised.
+
+### WBS-03.1 - SLOW emergency edge
+
+Closed a motion-safety gap in the shared SLOW controller. Emergency and
+disconnect now accept the controller's armed, holding or faulted lease instead
+of only accepting a holding state. This matters when the scheduler has not
+emitted its first command yet, or when a command acknowledgement becomes
+unknown: STOP ALL can still reach the shared stop boundary and only settles to
+idle after that boundary returns Stopped.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFastJogTest --tests dev.openpolaris.ui.MotionSafetyChromeContractTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiCaptureTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+The SLOW controller, motion safety chrome, fast-jog owner and Astro WebUI
+capture lifecycle tests passed. No live mount or hardware was exercised.

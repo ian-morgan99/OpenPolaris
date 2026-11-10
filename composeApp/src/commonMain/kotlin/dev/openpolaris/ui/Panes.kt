@@ -4502,6 +4502,9 @@ private fun FirmwareStep1(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = vm::pickFirmwareFile,
+                modifier = Modifier
+                    .testTag("firmware-pick")
+                    .semantics { contentDescription = "Pick firmware ZIP" },
                 enabled = !vm.firmwareBusy,
             ) { Text("Pick firmware…") }
             if (vm.pickedFirmwarePath != null) {

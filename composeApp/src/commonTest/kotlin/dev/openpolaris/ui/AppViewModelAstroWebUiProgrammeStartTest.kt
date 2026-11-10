@@ -9,8 +9,12 @@ import dev.openpolaris.core.domain.AstroWebUiProgrammeStartClient
 import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -28,12 +32,16 @@ class AppViewModelAstroWebUiProgrammeStartTest {
 
     private class FakeStartClient : AstroWebUiProgrammeStartClient {
         var calls = 0
+        var releaseLapse: CompletableDeferred<Unit>? = null
 
         private fun accepted(kind: AstroWebUiProgrammeStartResult.Kind) =
             AstroWebUiProgrammeStartResult.Accepted(kind)
 
         override suspend fun startLapse(host: String, port: Int, parameters: AstroWebUiLapseParameters): AstroWebUiProgrammeStartResult {
             calls++
+            releaseLapse?.let { gate ->
+                withContext(NonCancellable) { gate.await() }
+            }
             return accepted(AstroWebUiProgrammeStartResult.Kind.LAPSE)
         }
 
@@ -95,6 +103,44 @@ class AppViewModelAstroWebUiProgrammeStartTest {
         )
         vm.disconnect()
         vm.preview.shutdown()
+    }
+
+    @Test
+    fun disconnectDropsLateProgrammeStartResult() = runTest {
+        FeatureFlags.enable("astroWebUiProgrammeStarts")
+        val client = FakeStartClient()
+        val gate = CompletableDeferred<Unit>()
+        client.releaseLapse = gate
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiProgrammeStartClient = client,
+        )
+        vm.testInstallSession(
+            MountSession(
+                connectionFactory = { NoopConnection() },
+                host = "192.168.0.1",
+                port = 9090,
+                readerScope = this,
+            ),
+        )
+
+        try {
+            vm.startAstroWebUiLapse(AstroWebUiLapseParameters(intervalSeconds = 5.0, shots = 2))
+            runCurrent()
+            assertEquals(1, client.calls)
+
+            vm.disconnect()
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertIs<dev.openpolaris.core.domain.AstroWebUiProgrammeStartState.Idle>(
+                vm.astroWebUiProgrammeStartState,
+            )
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
     }
 
     @Test

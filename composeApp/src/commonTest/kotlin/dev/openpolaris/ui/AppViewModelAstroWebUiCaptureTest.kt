@@ -10,9 +10,12 @@ import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.protocol.ResponseParser
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -57,6 +60,22 @@ class AppViewModelAstroWebUiCaptureTest {
 
         override suspend fun post(request: AstroWebUiCaptureHttpRequest): AstroWebUiHttpResponse {
             requests += request
+            return AstroWebUiHttpResponse(
+                statusCode = 200,
+                contentType = "application/json",
+                body = "{\"ok\":true,\"cmd\":264}".encodeToByteArray(),
+            )
+        }
+    }
+
+    private class BlockingTransport(
+        private val gate: CompletableDeferred<Unit>,
+    ) : AstroWebUiCaptureTransport {
+        var calls = 0
+
+        override suspend fun post(request: AstroWebUiCaptureHttpRequest): AstroWebUiHttpResponse {
+            calls++
+            withContext(NonCancellable) { gate.await() }
             return AstroWebUiHttpResponse(
                 statusCode = 200,
                 contentType = "application/json",
@@ -117,6 +136,34 @@ class AppViewModelAstroWebUiCaptureTest {
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals("/app/sd/normal/ASTRO_M_0001.dng", vm.lastCapturePublication?.path)
             assertEquals(false, vm.astroWebUiCaptureActive)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun disconnectDropsLateAstroWebUiCaptureResult() = runTest(UnconfinedTestDispatcher()) {
+        FeatureFlags.enable("astroWebUiCapture")
+        val gate = CompletableDeferred<Unit>()
+        val transport = BlockingTransport(gate)
+        val vm = vm(this, FakeConnection(), AstroWebUiCaptureClient(transport))
+        try {
+            connect(this, vm)
+            vm.testSetCameraParams(CameraController.Params(shutterIndex = 0, shutterOptions = listOf("M")))
+
+            vm.captureAstroWebUi(CameraReleaseMode.MANUAL)
+            advanceTimeBy(851)
+            runCurrent()
+            assertEquals(1, transport.calls)
+
+            vm.disconnect()
+            gate.complete(Unit)
+            runCurrent()
+
+            assertEquals(AppViewModel.CapturePhase.Idle, vm.capturePhase)
+            assertEquals(false, vm.astroWebUiCaptureActive)
+            assertEquals(false, vm.astroWebUiCaptureDispatching)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

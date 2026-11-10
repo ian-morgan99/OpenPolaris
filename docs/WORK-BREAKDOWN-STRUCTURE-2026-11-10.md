@@ -574,3 +574,17 @@ The current implementation slice must not send a new motor frame, alter firmware
   queued GoTo plus queued cancel cannot outlive Demo disconnect or publish
   "Slew cancelled" into the ended session. No live motion command was
   exercised.
+
+
+- **2026-11-10 - WBS-06.3/08.2 ACTIVE (Astro WebUI write-session ownership):**
+  programme start/control actions now capture their owning mount session and
+  discard late HTTP results after disconnect, so a replacement session cannot
+  inherit stale Accepted/Failed state. Source-aligned write routes remain
+  default-off pending named-head qualification.
+- **2026-11-10 - WBS-04.3/02.2 ACTIVE (Astro WebUI capture-session ownership):**
+  M/B HTTP dispatch and Bulb stop now have explicit lifecycle jobs and session
+  guards. Disconnect cancels them and a late queue acknowledgement cannot
+  resurrect Requested/Busy/active capture state or an old watchdog.
+- **2026-11-10 - verification:** AppViewModelAstroWebUiProgrammeStartTest and
+  AppViewModelAstroWebUiCaptureTest cover cancellation-insensitive late results.
+  No live Astro WebUI or camera command was exercised.

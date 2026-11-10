@@ -821,3 +821,30 @@ Verification passed:
 
 Result: BUILD SUCCESSFUL; 43 session-marker tests passed, including the queued
 GoTo/cancel/disconnect regression. No live motion command was exercised.
+
+
+### WBS-06.3/08.2 - Astro WebUI programme write-session ownership
+
+Made Astro WebUI programme start and control actions session-owned. Each action
+captures the MountSession that admitted it, checks ownership before dispatch and
+again before applying the HTTP result. A late result after disconnect is dropped
+instead of updating the replacement/idle ViewModel or triggering a stale
+programme readback.
+
+### WBS-04.3/02.2 - Astro WebUI capture-session ownership
+
+Made source-aligned M/B dispatch and Bulb stop lifecycle-owned. They now have
+dedicated jobs, are cancelled by disconnect, and recheck session ownership after
+the HTTP bridge returns. The capture watchdog also refuses to mutate state
+unless its original session still owns the ViewModel.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeStartTest --rerun-tasks --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiCaptureTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: both focused suites passed, including cancellation-insensitive late
+programme and capture result regressions. No live Astro WebUI or camera command
+was exercised.

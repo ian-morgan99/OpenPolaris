@@ -718,6 +718,8 @@ class AppViewModel(
     // disconnect has already cleared the capture evidence.
     private var captureDispatchJob: Job? = null
     private var bulbStopJob: Job? = null
+    private var astroWebUiCaptureJob: Job? = null
+    private var astroWebUiBulbStopJob: Job? = null
     /** Shared lifecycle + publication correlation for single shots and programmes. */
     private val captureEvidence = CaptureEvidenceGate()
     private var pendingCapturePublication: CapturePublication? = null
@@ -1746,6 +1748,10 @@ class AppViewModel(
         captureDispatchJob = null
         bulbStopJob?.cancel()
         bulbStopJob = null
+        astroWebUiCaptureJob?.cancel()
+        astroWebUiCaptureJob = null
+        astroWebUiBulbStopJob?.cancel()
+        astroWebUiBulbStopJob = null
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
@@ -4146,6 +4152,10 @@ class AppViewModel(
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
+    /** True only while an asynchronous action still belongs to this mount session. */
+    private fun ownsSession(owner: MountSession?): Boolean =
+        owner != null && session === owner && !sessionTearingDown
+
     fun selectAstroMediaCategory(category: String?) {
         astroMediaCategory = category
     }
@@ -4578,7 +4588,8 @@ class AppViewModel(
             statusMessage = "Astro WebUI programme starts are disabled until named-head qualification"
             return
         }
-        if (session == null) {
+        val ownerSession = session
+        if (ownerSession == null) {
             astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
                 "Connect to a mount before starting an Astro WebUI programme",
             )
@@ -4591,7 +4602,10 @@ class AppViewModel(
         }
         astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Loading
         astroWebUiProgrammeStartJob = scope.launch {
-            when (val result = request(astroWebUiProgrammeStartClient)) {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = request(astroWebUiProgrammeStartClient)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 is AstroWebUiProgrammeStartResult.Preview -> {
                     astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Preview(result)
                     statusMessage = "Astro WebUI $action is ready; no programme was started"
@@ -4617,7 +4631,8 @@ class AppViewModel(
             statusMessage = "Astro WebUI programme controls are disabled until write-route qualification"
             return
         }
-        if (session == null) {
+        val ownerSession = session
+        if (ownerSession == null) {
             statusMessage = "Connect to a mount before controlling an Astro WebUI programme"
             return
         }
@@ -4626,7 +4641,10 @@ class AppViewModel(
             return
         }
         astroWebUiProgrammeControlJob = scope.launch {
-            when (val result = request(astroWebUiProgrammeControlClient)) {
+            if (!ownsSession(ownerSession)) return@launch
+            val result = request(astroWebUiProgrammeControlClient)
+            if (!ownsSession(ownerSession)) return@launch
+            when (result) {
                 AstroWebUiProgrammeControlResult.Accepted -> {
                     statusMessage = "Astro WebUI " + action + " request accepted; confirming by status poll"
                     readAstroWebUiProgramme(announce = false)
@@ -4838,7 +4856,8 @@ class AppViewModel(
             statusMessage = astroWebUiCaptureStatus.orEmpty()
             return
         }
-        if (session == null || cameraController == null) {
+        val ownerSession = session
+        if (ownerSession == null || cameraController == null) {
             statusMessage = "Connect a mount and camera before using Astro WebUI capture"
             return
         }
@@ -4873,9 +4892,12 @@ class AppViewModel(
         astroWebUiCaptureActive = false
         astroWebUiBulbActive = false
         astroWebUiBulbStopQueued = false
-        scope.launch {
+        astroWebUiCaptureJob?.cancel()
+        astroWebUiCaptureJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
             beginCaptureTimeline("Astro WebUI ${mode.label} release queued")
             suspendCaptureWorkloads()
+            if (!ownsSession(ownerSession)) return@launch
             val result = runCatching {
                 astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)
             }.getOrElse { error ->
@@ -4884,6 +4906,7 @@ class AppViewModel(
                         (error.message ?: error::class.simpleName ?: "unknown error"),
                 )
             }
+            if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiCaptureResult.Queued -> {
                     astroWebUiCaptureDispatching = false
@@ -4896,6 +4919,7 @@ class AppViewModel(
                         delay(if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB) {
                             maxOf(CAPTURE_TIMEOUT_MS, bulbSeconds * 1000L + 15_000L)
                         } else CAPTURE_TIMEOUT_MS)
+                        if (!ownsSession(ownerSession)) return@launch
                         if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
                             val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle and/or 773 file evidence is missing"
                             captureEvidence.unknown(reason)
@@ -4936,7 +4960,10 @@ class AppViewModel(
             return
         }
         astroWebUiBulbStopQueued = true
-        scope.launch {
+        val ownerSession = session
+        astroWebUiBulbStopJob?.cancel()
+        astroWebUiBulbStopJob = scope.launch {
+            if (!ownsSession(ownerSession)) return@launch
             val result = runCatching {
                 astroWebUiCaptureClient.stop(host, previewPort)
             }.getOrElse { error ->
@@ -4944,6 +4971,7 @@ class AppViewModel(
                     error.message ?: error::class.simpleName ?: "unknown stop error",
                 )
             }
+            if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiCaptureResult.Stopped -> {
                     astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for file evidence"

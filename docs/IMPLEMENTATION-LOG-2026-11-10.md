@@ -1346,3 +1346,8 @@ Focused and full cross-platform verification passed. This is source/package evid
 Commit 2ec31f1 replaces the Astro WebUI capture adapter's substring checks with bounded strict JSON parsing. M mode, B mode and the explicit B stop only return bridge-queued evidence for a real ok=true and exact numeric cmd=264; malformed, wrong-command, string-typed and oversized responses are rejected without retry. The existing lifecycle plus file-publication gate remains the only completion contract.
 
 Focused tests and the full cross-platform build passed. The adapter is source-aligned with the Benro Connect state/bulb/c forms, but named-camera/firmware physical lifecycle evidence is still required.
+### WBS-04.1 - Auxiliary camera capability readback
+
+Commit 99c1fb5 adds a session-owned, explicit read-only refresh for the source-aligned task-3 camera values: image format, control mode, exposure time and interval type. The Camera workspace shows their values and age, while the simulator and ownership tests exercise the exact query shapes. No write route was opened, and a disconnect cancels the refresh before it can publish into a replacement session.
+
+Focused and full cross-platform verification passed. Physical camera behaviour and M/B capture evidence remain open.

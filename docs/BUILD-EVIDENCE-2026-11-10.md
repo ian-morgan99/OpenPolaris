@@ -2357,3 +2357,29 @@ This is source/package evidence only. The WebUI bridge acknowledgement is now
 strictly parsed, but physical M/B shutter lifecycle, file publication, named
 camera/firmware, station LAN, phone Bluetooth and physical SLOW qualification
 remain unverified.
+## Latest committed verification - 99c1fb5
+
+Commit under test: 99c1fb5 (feat: expose auxiliary camera readback).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.sim.SimulatedProtocolTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCameraRefreshOwnershipTest :composeApp:compileKotlinJvm --rerun-tasks --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 378bae6fc962fb0dd91cd93f38fee36105764c3b8de554979bddc7f9af05d13c
+
+This is source/package evidence only. Auxiliary camera values are displayed as
+read-only source evidence; camera writes, named-camera M/B lifecycle/file
+publication, station LAN, phone Bluetooth and physical SLOW qualification
+remain unverified.

@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -211,6 +212,8 @@ class SafeRateAdjustController(
                     result
                 }
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             val reason = "rate transport failed: ${error.message ?: error::class.simpleName ?: "unknown error"}"
             mutableState.value = RateAdjustState.Stale(reason, request)
@@ -262,6 +265,8 @@ class SafeRateAdjustController(
                 result
             }
         }
+    } catch (error: CancellationException) {
+        throw error
     } catch (error: Exception) {
         val reason = "rate stop failed: ${error.message ?: error::class.simpleName ?: "unknown error"}"
         mutableState.value = RateAdjustState.Stale(reason, request)

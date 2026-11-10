@@ -1,12 +1,24 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class RateAdjustControllerTest {
+    private class CancellingTransport : RateAdjustTransport {
+        override suspend fun apply(request: RateAdjustRequest): RateCommandResult {
+            throw CancellationException("cancelled apply")
+        }
+
+        override suspend fun stop(): RateCommandResult {
+            throw CancellationException("cancelled stop")
+        }
+    }
+
     private class FakeTransport : RateAdjustTransport {
         val applied = mutableListOf<RateAdjustRequest>()
         var stops = 0
@@ -177,6 +189,35 @@ class RateAdjustControllerTest {
         assertIs<RateAdjustState.Stale>(controller.state.value)
         assertIs<RateCommandResult.Rejected>(controller.apply(request(version = 2)))
         assertEquals(1, transport.applied.size)
+    }
+
+    @Test
+    fun cancellationFromApplyIsNotConvertedToUnknown() = runTest {
+        val controller = SafeRateAdjustController(CancellingTransport())
+        ready(controller)
+
+        assertFailsWith<CancellationException> {
+            controller.apply(request())
+        }
+    }
+
+    @Test
+    fun cancellationFromStopIsNotConvertedToUnknown() = runTest {
+        val transport = object : RateAdjustTransport {
+            override suspend fun apply(request: RateAdjustRequest): RateCommandResult =
+                RateCommandResult.Accepted()
+
+            override suspend fun stop(): RateCommandResult {
+                throw CancellationException("cancelled stop")
+            }
+        }
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request())
+
+        assertFailsWith<CancellationException> {
+            controller.stopCorrection()
+        }
     }
 
     @Test

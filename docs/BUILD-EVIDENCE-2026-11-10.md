@@ -2264,3 +2264,29 @@ Android debug APK:
 This is simulator/package evidence only. Live battery telemetry, station-LAN
 listener reachability, phone Bluetooth GATT wake, mount, camera, Astro WebUI
 and physical SLOW qualification remain unverified.
+
+## Latest committed verification - 8672e9d
+
+Commit under test: 8672e9d (fix: retain Android session view model).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AndroidViewModelLifetimeContractTest :androidApp:compileDebugKotlinAndroid --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: a39b4bf0ceab9379ed3bfff8db9dfc896c32402dde20b698b8e2015b11d87e03
+
+This is package/source-contract evidence only. Live Android recomposition,
+station-LAN listener reachability, phone Bluetooth GATT wake, mount, camera,
+Astro WebUI and physical SLOW qualification remain unverified.

@@ -1323,3 +1323,9 @@ Focused and full cross-platform verification passed. This remains package/source
 Commit `e03753b` adds a shared advisory battery classifier with explicit unknown, critical, low and normal states. The status strip now renders a visible Battery label, severity colour and accessible state description including charging. Invalid readbacks become unknown; no connection, capture or motion path is gated by this advisory value.
 
 Focused and full cross-platform verification passed. The APK remains package/simulator evidence; live battery telemetry and all hardware qualification gates remain open.
+
+### WBS-02.2/09.1 - Android session-owner lifetime
+
+Commit `8672e9d` fixes the Android host's recomposition boundary: `remember` now retains the single AppViewModel for the Activity composition, while `onResume`, the Wi-Fi scan flow and the shared shell continue to use that same instance. The previous direct constructor could replace a live session during any state-driven recomposition.
+
+Focused and full cross-platform verification passed. This closes a lifecycle defect in source and package evidence; it does not claim live hardware qualification.

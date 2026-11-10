@@ -5,6 +5,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -93,6 +94,22 @@ class PreviewControllerTest {
             c.state.value is PreviewController.State.Streaming,
             "expected Streaming, was ${c.state.value}",
         )
+        c.shutdown()
+    }
+
+    @Test
+    fun demoSyntheticFrameIsStreamingWithoutOpeningARealTransport() = runTest {
+        val c = PreviewController(
+            transportFactory = { _, _ ->
+                error("Demo synthetic preview must not create a transport")
+            },
+            parent = SupervisorJob(),
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        val frame = byteArrayOf(1, 2, 3)
+        c.publishSyntheticForDemo(frame)
+        assertIs<PreviewController.State.Streaming>(c.state.value)
+        assertContentEquals(frame, c.bytes.value)
         c.shutdown()
     }
 

@@ -10,9 +10,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /**
  * Regression tests for issue #74: the MJPEG preview stream must be requested
@@ -127,6 +129,26 @@ class AppViewModelPreviewPortTest {
             vm.leavePreview()
             vm.enterPreview()
             assertEquals(2, recording.startCount, "leaving and re-entering must reacquire the preview owner")
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun demoPreviewUsesSyntheticFrameWithoutOpeningNetworkTransport() = runTest(UnconfinedTestDispatcher()) {
+        val recording = RecordingTransport()
+        val vm = newViewModel(this, { FakeConnection() }, recording)
+
+        try {
+            vm.connectDemo(startPolling = false)
+            runCurrent()
+            vm.enterPreview()
+            runCurrent()
+
+            assertEquals(0, recording.startCount)
+            assertEquals(EndpointService.REACHABLE, vm.endpointHealth.preview)
+            assertNotNull(vm.previewFrameReceivedAtMs)
         } finally {
             vm.disconnect()
             vm.preview.shutdown()

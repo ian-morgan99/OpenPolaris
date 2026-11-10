@@ -304,6 +304,18 @@ private class DemoFineRateTransport : RateAdjustTransport {
  * once issue #6's `Context` wiring lands in 3c.4). Tests pass a temp-dir-backed
  * `SessionStore` so the real home directory is never touched.
  */
+private val DEMO_PREVIEW_PNG = byteArrayOf(
+    -119, 80, 78, 71, 13, 10, 26, 10,
+    0, 0, 0, 13, 73, 72, 68, 82,
+    0, 0, 0, 1, 0, 0, 0, 1,
+    8, 6, 0, 0, 0, 31, 21, -60,
+    -119, 0, 0, 0, 13, 73, 68, 65,
+    84, 120, -100, 99, 96, 96, 96, 0,
+    0, 0, 4, 0, 1, 11, -25, 2,
+    -99, 0, 0, 0, 0, 73, 69, 78,
+    68, -82, 66, 96, -126,
+)
+
 class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
@@ -2149,22 +2161,30 @@ class AppViewModel(
         previewAnalysisJob = null
         previewPixelAnalysis = null
         previewFrameReceivedAtMs = null
-        try {
-            preview.start(host, previewPort)
-        } catch (e: Throwable) {
-            // 3e E2: PreviewController.start may throw if the host is
-            // unresolvable or the port is closed. Surface as a status
-            // message and skip the collector — the rest of the post-
-            // connect setup (polling, capture polling) will still
-            // continue. Without this, the connect() success branch
-            // catches it at the outer layer, but a cleaner message
-            // here helps the user debug a misconfigured port.
-            val failure = e.message ?: e::class.simpleName ?: "preview start failed"
-            setPreviewHealth(EndpointService.UNREACHABLE, failure)
-            statusMessage = "Preview unavailable: $failure"
-            return
+        if (demoMode) {
+            // Demo preview is deliberately local and synthetic. It exercises
+            // the same frame collector and presentation analysis without
+            // opening a second network transport or implying camera evidence.
+            preview.publishSyntheticForDemo(DEMO_PREVIEW_PNG)
+            setPreviewHealth(EndpointService.REACHABLE)
+        } else {
+            try {
+                preview.start(host, previewPort)
+            } catch (e: Throwable) {
+                // 3e E2: PreviewController.start may throw if the host is
+                // unresolvable or the port is closed. Surface as a status
+                // message and skip the collector  - the rest of the post-
+                // connect setup (polling, capture polling) will still
+                // continue. Without this, the connect() success branch
+                // catches it at the outer layer, but a cleaner message
+                // here helps the user debug a misconfigured port.
+                val failure = e.message ?: e::class.simpleName ?: "preview start failed"
+                setPreviewHealth(EndpointService.UNREACHABLE, failure)
+                statusMessage = "Preview unavailable: $failure"
+                return
+            }
+            setPreviewHealth(EndpointService.UNKNOWN)
         }
-        setPreviewHealth(EndpointService.UNKNOWN)
         previewFrameJob = scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
@@ -6770,7 +6790,7 @@ class AppViewModel(
                     astroWebUiCaptureDispatching = false
                     astroWebUiBulbActive = false
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                    statusMessage = "Astro WebUI stop outcome unknown  check the card"
+                    statusMessage = "Astro WebUI stop outcome unknown - check the card"
                 }
                 is AstroWebUiCaptureResult.Queued -> Unit
             }

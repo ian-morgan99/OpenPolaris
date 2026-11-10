@@ -3811,6 +3811,13 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Card(modifier = modifier.padding(8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Camera preview", style = MaterialTheme.typography.titleMedium)
+            if (vm.demoMode) {
+                Text(
+                    "Demo synthetic frame - local UI rehearsal only; no camera or network stream is being claimed.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (frame != null) {
                 Box(Modifier.fillMaxWidth()) {
                     androidx.compose.foundation.Image(

@@ -139,6 +139,17 @@ class PreviewController(
         consumeFrame(jpeg)
     }
 
+    /**
+     * Publish the bounded synthetic frame used by the in-process Demo
+     * workspace. This does not open a transport or claim camera evidence.
+     */
+    fun publishSyntheticForDemo(jpeg: ByteArray) {
+        require(jpeg.isNotEmpty()) { "Synthetic preview frame must not be empty" }
+        stop()
+        _bytes.value = jpeg
+        _state.value = State.Streaming
+    }
+
     sealed class State {
         data object Idle : State()
         data object Connecting : State()

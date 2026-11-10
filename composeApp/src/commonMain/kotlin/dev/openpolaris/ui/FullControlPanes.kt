@@ -491,16 +491,53 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     enabled = statusEnabled,
                     onClick = vm::refreshAstroWebUiStatus,
                 ) { Text("Refresh Astro status") }
-                when (val state = vm.astroWebUiStatus) {
-                    AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
-                    AstroWebUiStatusState.Loading -> Text("Reading Astro mode…", style = MaterialTheme.typography.labelSmall)
-                    is AstroWebUiStatusState.Ready -> Text(
-                        if (state.status.active) "Astro mode active" else "Astro mode inactive",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    is AstroWebUiStatusState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
-                }
             }
+            when (val state = vm.astroWebUiStatus) {
+                AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
+                AstroWebUiStatusState.Loading -> Text("Reading Astro mode…", style = MaterialTheme.typography.labelSmall)
+                is AstroWebUiStatusState.Ready -> {
+                    val status = state.status
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (status.active) "Astro mode active" else "Astro mode inactive",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (status.latitudeDeg != null && status.longitudeDeg != null) {
+                            Text(
+                                "Site ${status.latitudeDeg}, ${status.longitudeDeg}",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.trackRequested?.let { requested ->
+                            Text(
+                                "Tracking requested: ${if (requested) "yes" else "no"}",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.rateIndex?.let { rate ->
+                            Text("Rate index: ${rate}", style = MaterialTheme.typography.labelSmall)
+                        }
+                        status.halfSpeed?.let { half ->
+                            Text(
+                                "Half speed: ${if (half) "yes" else "no"}",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.alignmentHeadingDeg?.let { heading ->
+                            Text(
+                                "Alignment heading: ${heading} deg",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        Text(
+                            "Session/request state only; mount telemetry remains authoritative.",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                is AstroWebUiStatusState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+            }
+
             when (val state = vm.astroMediaState) {
                 AstroMediaState.Idle -> Text("No WebUI media list loaded.", style = MaterialTheme.typography.bodySmall)
                 AstroMediaState.LoadingList -> Text("Loading WebUI media list…", style = MaterialTheme.typography.bodySmall)

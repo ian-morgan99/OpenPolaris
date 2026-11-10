@@ -318,3 +318,28 @@ Verification passed:
 ~~~text
 ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.UiAccessibilityContractTest :composeApp:compileKotlinJvm :shared:jvmTest --tests dev.openpolaris.core.domain.MotionSupervisorTest --tests dev.openpolaris.core.domain.SlowMotionControllerTest --rerun-tasks --console=plain --no-daemon
 ~~~
+
+### WBS-05.1/08.2 - Astro WebUI session status parity
+
+Extended the source-aligned read-only /api/astro status path to retain the
+resident WebUI session/request fields:
+
+- optional site latitude/longitude;
+- track requested state;
+- source rate index and half-speed flag;
+- optional alignment heading.
+
+The parser accepts the source's inactive/active field shape, ignores unknown
+future fields, rejects partial or out-of-range coordinates, invalid headings and
+negative rate indexes, and preserves the dedicated preview-port/session/feature
+gates. The Gallery displays the observed values below the refresh action and
+labels them as session/request state; it does not infer physical tracking or
+alignment completion from them.
+
+Verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiStatusTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiStatusTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+No live Astro WebUI endpoint, mount, camera or hardware was exercised.

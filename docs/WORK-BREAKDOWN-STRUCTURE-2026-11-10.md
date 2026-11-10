@@ -183,6 +183,8 @@
 
 - Guided checklist for physical kit, camera, storage, level, tilt compensation, limits and focus mode.
 
+- **2026-11-10 - WBS-05.1/08.2 ACTIVE (Astro WebUI session status parity):** extended the read-only /api/astro model and Gallery readout to preserve source session/request fields for latitude, longitude, track request, rate index, half-speed mode and optional alignment heading. Coordinate, heading and rate validation remains fail-closed; mount telemetry is still identified as authoritative, and no Astro WebUI write route is opened.
+
 ### WBS-05.2 — Alignment — P1
 
 - Plate solve, phone compass and manual bearing alternatives with confidence/provenance.

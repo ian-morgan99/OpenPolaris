@@ -241,6 +241,9 @@ fun OpenPolarisApp(
                                 "camera", "capture" -> Callout.Camera
                                 "preview" -> Callout.Preview
                                 "alignment", "tracking", "motion" -> Callout.Slew
+                                "target" -> Callout.Slew
+                                "prepare", "focus", "capture" -> Callout.Camera
+                                "guide" -> Callout.Helpers
                                 else -> null
                             }
                             if (actionId == "storage") galleryOpen = true

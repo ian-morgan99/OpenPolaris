@@ -53,6 +53,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.EndpointService
+import dev.openpolaris.core.domain.AstroMissionFlow
+import dev.openpolaris.core.domain.AstroMissionInput
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
 import dev.openpolaris.core.domain.format2
@@ -360,6 +362,48 @@ fun MissionDashboardPane(
                     style = MaterialTheme.typography.bodySmall,
                 )
             } ?: Text("No endpoint selected", style = MaterialTheme.typography.bodySmall)
+            HorizontalDivider()
+            Text("Astro mission", style = MaterialTheme.typography.titleMedium)
+            AstroMissionFlow.evaluate(
+                AstroMissionInput(
+                    controlReady = endpoint.control == EndpointService.REACHABLE,
+                    mountConnected = vm.mount.connected,
+                    cameraAttached = vm.cameraAttachment?.isAttached,
+                    storageReady = vm.sdStatus?.present,
+                    alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
+                    tracking = vm.mount.tracking,
+                    targetSelected = vm.targetSelected,
+                    focusReady = null,
+                    guideActive = false,
+                    captureReady = vm.mount.connected && vm.cameraAttachment?.isAttached == true,
+                    captureComplete = vm.lastCapturePublication != null,
+                    reviewReady = vm.lastCapturePublication != null,
+                ),
+            ).forEach { stage ->
+                val color = when (stage.state) {
+                    dev.openpolaris.core.domain.AstroMissionStageState.COMPLETE -> MaterialTheme.colorScheme.primary
+                    dev.openpolaris.core.domain.AstroMissionStageState.BLOCKED -> MaterialTheme.colorScheme.error
+                    dev.openpolaris.core.domain.AstroMissionStageState.CURRENT -> MaterialTheme.colorScheme.tertiary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        stage.stage.label + " · " + stage.state.name.lowercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = color,
+                    )
+                    Text(stage.summary, style = MaterialTheme.typography.bodySmall)
+                    stage.actionLabel?.let { actionLabel ->
+                        if (onAction != null) {
+                            TextButton(onClick = { onAction(stage.stage.actionId) }) {
+                                Text("Next: " + actionLabel)
+                            }
+                        } else {
+                            Text("Next: " + actionLabel, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
             HorizontalDivider()
             cards.forEach { card ->
                 val color = when (card.level) {

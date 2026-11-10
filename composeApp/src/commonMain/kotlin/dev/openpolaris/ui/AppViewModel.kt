@@ -1382,6 +1382,7 @@ class AppViewModel(
         // belong to this VM, and the controller's stop() is idempotent.
         stopAutoLevelAsync()
         _lastSolveResult.value = null
+        targetSelected = false
         // Clear the VR marker bus too so a stale solve doesn't linger
         // on the headset after the user disconnects.
         MarkerStateBus.reset()
@@ -1794,6 +1795,9 @@ class AppViewModel(
 
     var gotoAz by mutableStateOf("0.0")
     var gotoAlt by mutableStateOf("0.0")
+    /** True after the user has submitted or solved a target in this session. */
+    var targetSelected by mutableStateOf(false)
+        private set
 
     // ---- observer location & RA/Dec goto ---------------------------------
 
@@ -1855,6 +1859,7 @@ class AppViewModel(
             val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA (use HH MM SS or H.h)"; return }
             val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use ±DD MM SS or ±D.d)"; return }
             val altAz = AstroMath.toHorizontalAt(ra, dec, loc.first, loc.second, AstroMath.julianDateNow())
+            targetSelected = true
             slewInProgress = true
             slewJob = scope.launch {
                 try {
@@ -1880,6 +1885,7 @@ class AppViewModel(
                 statusMessage = "Invalid coordinates"
                 return
             }
+            targetSelected = true
             slewInProgress = true
             slewJob = scope.launch {
                 try {
@@ -2058,6 +2064,7 @@ class AppViewModel(
                     // honest age, and the status message can mention the
                     // match quality. See issue #13.
                     _lastSolveResult.value = result
+                    targetSelected = true
                     // Push the same value to the process-wide bus so the
                     // VR marker (a separate Android Activity with no
                     // reference to this AppViewModel) updates on a

@@ -343,3 +343,26 @@ Verification passed:
 ~~~
 
 No live Astro WebUI endpoint, mount, camera or hardware was exercised.
+
+### WBS-05.1/08.2 - Astro WebUI status polling
+
+The Mission/Astro workspace now follows the Astro WebUI's visible-tab status
+cadence:
+
+- /api/astro is read every two seconds while the workspace is visible;
+- manual refresh and polling serialize through a shared mutex;
+- leaving the workspace and disconnecting cancel the poller;
+- the Gallery remains an explicit read-only status surface as well.
+
+The UI shows the active mode, source session/request fields and an explicit
+mount-telemetry authority note. Polling performs only bounded GET reads and
+does not enter/leave Astro mode, change tracking, move the mount or claim
+alignment completion.
+
+Verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiStatusTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+~~~
+
+No live Astro WebUI endpoint, mount, camera or hardware was exercised.

@@ -7,7 +7,9 @@ import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.Connection
 import dev.openpolaris.core.domain.MountSession
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -67,6 +69,46 @@ class AppViewModelAstroWebUiStatusTest {
             val state = assertIs<AstroWebUiStatusState.Ready>(vm.astroWebUiStatus)
             assertEquals(true, state.status.active)
         } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun visibleAstroStatusPollingUsesTheSourceTwoSecondCadenceAndStops() = runTest {
+        val client = FakeStatusClient()
+        val vm = AppViewModel(
+            scope = this,
+            connectionFactory = { NoopConnection() },
+            astroWebUiStatusClient = client,
+        )
+        val session = MountSession(
+            connectionFactory = { NoopConnection() },
+            host = "192.168.0.1",
+            port = 9090,
+            readerScope = this,
+        )
+        vm.testInstallSession(session)
+
+        try {
+            vm.startAstroWebUiStatusPolling()
+            runCurrent()
+            assertEquals(1, client.calls)
+
+            advanceTimeBy(1_999L)
+            runCurrent()
+            assertEquals(1, client.calls)
+
+            advanceTimeBy(1L)
+            runCurrent()
+            assertEquals(2, client.calls)
+
+            vm.stopAstroWebUiStatusPolling()
+            advanceTimeBy(4_000L)
+            runCurrent()
+            assertEquals(2, client.calls)
+        } finally {
+            vm.stopAstroWebUiStatusPolling()
             vm.disconnect()
             vm.preview.shutdown()
         }

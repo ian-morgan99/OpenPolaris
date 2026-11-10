@@ -1541,6 +1541,8 @@ class AppViewModel(
         astroMediaExportState = AstroMediaExportState.Idle
         astroWebUiStatusJob?.cancel()
         astroWebUiStatusJob = null
+        astroWebUiStatusPollJob?.cancel()
+        astroWebUiStatusPollJob = null
         astroWebUiStatus = AstroWebUiStatusState.Idle
         astroWebUiSiteJob?.cancel()
         astroWebUiSiteJob = null
@@ -3573,11 +3575,13 @@ class AppViewModel(
     private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
     private var astroMediaJob: Job? = null
     private var astroWebUiStatusJob: Job? = null
+    private var astroWebUiStatusPollJob: Job? = null
     private var astroWebUiSiteJob: Job? = null
     private var astroWebUiProgrammeJob: Job? = null
     private var astroWebUiProgrammePollJob: Job? = null
     private var astroWebUiProgrammeControlJob: Job? = null
     private var astroWebUiProgrammeStartJob: Job? = null
+    private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiProgrammeReadMutex = Mutex()
     private var astroMediaExportJob: Job? = null
 
@@ -3605,33 +3609,68 @@ class AppViewModel(
         }
     }
 
-    fun refreshAstroWebUiStatus() {
-        astroWebUiStatusJob?.cancel()
-        astroWebUiStatusJob = scope.launch {
+    private suspend fun readAstroWebUiStatus(announce: Boolean) {
+        astroWebUiStatusReadMutex.withLock {
             if (!FeatureFlags.isEnabled("astroWebUiStatus")) {
                 astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
-                return@launch
+                return@withLock
             }
             if (session == null) {
-                astroWebUiStatus = AstroWebUiStatusState.Failed("Connect to a mount before reading its Astro WebUI status")
-                return@launch
+                astroWebUiStatus = AstroWebUiStatusState.Failed(
+                    "Connect to a mount before reading its Astro WebUI status",
+                )
+                return@withLock
             }
             astroWebUiStatus = AstroWebUiStatusState.Loading
             when (val result = astroWebUiStatusClient.read(host, previewPort)) {
                 is AstroWebUiStatusResult.Success -> {
                     astroWebUiStatus = AstroWebUiStatusState.Ready(result.status)
-                    statusMessage = if (result.status.active) {
-                        "Astro WebUI reports Astro mode active"
-                    } else {
-                        "Astro WebUI reports Astro mode inactive"
+                    if (announce) {
+                        statusMessage = if (result.status.active) {
+                            "Astro WebUI reports Astro mode active"
+                        } else {
+                            "Astro WebUI reports Astro mode inactive"
+                        }
                     }
                 }
                 is AstroWebUiStatusResult.Failure -> {
                     astroWebUiStatus = AstroWebUiStatusState.Failed(result.reason)
-                    statusMessage = result.reason
+                    if (announce) statusMessage = result.reason
                 }
             }
         }
+    }
+
+    fun refreshAstroWebUiStatus() {
+        astroWebUiStatusJob?.cancel()
+        astroWebUiStatusJob = scope.launch {
+            readAstroWebUiStatus(announce = true)
+        }
+    }
+
+    /**
+     * Mirror Astro WebUI's visible Astro-tab polling contract: the resident
+     * status is refreshed every two seconds while the mission surface is
+     * visible. The poller performs only GET /api/astro reads and is stopped
+     * with the owning Compose surface.
+     */
+    fun startAstroWebUiStatusPolling() {
+        astroWebUiStatusPollJob?.cancel()
+        if (!FeatureFlags.isEnabled("astroWebUiStatus")) {
+            astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
+            return
+        }
+        astroWebUiStatusPollJob = scope.launch {
+            while (isActive) {
+                readAstroWebUiStatus(announce = false)
+                delay(2_000L)
+            }
+        }
+    }
+
+    fun stopAstroWebUiStatusPolling() {
+        astroWebUiStatusPollJob?.cancel()
+        astroWebUiStatusPollJob = null
     }
 
     fun refreshAstroWebUiSite() {

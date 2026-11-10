@@ -71,6 +71,7 @@ import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
 import dev.openpolaris.core.domain.AstroPrepareInput
 import dev.openpolaris.core.domain.AstroWebUiSiteState
+import dev.openpolaris.core.domain.AstroWebUiStatusState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
 import dev.openpolaris.core.domain.AstroWebUiProgrammeStartState
 import dev.openpolaris.core.domain.AstroWebUiProgrammeState
@@ -570,8 +571,12 @@ fun MissionDashboardPane(
     onAction: ((String) -> Unit)? = null,
 ) {
     DisposableEffect(vm) {
+        vm.startAstroWebUiStatusPolling()
         vm.startAstroWebUiProgrammePolling()
-        onDispose { vm.stopAstroWebUiProgrammePolling() }
+        onDispose {
+            vm.stopAstroWebUiStatusPolling()
+            vm.stopAstroWebUiProgrammePolling()
+        }
     }
     val endpoint = vm.endpointHealth
     val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
@@ -595,6 +600,63 @@ fun MissionDashboardPane(
                 vm = vm,
                 onOpenConnection = onAction?.let { action -> { action("connection") } },
             )
+            HorizontalDivider()
+            Text("Resident Astro WebUI", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = FeatureFlags.isEnabled("astroWebUiStatus"),
+                    onClick = vm::refreshAstroWebUiStatus,
+                ) { Text("Refresh status") }
+            }
+            when (val state = vm.astroWebUiStatus) {
+                AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
+                AstroWebUiStatusState.Loading -> Text("Reading Astro mode...", style = MaterialTheme.typography.labelSmall)
+                is AstroWebUiStatusState.Failed -> Text(
+                    state.reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is AstroWebUiStatusState.Ready -> {
+                    val status = state.status
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (status.active) "Astro mode active" else "Astro mode inactive",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (status.latitudeDeg != null && status.longitudeDeg != null) {
+                            Text(
+                                "Site " + status.latitudeDeg + ", " + status.longitudeDeg,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.trackRequested?.let { requested ->
+                            Text(
+                                "Tracking requested: " + if (requested) "yes" else "no",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.rateIndex?.let { rate ->
+                            Text("Rate index: " + rate, style = MaterialTheme.typography.labelSmall)
+                        }
+                        status.halfSpeed?.let { half ->
+                            Text(
+                                "Half speed: " + if (half) "yes" else "no",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        status.alignmentHeadingDeg?.let { heading ->
+                            Text(
+                                "Alignment heading: " + heading + " deg",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        Text(
+                            "Session/request state only; mount telemetry remains authoritative.",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
             HorizontalDivider()
             Text("Astro mission", style = MaterialTheme.typography.titleMedium)
             AstroMissionFlow.evaluate(

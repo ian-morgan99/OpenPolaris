@@ -741,3 +741,40 @@ the known libandroidx.graphics.path.so strip warning and Gradle 9
 deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
 qualification was performed. This is host-side build evidence, not hardware
 qualification.
+
+
+## Latest committed verification - 7e064f2
+
+Commit under test: 7e064f2 (feat: add gated astro webui site save).
+
+Focused contract and ViewModel verification:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroWebUiSiteControlTest --tests dev.openpolaris.core.config.FeatureFlagsTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiSiteWriteTest --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL; site-write contract, default-off policy, read-site
+and site-write lifecycle tests passed.
+
+Full build command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests
+passed, Android debug Kotlin compilation and APK assembly passed, and the
+Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: a3a0538abe4456d46377adc099e31d5674bebdf5511ad4b9f43146d6cbe683af
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-7e064f2.tar.gz
+  SHA-256: bc120ef0135cee5aaae15474ad6064d134e3ce97f1fe0b12a3ce4e12be104147
+
+Existing warnings remained: Kotlin expect/actual, Java/Android
+deprecations, the known libandroidx.graphics.path.so strip warning and Gradle
+9 deprecation notices. No live mount, camera, Astro WebUI or physical SLOW
+qualification was performed. This is host-side build evidence, not hardware
+qualification.

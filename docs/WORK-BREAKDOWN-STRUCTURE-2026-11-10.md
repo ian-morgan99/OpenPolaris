@@ -52,10 +52,11 @@
 - Each warning links to the next safe action.
 - Exit: a fresh user can explain why an action is disabled without reading logs.
 
-### WBS-01.3 — Responsive layout — P1
+### WBS-01.3 - Responsive layout - P1 - ACTIVE
 
 - Mobile bottom navigation/sheets; tablet master-detail; PC rail/workspace/inspector.
-- Preserve dark adaptation and large touch targets.
+- Preserve dark adaptation and 48 dp touch targets while keeping the visual phone chrome compact.
+- 2026-11-10 progress: phone navigation is now a text-only 48 dp row with no oversized icon slot; the desktop rail remains unchanged. The phone shell also uses tighter 4 dp outer/section spacing. Contract tests cover the responsive selection, stable destinations, overflow and accessibility semantics.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health
@@ -92,9 +93,9 @@
 - Define owner, preemption, stop priority and `OutcomeUnknown` states.
 - Exit: simulator proves only one owner drives at a time; emergency stop wins over queued work.
 
-### WBS-03.1  Typed motion arbitration  P0  ACTIVE (SLOW owner wired)
+### WBS-03.1 - Typed motion arbitration - P0 - ACTIVE (SLOW owner wired)
 
-- **2026-11-10  WBS-03.1 progress:** SlowMotionController now accepts the
+- **2026-11-10 - WBS-03.1 progress:** SlowMotionController now accepts the
   shared MotionSupervisor. Demo SLOW acquires MotionOwner.SLOW_MOVE, is
   blocked by an active GoTo/fast-jog/programme owner, routes emergency/release/
   disconnect stops through the shared stop boundary, and uses lease-scoped

@@ -2383,3 +2383,30 @@ This is source/package evidence only. Auxiliary camera values are displayed as
 read-only source evidence; camera writes, named-camera M/B lifecycle/file
 publication, station LAN, phone Bluetooth and physical SLOW qualification
 remain unverified.
+
+
+## Latest committed verification - f61de35
+
+Commit under test: f61de35 (fix: compact mobile navigation and release cadence).
+
+Focused verification passed:
+
+~~~text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --tests dev.openpolaris.ui.RollingReleaseWorkflowContractTest :composeApp:compileKotlinJvm --rerun-tasks --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew --stop
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 0e326d22cba2f340992a0119ed27011ced5ac9ffce9dde05c74fdc188cb9454d
+
+The source/package result is ready for a phone UI check. Physical mount,
+camera, Bluetooth, Astro WebUI lifecycle, and live SLOW qualification remain
+separate evidence gates.

@@ -1351,3 +1351,20 @@ Focused tests and the full cross-platform build passed. The adapter is source-al
 Commit 99c1fb5 adds a session-owned, explicit read-only refresh for the source-aligned task-3 camera values: image format, control mode, exposure time and interval type. The Camera workspace shows their values and age, while the simulator and ownership tests exercise the exact query shapes. No write route was opened, and a disconnect cancels the refresh before it can publish into a replacement session.
 
 Focused and full cross-platform verification passed. Physical camera behaviour and M/B capture evidence remain open.
+
+
+### WBS-01.3/09.1 - Compact mobile navigation and release cadence
+
+Commit f61de35 replaces the phone NavigationBar icon-and-label stack with a
+single 48 dp text-only destination row. Mission, Control, Camera, Astro and
+More retain stable test tags, selected-state semantics and the same overflow
+actions, while the phone shell uses 4 dp outer/section spacing to recover
+workspace height. The desktop rail is unchanged.
+
+The rolling GitHub release remains available on pushes to main and by manual
+dispatch, but the scheduled weekly trigger was removed at the user's request.
+This keeps phone-test releases tied to deliberate changes or an explicit
+dispatch.
+
+Focused contract tests and the full cross-platform build passed. Android debug
+APK SHA-256: 0e326d22cba2f340992a0119ed27011ced5ac9ffce9dde05c74fdc188cb9454d.

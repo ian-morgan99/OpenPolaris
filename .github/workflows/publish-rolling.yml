@@ -87,9 +87,16 @@ jobs:
           test -f "${APK}" || { echo "::error::APK not found at ${APK}"; exit 1; }
           SIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
           "$SIGNER" verify --verbose --print-certs "${APK}"
+          # Keep the artifact digest distinct from the signing certificate
+          # digest. Phone-test users need the former to verify the downloaded
+          # APK byte-for-byte; the latter identifies the signing key.
+          sha256sum "${APK}" > apk-sha256.txt
           "$SIGNER" verify --print-certs "${APK}" \
-            | awk -F': *' '/SHA-256 digest/ {print $2}' | head -1 > apk-sha256.txt
-          echo "APK SHA-256: $(cat apk-sha256.txt)"
+            | awk -F': *' '/certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
+          test -s apk-sha256.txt
+          test -s apk-signer-sha256.txt
+          echo "APK SHA-256: $(cut -d' ' -f1 apk-sha256.txt)"
+          echo "Signer SHA-256: $(cat apk-signer-sha256.txt)"
 
       - name: Move rolling tag to this commit
         run: |
@@ -107,6 +114,7 @@ jobs:
           files: |
             androidApp/build/outputs/apk/release/androidApp-release.apk
             apk-sha256.txt
+            apk-signer-sha256.txt
 
   windows:
     name: Build Windows installer (rolling)

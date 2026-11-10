@@ -814,3 +814,7 @@ The current implementation slice must not send a new motor frame, alter firmware
   cancellation propagation for both apply and stop, alongside the existing
   stale, lease, half-speed and unknown-result tests. The full cross-platform
   build passed.
+
+
+- **2026-11-10 - WBS-03.7/03.5 ACTIVE (fine-rate solve-evidence gate):** extended the SafeRateAdjustController policy boundary so fine correction requires a fresh solve, minimum confidence and bounded field rotation in addition to capability qualification, tracking confirmation, half-speed exclusion and exclusive motion ownership. Default policy values are 5000 ms, 0.6 confidence and 5 degrees; these are safety-policy defaults, not hardware qualification claims. Missing, invalid, stale or unsafe evidence is rejected before transport, and an active correction becomes stale if the context later loses the gate.
+- **2026-11-10 - verification:** added stale-solve, low-confidence and rotated-solve transport-isolation tests; focused fine-rate tests and full cross-platform build passed. No live solve, Bluetooth, mount or physical SLOW operation was exercised.

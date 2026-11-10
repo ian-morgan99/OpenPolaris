@@ -1338,3 +1338,32 @@ Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
 the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
 notices. Host/package evidence only; no live Astro WebUI, Bluetooth, bridge,
 camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - 64d0460
+
+Commit under test: 64d0460 (feat: gate fine rate on solve evidence).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.RateAdjustControllerTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: 05e2dbf1d6d6e9885dd6491ee31e0c2b81244b4f67dffe91ff69dfcd935afb1d
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-64d0460.tar.gz
+  SHA-256: f7c9c4ca260b75e44419eaecea6d0c52983fbdd58a5180cb77fbadd1bd083377
+
+Existing warnings remain: Kotlin expect/actual, Java/Android deprecations,
+the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation
+notices. This is host/package evidence only; no live solve, Astro WebUI,
+Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.

@@ -1232,3 +1232,16 @@ bounds, tracking context, ownership and physical stop evidence are supplied.
 No live rate transport was enabled.
 
 Focused and full cross-platform verification passed.
+
+
+### WBS-03.7/03.5 — Fine-rate solve-evidence gate
+
+Commit 64d0460 extends the existing SafeRateAdjustController boundary with explicit plate-solve evidence:
+
+- correction requires solve age, confidence and field rotation values;
+- default policy rejects solves older than 5000 ms, below 0.6 confidence or beyond 5 degrees of field rotation;
+- absent, negative, non-finite and otherwise unsafe evidence is rejected before the transport is called;
+- context changes while active transition the correction to Stale, requiring explicit stop/recovery;
+- these values are policy defaults for safe integration and are not claims of hardware qualification.
+
+Focused fine-rate tests and the full cross-platform build passed. No live solve, Bluetooth, mount or physical SLOW qualification was performed.

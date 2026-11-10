@@ -744,3 +744,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-02.1/02.3/08.2 ACTIVE (Astro WebUI control-link telemetry):** added bounded read-only `/api/link` parsing for link phase, wanted state, connect/drop/RX/TX/parse/eviction counters, last-frame age, error and capped opcode snapshots. Connection presents this as resident Astro server evidence and keeps it separate from Bluetooth wake, PC bridge and native motion ownership.
 - **2026-11-10 - verification:** AstroWebUiLinkTest, AppViewModelAstroWebUiLinkTest, FeatureFlagsTest and Compose JVM compilation passed. No live Astro server, Bluetooth, bridge or mount operation was exercised.
+
+
+- **2026-11-10 - WBS-05.2/09.1 ACTIVE (mobile compass rehearsal):** added an optional Android rotation-vector compass source and Mission controls to read a local heading, display it and copy it into the manual Astro alignment field. The source is lifecycle-stopped, desktop remains manual-entry only, and no sensor reading can send a mount command; compass alignment remains behind its existing default-off qualification gate.
+- **2026-11-10 - verification:** Compose JVM tests, Compose JVM compilation and Android debug Kotlin compilation passed. No physical sensor accuracy, magnetic interference, alignment or mount operation was qualified.

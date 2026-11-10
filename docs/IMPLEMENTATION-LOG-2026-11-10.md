@@ -1143,3 +1143,7 @@ exercised.
 
 - **2026-11-10 - WBS-02.1/02.3/08.2 ACTIVE (Astro link telemetry):** implemented a bounded `/api/link` read client with strict phase/counter/age validation, dynamic numeric opcode parsing capped at 256 entries, dedicated preview-port routing and session-safe ViewModel refresh. The Connection workspace shows counters, last error and a small opcode snapshot without offering raw link-send or motion bypasses.
 - **2026-11-10 - verification:** focused parser, feature-policy, ViewModel lifecycle and Compose compilation tests passed. No live Astro WebUI, Bluetooth, bridge, mount or physical SLOW qualification was performed.
+
+
+- **2026-11-10 - WBS-05.2/09.1 ACTIVE (mobile compass rehearsal):** implemented a lifecycle-stable Android rotation-vector source injected through the common app shell. Mission exposes Read phone compass and Use reading actions while preserving manual input, local-only state and the default-off Astro alignment write gate; desktop has an explicit unavailable/manual path.
+- **2026-11-10 - verification:** Compose JVM tests, Compose JVM compilation and Android debug Kotlin compilation passed. No physical compass accuracy or mount alignment was exercised.

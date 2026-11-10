@@ -1128,3 +1128,33 @@ Artifacts:
   SHA-256: 4a2214c94184c56a4b28ff7e54c5e6fa8fdd3d503661c2b56495d0fa156d00d7
 
 Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No live Astro WebUI, Bluetooth, bridge, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.
+
+
+## Latest committed verification - 54a5fe9
+
+Commit under test: 54a5fe9 (feat: add mobile compass rehearsal).
+
+Focused mobile-compass verification:
+
+~~~text
+./gradlew :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :composeApp:jvmTest --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL; shared UI tests, Compose JVM compilation and Android debug Kotlin compilation passed.
+
+Full build command:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Result: BUILD SUCCESSFUL (103 actionable tasks). Shared and Compose JVM tests passed, Android debug Kotlin compilation and APK assembly passed, and the Linux x64 desktop distributable was created.
+
+Artifacts:
+
+- Android debug APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+  SHA-256: d328b040c850bb507e9bbcbb2ce0a0a940e0cdfab11f04a226a80f2066771e6c
+- Linux x64 desktop archive: /tmp/OpenPolaris-linux-x64-54a5fe9.tar.gz
+  SHA-256: a3cf9792be46d2ede74a42df303e8b8c5cf16c4f5e1efbfa676e5b2ba789f452
+
+Existing warnings remained: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. No physical compass accuracy, live Astro WebUI, alignment, Bluetooth, bridge, mount or physical SLOW qualification was performed. This is host-side build evidence, not hardware qualification.

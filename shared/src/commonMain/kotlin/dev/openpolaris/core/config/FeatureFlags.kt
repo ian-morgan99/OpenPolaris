@@ -117,6 +117,8 @@ object FeatureFlags {
 
     /** Optional read-only Astro WebUI media index, thumbnails and full JPEG fetches. */
     const val astroWebUiMedia: Boolean = true
+    /** Astro WebUI 264 M/B dispatch; queue-only until lifecycle/file qualification. */
+    const val astroWebUiCapture: Boolean = false
 
     /** Delete / rename / protect are gated separately so a user can browse
      *  files without exposing the destructive actions. */
@@ -227,6 +229,7 @@ object FeatureFlags {
         "ditherAdvanced" -> ditherAdvanced
         "fileManager" -> fileManager
         "astroWebUiMedia" -> astroWebUiMedia
+        "astroWebUiCapture" -> astroWebUiCapture
         "fileManagerReadOnly" -> fileManagerReadOnly
         "fileManagerMutate" -> fileManagerMutate
         "fileManagerFormat" -> fileManagerFormat

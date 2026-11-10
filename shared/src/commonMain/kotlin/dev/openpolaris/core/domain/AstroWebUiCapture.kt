@@ -4,6 +4,7 @@ package dev.openpolaris.core.domain
 sealed interface AstroWebUiCaptureResult {
     /** The HTTP bridge accepted one 264 write; lifecycle/file evidence is still pending. */
     data class Queued(val mode: CameraReleaseMode, val command: Int) : AstroWebUiCaptureResult
+    data class Stopped(val command: Int) : AstroWebUiCaptureResult
     data class Failed(val reason: String) : AstroWebUiCaptureResult
 }
 
@@ -73,6 +74,30 @@ class AstroWebUiCaptureClient(
         return AstroWebUiCaptureResult.Queued(mode, AstroCaptureContract.CAPTURE_CODE)
     }
 
+    suspend fun stop(host: String, port: Int): AstroWebUiCaptureResult {
+        if (!AstroMediaPolicy.isSafeHost(host, port)) {
+            return AstroWebUiCaptureResult.Failed("Astro WebUI host is invalid")
+        }
+        val response = transport.post(
+            AstroWebUiCaptureHttpRequest(
+                host = host,
+                port = port,
+                path = "/api/link/send",
+                contentType = "application/x-www-form-urlencoded",
+                body = "cmd=264&args=${formEncode("state:0;bulb:0;c:-1;")}&confirm=1",
+            ),
+        )
+        if (response.error != null) return AstroWebUiCaptureResult.Failed(response.error)
+        if (response.statusCode !in 200..299) {
+            return AstroWebUiCaptureResult.Failed("Astro WebUI link/send HTTP ${response.statusCode}")
+        }
+        val body = response.body.decodeToString()
+        if (!body.contains("\"ok\":true") || !body.contains("\"cmd\":264")) {
+            return AstroWebUiCaptureResult.Failed("Astro WebUI did not acknowledge the 264 stop write")
+        }
+        return AstroWebUiCaptureResult.Stopped(AstroCaptureContract.CAPTURE_CODE)
+    }
+
     private fun formEncode(value: String): String = buildString {
         value.forEach { character ->
             if (character.isLetterOrDigit() || character == '-' || character == '_' || character == '.' || character == '~') {
@@ -84,3 +109,7 @@ class AstroWebUiCaptureClient(
         }
     }
 }
+
+expect fun createAstroWebUiCaptureClient(): AstroWebUiCaptureClient
+
+internal const val ASTRO_CAPTURE_ACK_MAX_BYTES: Long = 64L * 1024L

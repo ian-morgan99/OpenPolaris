@@ -1190,6 +1190,38 @@ fun CameraPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     OutlinedButton(onClick = vm::stopBulb) { Text("Stop Bulb") }
                 }
             }
+            HorizontalDivider()
+            Text("Astro WebUI shutter", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Optional source-aligned resident WebUI route. HTTP acceptance is only queue evidence; the same lifecycle + file evidence gate decides completion.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            if (!FeatureFlags.isEnabled("astroWebUiCapture")) {
+                Text(
+                    "Disabled until Astro WebUI M/B lifecycle and named-firmware qualification is complete.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val astroActive = vm.astroWebUiCaptureActive
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { vm.captureAstroWebUi(CameraReleaseMode.MANUAL) },
+                        enabled = !astroActive && !inFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.MANUAL,
+                    ) { Text("Astro M") }
+                    Button(
+                        onClick = { vm.captureAstroWebUi(CameraReleaseMode.BULB, bulbSecondsText.toIntOrNull() ?: 0) },
+                        enabled = !astroActive && !inFlight && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
+                    ) { Text("Astro B") }
+                    if (vm.astroWebUiBulbActive) {
+                        OutlinedButton(onClick = vm::stopAstroWebUiBulb) { Text("Stop Astro B") }
+                    }
+                }
+                vm.astroWebUiCaptureStatus?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
             // §6: client-driven capture sequence (intervalometer). The engine
             // fires one shutter per shot at the planned interval; each shot is
             // confirmed by the capture-event observer correlating the 264

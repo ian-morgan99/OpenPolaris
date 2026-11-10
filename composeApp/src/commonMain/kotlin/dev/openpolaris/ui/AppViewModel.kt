@@ -11,6 +11,8 @@ import dev.openpolaris.core.domain.AstroMediaListResult
 import dev.openpolaris.core.domain.AstroMediaPreview
 import dev.openpolaris.core.domain.AstroMediaState
 import dev.openpolaris.core.domain.AstroMediaTransferKind
+import dev.openpolaris.core.domain.AstroWebUiCaptureClient
+import dev.openpolaris.core.domain.AstroWebUiCaptureResult
 import dev.openpolaris.core.domain.AstroWebUiMediaClient
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
@@ -79,6 +81,7 @@ import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
+import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -204,6 +207,7 @@ class AppViewModel(
     private val previewTransportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     private val previewIoDispatcher: CoroutineDispatcher? = null,
     private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
+    private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -1459,6 +1463,9 @@ class AppViewModel(
         pendingCapturePublication = null
         lastCapturePublication = null
         captureTimeline = emptyList()
+        astroWebUiCaptureActive = false
+        astroWebUiBulbActive = false
+        astroWebUiCaptureStatus = null
         fileList = null
         astroMediaJob?.cancel()
         astroMediaJob = null
@@ -1683,6 +1690,8 @@ class AppViewModel(
         pendingCapturePublication?.let { lastCapturePublication = it }
         pendingCapturePublication = null
         appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file evidence")
+        astroWebUiCaptureActive = false
+        astroWebUiBulbActive = false
         captureWatchdogJob = null
         // §6: while a sequence or observation programme is driving captures,
         // this correlated completion releases the current step without
@@ -3538,6 +3547,122 @@ class AppViewModel(
                     astroMediaState = AstroMediaState.Failed(result.reason)
                     statusMessage = result.reason
                 }
+            }
+        }
+    }
+
+    /** True while a feature-gated Astro WebUI shutter is awaiting evidence. */
+    var astroWebUiCaptureActive by mutableStateOf(false)
+        private set
+    var astroWebUiBulbActive by mutableStateOf(false)
+        private set
+    var astroWebUiCaptureStatus by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Dispatch one Astro WebUI M/B release through the resident HTTP bridge.
+     * The feature is deliberately separate from native capture: a positive
+     * HTTP result only queues 264, so the shared capture evidence observer and
+     * watchdog remain the sole completion authority.
+     */
+    fun captureAstroWebUi(mode: dev.openpolaris.core.domain.CameraReleaseMode, bulbSeconds: Int = 0) {
+        if (!FeatureFlags.isEnabled("astroWebUiCapture")) {
+            astroWebUiCaptureStatus = "Astro WebUI shutter is disabled until lifecycle qualification"
+            statusMessage = astroWebUiCaptureStatus.orEmpty()
+            return
+        }
+        if (session == null || cameraController == null) {
+            statusMessage = "Connect a mount and camera before using Astro WebUI capture"
+            return
+        }
+        if (!cameraAttachmentAllowsCommand()) return
+        val observed = camera.shutterIndex?.let { camera.shutterOptions.getOrNull(it)?.trim() }
+        val observedMode = dev.openpolaris.core.domain.CameraReleaseMode.fromOption(observed)
+        if (observedMode != mode) {
+            statusMessage = "Astro WebUI capture requires verified ${mode.label} readback (observed ${observedMode.label})"
+            return
+        }
+        if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB && bulbSeconds <= 0) {
+            statusMessage = "Bulb duration must be positive"
+            return
+        }
+        if (videoRecording == true) {
+            statusMessage = "Stop video before an Astro WebUI still"
+            return
+        }
+        if (sequenceActive || observationProgrammeActive) {
+            statusMessage = "Capture programme in progress — stop it before a single shot"
+            return
+        }
+        val phase = capturePhase
+        if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
+            statusMessage = "Capture in progress — wait for it to finish"
+            return
+        }
+        scope.launch {
+            capturePhase = CapturePhase.Requested
+            captureEvidence.begin()
+            pendingCapturePublication = null
+            astroWebUiCaptureActive = false
+            astroWebUiBulbActive = false
+            beginCaptureTimeline("Astro WebUI ${mode.label} release queued")
+            suspendCaptureWorkloads()
+            when (val result = astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)) {
+                is AstroWebUiCaptureResult.Queued -> {
+                    astroWebUiCaptureActive = true
+                    astroWebUiBulbActive = mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB
+                    astroWebUiCaptureStatus = "HTTP bridge accepted 264; waiting for camera lifecycle and file evidence"
+                    statusMessage = astroWebUiCaptureStatus.orEmpty()
+                    captureWatchdogJob?.cancel()
+                    captureWatchdogJob = scope.launch {
+                        delay(if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB) {
+                            maxOf(CAPTURE_TIMEOUT_MS, bulbSeconds * 1000L + 15_000L)
+                        } else CAPTURE_TIMEOUT_MS)
+                        if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
+                            val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle and/or 773 file evidence is missing"
+                            captureEvidence.unknown(reason)
+                            capturePhase = CapturePhase.OutcomeUnknown(reason)
+                            astroWebUiCaptureActive = false
+                            astroWebUiBulbActive = false
+                            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
+                            statusMessage = "Astro WebUI outcome unknown — check the card before another shutter"
+                        }
+                    }
+                }
+                is AstroWebUiCaptureResult.Failed -> {
+                    captureEvidence.fail(result.reason)
+                    capturePhase = CapturePhase.Failed(result.reason)
+                    astroWebUiCaptureStatus = "Astro WebUI dispatch failed: ${result.reason}"
+                    appendCaptureTimeline(CaptureTimelineStage.FAILED, result.reason)
+                    statusMessage = astroWebUiCaptureStatus.orEmpty()
+                    restoreCaptureWorkloads()
+                }
+                is AstroWebUiCaptureResult.Stopped -> Unit
+            }
+        }
+    }
+
+    fun stopAstroWebUiBulb() {
+        if (!astroWebUiBulbActive) {
+            statusMessage = "No Astro WebUI Bulb capture is active"
+            return
+        }
+        scope.launch {
+            when (val result = astroWebUiCaptureClient.stop(host, previewPort)) {
+                is AstroWebUiCaptureResult.Stopped -> {
+                    astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for file evidence"
+                    statusMessage = astroWebUiCaptureStatus.orEmpty()
+                }
+                is AstroWebUiCaptureResult.Failed -> {
+                    val reason = "Astro WebUI Bulb stop failed: ${result.reason}"
+                    captureEvidence.unknown(reason)
+                    capturePhase = CapturePhase.OutcomeUnknown(reason)
+                    astroWebUiCaptureActive = false
+                    astroWebUiBulbActive = false
+                    appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
+                    statusMessage = "Astro WebUI stop outcome unknown — check the card"
+                }
+                is AstroWebUiCaptureResult.Queued -> Unit
             }
         }
     }

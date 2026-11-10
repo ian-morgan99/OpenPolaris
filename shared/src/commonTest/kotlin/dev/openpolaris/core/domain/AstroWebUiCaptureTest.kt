@@ -48,6 +48,19 @@ class AstroWebUiCaptureTest {
     }
 
     @Test
+    fun bulbStopUsesTheExplicitStateZeroEdge() = runTest {
+        val transport = RecordingTransport(
+            AstroWebUiHttpResponse(200, "application/json", "{\"ok\":true,\"cmd\":264}".encodeToByteArray()),
+        )
+        val result = AstroWebUiCaptureClient(transport).stop("192.168.0.1", 8080)
+        assertIs<AstroWebUiCaptureResult.Stopped>(result)
+        assertEquals(
+            "cmd=264&args=state%3A0%3Bbulb%3A0%3Bc%3A-1%3B&confirm=1",
+            transport.requests.single().body,
+        )
+    }
+
+    @Test
     fun invalidModesAndDurationsNeverReachTransport() = runTest {
         val transport = RecordingTransport(
             AstroWebUiHttpResponse(200, "application/json", "{\"ok\":true,\"cmd\":264}".encodeToByteArray()),

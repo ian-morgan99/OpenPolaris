@@ -1480,3 +1480,29 @@ Artifacts:
   SHA-256: `939bb0dc24bff383400060552d390268692bb871e5e97b95f6e4f06920c0e357`
 
 Existing warnings remain: Kotlin expect/actual, Java/Android deprecations, the known libandroidx.graphics.path.so strip warning and Gradle 9 deprecation notices. These are host/package checks only; no live fine-rate, solve, Bluetooth, bridge, camera, mount or physical SLOW qualification was exercised.
+
+
+## Latest committed verification - 570ac1a
+
+Commit under test: `570ac1a` (`feat: wire gated slow transport seam`).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.QualifiedSlowMotionTransportTest :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelFineRateDemoTest --tests dev.openpolaris.ui.AppViewModelFastJogTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Full cross-platform verification passed:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Artifacts:
+
+- Android debug APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+  SHA-256: `19105a27efc49ce8bb4361c7bbe42a443133c554d001b50921e2b4f356eee10b`
+- Linux x64 desktop archive: `/tmp/OpenPolaris-linux-x64-570ac1a.tar.gz`
+  SHA-256: `f5649eb036afa8b528139e39e387a86101667e28dddb5f05a33e5416325d2835`
+
+No live SLOW command, Bluetooth, bridge, camera, mount or physical stop qualification was exercised.

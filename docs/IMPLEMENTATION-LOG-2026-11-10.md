@@ -1290,3 +1290,10 @@ Commit `ea3436c` adds a Demo-only fine-rate interaction to make the safety contr
 - The simulator transport has no `MountSession` and emits no 532/533/534 or AC 4A frame.
 
 This is a rehearsal of UI/state/ownership behavior, not a live rate qualification.
+
+
+### WBS-03.5/03.6 — Qualification-gated SLOW runtime seam
+
+Commit `570ac1a` wires `QualifiedSlowMotionTransport` into the common SLOW controller without weakening the gate. The adapter dispatches source-aligned frames through the session's serialized `sendOnly` path only when the immutable capability record is live-ready; otherwise the existing Demo-only logical transport remains selected. Shared `MotionSupervisor` stop handling now selects the same transport, preserving release, emergency and disconnect boundaries.
+
+This makes the runtime route installable from one evidence-backed capability record while retaining the current hard-disabled live UX.

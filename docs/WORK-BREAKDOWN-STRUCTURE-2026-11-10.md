@@ -9,10 +9,10 @@
 | ID | Work package | Primary outcome | Depends on | Status |
 |---|---|---|---|---|
 | WBS-00 | Product contract and evidence ledger | Plan, capability vocabulary, UX invariants, provenance rules | — | DONE |
-| WBS-01 | Shared app shell and responsive mission UX | Mobile/tablet/PC information architecture and status chrome | WBS-00 | PLANNED |
-| WBS-02 | Connection, session and health | Direct AP, BT wake, PC bridge, LAN, reconnect and truthful health | WBS-00 | PLANNED |
+| WBS-01 | Shared app shell and responsive mission UX | Mobile/tablet/PC information architecture and status chrome | WBS-00 | ACTIVE |
+| WBS-02 | Connection, session and health | Direct AP, BT wake, PC bridge, LAN, reconnect and truthful health | WBS-00 | ACTIVE |
 | WBS-03 | Motion ownership and slow-motion control | Fast jog, SLOW manual motion, fine-rate seam, safety arbitration | WBS-00 | ACTIVE |
-| WBS-04 | Camera and capture workspace | Dynamic camera controls, preview, M/B capture and file lifecycle | WBS-02 | PLANNED |
+| WBS-04 | Camera and capture workspace | Dynamic camera controls, preview, M/B capture and file lifecycle | WBS-02 | ACTIVE |
 | WBS-05 | Astro mission workflow | Prepare, align, track, target, solve, guide and recover | WBS-01,WBS-02,WBS-03,WBS-04 | PLANNED |
 | WBS-06 | Observation programmes | Lapse, panorama, HDR, focus stack, PLC/path-lapse, solar workflows | WBS-04,WBS-05 | PLANNED |
 | WBS-07 | Gallery and export | Safe media browse, thumbnails, full files and transfer | WBS-04 | PLANNED |
@@ -268,13 +268,14 @@
 
 ## Execution order now
 
-The first implementation slice is deliberately safe and useful:
+The implementation sequence is deliberately incremental:
 
-1. commit this plan and WBS;
-2. add the abstract rate-control state/request/capability seam and deterministic tests;
-3. add the disabled Fine correction and Slow motion presentation with explicit feature gates;
-4. build the pure SLOW planner/scheduler and MotionSupervisor around motion ownership;
-5. implement the shared mission/connection state model before wiring the remaining Astro WebUI surfaces.
+1. commit the product plan and WBS;
+2. establish the abstract rate-control, SLOW planner/scheduler, motion ownership and disabled Motion UX seams;
+3. establish typed endpoint health, mission readiness and truthful Bluetooth/bridge route states;
+4. enforce camera attachment evidence and single-owner preview lifecycle before expanding camera workflows;
+5. continue with dynamic camera parity, Astro mission steps, programmes, gallery and interoperability;
+6. qualify live motor/camera behaviour only against named firmware, hardware and physical evidence.
 
 The current implementation slice must not send a new motor frame, alter firmware, alter network configuration or claim hardware support.
 
@@ -309,4 +310,4 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — verification:** Compose JVM tests passed before and after the camera-admission regression coverage; tests prove no 264 shutter command is emitted for unknown status, explicit absence, M/B, or sequence admission.
 - **2026-11-10 — WBS-02.3 ACTIVE (preview ownership):** Preview now has one explicit workflow owner and one frame collector; repeated entry is idempotent, leaving releases the stream, and capture suspension only restores a preview that the user actually owned.
 - **2026-11-10 — verification:** preview-port tests passed with repeated-entry and leave/re-entry assertions; no new endpoint or hardware side effect was introduced.
-- **Next:** add explicit session ownership/readiness controls for camera and preview, then begin the camera workspace parity pass.
+- **Next:** begin the dynamic camera capability/readback workspace pass, retaining the camera-admission and preview-ownership gates.

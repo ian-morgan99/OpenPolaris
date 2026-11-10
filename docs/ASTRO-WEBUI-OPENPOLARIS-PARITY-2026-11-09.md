@@ -11,7 +11,7 @@ issues, or hardware outside OpenPolaris were changed.
 
 | Item | Snapshot | Evidence |
 |---|---|---|
-| OpenPolaris | `main` at `cf0865a2dac4e7a2d5492f32578e70bedc47f71a` | Current local checkout; JVM tests passed for the capture/Bluetooth consolidation. |
+| OpenPolaris | `main` at `4b2c670ea6ee0f19f4121fc8711d39b3eb6d33a3` | Current local checkout; JVM tests passed for the capture/Bluetooth consolidation. |
 | Astro WebUI source checkout | `/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher`, branch `archive/wip-20261103-v94-audit`, HEAD `032651dc1ce21e39efe0cc023bd45fbaafe557d7` | Source checkout was dirty with unrelated WIP; it was not edited. |
 | WebUI client | `container/astro/webui/index.html`, `app.js`, `app.css` | Source-verified at the snapshot above; the last commit touching the WebUI is `f593d918fcb5d8f47782b166a7083f4e560b4944` (`webui: reconcile camera writes instead of assuming they landed`). |
 | WebUI server | `container/astro/polaris-httpd.c` | Source-verified; embeds the WebUI assets and exposes the `/api/*` routes. |
@@ -59,7 +59,7 @@ equivalent.
 | Camera identity, battery, card status, mount pose | `app.js`: `paintStatus`, `paintMount`; 286/778/775/518/284 | Firmware telemetry and camera attachment | `CameraPane`, `AppViewModel.cameraAttachment`, battery/SD/device fields | Mostly implemented | Consolidate telemetry age/unknown rendering and expose the same safe status set in a capability registry | All | P0/P3 | Source; OpenPolaris post-connect burst | Simulator response fixtures; live model matrix |
 | Camera exposure option reads | `app.js`: `fetchExposure`, `parseOptions`; 268/275/265/267/266 | Camera-provided option lists; indices are body-specific | `CameraController`, `CameraPane`, `AppViewModel.refreshCamera` | Implemented but qualification-gated | Keep dynamic option lists and the explicit qualification gate; do not advertise unsupported fields | All | P3 | Source; Benro Connect-derived `Codes.BenroCamera`; K-1 II/K-3 III evidence | Existing controller tests plus camera-specific physical matrix |
 | Camera exposure writes and read-back | `app.js`: `wireExposure`, `reconcileExposure`; 261/276/258/260/259 | Explicit `ret`, delayed replies, `-2110` retry/read-back behavior | `CameraController.qualifyBenroSetting`, `AppViewModel.setIso/setWb/setFNum/setEv` | Stronger client contract exists; UI remains gated | Reuse per-field verification and surface retry/timeout states consistently | All | P3 | Source; WebUI commit `f593d918`; OpenPolaris camera contract tests | Fake delayed/rejected replies; version-bound camera tests |
-| Single still capture | `app.js`: `wireShutter`; 264 with `state:1;bulb:0;c:0;` | Camera record status path; WebUI server policy confirms motion/shutter action | `CameraController.capture`, `AppViewModel.capture`; 264 subtype 4, `state:1;bulb:0;c:-1;` | Intentional contract divergence; not a blind merge | Retain OpenPolaris' evidence-backed subtype-4 path; compare live traces before changing `c` or subtype | All | P3 | Source comparison; OpenPolaris `Codes.CAM_CAPTURE_*`; #60/#81 | Correlated 264 lifecycle plus non-empty 773 file event; hardware required |
+| Single still capture | `app.js`: `wireShutter`; currently 264 with `state:1;bulb:0;c:0;` | Camera record-status path; `/api/link/send` supplies subtype 2 and only acknowledges write/queue | `CameraController.capture`, `AppViewModel.capture`; direct 264 subtype 4, `state:1;bulb:0;c:-1;` | Astro WebUI payload is not source-equivalent and its UI acknowledgement is too weak | A source-compatible Astro route is subtype 2 with `c:-1`. Keep OpenPolaris' separately live-qualified subtype-4 direct route until same-firmware A/B evidence exists; never auto-fallback after an ambiguous shot | All | P3 | Benro Connect decompile; Astro source; OpenPolaris K-3 III trace; #60/#81 | One request, correlated 264 lifecycle, non-empty 773 path, terminal idle; hardware required |
 | Video record toggle | `app.js`: `wireShutter`; 263 | Camera video-record status | No first-class equivalent in the basic OpenPolaris camera pane | Gap | Add only after 263 payload/ack/file semantics are version-bound | All | P3 | Source; existing issue #63/#81 scope | Golden wire tests, then camera matrix |
 | Timed Bulb and explicit stop | `app.js`: capture controls plus 264 policy; server-side programme paths | 264 state/bulb/c; camera owns exposure duration; stop/reconcile semantics vary | `CameraController.captureBulb/stopBulb`, `AppViewModel.captureBulb/stopBulb` | Implemented with stricter safety, not fully qualified | Keep preflight, explicit stop, bounded watchdog, and `OutcomeUnknown`; never add a competing 299 write without evidence | All | P3 | Source; OpenPolaris issue #96/#99 and capture tests | Bulb start/stop/file lifecycle on named camera + firmware; no unattended test |
 | Gallery/filter/thumb/full download | `app.js`: `galleryLoad`, `galRenderGrid`, `galOpen`; `/api/media/list`, `/thumb`, `/full` | SD media directories and safe path resolver | `FilesPane`, `FileList`, file download flow | Partial | Add typed media categories and safe thumbnail/full-frame publication; no unrestricted SD path access | Desktop/Android/iOS | P3/P5 | Source | Path traversal tests, transfer integrity tests, hardware card test |
@@ -84,24 +84,52 @@ equivalent.
 
 ## Capture decision
 
-The Astro WebUI and OpenPolaris both use code 264, but the observed paths are
-not interchangeable by inspection:
+The source review changes the reliability finding for the Astro WebUI. The
+stock Benro Connect decompilation defines
+`SP_SET_PHOTO_RECORD_STATUS(String state, String bulb, String c)` as:
 
-1. The Astro WebUI's normal shutter sends `state:1;bulb:0;c:0;` through its
-   resident `/api/link/send` policy.
-2. OpenPolaris' ordinary capture uses the separately documented 264 subtype-4
-   `CAM_CAPTURE` path with `state:1;bulb:0;c:-1;`.
-3. OpenPolaris' Bulb path preflights the camera's shutter mode, sends 264
-   `state:1;bulb:<seconds>;c:-1;`, supports an explicit 264 state-0 stop, and
-   waits for correlated 264 lifecycle plus non-empty 773 file evidence.
-4. The Astro server comments explicitly warn that an externally-triggered
-   capture can be ignored while Astro mode owns the shutter; its 272 programme
-   reports programme progress but is not, by itself, a portable file-completion
-   contract.
+```text
+sendOrder(264, 2, "state:" + state + ";bulb:" + bulb + ";c:" + c + ";")
+```
 
-Therefore the first integration slice is **capture evidence and capability
-classification**, not changing OpenPolaris' payload to match the WebUI. A live
-trace on the same firmware/camera pair would be required to promote that row.
+Its ordinary capture call sites use `state:1;bulb:0;c:-1;`. The only observed
+stock-app use of `c:0` is the continuation-shooting stop branch in
+`MainActivity.clickStop`; it is not the ordinary single-shot value. The Astro
+WebUI therefore currently differs from the source client in the two places
+that matter: it sends `c:0`, and it treats the HTTP result as a completed
+shot.
+
+The WebUI server confirms that 264 is sent with subtype 2, but
+`/api/link/send` calls `plink_send()` and returns after the frame is written or
+queued. `plink_send()` explicitly does not wait for a reply. The browser then
+labels the button `shot` for any JSON response without correlating a 264
+lifecycle or 773 file event. That response proves acceptance by the resident
+bridge, not shutter release, file publication, or transfer completion. Astro
+source also warns that externally initiated capture may be ignored while Astro
+mode owns the shutter.
+
+OpenPolaris currently has the stronger completion contract: one guarded request,
+no automatic retry, post-request 264 lifecycle correlation, non-empty 773 file
+evidence, and terminal idle. Its normal single-shot route remains the direct
+subtype-4 path because that exact frame has a retained K-3 III end-to-end trace;
+its Bulb/stop path already uses the source-compatible subtype-2 form with
+`c:-1`. This is a real route difference, not permission to send both forms:
+trying subtype 2 after a subtype-4 timeout could double-fire a shutter whose
+completion event was merely delayed.
+
+The safe source-derived correction is therefore:
+
+1. Treat the Astro WebUI literal `c:0` as a bug for ordinary shutter release;
+   the source-compatible form is `1&264&2&state:1;bulb:0;c:-1;#`.
+2. Do not use the WebUI HTTP `ok:true` response as capture completion.
+3. Keep OpenPolaris' no-retry evidence contract and do not change its
+   live-qualified subtype-4 path until an exact camera/firmware A/B trace proves
+   that subtype 2 is the safer direct route.
+
+A live same-firmware comparison remains required before changing the OpenPolaris
+normal-capture subtype. The source evidence is sufficient to reject the Astro
+WebUI's `c:0`/HTTP-success semantics, but not sufficient to claim universal
+interchangeability of subtype 2 and subtype 4.
 
 ## First safe work slices
 

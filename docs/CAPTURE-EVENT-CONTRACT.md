@@ -11,8 +11,11 @@ event-correlated and fail-closed.
 2. Gate new 284/517 polls and allow the current bounded poll window to drain.
 3. Close this process's 8080 preview transport. If preview was active, request
    camera preview off (291).
-4. Send one 264 shutter command. Normal stills use subtype 4 with
-   `state:1;bulb:0;c:-1;`. Benro-compatible Bulb uses subtype 2 with
+4. Send one 264 shutter command. OpenPolaris normal stills use the separately
+   live-qualified direct subtype-4 route with `state:1;bulb:0;c:-1;`.
+   Benro Connect's source client sends its ordinary `SP_SET_PHOTO_RECORD_STATUS`
+   path on subtype 2 with the same `c:-1` sentinel; the Astro WebUI's `c:0` is
+   not the ordinary single-shot contract. OpenPolaris Bulb uses subtype 2 with
    `state:1;bulb:<seconds>;c:-1;`, and a manual stop uses the matching subtype-2
    `state:0;bulb:0;c:-1;` edge. The Bulb path does not send 299; that is a
    separate cable-release exposure-time control in Benro Connect.

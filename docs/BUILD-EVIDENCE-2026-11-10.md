@@ -52,6 +52,9 @@ in /tmp is a local handoff artifact, not a tracked release asset.
   rejection; the complete `:shared:jvmTest` suite remains green.
 - This is replay/fake-head preparation only. It does not connect the formatter
   to `MountSession`, enable live SLOW, or qualify target-firmware stop behavior.
+- Follow-up source commits: formatter `5cfdc7614b78ce2bb8a3f27c9ccfb3f2608923b9`,
+  replay suite `756508060a6dcb74d7421acd2375e8e9ee6960c3`, and protocol record
+  `915d82dfd2dcb8c750d748f6afcd16dd605d7936`.
 
 ## Release and qualification boundaries
 

@@ -1317,3 +1317,9 @@ No live capability was promoted.
 Commit `2282c60` adds a persisted Direct AP/Home Wi-Fi (LAN) mode to the Connection workspace. The selected mode changes endpoint identity and UI guidance, but never changes host networking implicitly. Direct-AP-only wake, Wi-Fi picker and desktop bridge actions are disabled in LAN mode; ordinary Connect remains available against the user-entered station host and port. Bluetooth wake failures now map to the typed FAILED evidence state while Wi-Fi discovery continues independently.
 
 Focused and full cross-platform verification passed. This remains package/source-contract evidence: station listener reachability, phone Bluetooth GATT wake, live mount, camera, Astro WebUI and physical SLOW qualification are still required.
+
+### WBS-09.2/09.1 - Field battery awareness
+
+Commit `e03753b` adds a shared advisory battery classifier with explicit unknown, critical, low and normal states. The status strip now renders a visible Battery label, severity colour and accessible state description including charging. Invalid readbacks become unknown; no connection, capture or motion path is gated by this advisory value.
+
+Focused and full cross-platform verification passed. The APK remains package/simulator evidence; live battery telemetry and all hardware qualification gates remain open.

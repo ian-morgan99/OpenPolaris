@@ -2239,3 +2239,28 @@ Android debug APK:
 This is simulator/package and source-contract evidence only. Live station-LAN
 listener reachability, phone Bluetooth GATT wake, mount, camera, Astro WebUI
 and physical SLOW qualification remain unverified.
+
+## Latest committed verification - e03753b
+
+Commit under test: e03753b (feat: add field battery awareness).
+
+Focused verification passed:
+
+~~~text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.BatteryAwarenessTest :composeApp:jvmTest --tests dev.openpolaris.ui.BatteryStatusContractTest :composeApp:compileKotlinJvm --no-daemon --console=plain
+~~~
+
+Full cross-platform verification passed with exit code 0:
+
+~~~text
+./gradlew :shared:jvmTest :composeApp:jvmTest :composeApp:compileKotlinJvm :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable :androidApp:assembleDebug --rerun-tasks --console=plain --no-daemon --quiet
+~~~
+
+Android debug APK:
+
+- androidApp/build/outputs/apk/debug/androidApp-debug.apk
+- SHA-256: 23f313a81c003bd7bdd58d78cea539d4375ce13119f3f5da640e3aa50a2049f6
+
+This is simulator/package evidence only. Live battery telemetry, station-LAN
+listener reachability, phone Bluetooth GATT wake, mount, camera, Astro WebUI
+and physical SLOW qualification remain unverified.

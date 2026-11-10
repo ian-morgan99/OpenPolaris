@@ -33,4 +33,19 @@ object MediaPolicy {
                 !segment.contains(':') && !segment.contains('?') && !segment.contains('#')
         }
     }
+
+    /** A basename safe to hand to a platform save/share surface. */
+    fun isSafeExportName(name: String): Boolean {
+        val value = name.trim()
+        return value.isNotEmpty() && value != "." && value != ".." &&
+            !value.contains('/') && !value.contains('\\') &&
+            !value.any { it.code == 0 } && !value.contains(':') &&
+            !value.contains('?') && !value.contains('#')
+    }
+
+    /** Returns the mount-local basename only when the source path is safe. */
+    fun exportName(path: String): String? =
+        path.trim().takeIf(::isSafeMountPath)
+            ?.substringAfterLast('/')
+            ?.takeIf(::isSafeExportName)
 }

@@ -328,6 +328,7 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-10 — WBS-07.2 ACTIVE (pure transfer seam):** added a byte-counter-only media transfer state machine for future thumbnail/full-file adapters, with request tokens, stale-event rejection, size caps, explicit retry only for failed idempotent requests, and `OutcomeUnknown` with no automatic retry; it performs no I/O.
 - **2026-11-10 — verification:** media transfer controller tests passed for completion, stale handles, size overflow, unknown outcomes and explicit retry policy.
 - **2026-11-10 — verification:** shared `MediaPolicyTest` passed for image/video/unknown classification and safe/rejected path cases.
+- **2026-11-10 — WBS-07.2 ACTIVE (explicit export boundary):** added a platform-neutral save/share controller that accepts only a completed, byte-count-matching transfer and an explicit destination; unsafe mount paths, unsafe filenames, incomplete/ambiguous transfers and sink failures remain fail-closed with no automatic retry.
 - **2026-11-10 — verification:** Preview overlay contract and full Compose JVM compilation passed; the preview transport ownership/port contract remains unchanged.
 - **2026-11-10 — verification:** accessibility and responsive-layout contracts passed after adding the readiness callback path; action routing remains navigation-only.
 - **2026-11-10 — WBS-10 ACTIVE (build verification):** Android debug Kotlin and desktop JVM targets compile from the same shared UI/domain code; no platform-specific capability divergence was introduced.

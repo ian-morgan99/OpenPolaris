@@ -1283,3 +1283,7 @@ remain open.
 
 
 - 2026-11-11 - WBS-03.5 ACTIVE (versioned SLOW evidence manifest): added a bounded, strict schema-1 manifest parser for exact firmware/gimbal/source-app identity, evidence-bundle provenance and every SLOW safety gate. Unknown fields, missing fields, invalid digests, control characters and oversized manifests fail closed. Decoding never changes SlowMotionCapabilities.current; the release record remains immutable and unqualified until controlled evidence is promoted.
+
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (fourth compact phone density pass):** reduced the compact visual/action footprint from 32 dp to 28 dp, replaced graphic-backed Material3 selector pills with 24 dp custom state tiles containing 10 dp line graphics, reduced the primary destination row to 28 dp and tightened compact card/status/SLOW/jog spacing. The custom tiles keep explicit content descriptions and On/Off state semantics; desktop labels and 48 dp layout remain unchanged.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest, MobileResponsiveLayoutContractTest and the complete Compose/JVM suite passed; Android compilation and desktop distributable creation passed. No installed-phone render, live mount, camera, Bluetooth, Astro WebUI or physical motion/capture operation was exercised.

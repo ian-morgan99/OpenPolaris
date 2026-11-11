@@ -5,6 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.LocalContentColor
@@ -68,7 +72,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 32.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 28.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -81,24 +85,48 @@ internal fun CompactFilterChip(
     graphic: OpenPolarisGraphic? = null,
     contentDescription: String? = null,
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        enabled = enabled,
-        label = {
-            if (LocalOpenPolarisCompact.current && graphic != null) {
-                OpenPolarisGraphicIcon(graphic)
-            } else {
-                label()
-            }
-        },
-        modifier = modifier
-            .height(if (LocalOpenPolarisCompact.current) 28.dp else 32.dp)
-            .semantics(mergeDescendants = true) {
-                contentDescription?.let { this.contentDescription = it }
-                stateDescription = if (selected) "On" else "Off"
-            },
-    )
+    if (LocalOpenPolarisCompact.current && graphic != null) {
+        Box(
+            modifier = modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                    else Color.Transparent,
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
+                    shape = RoundedCornerShape(6.dp),
+                )
+                .clickable(
+                    enabled = enabled,
+                    role = Role.Checkbox,
+                    onClick = onClick,
+                )
+                .semantics(mergeDescendants = true) {
+                    contentDescription?.let { this.contentDescription = it }
+                    stateDescription = if (selected) "On" else "Off"
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            OpenPolarisGraphicIcon(graphic)
+        }
+    } else {
+        FilterChip(
+            selected = selected,
+            onClick = onClick,
+            enabled = enabled,
+            label = label,
+            modifier = modifier
+                .height(if (LocalOpenPolarisCompact.current) 24.dp else 32.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription?.let { this.contentDescription = it }
+                    stateDescription = if (selected) "On" else "Off"
+                },
+        )
+    }
 }
 
 /**
@@ -179,7 +207,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 12.dp else 20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 10.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }

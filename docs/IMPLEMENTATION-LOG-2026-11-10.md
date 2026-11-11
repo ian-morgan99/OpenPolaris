@@ -1808,3 +1808,23 @@ release capability record unqualified.
 
 Focused verification is recorded by SlowMotionCapabilityManifestTest; no
 physical SLOW command or capability record was promoted.
+
+
+### WBS-01.3/09.1 — Fourth compact density pass
+
+The previous 32 dp phone controls still occupied too much of the viewport. Compact
+graphic-backed selectors now use a small 24 dp state tile with 10 dp line graphics
+instead of a full Material3 chip, while the semantic content description and On/Off
+state remain available to accessibility services. Graphic action targets and the
+primary destination row use 28 dp, and compact card/status/SLOW/jog spacing is
+tighter. The desktop path remains labelled with its 48 dp layout.
+
+Verification passed:
+
+    ./gradlew :composeApp:jvmTest --console=plain --no-daemon
+    ANDROID_HOME=/home/ian/android-sdk ANDROID_SDK_ROOT=/home/ian/android-sdk ./gradlew :androidApp:compileDebugKotlinAndroid --rerun-tasks --console=plain --no-daemon
+    ./gradlew :desktopApp:createDistributable --console=plain --no-daemon
+
+This is source/package UX evidence only. No installed-phone render or live
+mount, camera, Bluetooth, Astro WebUI, motion or capture qualification was
+performed.

@@ -119,12 +119,33 @@ class MobileResponsiveLayoutContractTest {
     }
 
     @Test
+    fun compactControlsUseSmallGraphicsAndReducedFootprints() {
+        val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
+        val theme = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt"))
+        val app = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt"))
+        assertTrue("size(24.dp)" in graphics)
+        assertTrue("compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 28.dp" in graphics)
+        assertTrue("Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 10.dp" in graphics)
+        assertTrue("LocalMinimumInteractiveComponentSize provides if (compact) 28.dp" in theme)
+        assertTrue("height(28.dp)" in app)
+        assertTrue("padding(2.dp)" in app)
+    }
+
+    @Test
+    fun compactGraphicControlsKeepAccessibleNames() {
+        val src = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
+        assertTrue("contentDescription?.let { this.contentDescription = it }" in src)
+        assertTrue("stateDescription = if (selected) \"On\" else \"Off\"" in src)
+        assertTrue("Role.Checkbox" in src)
+    }
+
+    @Test
     fun phonePrimaryNavigationUsesCompactTextTargets() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = stripComments(src)
         assertTrue("CompactDestinationBar(" in noComments, "phone layout must use the compact destination bar")
         assertTrue("CompactDestinationItem(" in noComments, "each primary destination needs a compact semantic target")
-        assertTrue("height(32.dp)" in noComments, "compact navigation must use the reduced 32 dp touch row")
+        assertTrue("height(28.dp)" in noComments, "compact navigation must use the reduced 28 dp visual row")
         assertTrue("PaddingValues(horizontal = 2.dp)" in noComments, "compact destinations must remove the oversized icon-slot padding")
         assertFalse("NavigationBarItem(" in noComments, "phone navigation must not restore the oversized icon-and-label items")
         assertTrue("testTag(\"primary-navigation\")" in noComments, "primary navigation needs a stable automation target")

@@ -2870,7 +2870,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         "Field rotation within 5 degrees" to false,
     )
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
-        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
             Text(
                 when {
@@ -2930,7 +2930,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("fine-rate-readiness"),
             ) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 5.dp)) {
                     Text("Fine correction readiness", style = MaterialTheme.typography.labelMedium)
                     Text(
                         "Read-only contract preview. The live rate transport is disabled in this build; every check must be observed before a future correction can be armed.",
@@ -3097,7 +3097,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("slow-motion-calibration"),
             ) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 4.dp)) {
                     Text("Host reference calibration", style = MaterialTheme.typography.labelMedium)
                     Text(
                         "Level $selectedLevel: state 1 ${selectedCalibration.stateOneRate}°/s · state 2 ${selectedCalibration.stateTwoRate}°/s",
@@ -3206,7 +3206,7 @@ private fun DemoFineRateCard(
         is dev.openpolaris.core.domain.RateAdjustState.Faulted -> "Faulted: ${value.reason}"
     }
     Card(modifier = modifier.testTag("fine-rate-demo")) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 6.dp)) {
             Text("Fine correction rehearsal", style = MaterialTheme.typography.labelMedium)
             Text(
                 "Demo only. This rehearses the SafeRateAdjustController and shared TRACKING_CORRECTION owner; it emits no 532/533/534 or AC 4A frame and sends no hardware command.",
@@ -3472,7 +3472,7 @@ private fun SlowDemoHoldButton(
 private fun JogPad(vm: AppViewModel, yawUp: Int, yawDown: Int, pitchUp: Int, pitchDown: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         JogButton(OpenPolarisGraphic.Up, "Pitch up", pitchUp, vm)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 12.dp)) {
             JogButton(OpenPolarisGraphic.Left, "Yaw left", yawDown, vm)
             JogButton(OpenPolarisGraphic.Right, "Yaw right", yawUp, vm)
         }

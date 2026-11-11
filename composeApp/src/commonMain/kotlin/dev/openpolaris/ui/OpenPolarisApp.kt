@@ -280,7 +280,7 @@ fun OpenPolarisApp(
                     CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.fillMaxSize().padding(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     StatusStrip(
                         vm,
                         Modifier.fillMaxWidth(),
@@ -504,7 +504,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(32.dp)
+            .height(28.dp)
             .testTag("primary-navigation"),
     ) {
         Row(
@@ -754,10 +754,10 @@ private fun StatusStrip(
     Card(modifier) {
         Column(
             Modifier.padding(
-                horizontal = if (compact) 8.dp else 12.dp,
-                vertical = if (compact) 4.dp else 8.dp,
+                horizontal = if (compact) 4.dp else 12.dp,
+                vertical = if (compact) 2.dp else 8.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp),
         ) {
             if (compact) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -975,7 +975,7 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Az ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt ${p?.pitch?.toDouble()?.format2() ?: "—"}°",
                 style = MaterialTheme.typography.headlineSmall,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 8.dp)) {
                 CompactFilterChip(
                     selected = vm.mount.tracking == true,
                     onClick = { if (vm.mount.tracking == true) vm.stopTracking() else vm.startTracking() },
@@ -1017,7 +1017,7 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
             // always sends an explicit index; sidereal is correct for star
             // imaging, lunar (~0.966× sidereal) for the Moon. Selecting a rate
             // takes effect on the next Track start (docs/ASTRO-WORKFLOW-HANDOVER §5).
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 8.dp)) {
                 Text("Rate", style = MaterialTheme.typography.labelSmall)
                 TrackingRate.entries.forEach { rate ->
                     CompactFilterChip(

@@ -1409,8 +1409,9 @@ remain open.
   0e1a25e. The package section now records the current compact phone
   graphics/action dimensions, local preview histogram/focus-peaking and
   fullscreen implementation, typed Home-LAN failure classes, and the signed
-  rolling APK checksum
-  83067db3f81fc309883eae2ebc2ed2779a24305a0ae6bdeddf3846776f889bcf.
-  These remain source/package evidence; installed-phone rendering, resident
+  rolling APK plus its checksum/signer sidecars. The sidecars are the
+  authoritative identity for the exact downloaded bytes because a repeat
+  signed build may regenerate bytes for the same source commit. These remain
+  source/package evidence; installed-phone rendering, resident
   Astro WebUI operation, camera, Bluetooth, SLOW and physical qualification
   remain open.

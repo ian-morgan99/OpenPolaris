@@ -51,6 +51,34 @@ class CameraRecordStatusContractTest {
     }
 
     @Test
+    fun `video timeout after write is delivery unknown`() = runTest {
+        val conn = FakeConnection()
+        val (session, controller) = newSession(conn, backgroundScope)
+        session.connect()
+
+        val result = controller.setVideoRecordStatus(recording = true)
+
+        assertFalse(result.accepted)
+        assertTrue(result.sent)
+        assertTrue(conn.written.isNotEmpty())
+        assertEquals("TIMEOUT", result.error)
+        session.disconnect()
+    }
+
+    @Test
+    fun `video request before connection is explicitly unsent`() = runTest {
+        val conn = FakeConnection()
+        val (_, controller) = newSession(conn, backgroundScope)
+
+        val result = controller.setVideoRecordStatus(recording = true)
+
+        assertFalse(result.accepted)
+        assertFalse(result.sent)
+        assertEquals("not connected", result.error)
+        assertTrue(conn.written.isEmpty())
+    }
+
+    @Test
     fun `photo start sends subtype 2 with exact state bulb c fields`() = runTest {
         val conn = FakeConnection()
         conn.responses += "1&264&2&state:1;#".toByteArray(Charsets.US_ASCII)
@@ -79,6 +107,21 @@ class CameraRecordStatusContractTest {
         val result = controller.setPhotoRecordStatus(recording = true)
 
         assertFalse(result.accepted)
+        session.disconnect()
+    }
+
+    @Test
+    fun `photo timeout after write is delivery unknown`() = runTest {
+        val conn = FakeConnection()
+        val (session, controller) = newSession(conn, backgroundScope)
+        session.connect()
+
+        val result = controller.setPhotoRecordStatus(recording = true)
+
+        assertFalse(result.accepted)
+        assertTrue(result.sent)
+        assertTrue(conn.written.isNotEmpty())
+        assertEquals("TIMEOUT", result.error)
         session.disconnect()
     }
 

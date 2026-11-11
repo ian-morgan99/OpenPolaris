@@ -1369,3 +1369,14 @@ remain open.
   rejection; the full shared and Compose JVM suites, Android compilation and
   desktop packaging passed. No live
   camera, stream, Bluetooth or mount qualification was performed.
+
+- **2026-11-11 - WBS-04.4/04.3 ACTIVE (record-status delivery boundary):**
+  Source-aligned video 263 and photo 264 subtype-2 commands now expose the same
+  write-attempt boundary as preview. A post-write timeout or protocol failure
+  remains sent=true, accepted=false and delivery-unknown; a pre-connect or
+  pre-send rejection remains explicitly unsent. This keeps video/photo recovery
+  from issuing an unsafe retry after a lost acknowledgement.
+- **2026-11-11 - verification:** CameraRecordStatusContractTest covers exact
+  263/264 frames, matching state echoes, post-write timeout uncertainty and
+  pre-connect rejection; full shared/Compose JVM suites passed. No camera,
+  stream, Bluetooth, mount or physical qualification was performed.

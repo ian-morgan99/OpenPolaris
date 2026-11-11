@@ -389,6 +389,7 @@ class CameraController(private val session: MountSession) {
     /** Result of a video record status command (263). */
     data class VideoRecordResult(
         val code: Int,
+        /** True when this process attempted to hand the frame to the connection. */
         val sent: Boolean = true,
         val error: String? = null,
         val raw: String? = null,
@@ -405,6 +406,7 @@ class CameraController(private val session: MountSession) {
     /** Result of a photo record status command (264 subtype 2). */
     data class PhotoRecordResult(
         val code: Int,
+        /** True when this process attempted to hand the frame to the connection. */
         val sent: Boolean = true,
         val error: String? = null,
         val raw: String? = null,
@@ -516,11 +518,13 @@ class CameraController(private val session: MountSession) {
      */
     suspend fun setVideoRecordStatus(recording: Boolean): VideoRecordResult {
         val requestedState = if (recording) "1" else "0"
+        var writeAttempted = false
         val reply = session.request(
             code = Codes.BenroCamera.SET_VIDEO_RECORD_STATUS,
             payload = "state:$requestedState;",
             timeoutMs = 10_000,
             subtype = 2,
+            onWriteAttempted = { writeAttempted = true },
         ) { it }
         return when (reply) {
             is MountSession.CmdResult.Ok -> {
@@ -541,11 +545,11 @@ class CameraController(private val session: MountSession) {
                 )
             }
             is MountSession.CmdResult.Timeout -> VideoRecordResult(
-                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = false,
+                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = writeAttempted,
                 error = "TIMEOUT", raw = "TIMEOUT", requestedState = requestedState,
             )
             is MountSession.CmdResult.ProtocolError -> VideoRecordResult(
-                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = false,
+                Codes.BenroCamera.SET_VIDEO_RECORD_STATUS, sent = writeAttempted,
                 error = reply.message, raw = "ERROR: ${reply.message}", requestedState = requestedState,
             )
         }
@@ -569,11 +573,13 @@ class CameraController(private val session: MountSession) {
             error = "Unsupported photo status bulb=$bulbSeconds c=$continuationCount",
             requestedState = requestedState,
         )
+        var writeAttempted = false
         val reply = session.request(
             code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
             payload = "state:$requestedState;bulb:$bulbSeconds;c:$continuationCount;",
             timeoutMs = 10_000,
             subtype = 2,
+            onWriteAttempted = { writeAttempted = true },
         ) { it }
         return when (reply) {
             is MountSession.CmdResult.Ok -> PhotoRecordResult(
@@ -583,11 +589,11 @@ class CameraController(private val session: MountSession) {
                 requestedState = requestedState,
             )
             is MountSession.CmdResult.Timeout -> PhotoRecordResult(
-                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = false,
+                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = writeAttempted,
                 error = "TIMEOUT", raw = "TIMEOUT", requestedState = requestedState,
             )
             is MountSession.CmdResult.ProtocolError -> PhotoRecordResult(
-                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = false,
+                Codes.BenroCamera.SET_PHOTO_RECORD_STATUS, sent = writeAttempted,
                 error = reply.message, raw = "ERROR: ${reply.message}", requestedState = requestedState,
             )
         }

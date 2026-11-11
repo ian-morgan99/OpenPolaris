@@ -1014,6 +1014,8 @@ fun MissionDashboardPane(
     var compassHeading by remember { mutableStateOf("") }
     var phoneCompassHeading by remember { mutableStateOf<Double?>(null) }
     var compassError by remember { mutableStateOf<String?>(null) }
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showAdvancedAstro by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val focalOverrideMm = focalOverride.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..100_000.0 }
     val gotoRequest = runCatching {
         AstroWebUiGotoRequest(
@@ -1360,6 +1362,21 @@ fun MissionDashboardPane(
                 )
             }
             HorizontalDivider()
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showAdvancedAstro) "Hide advanced" else "More controls",
+                    contentDescription = if (showAdvancedAstro) {
+                        "Hide advanced Astro controls"
+                    } else {
+                        "Show advanced Astro controls"
+                    },
+                    onClick = { showAdvancedAstro = !showAdvancedAstro },
+                    modifier = Modifier.testTag("astro-advanced-controls-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showAdvancedAstro) {
             Text("Solve focal length", style = MaterialTheme.typography.titleMedium)
             Text(
                 "The resident solver prefers a manual override, then the last frame's EXIF focal length, then its configured default. Setting a focal override changes future solves; it does not re-solve or apply alignment.",
@@ -2072,6 +2089,7 @@ fun MissionDashboardPane(
             AstroWebUiSunComposer(vm)
             HorizontalDivider()
             AstroWebUiExtendedProgrammeComposer(vm)
+            }
             HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(

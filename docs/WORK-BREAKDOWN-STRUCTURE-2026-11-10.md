@@ -73,6 +73,14 @@
   description; text remains visible wherever it is needed to distinguish
   dynamic results such as alignment-star candidates. This is source/package
   evidence only; installed-phone rendering remains open.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (Astro mission disclosure):** the
+  compact Astro Mission surface keeps resident status, solve, target/alignment
+  and prepare readiness visible while placing focal, limits, guide, autofocus,
+  session, programme and advanced composer controls behind an accessible More
+  controls graphic. PC remains expanded; no action or capability gate changed.
+- **2026-11-11 - verification:** focused responsive/compact Compose contracts,
+  full shared/Compose JVM suites and desktop distributable creation passed. No
+  phone screenshot or hardware qualification was performed.
 - **2026-11-11 - WBS-01.3/09.1 ACTIVE (form-control density):** shared
   outlined text fields now pass through a compact phone wrapper with a 48 dp
   maximum for single-line fields without supporting copy. Desktop retains the

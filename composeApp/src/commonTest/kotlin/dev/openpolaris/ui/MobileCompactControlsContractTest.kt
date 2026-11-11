@@ -388,6 +388,21 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactAstroMissionKeepsCoreStatusAndDisclosesAdvancedControls() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in panes)
+        assertTrue("var showAdvancedAstro by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"astro-advanced-controls-toggle\")" in panes)
+        assertTrue("label = if (showAdvancedAstro) \"Hide advanced\" else \"More controls\"" in panes)
+        assertTrue("Show advanced Astro controls" in panes)
+        assertTrue("if (!compactLayout || showAdvancedAstro)" in panes)
+        assertTrue("Text(\"Resident Astro WebUI\"" in panes)
+        assertTrue("Text(\"Prepare checklist\"" in panes)
+    }
+
+
+    @Test
     fun remainingSecondaryActionsCollapseToGraphicsOnPhones() {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
         val fullPanes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")

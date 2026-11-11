@@ -523,6 +523,38 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun enabledVideoCommandIsSingleFlightAndTimeoutLeavesStateUnknown() =
+        runTest(UnconfinedTestDispatcher()) {
+            FeatureFlags.reset()
+            val conn = FakeConnection()
+            val vm = vm(this, conn)
+            try {
+                connect(this, vm)
+                FeatureFlags.enable("experimentalCamera")
+                FeatureFlags.enable("cameraVideo")
+
+                vm.setVideoRecording(true)
+                runCurrent()
+
+                assertTrue(vm.videoCommandInFlight)
+                assertEquals(1, conn.count(263))
+                vm.setVideoRecording(true)
+                assertTrue(vm.statusMessage.contains("already in progress"))
+                assertEquals(1, conn.count(263))
+
+                advanceTimeBy(10_001)
+                runCurrent()
+                assertFalse(vm.videoCommandInFlight)
+                assertEquals(null, vm.videoRecording)
+                assertTrue(vm.statusMessage.contains("not confirmed"))
+            } finally {
+                FeatureFlags.reset()
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
     fun demoManualAndBulbCaptureCompleteWithSimulatedLifecycleAndPublication() = runTest(UnconfinedTestDispatcher()) {
         val vm = vm(this, FakeConnection())
         try {

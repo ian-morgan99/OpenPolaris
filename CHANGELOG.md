@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arrives. This mirrors the Benro Connect lifecycle and prevents a sequence
   from firing its next shutter while the camera is still processing. The HTTP
   bridge acknowledgement remains queue evidence only.
+- **Compact phone callouts and Tonight cards now use less chrome.** The mobile
+  callout header/body insets are tighter, Tonight sky cards use compact spacing
+  and typography, and desktop-only full-width Astro actions no longer expand
+  into full-row phone controls. Graphic actions retain their semantic names.
+- **Video 263 commands are now session-safe and single-flight.** A pending
+  start/stop disables the opposite action and rejects a second command; a
+  disconnect cancels it, and an unconfirmed echo leaves video state unknown
+  instead of preserving a stale Recording/Stopped claim.
 - **Compact phone Slew callouts now show one control family at a time.**
   The overflow/legacy Slew surface uses the same GoTo/SLOW selector as the
   primary phone workspace, so opening it no longer stacks both long panes into

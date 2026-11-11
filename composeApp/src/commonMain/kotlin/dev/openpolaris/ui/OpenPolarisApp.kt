@@ -1312,7 +1312,7 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(4.dp)
+                    .padding(2.dp)
                     .testTag("compact-callout"),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
                 tonalElevation = 6.dp,
@@ -1321,8 +1321,8 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(28.dp)
-                            .padding(horizontal = 6.dp),
+                            .height(24.dp)
+                            .padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -1339,7 +1339,7 @@ private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Compos
                         )
                     }
                     HorizontalDivider()
-                    Box(Modifier.weight(1f).fillMaxWidth().padding(4.dp)) {
+                    Box(Modifier.weight(1f).fillMaxWidth().padding(2.dp)) {
                         scrollableBody()
                     }
                 }

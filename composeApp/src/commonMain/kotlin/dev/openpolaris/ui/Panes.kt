@@ -2471,7 +2471,7 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
                 }
             }
         },
-        modifier = Modifier.fillMaxWidth(),
+        wideModifier = Modifier.fillMaxWidth(),
     )
 
     when (val state = startState) {
@@ -2618,7 +2618,8 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
                 armed = true
             }
         },
-        modifier = Modifier.fillMaxWidth().testTag("astro-webui-astro-capture-start"),
+        modifier = Modifier.testTag("astro-webui-astro-capture-start"),
+        wideModifier = Modifier.fillMaxWidth(),
     )
     if (armed) {
         Text(
@@ -2753,7 +2754,7 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
                 }
             }
         },
-        modifier = Modifier.fillMaxWidth(),
+        wideModifier = Modifier.fillMaxWidth(),
     )
 
     when (state) {
@@ -2901,7 +2902,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                wideModifier = Modifier.fillMaxWidth(),
             )
         }
         "Path-lapse" -> {
@@ -2940,7 +2941,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                wideModifier = Modifier.fillMaxWidth(),
             )
         }
         else -> {
@@ -2982,7 +2983,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                wideModifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -5077,7 +5078,7 @@ fun CameraPane(
                         label = "Start video",
                         contentDescription = "Start video recording",
                         onClick = { vm.setVideoRecording(true) },
-                        enabled = videoEnabled && vm.videoRecording != true,
+                        enabled = videoEnabled && !vm.videoCommandInFlight && vm.videoRecording != true,
                         modifier = Modifier.testTag("camera-video-start"),
                         outlined = true,
                     )
@@ -5086,15 +5087,16 @@ fun CameraPane(
                         label = "Stop video",
                         contentDescription = "Stop video recording",
                         onClick = { vm.setVideoRecording(false) },
-                        enabled = videoEnabled && vm.videoRecording == true,
+                        enabled = videoEnabled && !vm.videoCommandInFlight && vm.videoRecording == true,
                         modifier = Modifier.testTag("camera-video-stop"),
                         outlined = true,
                     )
                     Text(
-                        when (vm.videoRecording) {
-                            true -> "Recording"
-                            false -> "Stopped"
-                            null -> "Video state unknown"
+                        when {
+                            vm.videoCommandInFlight -> "Video command pending"
+                            vm.videoRecording == true -> "Recording"
+                            vm.videoRecording == false -> "Stopped"
+                            else -> "Video state unknown"
                         },
                         style = MaterialTheme.typography.labelSmall,
                     )

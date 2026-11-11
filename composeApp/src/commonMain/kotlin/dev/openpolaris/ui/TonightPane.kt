@@ -70,7 +70,10 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (compactLayout) 5.dp else 12.dp)) {
-            Text("Tonight", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Tonight",
+                style = if (compactLayout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.headlineSmall,
+            )
             CompactDescription("What is above the horizon right now. Tap Slew to point the mount.")
 
             // -- Observer location -----------------------------------------
@@ -299,8 +302,15 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
     Card {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+        val compactLayout = LocalOpenPolarisCompact.current
+        Column(
+            Modifier.padding(if (compactLayout) 5.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 2.dp else 4.dp),
+        ) {
+            Text(
+                title,
+                style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleMedium,
+            )
             content()
         }
     }
@@ -310,12 +320,19 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 @Composable
 private fun KeyValueRow(label: String, value: String) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        Modifier.fillMaxWidth().padding(vertical = if (LocalOpenPolarisCompact.current) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodySmall)
+        Text(
+            label,
+            style = if (LocalOpenPolarisCompact.current) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            value,
+            style = if (LocalOpenPolarisCompact.current) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

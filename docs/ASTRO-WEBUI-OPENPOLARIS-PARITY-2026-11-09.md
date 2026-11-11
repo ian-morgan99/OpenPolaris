@@ -11,12 +11,12 @@ issues, or hardware outside OpenPolaris were changed.
 
 | Item | Snapshot | Evidence |
 |---|---|---|
-| OpenPolaris | published `main` at `1d0c0f3ef9ffe3a4722031d46303e4033e4766dc` | Remote main used for this refresh; the canonical local checkout is dirty and was not used as frozen package evidence. |
-| Astro WebUI source checkout | `/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher`, branch `archive/wip-20261103-v94-audit`, HEAD `032651dc1ce21e39efe0cc023bd45fbaafe557d7` | Source checkout was dirty with unrelated WIP; it was not edited. |
-| WebUI client | `container/astro/webui/index.html`, `app.js`, `app.css` | Source-verified at the snapshot above; the last commit touching the WebUI is `f593d918fcb5d8f47782b166a7083f4e560b4944` (`webui: reconcile camera writes instead of assuming they landed`). |
+| OpenPolaris | release candidate based on published `main` at `74169209f4807207bdc0e41fbbe23a083e907adc` | The isolated candidate worktree starts from the published main; the canonical local checkout is dirty and was not used as frozen package evidence. Final candidate SHA and release manifest are recorded at publication. |
+| Astro WebUI source checkout | `/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher`, branch `main`, HEAD `538ad73927883a24a48130d0dbbdb9db10f78017` | Source checkout was inspected read-only; it contains unrelated untracked `LMStudioLogEnhancements.md.rotated`, which was not edited. |
+| WebUI client | `container/astro/webui/index.html`, `app.js`, `shutter.js`, `app.css` | Source-verified at the snapshot above; the last commit touching the WebUI is `6f64a1de7f227ee12401f8cc26edf1dfa55e34b9` (`webui(#273): auto-join toggle actually toggles, and the settings page can enter credentials`). |
 | WebUI server | `container/astro/polaris-httpd.c` | Source-verified; embeds the WebUI assets and exposes the `/api/*` routes. |
 | Astro package | `container/astro/embed_webui.py` plus the Astro build scripts | Source-verified; HTML/CSS/JS are gzip-embedded into the server binary for runtime independence. |
-| Firmware/runtime boundary | `polestar_app` owns the mount control service on TCP 9090; the Astro HTTP server defaults to TCP 8080 | Existing OpenPolaris handover and patcher source evidence; exact firmware build and installed package hash remain required for a live claim. |
+| Firmware/runtime boundary | `polestar_app` owns the mount control service on TCP 9090; the Astro WebUI control server is documented at TCP 8090 and the MJPEG preview remains a separate TCP 8080 service | Existing OpenPolaris handover and current patcher source evidence; exact firmware build and installed package hash remain required for a live claim. |
 
 Evidence labels used below: **source** means the implementation was read;
 **simulator** means OpenPolaris tests or a fake mount exercised it;
@@ -31,16 +31,16 @@ commit. This section is the current package-level status for the published main
 commit and must be read together with the source rows. It does not turn source
 or simulator evidence into physical qualification.
 
-| Area | Current published state at `1d0c0f3` | Evidence class | Remaining boundary |
+| Area | Current release-candidate state based on `7416920` | Evidence class | Remaining boundary |
 |---|---|---|---|
 | Endpoint and route health | `EndpointKind`, `EndpointProfile`, `EndpointAddress`, `EndpointPhase` and independent control/preview service states are implemented in `EndpointHealth.kt`; the UI shows Direct AP, Home LAN, PC bridge and demo intent separately. | source + simulator | No live Home LAN lease, route or restart observation in this refresh. |
 | Motion ownership and stop | `MotionSupervisor`, fast-jog ownership, shared STOP ALL and demo SLOW dead-man controls are wired through the common UI. Pointer cancellation, focus loss, competing direction arbitration and explicit recovery have deterministic tests. | source + simulator | No live motor command is enabled by the default build; physical stop/recovery and limits remain open. |
 | SLOW and fine rate | `SlowMotionController`, `SlowMotionCapabilityRecord` and the source-aligned 532/533/534 formatter exist; `SlowMotionCapabilities.current` is immutable and unqualified, so runtime flags cannot manufacture live permission. | source + simulator | Exact firmware/gimbal/source-app identity, signs, units, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence are still missing. |
-| Native camera capture | The capture phase machine separates request, busy, complete, failed and outcome-unknown; native completion requires lifecycle and non-empty file publication evidence. | source + simulator | Named-camera and firmware physical M/B, file and recovery qualification remain open. |
-| Astro WebUI shutter | `AstroWebUiCapture` and the ViewModel dispatch M/B and explicit B stop with bounded strict JSON acknowledgement. HTTP queue acknowledgement is never treated as shutter or file completion. | source + simulator | The resident WebUI route and same-firmware camera lifecycle still need supervised qualification. |
+| Native camera capture | The capture phase machine separates request, busy, complete, failed and outcome-unknown; completion requires post-request lifecycle, non-empty file publication, and the terminal idle edge. | source + simulator | Named-camera and firmware physical M/B, file and recovery qualification remain open. |
+| Astro WebUI shutter | `AstroWebUiCapture` and the ViewModel dispatch M/B and explicit B stop with bounded strict JSON acknowledgement; the shared capture gate still requires lifecycle, file, and terminal idle evidence. The current WebUI source uses `shutter.js` with 264 `c:-1` and reconciles asynchronous 264 state replies instead of treating POST success as a shot. | source + simulator | The resident WebUI control route, current 8090/8080 split, and same-firmware camera lifecycle still need supervised qualification. |
 | Astro WebUI read-only parity | Typed clients now cover media, status, link, site, solve, run state, guide, autofocus, focal, limits, keep-Wi-Fi, Wi-Fi, target, session, programme and motion-programme source surfaces. Default-off flags protect writes and programme starts. | source + simulator | Live resident endpoint, response corpus and feature-by-feature installed runtime checks remain open. |
-| Phone and PC shell | Compact phone graphics are 6 dp with 18 dp action footprints and 16 dp icon-only state tiles; summary-first Mission/Astro/Slow Motion/camera surfaces plus bounded gallery/SD-file lists reduce scrolling while retaining disclosures and semantic action names. Desktop keeps labelled actions and 48 dp rail sizing. | source + package build | No physical phone screenshot or touch/rotation observation was performed in this refresh. |
-| Release artifact | The rolling Android APK for `1d0c0f3` is signed and tag `latest` points to that commit; the release carries the authoritative APK SHA-256 and signer digest sidecars. | package + signature verifier | The rolling workflow can regenerate signed bytes for the same source commit; use the sidecar from the downloaded release rather than a stale embedded checksum. User phone installation and rendered interaction are still external acceptance evidence. |
+| Phone and PC shell | Compact phone graphics are 6 dp with 18 dp action footprints and 16 dp icon-only state tiles; summary-first Mission/Astro/Slow Motion/camera surfaces, dense Tonight cards, compact callout chrome, and bounded gallery/SD-file lists reduce scrolling while retaining disclosures and semantic action names. Responsive Astro actions keep full-width layout only on desktop. | source + package build | No physical phone screenshot or touch/rotation observation was performed in this refresh. |
+| Release artifact | The prior rolling Android APK for `7416920` is signed and tag `latest` points to that commit; this candidate adds session-safe 263 video state handling and the compact-density refinement before the next rolling publish. | package + signature verifier | The next rolling workflow must publish the final candidate SHA and authoritative APK sidecars. User phone installation and rendered interaction are still external acceptance evidence. |
 
 ### Gap ranking and WBS ownership
 
@@ -103,8 +103,8 @@ equivalent.
 | Camera identity, battery, card status, mount pose | `app.js`: `paintStatus`, `paintMount`; 286/778/775/518/284 | Firmware telemetry and camera attachment | `CameraPane`, `AppViewModel.cameraAttachment`, battery/SD/device fields | Mostly implemented | Consolidate telemetry age/unknown rendering and expose the same safe status set in a capability registry | All | P0/P3 | Source; OpenPolaris post-connect burst | Simulator response fixtures; live model matrix |
 | Camera exposure option reads | `app.js`: `fetchExposure`, `parseOptions`; 268/275/265/267/266 | Camera-provided option lists; indices are body-specific | `CameraController`, `CameraPane`, `AppViewModel.refreshCamera` | Implemented but qualification-gated | Keep dynamic option lists and the explicit qualification gate; do not advertise unsupported fields | All | P3 | Source; Benro Connect-derived `Codes.BenroCamera`; K-1 II/K-3 III evidence | Existing controller tests plus camera-specific physical matrix |
 | Camera exposure writes and read-back | `app.js`: `wireExposure`, `reconcileExposure`; 261/276/258/260/259 | Explicit `ret`, delayed replies, `-2110` retry/read-back behavior | `CameraController.qualifyBenroSetting`, `AppViewModel.setIso/setWb/setFNum/setEv` | Stronger client contract exists; UI remains gated | Reuse per-field verification and surface retry/timeout states consistently | All | P3 | Source; WebUI commit `f593d918`; OpenPolaris camera contract tests | Fake delayed/rejected replies; version-bound camera tests |
-| Single still capture | `app.js`: `wireShutter`; currently 264 with `state:1;bulb:0;c:0;` | Camera record-status path; `/api/link/send` supplies subtype 2 and only acknowledges write/queue | `CameraController.capture`, `AppViewModel.capture`; direct 264 subtype 4, `state:1;bulb:0;c:-1;` | Astro WebUI payload is not source-equivalent and its UI acknowledgement is too weak | A source-compatible Astro route is subtype 2 with `c:-1`. Keep OpenPolaris' separately live-qualified subtype-4 direct route until same-firmware A/B evidence exists; never auto-fallback after an ambiguous shot | All | P3 | Benro Connect decompile; Astro source; OpenPolaris K-3 III trace; #60/#81 | One request, correlated 264 lifecycle, non-empty 773 path, terminal idle; hardware required |
-| Video record toggle | `app.js`: `wireShutter`; 263 | Camera video-record status | No first-class equivalent in the basic OpenPolaris camera pane | Gap | Add only after 263 payload/ack/file semantics are version-bound | All | P3 | Source; existing issue #63/#81 scope | Golden wire tests, then camera matrix |
+| Single still capture | `app.js` + `shutter.js`: `wireShutter`, `reconcileShot`; current ordinary start is 264 `state:1;bulb:0;c:-1;`, and the HTTP response is queue-only | Camera record-status path; `/api/link/send` supplies subtype 2; asynchronous 264 state replies are reconciled in the browser | `CameraController.capture`, `AppViewModel.capture`; direct 264 subtype 4, `state:1;bulb:0;c:-1;` | Source payload and queue/completion distinction now match the source review, but route ownership and camera lifecycle are not interchangeable | Preserve OpenPolaris' separately live-qualified subtype-4 direct route until exact same-firmware A/B evidence proves subtype 2 is safe; never auto-fallback after an ambiguous shot | All | P3 | Benro Connect decompile; current Astro source at `6f64a1de`; OpenPolaris K-3 III trace; #60/#81 | One request, correlated 264 lifecycle, non-empty 773 path, terminal idle; hardware required |
+| Video record toggle | `app.js` + `shutter.js`: `wireShutter`; 263 | Camera video-record status; POST/command acknowledgement is not recording proof | Camera pane has source-aligned 263 start/stop with a single-flight session owner, pending state, and unknown outcome on timeout | Implemented in source/package, unqualified on hardware | Keep the command gate and unknown-state quarantine; add file/recording evidence only after 263 semantics are version-bound | All | P3 | Current Astro source; issue #81; OpenPolaris controller/test evidence | Golden wire tests, then named-camera matrix and physical record/file observation |
 | Timed Bulb and explicit stop | `app.js`: capture controls plus 264 policy; server-side programme paths | 264 state/bulb/c; camera owns exposure duration; stop/reconcile semantics vary | `CameraController.captureBulb/stopBulb`, `AppViewModel.captureBulb/stopBulb` | Implemented with stricter safety, not fully qualified | Keep preflight, explicit stop, bounded watchdog, and `OutcomeUnknown`; never add a competing 299 write without evidence | All | P3 | Source; OpenPolaris issue #96/#99 and capture tests | Bulb start/stop/file lifecycle on named camera + firmware; no unattended test |
 | Gallery/filter/thumb/full download | `app.js`: `galleryLoad`, `galRenderGrid`, `galOpen`; `/api/media/list`, `/thumb`, `/full` | SD media directories and safe path resolver | `FilesPane`, `FileList`, file download flow | Partial | Add typed media categories and safe thumbnail/full-frame publication; no unrestricted SD path access | Desktop/Android/iOS | P3/P5 | Source | Path traversal tests, transfer integrity tests, hardware card test |
 | Timelapse | `app.js`: `armLapse`, `paintProg`; `/api/prog/lapse` | Head-resident 272 programme, persistent progress | `IntervalometerController`, `AppViewModel.startSequence` | Partial | Keep client sequence's per-shot 264+773 evidence; add a separate head-program adapter only if 272 completion/file semantics are verified | All | P5 | Source; OpenPolaris intervalometer tests | Simulator pause/resume/stop; live programme evidence |
@@ -123,8 +123,8 @@ equivalent.
 | Site location | `app.js`: `siteLoad`, `wireSite`; `/api/site` | Persisted device-side `site.conf` | `AppViewModel.latDeg/lngEastDeg`, `TonightPane` and GoTo inputs | Partial | Persist validated location in OpenPolaris session/settings, separate from mount connection marker | All | P4 | Source; OpenPolaris AstroMath | Pure validation/math tests; no hardware dependency |
 | Travel limits / dangerous release | `app.js`: `headSettingsRefresh`; `/api/astro/limits` | 541/542, physical attestation | No matching general UI surface | Gap, safety-sensitive | Add only as an explicit physical-attestation capability; never expose through a generic send button | All | Safety/P2 | Source | Simulator policy tests; physical clearance required |
 | Keep-Wi-Fi-alive | `app.js`: `/api/keepwifi` | Resident helper holds a counted 9090 client; alignment gate | OpenPolaris has bridge/wake/teardown and persistent session owner work | Partial | Keep ownership in one app/session; do not add an idle socket without proving its lifecycle and battery cost | Desktop first | P1 | Source; existing OpenPolaris wake/bridge evidence | Fake disconnect/reconnect; live battery/network qualification |
-| Configure station Wi-Fi while retaining AP | `app.js`: `/api/wifi`; `polaris-apsta.sh`, `polaris-autojoin.sh` | AP+station interface, same-channel constraint, DHCP, watchdog | OpenPolaris can connect to a user-supplied host and has host-side bridge helpers; it does not configure mount station Wi-Fi | External dependency / gap | Keep mount configuration out of OpenPolaris; support a typed Home-LAN endpoint and diagnostics, with Direct-AP fallback | All | P1 | Source; issue #102; patcher source is read-only reference | Requires exact station IP, 9090/8080 probes, bind/process evidence |
-| WebUI/Alpaca/INDI/LX200 interoperability | `polaris-httpd.c`: HTTP, Alpaca, INDI, LX200 listeners | 8080/10001/7624 and UDP 32227 | No equivalent server role | Gap / optional adapter | Treat as an external integration target, not a replacement for the native client protocol | Desktop first | P6 | Source | Protocol contract tests; external clients later |
+| Configure station Wi-Fi while retaining AP | `app.js`: `/api/wifi`; `polaris-apsta.sh`, `polaris-autojoin.sh` | AP+station interface, same-channel constraint, DHCP, watchdog | OpenPolaris can connect to a user-supplied host and has host-side bridge helpers; it does not configure mount station Wi-Fi | External dependency / gap | Keep mount configuration out of OpenPolaris; support a typed Home-LAN endpoint and diagnostics, with Direct-AP fallback | All | P1 | Source; issue #102; patcher source is read-only reference | Requires exact station IP, 9090 control, 8090 WebUI and 8080 preview probes, bind/process evidence |
+| WebUI/Alpaca/INDI/LX200 interoperability | `polaris-httpd.c`: HTTP, Alpaca, INDI, LX200 listeners | 8090/10001/7624 and UDP 32227; preview is separate on 8080 | No equivalent server role | Gap / optional adapter | Treat as an external integration target, not a replacement for the native client protocol | Desktop first | P6 | Source | Protocol contract tests; external clients later |
 
 ## Capture decision
 
@@ -138,19 +138,18 @@ sendOrder(264, 2, "state:" + state + ";bulb:" + bulb + ";c:" + c + ";")
 
 Its ordinary capture call sites use `state:1;bulb:0;c:-1;`. The only observed
 stock-app use of `c:0` is the continuation-shooting stop branch in
-`MainActivity.clickStop`; it is not the ordinary single-shot value. The Astro
-WebUI therefore currently differs from the source client in the two places
-that matter: it sends `c:0`, and it treats the HTTP result as a completed
-shot.
+`MainActivity.clickStop`; it is not the ordinary single-shot value.
+The current Astro WebUI source has corrected the ordinary start payload: its
+`shutter.js` sends `state:1;bulb:0;c:-1;`, matching the Benro Connect ordinary
+capture form. It still has to reconcile the asynchronous camera lifecycle.
 
 The WebUI server confirms that 264 is sent with subtype 2, but
-`/api/link/send` calls `plink_send()` and returns after the frame is written or
-queued. `plink_send()` explicitly does not wait for a reply. The browser then
-labels the button `shot` for any JSON response without correlating a 264
-lifecycle or 773 file event. That response proves acceptance by the resident
-bridge, not shutter release, file publication, or transfer completion. Astro
-source also warns that externally initiated capture may be ignored while Astro
-mode owns the shutter.
+`/api/link/send` still calls `plink_send()` and returns after the frame is
+written or queued; it does not wait for the camera reply. The browser now
+reconciles opcode 264 state replies, but a source-level match still proves
+neither the 773 file publication nor transfer completion. Astro source also
+warns that externally initiated capture may be ignored while Astro mode owns
+the shutter.
 
 OpenPolaris currently has the stronger completion contract: one guarded request,
 no automatic retry, post-request 264 lifecycle correlation, non-empty 773 file
@@ -163,24 +162,24 @@ completion event was merely delayed.
 
 The safe source-derived correction is therefore:
 
-1. Treat the Astro WebUI literal `c:0` as a bug for ordinary shutter release;
-   the source-compatible form is `1&264&2&state:1;bulb:0;c:-1;#`.
-2. Do not use the WebUI HTTP `ok:true` response as capture completion.
+1. Keep the source-compatible ordinary form `1&264&2&state:1;bulb:0;c:-1;#`;
+   the current WebUI source already does this, while older packaged builds did not.
+2. Do not use the WebUI HTTP `ok:true` response as capture or file completion.
 3. Keep OpenPolaris' no-retry evidence contract and do not change its
    live-qualified subtype-4 path until an exact camera/firmware A/B trace proves
    that subtype 2 is the safer direct route.
 
 A live same-firmware comparison remains required before changing the OpenPolaris
-normal-capture subtype. The source evidence is sufficient to reject the Astro
-WebUI's `c:0`/HTTP-success semantics, but not sufficient to claim universal
-interchangeability of subtype 2 and subtype 4.
+normal-capture subtype. The current source evidence supports the WebUI's
+`c:-1` payload and asynchronous reconciliation, but not universal
+interchangeability of subtype 2 and subtype 4 or the 8090/8080 runtime boundary.
 
 ## First safe work slices
 
 1. Add a typed endpoint/mode model for Direct AP versus Home-LAN connections,
    without changing NetworkManager, firmware, or hardware state.
-2. Extend the connection contract with separate control `9090` and preview
-   `8080` health results and actionable refusal/timeout diagnostics.
+2. Extend the connection contract with separate control `9090`, WebUI `8090`,
+   and preview `8080` health results and actionable refusal/timeout diagnostics.
 3. Keep the existing capture state machine as the portable contract; add a
    replay fixture for the Astro 264/272 observations and explicitly classify
    programme progress versus final file publication.
@@ -191,7 +190,7 @@ interchangeability of subtype 2 and subtype 4.
 
 | Claim | Minimum evidence | Current status |
 |---|---|---|
-| OpenPolaris builds and unit tests pass | Required JVM/KMP test command and clean diff | Passed for published `1d0c0f3`; the canonical checkout remains intentionally dirty and is excluded from this package claim. |
+| OpenPolaris builds and unit tests pass | Required JVM/KMP test command and clean diff | The isolated release-candidate matrix passed shared/Compose JVM tests, Kotlin/JVM compilation, Android debug compilation and desktop packaging from `7416920`; the canonical checkout remains intentionally dirty and is excluded from this package claim. |
 | Native capture is complete | 264 lifecycle correlated to a new non-empty 773 path, with camera/firmware versions | Simulator tests exist; physical qualification remains open. |
 | Home-LAN control works | Station lease, route, `9090` TCP connect, non-destructive handshake, reconnect after DHCP/restart | Typed failure diagnostics are implemented and package-tested; station lease, routing and physical reconnect remain untested. |
 | Astro WebUI feature is portable | Source route plus stable firmware/protocol contract and simulator replay | Typed read-only clients and simulator contracts cover many surfaces; resident endpoint and feature-by-feature installed-runtime evidence remain open. |

@@ -1805,3 +1805,25 @@ is visible at a time while the desktop/tablet callout retains the expanded
 side-by-side workflow. Existing motion ownership, stop, recovery, and
 accessibility semantics are unchanged. Installed-phone rendering remains
 required.
+
+### 2026-11-11 - WBS-01.3/09.1 compact callout and Tonight density
+
+The compact phone callout now spends 4 dp less on outer/header chrome and keeps
+the single bounded scroll owner. Tonight's observer summary and sky section
+cards use compact title, padding, spacing and key/value tokens; the desktop
+layout is unchanged. Astro programme actions that are full-width on desktop now
+keep that width in `wideModifier`, so their phone rendering remains a small
+graphic action rather than a full-row control. No action lost its accessible
+content description.
+
+### 2026-11-11 - WBS-04.3/09.1 source-aligned 263 video single-flight
+
+Video start/stop is now owned by the active camera session. A second tap is
+rejected while the first 263 state echo is pending; disconnect cancels the
+operation; late completion cannot update a replacement session. A timeout or
+negative/ambiguous echo clears the Boolean and exposes an unknown state rather
+than leaving a stale Recording/Stopped claim. The compact Camera deck exposes
+the pending state and disables both video actions while in flight.
+
+Verification is source/simulator/package evidence only. Named-camera 263
+recording/file behavior and installed-phone rendering remain required.

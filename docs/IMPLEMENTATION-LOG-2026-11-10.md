@@ -1958,6 +1958,23 @@ contract changed. This is source/package UX evidence; installed-phone
 rendering, live Astro WebUI, camera, Bluetooth and physical qualification
 remain open.
 
+### 2026-11-11 - WBS-01.3/09.1 compact mobile density and WBS-04.3 video
+
+The isolated release candidate reduces compact callout chrome, tightens the
+Tonight section-card/key-value layout, and moves Astro programme full-width
+modifiers into the desktop-only `wideModifier` path. Graphic actions retain
+their full accessibility descriptions and the desktop layout is unchanged.
+
+Video 263 start/stop is session-owned and single-flight. The Camera pane shows
+pending state, rejects a second command while the first echo is outstanding,
+cancels on disconnect, and clears to unknown after an unconfirmed result so a
+stale Boolean cannot claim Recording or Stopped.
+
+Focused verification:
+
+    ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --console=plain --no-daemon
+
+
 
 ### WBS-01.3/09.1 — Second-pass compact phone controls
 

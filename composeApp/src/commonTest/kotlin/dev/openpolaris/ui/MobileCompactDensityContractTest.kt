@@ -62,7 +62,7 @@ class MobileCompactDensityContractTest {
         assertTrue("if (LocalOpenPolarisCompact.current)" in shell)
         assertTrue("DialogProperties(usePlatformDefaultWidth = false)" in shell)
         assertTrue("testTag(\"compact-callout\")" in shell)
-        assertTrue("height(28.dp)" in shell)
+        assertTrue("height(24.dp)" in shell)
         assertTrue("contentDescription = \"Close \$title\"" in shell)
         assertTrue("text = scrollableBody" in shell)
     }

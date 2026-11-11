@@ -1046,6 +1046,10 @@ class AppViewModel(
     // dynamic index registry so an unavailable auxiliary route cannot erase
     // the primary exposure options.
     private var cameraAuxiliaryRefreshJob: Job? = null
+    // 263 video start/stop is a single-flight, session-owned operation. A
+    // second tap must not enqueue a second state transition while the first
+    // echo is pending, and a late reply must not update a replacement session.
+    private var videoCommandJob: Job? = null
     // #60: bounded watchdog for an in-flight capture. Started by [capture],
     // cancelled when the capture-event observer correlates a lifecycle + file + idle
     // event (shot done) or when the phase reaches a terminal state. If it
@@ -2163,6 +2167,9 @@ class AppViewModel(
         cameraAuxiliaryReadback = CameraAuxiliaryReadback()
         cameraAuxiliaryReadbackAtMs = null
         focusStatus = null
+        videoCommandJob?.cancel()
+        videoCommandJob = null
+        videoCommandInFlight = false
         videoRecording = null
         deviceInfo = null
         temperature = null
@@ -4297,6 +4304,8 @@ class AppViewModel(
         private set
     var videoRecording by mutableStateOf<Boolean?>(null)
         private set
+    var videoCommandInFlight by mutableStateOf(false)
+        private set
 
     val cameraReadbackAgeText: String
         get() = cameraReadbackAtMs?.let {
@@ -5004,8 +5013,9 @@ class AppViewModel(
 
     /** Start/stop video using the source-aligned 263 state echo. */
     fun setVideoRecording(recording: Boolean) {
+        val ownerSession = session
         val controller = cameraController
-        if (controller == null) { statusMessage = "Not connected"; return }
+        if (controller == null || ownerSession == null) { statusMessage = "Not connected"; return }
         if (!cameraAttachmentAllowsCommand()) return
         if ((!FeatureFlags.isEnabled("experimentalCamera") ||
             !FeatureFlags.isEnabled("cameraVideo")) && !demoMode
@@ -5017,13 +5027,30 @@ class AppViewModel(
             statusMessage = "Stop the active capture workflow before changing video"
             return
         }
-        scope.launch {
-            val result = controller.setVideoRecordStatus(recording)
-            if (result.accepted) {
-                videoRecording = recording
-                statusMessage = if (recording) "Video recording started" else "Video recording stopped"
-            } else {
-                statusMessage = "Video ${if (recording) "start" else "stop"} not confirmed: ${result.error ?: result.raw ?: "no state echo"}"
+        if (videoCommandJob?.isActive == true) {
+            statusMessage = "Video command already in progress"
+            return
+        }
+        videoCommandInFlight = true
+        videoCommandJob = scope.launch {
+            try {
+                val result = controller.setVideoRecordStatus(recording)
+                if (!ownsSession(ownerSession) || cameraController !== controller) return@launch
+                if (result.accepted) {
+                    videoRecording = recording
+                    statusMessage = if (recording) "Video recording started" else "Video recording stopped"
+                } else {
+                    // A written-but-unconfirmed 263 request leaves the camera
+                    // state unknowable. Do not preserve a stale Boolean that
+                    // could unlock a still or programme incorrectly.
+                    videoRecording = null
+                    statusMessage = "Video ${if (recording) "start" else "stop"} not confirmed: ${result.error ?: result.raw ?: "no state echo"}"
+                }
+            } finally {
+                if (videoCommandJob === currentCoroutineContext()[Job]) {
+                    videoCommandJob = null
+                    videoCommandInFlight = false
+                }
             }
         }
     }

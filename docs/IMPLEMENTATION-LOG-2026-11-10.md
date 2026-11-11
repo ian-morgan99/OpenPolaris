@@ -2226,3 +2226,23 @@ handling is unchanged.
 
 Focused and full cross-platform verification passed. This is source/package UX
 evidence only; no installed-phone rendering was performed.
+
+
+### WBS-01.3/09.1 - Compact mission summary and WBS-03.5/03.6 - Production SLOW acknowledgement sender
+
+The compact Mission surface now uses a graphic-led endpoint row and a short
+READY n/m or NEXT <check> readiness summary. The full readiness explanation
+remains in accessibility state semantics and the existing expanded details
+paths, so the initial phone surface does not repeat diagnostic prose.
+
+The qualified SLOW runtime now has a production MountSession sender for the
+source-aligned 532/533/534 frames. It waits for the matching response, accepts
+only ret:0, classifies non-zero returns as rejected and timeout/protocol
+failures as unknown, and quarantines a timed-out numeric code until reconnect.
+The evidence-backed capability record remains unqualified and the feature flag
+remains default-off; this is source/package evidence only.
+
+Verification: MobileCompactControlsContractTest,
+MountSessionSlowMotionSenderTest, existing qualified SLOW tests, the full JVM
+test suites, Kotlin/JVM compilation, Android debug compilation and desktop
+distributable creation.

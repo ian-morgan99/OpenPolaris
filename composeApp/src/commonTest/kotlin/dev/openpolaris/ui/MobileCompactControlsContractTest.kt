@@ -76,6 +76,19 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactMissionUsesShortReadinessSummaryAndGraphicHealthRow() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("if (!compactLayout)" in panes)
+        assertTrue("testTag(\"endpoint-compact-summary\")" in panes)
+        assertTrue("OpenPolarisGraphic.Connection" in panes)
+        assertTrue("\"READY / \" + readyCount + \"/\" + cards.size" in panes)
+        assertTrue("\"NEXT / \" + nextReadiness.label" in panes)
+        assertTrue("stateDescription = nextReadiness?.summary" in panes)
+        assertFalse("Mission next" in panes)
+    }
+
+    @Test
     fun compactEndpointHealthIsSummaryFirstWithRecoverableDetails() {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
 

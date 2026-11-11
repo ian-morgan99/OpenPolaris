@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone mission status is now shorter and more visual.** The
+  connection-health row uses the small connection graphic, and the readiness
+  line reports only READY n/m or NEXT <check> on the initial surface.
+  Full health detail and the explanatory readiness summary remain available
+  through the existing details affordances and accessibility state semantics.
+
+- **Qualified SLOW now has a production positive-acknowledgement sender.**
+  Source-aligned 532/533/534 requests use the shared MountSession demux,
+  require ret:0, classify rejection and protocol failures, and quarantine
+  timed-out response codes so late frames cannot be applied to a later command.
+  The capability record remains unqualified and the feature flag remains off.
+
 - **Direct AP and Home Wi-Fi endpoints are remembered separately.** Switching
   modes restores that mode's host and control port. Home Wi-Fi uses ordinary
   LAN routing and never invokes Direct AP Bluetooth wake, scan or bridge

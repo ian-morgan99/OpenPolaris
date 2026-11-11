@@ -922,23 +922,32 @@ private fun EndpointHealthSection(
         modifier = Modifier.testTag("endpoint-health"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(if (compactLayout) "Connection" else "Connection health", style = MaterialTheme.typography.titleMedium)
+        if (!compactLayout) {
+            Text("Connection health", style = MaterialTheme.typography.titleMedium)
+        }
         if (compactLayout) {
-            Text(
-                listOf(
-                    endpoint.profile?.label ?: "No endpoint",
-                    endpoint.phase.name.lowercase(),
-                    "C:${endpoint.control.name.lowercase()}",
-                    "P:${endpoint.preview.name.lowercase()}",
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("endpoint-compact-summary"),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().testTag("endpoint-compact-summary"),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OpenPolarisGraphicIcon(OpenPolarisGraphic.Connection)
+                Text(
+                    listOf(
+                        endpoint.profile?.label ?: "No endpoint",
+                        endpoint.phase.name.lowercase(),
+                        "C:" + endpoint.control.name.lowercase(),
+                        "P:" + endpoint.preview.name.lowercase(),
+                    ).joinToString(" / "),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             endpoint.lastFailureKind?.let { kind ->
                 Text(
-                    "Failure: ${kind.label}",
+                    "Failure: " + kind.label,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     maxLines = 1,
@@ -1157,14 +1166,18 @@ fun MissionDashboardPane(
                 }
                 Text(
                     if (nextReadiness == null) {
-                        "Mission ready · " + readyCount + " checks"
+                        "READY / " + readyCount + "/" + cards.size
                     } else {
-                        "Mission next · " + nextReadiness.label + ": " + nextReadiness.summary
+                        "NEXT / " + nextReadiness.label
                     },
                     style = MaterialTheme.typography.labelMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag("mission-compact-summary"),
+                    modifier = Modifier
+                        .testTag("mission-compact-summary")
+                        .semantics {
+                            stateDescription = nextReadiness?.summary ?: "All readiness checks passed"
+                        },
                 )
                 nextReadiness?.let { card ->
                     card.actionLabel?.let { actionLabel ->

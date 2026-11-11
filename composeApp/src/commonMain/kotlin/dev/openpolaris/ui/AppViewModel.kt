@@ -165,6 +165,7 @@ import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
 import dev.openpolaris.core.domain.QualifiedSlowMotionTransport
+import dev.openpolaris.core.domain.MountSessionSlowMotionSender
 import dev.openpolaris.core.domain.SystemMillis
 import dev.openpolaris.core.domain.MotionOwner
 import dev.openpolaris.core.domain.MotionAcquireResult
@@ -402,11 +403,12 @@ class AppViewModel(
     /** Evidence-backed SLOW allow-list; production defaults to the unqualified record. */
     private val slowMotionCapabilityRecord: SlowMotionCapabilityRecord = SlowMotionCapabilities.current,
     /**
-     * Optional exact firmware-bound sender. It must return Accepted only after
-     * the target firmware positively acknowledges the frame. A missing sender
-     * keeps the live path unavailable even if a capability record is supplied.
+     * Exact firmware-bound sender. Production uses the shared MountSession
+     * request/demux adapter; tests may pass null or a recording adapter.
+     * The capability record and feature flag still gate the live path.
      */
-    private val slowMotionFrameSender: (suspend (MountSession, SlowMotionWireFrame) -> SlowMotionTransportResult)? = null,
+    private val slowMotionFrameSender: (suspend (MountSession, SlowMotionWireFrame) -> SlowMotionTransportResult)? =
+        MountSessionSlowMotionSender::send,
     /** Clock seam for deterministic SLOW hold/release tests; production uses wall time. */
     private val slowMotionNow: () -> Long = { SystemMillis.now() },
 ) {

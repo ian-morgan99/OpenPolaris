@@ -234,9 +234,12 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic = OpenPolarisGraphic.Stop" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Delete" in panes)
         assertFalse("Button(onClick = { dialog = true })" in panes)
-        assertTrue("Text(\"Reboot\")" in panes)
-        assertTrue("Text(\"Shutdown\")" in panes)
-        assertTrue("Text(\"Format\")" in panes)
+        assertTrue("label = \"Reboot\"" in panes)
+        assertTrue("label = \"Shutdown\"" in panes)
+        assertTrue("label = \"Format\"" in panes)
+        assertTrue("Confirm reboot of the mount" in panes)
+        assertTrue("Confirm shutdown of the mount" in panes)
+        assertTrue("Confirm SD card format" in panes)
     }
 
     @Test
@@ -391,7 +394,28 @@ class MobileCompactControlsContractTest {
         assertTrue("contentDescription = \"Cancel reconnect\"" in dialog)
         assertTrue("graphic = OpenPolarisGraphic.Connection" in dialog)
         assertTrue("contentDescription = \"Reconnect to last mount\"" in dialog)
-        assertTrue("Text(\"Forget\")" in dialog, "irreversible marker removal remains explicitly textual")
+        assertTrue("graphic = OpenPolarisGraphic.Delete" in dialog)
+        assertTrue("contentDescription = \"Forget the saved mount\"" in dialog)
+        assertFalse("TextButton(onClick = { vm.forgetMarker() })" in dialog)
+    }
+
+    @Test
+    fun confirmationDialogsUseGraphicsOnPhonesAndLabelsOnDesktop() {
+        val flags = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
+        val controls = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("ResponsiveTextActionButton" in flags)
+        assertTrue("graphic = if (target) OpenPolarisGraphic.Apply else OpenPolarisGraphic.Stop" in flags)
+        assertTrue("contentDescription = if (target) \"Enable \${spec.label}\" else \"Disable \${spec.label}\"" in flags)
+        assertTrue("graphic = OpenPolarisGraphic.Refresh" in controls)
+        assertTrue("graphic = OpenPolarisGraphic.Stop" in controls)
+        assertTrue("graphic = OpenPolarisGraphic.Delete" in controls)
+        assertTrue("graphic = OpenPolarisGraphic.Cancel" in controls)
+        assertTrue("Confirm reboot of the mount" in controls)
+        assertTrue("Confirm shutdown of the mount" in controls)
+        assertTrue("Confirm SD card format" in controls)
+        assertFalse("TextButton(" in flags)
+        assertFalse("TextButton(" in controls)
     }
 
     @Test

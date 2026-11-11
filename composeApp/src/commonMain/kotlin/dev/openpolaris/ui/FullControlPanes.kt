@@ -18,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -441,10 +440,20 @@ private fun RebootRow(vm: AppViewModel) {
                 Text("The mount will power-cycle. The connection will drop. Make sure the mount is on a stable surface and no slew is in progress.")
             },
             confirmButton = {
-                TextButton(onClick = { dialog = false; vm.reboot() }) { Text("Reboot") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Reboot",
+                    contentDescription = "Confirm reboot of the mount",
+                    onClick = { dialog = false; vm.reboot() },
+                )
             },
             dismissButton = {
-                TextButton(onClick = { dialog = false }) { Text("Cancel") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel",
+                    contentDescription = "Cancel mount action",
+                    onClick = { dialog = false },
+                )
             },
         )
     }
@@ -480,10 +489,20 @@ private fun ShutdownRow(vm: AppViewModel) {
                 Text("The mount will power off. You'll need physical access to power it back on. The connection will drop immediately.")
             },
             confirmButton = {
-                TextButton(onClick = { dialog = false; vm.shutdown() }) { Text("Shutdown") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Shutdown",
+                    contentDescription = "Confirm shutdown of the mount",
+                    onClick = { dialog = false; vm.shutdown() },
+                )
             },
             dismissButton = {
-                TextButton(onClick = { dialog = false }) { Text("Cancel") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel",
+                    contentDescription = "Cancel mount action",
+                    onClick = { dialog = false },
+                )
             },
         )
     }
@@ -933,10 +952,20 @@ private fun FormatRow(vm: AppViewModel) {
                 Text("All photos and timelapse files on the SD card will be deleted. There is no undo. Make sure you've copied everything off the card first.")
             },
             confirmButton = {
-                TextButton(onClick = { dialog = false; vm.formatSd() }) { Text("Format") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Delete,
+                    label = "Format",
+                    contentDescription = "Confirm SD card format",
+                    onClick = { dialog = false; vm.formatSd() },
+                )
             },
             dismissButton = {
-                TextButton(onClick = { dialog = false }) { Text("Cancel") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel",
+                    contentDescription = "Cancel mount action",
+                    onClick = { dialog = false },
+                )
             },
         )
     }

@@ -5,6 +5,25 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/09.1 — Compact confirmation-dialog actions
+
+The remaining phone-only oversized text-button chrome is now removed from
+secondary confirmation flows. Reconnect-forget, feature-flag enable/disable,
+reboot, shutdown and SD-format actions use the responsive text/graphic boundary:
+phones receive a small line graphic with a complete semantic description, while
+PC dialogs retain labelled text actions. Destructive confirmation copy and all
+existing feature gates are unchanged.
+
+Focused verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+```
+
+This is source/package UX evidence only. Installed-phone rendering and live
+mount, camera, Bluetooth, Astro WebUI and physical SLOW qualification remain
+open.
+
 ### WBS-01.3/09.1 - Compact phone overflow menus
 
 The compact More controls menus now use 26 dp graphic-first rows instead of

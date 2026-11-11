@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Compact phone dialogs now use small graphics for secondary actions.**
+  Reconnect-forget, feature-flag confirmation, reboot, shutdown and SD-format
+  dialog actions keep explicit safety copy and full accessibility descriptions,
+  but replace oversized phone text-button chrome with small graphics. Desktop
+  dialogs retain their labelled actions; no destructive action or safety gate
+  changed.
 - **Phone overflow menus now use compact graphic rows.** The More controls
   menus use 26 dp rows with small line graphics and full accessible names on
   compact layouts; desktop keeps the native labelled Material menu items.

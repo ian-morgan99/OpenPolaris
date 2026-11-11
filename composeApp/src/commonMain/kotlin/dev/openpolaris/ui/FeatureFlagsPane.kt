@@ -16,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -335,8 +334,22 @@ private fun DestructiveConfirmDialog(
                         "You can re-enable it any time."
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(if (target) "Enable" else "Disable") } },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+        confirmButton = {
+            ResponsiveTextActionButton(
+                graphic = if (target) OpenPolarisGraphic.Apply else OpenPolarisGraphic.Stop,
+                label = if (target) "Enable" else "Disable",
+                contentDescription = if (target) "Enable ${spec.label}" else "Disable ${spec.label}",
+                onClick = onConfirm,
+            )
+        },
+        dismissButton = {
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Cancel,
+                label = "Cancel",
+                contentDescription = "Cancel feature change",
+                onClick = onCancel,
+            )
+        },
     )
 }
 

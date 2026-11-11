@@ -620,7 +620,7 @@ fun ConnectionPane(
                             },
                             style = MaterialTheme.typography.labelSmall,
                         )
-                        Switch(
+                        CompactSwitch(
                             checked = keepWifi.state.enabled,
                             enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"),
                             onCheckedChange = { enabled ->
@@ -639,7 +639,7 @@ fun ConnectionPane(
                         style = MaterialTheme.typography.labelSmall,
                     )
                     if (state.enabled) {
-                        Switch(
+                        CompactSwitch(
                             checked = state.forced,
                             enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiWrite"),
                             onCheckedChange = { forced ->
@@ -1517,7 +1517,7 @@ fun MissionDashboardPane(
                                 if (guide.state.running) "Guiding active" else "Guiding off",
                                 style = MaterialTheme.typography.labelSmall,
                             )
-                            Switch(
+                            CompactSwitch(
                                 checked = guide.state.running,
                                 enabled = FeatureFlags.isEnabled("astroWebUiGuiding"),
                                 onCheckedChange = vm::setAstroWebUiGuiding,
@@ -1782,7 +1782,7 @@ fun MissionDashboardPane(
                     enabled = sessionControlsEnabled,
                     label = { Text("Lunar") },
                 )
-                Switch(
+                CompactSwitch(
                     checked = selectedAstroHalfSpeed,
                     onCheckedChange = { selectedAstroHalfSpeed = it },
                     enabled = sessionControlsEnabled,
@@ -2178,7 +2178,7 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
+        CompactSwitch(
             checked = imageStabilization,
             onCheckedChange = { imageStabilization = it; armed = false },
         )
@@ -2625,7 +2625,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
             OutlinedTextField(value = plcInterval, onValueChange = { plcInterval = it; armed = false }, label = { Text("Photo interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = plcShots, onValueChange = { plcShots = it; armed = false }, label = { Text("Photo count (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = plcHold, onCheckedChange = { plcHold = it; armed = false })
+                CompactSwitch(checked = plcHold, onCheckedChange = { plcHold = it; armed = false })
                 Text("Hold final pose", style = MaterialTheme.typography.bodySmall)
             }
             val plcActionLabel = if (previewMatches && armed) "Run PLC - this may move/fire" else "Preview PLC"
@@ -2689,7 +2689,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
         }
         else -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = grailEnabled, onCheckedChange = { grailEnabled = it; armed = false })
+                CompactSwitch(checked = grailEnabled, onCheckedChange = { grailEnabled = it; armed = false })
                 Text("Enable Holy Grail ramp", style = MaterialTheme.typography.bodySmall)
             }
             OutlinedTextField(value = grailNodeMinutes, onValueChange = { grailNodeMinutes = it; armed = false }, label = { Text("Second curve node (minutes)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -3686,7 +3686,7 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     enabled = !vm.autoLevelRunning,
                     modifier = Modifier.testTag("auto-level-run"),
                 )
-                Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
+                CompactSwitch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
                 Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Refresh,
@@ -5035,7 +5035,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ---- Options ---------------------------------------------------
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(
+            CompactSwitch(
                 checked = vm.firmwareRebootAfter,
                 onCheckedChange = { vm.firmwareRebootAfter = it },
                 enabled = !vm.firmwareBusy,

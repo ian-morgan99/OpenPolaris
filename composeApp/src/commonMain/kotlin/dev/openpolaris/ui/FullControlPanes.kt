@@ -88,7 +88,7 @@ private fun DitherRow(vm: AppViewModel) {
         )
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Switch(
+        CompactSwitch(
             enabled = FeatureFlags.isEnabled("advancedAstro"),
             checked = vm.ditherEnabled == true,
             onCheckedChange = vm::setDither,
@@ -147,7 +147,7 @@ private fun LimitsRow(vm: AppViewModel) {
     }
     if (FeatureFlags.isEnabled("limitsWrite")) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Switch(
+            CompactSwitch(
                 checked = vm.limitsEnabled == true,
                 onCheckedChange = vm::setLimits,
             )
@@ -192,7 +192,7 @@ private fun AutoLevelRow(vm: AppViewModel) {
     }
     if (FeatureFlags.isEnabled("autoLevel")) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Switch(
+            CompactSwitch(
                 checked = vm.autoLevelEnabled == true,
                 onCheckedChange = vm::setAutoLevelEnabled,
             )
@@ -335,7 +335,7 @@ private fun BuzzerRow(vm: AppViewModel) {
     var on by remember { mutableStateOf(true) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Buzzer", modifier = Modifier.width(110.dp))
-        Switch(
+        CompactSwitch(
             checked = on,
             onCheckedChange = { on = it; vm.setBuzzer(it) },
             enabled = FeatureFlags.isEnabled("systemSettings"),
@@ -349,7 +349,7 @@ private fun LedRow(vm: AppViewModel) {
     var on by remember { mutableStateOf(true) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Status LED", modifier = Modifier.width(110.dp))
-        Switch(
+        CompactSwitch(
             checked = on,
             onCheckedChange = { on = it; vm.setLed(it) },
             enabled = FeatureFlags.isEnabled("systemSettings"),

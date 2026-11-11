@@ -248,7 +248,7 @@ private fun FlagRow(spec: FlagSpec, isOn: Boolean, onToggle: (Boolean) -> Unit) 
         // them to `safe` or `destructive` in [flagSpecs].
         // The policy itself lives in [isFlagSpecInteractive] so it can
         // be unit-tested without a Compose test harness.
-        Switch(
+        CompactSwitch(
             checked = isOn,
             onCheckedChange = onToggle,
             enabled = isFlagSpecInteractive(spec),

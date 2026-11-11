@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Further compact phone pass reduces the remaining visual chrome.** Compact
+  graphic actions are now 24 dp with 8 dp line graphics, selector tiles are
+  20 dp, the phone destination row is 24 dp, and native Material switches are
+  scaled to 72% only in compact mode. PC controls retain their labelled
+  desktop sizing; icon-only phone actions keep full content descriptions and
+  state semantics.
 - **Follow-up mobile density pass makes the phone shell smaller again.** Compact action footprints are now 28 dp, graphic-backed state selectors use a 24 dp visual tile with 10 dp line graphics, the primary destination row is 28 dp, and compact pane/card spacing is reduced. Desktop remains labelled and 48 dp; icon-only controls retain content descriptions and state semantics.
 - SLOW qualification metadata is now versioned and fail-closed. A bounded schema-1 manifest validates exact device/source identities, evidence-bundle provenance and every safety gate without enabling live transport; the shipped capability record remains unqualified until controlled evidence is promoted.
 - **Third compact pass makes the phone shell materially smaller.** Phone actions now use 12 dp line graphics in a 32 dp footprint, the primary destination row is 32 dp high, and Track/½-speed/AHRS/fine-correction state controls become icon-only on compact screens with explicit accessibility names. Material3 phone interaction-size expansion is bounded to the same compact scale; desktop remains 48 dp with full labels.

@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -72,7 +74,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 28.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 24.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -88,7 +90,7 @@ internal fun CompactFilterChip(
     if (LocalOpenPolarisCompact.current && graphic != null) {
         Box(
             modifier = modifier
-                .size(24.dp)
+                .size(if (LocalOpenPolarisCompact.current) 20.dp else 32.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
@@ -120,13 +122,35 @@ internal fun CompactFilterChip(
             enabled = enabled,
             label = label,
             modifier = modifier
-                .height(if (LocalOpenPolarisCompact.current) 24.dp else 32.dp)
+                .height(if (LocalOpenPolarisCompact.current) 20.dp else 32.dp)
                 .semantics(mergeDescendants = true) {
                     contentDescription?.let { this.contentDescription = it }
                     stateDescription = if (selected) "On" else "Off"
                 },
         )
     }
+}
+
+/**
+ * Material switches retain a large visual track even when the minimum
+ * interactive component size is reduced. Scale only the phone rendering;
+ * desktop keeps the standard switch dimensions and semantics.
+ */
+@Composable
+internal fun CompactSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        enabled = enabled,
+        modifier = modifier.then(
+            if (LocalOpenPolarisCompact.current) Modifier.scale(0.72f) else Modifier,
+        ),
+    )
 }
 
 /**
@@ -207,7 +231,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 10.dp else 20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 8.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }

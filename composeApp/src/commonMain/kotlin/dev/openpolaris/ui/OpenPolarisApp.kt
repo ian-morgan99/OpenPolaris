@@ -504,7 +504,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(28.dp)
+            .height(24.dp)
             .testTag("primary-navigation"),
     ) {
         Row(

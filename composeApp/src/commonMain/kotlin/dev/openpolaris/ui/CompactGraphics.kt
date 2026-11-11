@@ -2,6 +2,7 @@ package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +21,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -221,6 +223,64 @@ internal fun CompactSwitch(
             radius = thumbRadius,
             center = Offset(thumbX, size.height / 2f),
         )
+    }
+}
+
+/**
+ * Keeps radio indicators from bringing Material3's large visual control onto
+ * the phone while preserving a real RadioButton role and selected semantics.
+ * The option text remains visible because delivery modes are not safely
+ * distinguishable by a symbol alone.
+ */
+@Composable
+internal fun CompactRadioButton(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentDescription: String? = null,
+) {
+    if (!LocalOpenPolarisCompact.current) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+        )
+        return
+    }
+
+    val colors = MaterialTheme.colorScheme
+    val ringColor = when {
+        !enabled -> colors.onSurface.copy(alpha = 0.38f)
+        selected -> colors.primary
+        else -> colors.outline
+    }
+    val dotColor = if (enabled) colors.primary else colors.onSurface.copy(alpha = 0.38f)
+    Canvas(
+        modifier = modifier
+            .size(compactActionTargetSize())
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .semantics {
+                contentDescription?.let { this.contentDescription = it }
+                stateDescription = if (selected) "Selected" else "Not selected"
+            },
+    ) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(
+            color = ringColor,
+            radius = 4.5.dp.toPx(),
+            center = center,
+            style = Stroke(width = 1.3.dp.toPx()),
+        )
+        if (selected) {
+            drawCircle(color = dotColor, radius = 2.2.dp.toPx(), center = center)
+        }
     }
 }
 

@@ -1462,3 +1462,14 @@ remain open.
 - **2026-11-11 - verification:** focused AstroWebUiProgrammeComposerContractTest
   and MobileCompactControlsContractTest passed. Full cross-platform packaging
   remains required before publication.
+
+- **2026-11-11 — WBS-01.3/09.1 ACTIVE (compact radio indicators):** replaced the
+  oversized Material3 radio visuals in the firmware delivery step with a
+  phone-only 18 dp custom indicator that retains `Role.RadioButton`, selected
+  state and keyboard/selectable semantics. The option descriptions remain
+  textual because verified versus unavailable delivery cannot safely be
+  represented by a symbol alone; desktop continues to use native radio
+  controls.
+- **2026-11-11 — verification:** compact-control and density contracts, the
+  full shared/Compose JVM suites, Android debug compilation and desktop
+  distributable creation passed.

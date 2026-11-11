@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Firmware delivery radio indicators now stay compact on phones.** The
+  verified SSH and unavailable wire choices retain their descriptive text and
+  radio semantics, but the phone indicator uses a small custom graphic instead
+  of Material3's oversized radio control. Desktop keeps the native control.
 - **Astro programme forms now use compact phone field rows.** Lapse and
   panorama parameters pair into two-column phone rows with short labels while
   desktop keeps the full-width fields and full labels. The complete field name

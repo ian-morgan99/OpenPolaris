@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -5364,18 +5363,20 @@ private fun FirmwareStep2(vm: AppViewModel) {
         Column {
             Text("Delivery mode", style = MaterialTheme.typography.labelLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
+                CompactRadioButton(
                     selected = vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE,
                     onClick = { vm.firmwareDeliveryMode = DeliveryMode.SSH_PIPE },
                     enabled = !vm.firmwareBusy,
+                    contentDescription = "Use verified SSH pipe firmware delivery",
                 )
                 Text("SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
+                CompactRadioButton(
                     selected = vm.firmwareDeliveryMode == DeliveryMode.WIRE,
                     onClick = { vm.firmwareDeliveryMode = DeliveryMode.WIRE },
                     enabled = false,
+                    contentDescription = "Wire firmware delivery unavailable",
                 )
                 Text("Wire envelope unavailable — chunk framing is unproven", style = MaterialTheme.typography.bodyMedium)
             }

@@ -1880,3 +1880,21 @@ Focused verification passed:
 This is source/package UX evidence only. No installed-phone screenshot, live
 Astro WebUI, camera, mount, Bluetooth or physical programme qualification was
 performed.
+
+### WBS-01.3/09.1 — Compact firmware delivery indicators
+
+The firmware delivery step now uses `CompactRadioButton` for its SSH pipe and
+unavailable wire choices. Phones get an 18 dp custom ring/dot indicator with
+`Role.RadioButton`, selected state and `selectable` semantics; the full option
+text and accessibility descriptions remain visible because the delivery modes
+are not safely icon-only. Desktop retains Material3's native radio control.
+
+Verification passed:
+
+    ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --console=plain --no-daemon
+    ./gradlew :shared:jvmTest :composeApp:jvmTest --console=plain --no-daemon
+    ANDROID_HOME=/home/ian/android-sdk ANDROID_SDK_ROOT=/home/ian/android-sdk ./gradlew :androidApp:compileDebugKotlinAndroid :desktopApp:createDistributable --console=plain --no-daemon
+
+This is source/package UX evidence only. No installed-phone render, live
+firmware delivery, Bluetooth, camera, mount or physical SLOW qualification was
+performed.

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Camera readback issue #101 now has deterministic regression coverage.**
+  A 2.5-second shutter INFO reply is accepted within the camera-specific
+  4-second budget; empty WB and missing EV responses retain last-good values
+  while exposing per-field unavailable status; repeated refresh calls cannot
+  overlap. This validates the software contract only; named-camera hardware
+  acceptance remains open.
 - **Further compact phone pass reduces the remaining visual chrome.** Compact
   graphic actions are now 24 dp with 8 dp line graphics, selector tiles are
   20 dp, the phone destination row is 24 dp, and native Material switches are

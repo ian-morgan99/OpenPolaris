@@ -23,6 +23,32 @@ class CameraInfoContractTest {
     }
 
     @Test
+    fun `empty white balance response remains unavailable`() {
+        val frame = requireNotNull(
+            ResponseParser().parseFrame("266@RD:0;V:;R:;#"),
+        )
+
+        val info = parseBenroInfo(266, "wb", frame)
+
+        assertNull(info.index)
+        assertEquals(emptyList(), info.options)
+        assertEquals(CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE, info.status)
+    }
+
+    @Test
+    fun `missing EV value remains unavailable`() {
+        val frame = requireNotNull(
+            ResponseParser().parseFrame("267@RD:0;#"),
+        )
+
+        val info = parseBenroInfo(267, "ev", frame)
+
+        assertNull(info.index)
+        assertEquals(emptyList(), info.options)
+        assertEquals(CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE, info.status)
+    }
+
+    @Test
     fun `empty live option response remains unavailable`() {
         val frame = requireNotNull(
             ResponseParser().parseFrame("265@RD:0;V:;R:;#"),

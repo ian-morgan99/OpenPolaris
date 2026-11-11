@@ -1297,3 +1297,17 @@ remain open.
   compact-control contract tests assert the dimensions and preserve accessible
   action descriptions/state semantics. This is source/package evidence only;
   an installed-phone render and live hardware qualification remain open.
+
+
+- **2026-11-11 - WBS-04.1/02.2 ACTIVE (camera readback issue #101):
+  deterministic regression coverage now exercises a 2.5-second K-1 II-style
+  INFO reply within the camera-specific 4-second budget, empty WB, missing EV,
+  per-field status reporting, last-known-good preservation, and repeated
+  refresh serialization. The implementation remains fail-closed for timeout,
+  stale and protocol outcomes. Named K-1 II/K-3 III hardware acceptance and
+  response timing matrix remain WBS-11 qualification work.
+- **2026-11-11 - verification:** focused CameraInfoContractTest,
+  MountSessionReaderTest and AppViewModelCameraRefreshOwnershipTest passed;
+  full shared/Compose JVM, Android compilation and desktop packaging remain
+  required before publishing this slice. No live camera or mount operation was
+  exercised.

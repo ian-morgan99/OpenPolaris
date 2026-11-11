@@ -291,6 +291,37 @@ class MountSessionReaderTest {
     }
 
     @Test
+    fun cameraInfoResponseAfterLegacyTwoSecondBudgetStillCompletes() = runTest {
+        val conn = FakeConnection()
+        val s = MountSession({ conn }, readerScope = backgroundScope)
+        conn.responses += "1&284&2&mode:0;#".toByteArray(Charsets.US_ASCII)
+        conn.queueDefaultAuthOk()
+        assertTrue(s.connect())
+
+        val controller = CameraController(s)
+        val infoDeferred = async {
+            controller.queryBenroInfo(268, "shutter")
+        }
+        runCurrent()
+        assertEquals(
+            1,
+            conn.written.count { it.decodeToString().startsWith("1&268&") },
+        )
+
+        // K-1 II evidence showed some INFO replies arriving after the old
+        // 2-second global budget. The camera-specific contract is 4 seconds.
+        advanceTimeBy(2_500)
+        conn.responses += "1&268&2&RD:1;V:4;R:1/30,1/60,1/125;#".toByteArray(Charsets.US_ASCII)
+        runCurrent()
+
+        val info = infoDeferred.await()
+        assertEquals(4, info.index)
+        assertEquals(listOf("1/30", "1/60", "1/125"), info.options)
+        assertEquals(CameraController.InfoStatus.VALID, info.status)
+        s.disconnect()
+    }
+
+    @Test
     fun timedOutCameraInfoIsQuarantinedUntilReconnect() = runTest {
         val conn = FakeConnection()
         val s = MountSession({ conn }, readerScope = this)

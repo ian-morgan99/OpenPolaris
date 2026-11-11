@@ -310,6 +310,27 @@ class MobileResponsiveLayoutContractTest {
     }
 
     @Test
+    fun phoneControlDestinationUsesOneActiveCommandSurface() {
+        val shell = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt"))
+        val panes = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt"))
+        assertTrue("AppDestination.CONTROL -> ControlWorkspace" in shell)
+        assertTrue("private enum class CompactControlSurface" in shell)
+        assertTrue("control-surface-jog" in shell)
+        assertTrue("control-surface-slow" in shell)
+        assertTrue("CompactControlSurface.JOG -> JogPane" in shell)
+        assertTrue("CompactControlSurface.SLOW -> SlowMotionPane" in shell)
+        assertTrue("if (!LocalOpenPolarisCompact.current)" in shell)
+        assertTrue(
+            "if (!LocalOpenPolarisCompact.current)" in panes,
+            "the compact jog surface must not repeat the position readout and help copy",
+        )
+        assertTrue(
+            "if (!compactLayout || motionState !is dev.openpolaris.core.domain.MotionState.Idle)" in panes,
+            "idle SLOW owner text must not consume a phone row",
+        )
+    }
+
+    @Test
     fun settingsPaneStillExposesBuildIdentity() {
         val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
         assertTrue("versionLabel" in src, "FeatureFlagsPane must render versionLabel (issue #43 fix)")

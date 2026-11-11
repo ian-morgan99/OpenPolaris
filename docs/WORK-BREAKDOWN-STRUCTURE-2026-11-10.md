@@ -1589,3 +1589,18 @@ remain open.
 - **2026-11-11 - verification:** MobileCompactControlsContractTest passed for
   the camera disclosure boundary. Full JVM, Android compilation and desktop
   packaging are required before publication of this slice.
+
+
+### 2026-11-11 — WBS-01.3/03.6/09.1 compact Control command deck
+
+The phone Control destination no longer stacks Position, fast jog and SLOW into
+one scroll-heavy surface. It keeps the live position/tracking row visible and
+uses small graphic-backed Jog/SLOW tiles to select one active command surface.
+The PC layout remains expanded. Compact jog removes the duplicated position and
+instruction rows; compact SLOW omits idle-only owner text. Hold/release safety,
+motion ownership, acknowledgement evidence, feature gates and the live SLOW
+qualification block are unchanged.
+
+Verification is required before publication: focused mobile contracts, full
+Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
+rendering and physical motion qualification remain open.

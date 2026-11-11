@@ -2978,12 +2978,14 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val fastJogState by vm.fastJogState.collectAsState()
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
-            Text("Position", style = MaterialTheme.typography.titleMedium)
-            Text("Az/Yaw: ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt/Pitch: ${p?.pitch?.toDouble()?.format2() ?: "—"}°")
-            Text(
-                "Fast jog: hold a direction and release to stop.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (!LocalOpenPolarisCompact.current) {
+                Text("Position", style = MaterialTheme.typography.titleMedium)
+                Text("Az/Yaw: ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt/Pitch: ${p?.pitch?.toDouble()?.format2() ?: "—"}°")
+                Text(
+                    "Fast jog: hold a direction and release to stop.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             when (fastJogState) {
                 dev.openpolaris.core.domain.FastJogState.Idle -> Unit
                 is dev.openpolaris.core.domain.FastJogState.Armed,
@@ -3199,20 +3201,22 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     )
                 }
             }
-            Text(
-                if (compactLayout) when (val state = motionState) {
-                    dev.openpolaris.core.domain.MotionState.Idle -> "Owner: idle"
-                    is dev.openpolaris.core.domain.MotionState.Owned -> "Owner: " + state.lease.owner.name.lowercase().replace('_', ' ')
-                    is dev.openpolaris.core.domain.MotionState.Faulted -> "Owner: blocked"
-                } else motionOwnerText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (motionState is dev.openpolaris.core.domain.MotionState.Faulted) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.testTag("motion-owner-state"),
-            )
+            if (!compactLayout || motionState !is dev.openpolaris.core.domain.MotionState.Idle) {
+                Text(
+                    if (compactLayout) when (val state = motionState) {
+                        dev.openpolaris.core.domain.MotionState.Idle -> "Owner: idle"
+                        is dev.openpolaris.core.domain.MotionState.Owned -> "Owner: " + state.lease.owner.name.lowercase().replace('_', ' ')
+                        is dev.openpolaris.core.domain.MotionState.Faulted -> "Owner: blocked"
+                    } else motionOwnerText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (motionState is dev.openpolaris.core.domain.MotionState.Faulted) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.testTag("motion-owner-state"),
+                )
+            }
             Text(
                 if (compactLayout) compactAcknowledgementText else slowAcknowledgementText,
                 style = MaterialTheme.typography.labelSmall,

@@ -2145,3 +2145,15 @@ Focused verification passed:
 This is source/package UX evidence only. No installed-phone render, live Astro
 WebUI, camera, mount, Bluetooth or physical media/export qualification was
 performed.
+
+
+## 2026-11-11 — compact Control command deck
+
+The compact phone Control destination now selects fast jog or SLOW as the active
+surface rather than stacking both below the position card. The position/tracking
+state remains visible, while duplicate jog position/help text and idle-only SLOW
+owner text are omitted on phones. Desktop remains expanded and all motion safety
+and qualification semantics are unchanged.
+
+Focused source-contract coverage was added in
+MobileResponsiveLayoutContractTest.phoneControlDestinationUsesOneActiveCommandSurface.

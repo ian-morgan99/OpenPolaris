@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **The compact phone Control destination is now a two-surface command deck.**
+  Position, tracking, half-speed and AHRS state stay visible; fast jog and SLOW
+  are selected with small graphic-backed tiles instead of being stacked in one
+  long scroll. The PC layout remains expanded with both surfaces visible.
+  Hold-to-move, release-to-stop, motion ownership, acknowledgements and all
+  qualification gates are unchanged.
+
 - **Mobile workspaces now use a compact command-deck hierarchy.** The Gallery
   callout shows one of Latest, Astro WebUI or SD card at a time on phones
   instead of stacking all three scroll-heavy surfaces. Tonight opens with a

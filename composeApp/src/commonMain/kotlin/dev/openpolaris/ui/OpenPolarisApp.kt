@@ -429,13 +429,7 @@ private fun InlineDestinationWorkspace(
                     onAction = onMissionAction,
                     compassHeadingSource = compassHeadingSource,
                 )
-                AppDestination.CONTROL -> Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    PositionReadout(vm, Modifier.fillMaxWidth())
-                    JogPane(vm, Modifier.fillMaxWidth())
-                    SlowMotionPane(vm, Modifier.fillMaxWidth())
-                }
+                AppDestination.CONTROL -> ControlWorkspace(vm, Modifier.fillMaxWidth())
                 AppDestination.CAMERA -> CameraPane(
                     vm = vm,
                     modifier = Modifier.fillMaxWidth(),
@@ -988,6 +982,68 @@ private fun StatusStrip(
     }
 }
 
+private enum class CompactControlSurface {
+    JOG,
+    SLOW,
+}
+
+/**
+ * The phone control destination is a command deck, not a long report. Keep
+ * the live position and safety-critical tracking chips visible, then expose
+ * either fast jog or SLOW as the active surface. The desktop still shows both
+ * surfaces together so no capability is removed; the phone simply avoids
+ * making the operator scroll past one control family to reach the other.
+ */
+@Composable
+private fun ControlWorkspace(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+) {
+    if (!LocalOpenPolarisCompact.current) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier) {
+            PositionReadout(vm, Modifier.fillMaxWidth())
+            JogPane(vm, Modifier.fillMaxWidth())
+            SlowMotionPane(vm, Modifier.fillMaxWidth())
+        }
+        return
+    }
+
+    var surface by remember { mutableStateOf(CompactControlSurface.JOG) }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        PositionReadout(vm, Modifier.fillMaxWidth())
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CompactFilterChip(
+                selected = surface == CompactControlSurface.JOG,
+                onClick = { surface = CompactControlSurface.JOG },
+                label = { Text("Jog") },
+                graphic = OpenPolarisGraphic.Slew,
+                contentDescription = "Show fast jog controls",
+                modifier = Modifier.testTag("control-surface-jog"),
+            )
+            CompactFilterChip(
+                selected = surface == CompactControlSurface.SLOW,
+                onClick = { surface = CompactControlSurface.SLOW },
+                label = { Text("SLOW") },
+                graphic = OpenPolarisGraphic.Fine,
+                contentDescription = "Show slow motion controls",
+                compactLabel = "S",
+                modifier = Modifier.testTag("control-surface-slow"),
+            )
+        }
+        when (surface) {
+            CompactControlSurface.JOG -> JogPane(vm, Modifier.fillMaxWidth())
+            CompactControlSurface.SLOW -> SlowMotionPane(vm, Modifier.fillMaxWidth())
+        }
+    }
+}
+
 /** Az/Alt readout + tracking / half-speed / AHRS chips, compact. */
 @Composable
 private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
@@ -999,7 +1055,11 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
         ) {
             Text(
                 "Az ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt ${p?.pitch?.toDouble()?.format2() ?: "—"}°",
-                style = MaterialTheme.typography.headlineSmall,
+                style = if (LocalOpenPolarisCompact.current) {
+                    MaterialTheme.typography.labelLarge
+                } else {
+                    MaterialTheme.typography.headlineSmall
+                },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 8.dp)) {
                 CompactFilterChip(
@@ -1032,7 +1092,7 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                     contentDescription = "Fine correction",
                 )
             }
-            if (!FeatureFlags.isEnabled("fineRateControl")) {
+            if (!FeatureFlags.isEnabled("fineRateControl") && !LocalOpenPolarisCompact.current) {
                 Text(
                     "Fine correction unavailable — the firmware rate and physical stop contract is not qualified.",
                     style = MaterialTheme.typography.bodySmall,

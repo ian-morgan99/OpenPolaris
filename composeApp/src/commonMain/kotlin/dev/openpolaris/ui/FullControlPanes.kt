@@ -94,7 +94,13 @@ private fun DitherRow(vm: AppViewModel) {
             onCheckedChange = vm::setDither,
         )
         Spacer(Modifier.weight(1f))
-        OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Refresh,
+            label = "Refresh",
+            contentDescription = "Refresh helper state",
+            onClick = vm::refreshHelpers,
+            outlined = true,
+        )
     }
 }
 
@@ -110,14 +116,23 @@ private fun SettlingRow(vm: AppViewModel) {
             label = { Text("seconds") },
             modifier = Modifier.weight(1f),
         )
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = "Apply",
+            contentDescription = "Apply settling time",
             enabled = FeatureFlags.isEnabled("advancedAstro"),
             onClick = {
                 val v = draft.toIntOrNull()
                 if (v != null && v >= 0) vm.setSettlingTimeMs(v * 1000) else vm.refreshSettling()
             },
-        ) { Text("Apply") }
-        OutlinedButton(onClick = vm::refreshSettling) { Text("Refresh") }
+        )
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Refresh,
+            label = "Refresh",
+            contentDescription = "Refresh settling time",
+            onClick = vm::refreshSettling,
+            outlined = true,
+        )
     }
 }
 
@@ -137,7 +152,13 @@ private fun LimitsRow(vm: AppViewModel) {
                 onCheckedChange = vm::setLimits,
             )
             Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Refresh",
+                contentDescription = "Refresh helper state",
+                onClick = vm::refreshHelpers,
+                outlined = true,
+            )
         }
     } else {
         // Read-only: the write path is gated off, so we surface the value
@@ -149,7 +170,13 @@ private fun LimitsRow(vm: AppViewModel) {
         )
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = vm::refreshHelpers) { Text("Refresh") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Refresh",
+                contentDescription = "Refresh helper state",
+                onClick = vm::refreshHelpers,
+                outlined = true,
+            )
         }
     }
 }
@@ -170,8 +197,20 @@ private fun AutoLevelRow(vm: AppViewModel) {
                 onCheckedChange = vm::setAutoLevelEnabled,
             )
             Spacer(Modifier.weight(1f))
-            OutlinedButton(onClick = vm::runAutoLevel) { Text("Run now") }
-            OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Helpers,
+                label = "Run now",
+                contentDescription = "Run auto-level",
+                onClick = vm::runAutoLevel,
+                outlined = true,
+            )
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Refresh",
+                contentDescription = "Refresh auto-level state",
+                onClick = vm::refreshAutoLevel,
+                outlined = true,
+            )
         }
     } else {
         // Read-only: kiosk/test rigs may set autoLevel=false to hide
@@ -184,7 +223,13 @@ private fun AutoLevelRow(vm: AppViewModel) {
         )
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Refresh",
+                contentDescription = "Refresh auto-level state",
+                onClick = vm::refreshAutoLevel,
+                outlined = true,
+            )
         }
     }
 }

@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   phones.** Refresh, paging, protect/unprotect and delete retain explicit
   accessible descriptions; PC keeps the labelled controls, while destructive
   format remains deliberately textual.
+- **Astro helper actions now stay compact on phones.** Refresh, settling Apply,
+  and auto-level Run/Refresh use small graphics with accessible descriptions;
+  PC retains the labelled controls and all feature gates remain unchanged.
 
 ## [0.1.19] - 2026-10-09
 ### Fixed

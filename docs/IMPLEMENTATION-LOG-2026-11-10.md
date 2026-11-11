@@ -1624,3 +1624,14 @@ No file-list payload, mutation gate, SD-format confirmation or other file
 lifecycle behavior changed. This is source/package UX evidence; live camera,
 SD card, mount, Bluetooth, installed-phone rendering and physical mutation
 qualification remain open.
+
+### WBS-01.3/05.1/09.1 — Compact Astro helper actions
+
+The phone Helpers pane now uses small graphics for helper refresh, settling-time
+Apply/Refresh and auto-level Run/Refresh actions. Each remains a 48 dp target
+with an explicit content description; desktop keeps the labelled controls.
+Feature gates, read-only notices and the underlying mount command semantics are
+unchanged.
+
+This is source/package UX evidence; live mount, Bluetooth, Astro helper,
+installed-phone rendering and physical auto-level qualification remain open.

@@ -1173,3 +1173,12 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-11 - verification:** source-contract and Compose/JVM tests,
   Android compilation and desktop packaging are required. No live camera, SD
   card, mount, Bluetooth or physical file mutation was exercised.
+
+- **2026-11-11 - WBS-01.3/05.1/09.1 ACTIVE (compact Astro helper actions):**
+  applied the responsive graphic boundary to helper refresh, settling-time
+  Apply/Refresh and auto-level Run/Refresh. Phone controls keep 48 dp targets
+  and explicit descriptions; PC keeps the labelled actions. Feature flags,
+  read-only notices and mount command semantics are unchanged.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No live mount,
+  Bluetooth, Astro helper or physical auto-level operation was exercised.

@@ -153,4 +153,20 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic = OpenPolarisGraphic.Right" in panes)
         assertTrue("Format SD card" in panes)
     }
+
+    @Test
+    fun helperPaneActionsUseCompactGraphicsWithAccessibleDescriptions() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("contentDescription = \"Refresh helper state\"" in panes)
+        assertTrue("contentDescription = \"Refresh settling time\"" in panes)
+        assertTrue("contentDescription = \"Apply settling time\"" in panes)
+        assertTrue("contentDescription = \"Run auto-level\"" in panes)
+        assertTrue("contentDescription = \"Refresh auto-level state\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Helpers" in panes)
+        assertFalse("OutlinedButton(onClick = vm::refreshHelpers)" in panes)
+        assertFalse("OutlinedButton(onClick = vm::refreshSettling)" in panes)
+        assertFalse("OutlinedButton(onClick = vm::refreshAutoLevel)" in panes)
+    }
 }

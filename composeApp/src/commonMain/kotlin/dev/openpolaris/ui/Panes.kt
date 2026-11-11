@@ -881,6 +881,19 @@ private fun EndpointHealthSection(
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.testTag("endpoint-preview-service"),
         )
+        endpoint.lastFailureKind?.let { kind ->
+            Text(
+                "Failure class: ${kind.label}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("endpoint-failure-kind"),
+            )
+            Text(
+                kind.guidance,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         endpoint.lastFailure?.let { failure ->
             Text(
                 "Last failure: $failure",

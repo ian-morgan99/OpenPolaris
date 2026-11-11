@@ -45,6 +45,45 @@ class EndpointHealthTest {
     }
 
     @Test
+    fun classifiesHomeLanFailuresWithoutClaimingEndpointHealth() {
+        assertEquals(
+            EndpointFailureKind.TCP_REFUSED,
+            classifyEndpointFailure("java.net.ConnectException: Connection refused"),
+        )
+        assertEquals(
+            EndpointFailureKind.TCP_TIMEOUT,
+            classifyEndpointFailure("connect timed out after 5000 ms"),
+        )
+        assertEquals(
+            EndpointFailureKind.NETWORK_UNREACHABLE,
+            classifyEndpointFailure("network is unreachable"),
+        )
+        assertEquals(
+            EndpointFailureKind.PROTOCOL_HANDSHAKE,
+            classifyEndpointFailure("no response to 284 handshake"),
+        )
+        assertEquals(
+            EndpointFailureKind.AUTHENTICATION,
+            classifyEndpointFailure("gimbal rejected connection password"),
+        )
+        assertEquals(
+            EndpointFailureKind.UNKNOWN,
+            classifyEndpointFailure("unexpected failure"),
+        )
+    }
+
+    @Test
+    fun failureKindRequiresTheOriginalFailureDetail() {
+        assertFailsWith<IllegalArgumentException> {
+            EndpointHealth(
+                profile = profile,
+                phase = EndpointPhase.FAILED,
+                lastFailureKind = EndpointFailureKind.TCP_TIMEOUT,
+            )
+        }
+    }
+
+    @Test
     fun disconnectedFactoryStateHasNoEndpointOrReachability() {
         val health = EndpointHealth.disconnected()
 

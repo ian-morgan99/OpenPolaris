@@ -125,6 +125,7 @@ import dev.openpolaris.core.domain.BluetoothWakeState
 import dev.openpolaris.core.domain.DeviceInfo
 import dev.openpolaris.core.domain.EndpointAddress
 import dev.openpolaris.core.domain.EndpointHealth
+import dev.openpolaris.core.domain.classifyEndpointFailure
 import dev.openpolaris.core.domain.EndpointKind
 import dev.openpolaris.core.domain.EndpointPhase
 import dev.openpolaris.core.domain.EndpointProfile
@@ -1171,6 +1172,7 @@ class AppViewModel(
             preview = preview,
             phaseSinceMs = nowMs().coerceAtLeast(0L),
             lastFailure = failure,
+            lastFailureKind = failure?.let(::classifyEndpointFailure),
         )
     }
 
@@ -1186,6 +1188,7 @@ class AppViewModel(
             preview = service,
             phaseSinceMs = nowMs().coerceAtLeast(0L),
             lastFailure = failure ?: current.lastFailure,
+            lastFailureKind = failure?.let(::classifyEndpointFailure) ?: current.lastFailureKind,
         )
     }
 

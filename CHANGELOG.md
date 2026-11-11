@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Home-LAN connection failures now retain a typed diagnostic class.** The endpoint health surface distinguishes TCP refusal, timeout, unreachable routing, protocol/handshake and authentication failures while preserving the exact failure detail; no class is treated as a successful control session.
 - **Destructive mount and SD-card action triggers now use compact graphics on phones.** Reboot, shutdown and format confirmation entry points retain explicit desktop labels and full semantic descriptions while avoiding oversized Material button chrome in the compact layout.
 - **Single-line phone fields now use a compact sizing boundary.** All shared outlined fields route through a phone-only 48 dp cap when they have no supporting copy; desktop keeps Material3's standard field size, and fields with help/error text remain uncapped to avoid clipping.
 - **Media and coordinate selectors now collapse to small labelled graphics on phones.** Astro WebUI gallery categories, SD-file categories and GoTo coordinate-mode selectors retain full desktop labels and explicit accessibility descriptions, while compact layouts avoid oversized text-button chrome.

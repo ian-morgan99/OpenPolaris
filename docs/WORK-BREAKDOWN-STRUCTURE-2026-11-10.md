@@ -91,6 +91,14 @@
 - Show endpoint, route, age, link phase and last failure.
 - Exit: no pane invents host/port state; endpoint health is simulator-tested.
 
+- **2026-11-11 - WBS-02.3/09.1 ACTIVE (Home-LAN diagnostics):** endpoint
+  health now classifies the last control failure as TCP refused, TCP timeout,
+  network unreachable, protocol/handshake failure, authentication rejection or
+  unknown while preserving the exact detail and keeping control/preview
+  evidence separate. This improves the safe user guidance for issue #102 but
+  is source/simulator evidence only; station binding, mesh routing and
+  physical reconnect acceptance remain open.
+
 - **2026-11-10 - WBS-02.1 progress:** added a shared read-only connection-health
   section to the inline Mission workspace and Connection pane. It shows
   endpoint kind/identity, the distinct control and preview addresses, route

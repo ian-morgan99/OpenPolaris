@@ -26,6 +26,22 @@ class ConnectionModeContractTest {
     }
 
     @Test
+    fun endpointHealthKeepsHomeLanFailureClassesAndActionableGuidanceVisible() {
+        val pane = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val model = source(
+            "shared/src/commonMain/kotlin/dev/openpolaris/core/domain/EndpointHealth.kt",
+        )
+        assertTrue("Failure class:" in pane)
+        assertTrue("endpoint-failure-kind" in pane)
+        assertTrue("lastFailureKind" in model)
+        assertTrue("classifyEndpointFailure" in model)
+        assertTrue("TCP refused" in model)
+        assertTrue("TCP timeout" in model)
+        assertTrue("Network unreachable" in model)
+        assertTrue("Protocol or handshake failure" in model)
+    }
+
+    @Test
     fun modeIsPersistedThroughTheExistingPreferenceLifecycle() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val model = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt")

@@ -1618,3 +1618,18 @@ changed. Full tool access remains available through the disclosure.
 Verification is required before publication: focused mobile contracts, full
 Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
 rendering and live GoTo/plate-solve/auto-level qualification remain open.
+
+
+### 2026-11-11 - WBS-01.3/09.1 compact Settings summary-first surface
+
+On compact phones, Settings keeps feature-flag labels, safety classification,
+effective ON/OFF state and the small switch visible while collapsing long
+descriptions, section blurbs and the advanced section by default. One
+graphic-backed Flag details action restores the explanatory copy; the
+destructive Admin section remains separately collapsed. Desktop remains fully
+expanded and all flag policy, confirmation and feature-gate behavior is
+unchanged.
+
+Verification is required before publication: focused mobile contracts, full
+Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
+rendering and hardware qualification remain open.

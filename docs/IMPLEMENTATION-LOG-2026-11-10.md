@@ -2170,3 +2170,16 @@ qualification behavior changed.
 Focused source-contract verification is required before publication. This is
 source/package UX evidence only; installed-phone rendering and live GoTo,
 plate-solve and auto-level qualification remain open.
+
+
+### WBS-01.3/09.1 - Compact Settings summary-first surface
+
+The phone Settings surface now defaults to compact flag rows: descriptions and
+section blurbs are hidden, advanced rows are collapsed, and each visible row
+retains its label, safety marker, effective ON/OFF state and compact switch.
+A graphic-backed Flag details action restores the copy when needed. Desktop
+retains the complete explanatory and code-oriented rows; destructive flags and
+confirmation semantics are unchanged.
+
+Focused MobileCompactControlsContractTest passed. This is source/package UX
+evidence only; installed-phone rendering remains open.

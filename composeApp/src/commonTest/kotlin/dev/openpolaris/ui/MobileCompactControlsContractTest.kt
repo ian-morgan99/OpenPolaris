@@ -542,6 +542,22 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactSettingsAreSummaryFirstWithRecoverableFlagDetails() {
+        val flags = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
+
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in flags)
+        assertTrue("var showDescriptions by remember(compactLayout)" in flags)
+        assertTrue("testTag(\"feature-flag-details-toggle\")" in flags)
+        assertTrue("Show feature flag descriptions" in flags)
+        assertTrue("Hide feature flag descriptions" in flags)
+        assertTrue("showBlurb = !compactLayout || showDescriptions" in flags)
+        assertTrue("showDescription = !compactLayout || showDescriptions" in flags)
+        assertTrue("var advancedExpanded by remember(compactLayout)" in flags)
+        assertTrue("mutableStateOf(!compactLayout)" in flags)
+        assertTrue("CompactSwitch(" in flags)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

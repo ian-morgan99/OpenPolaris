@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact Settings is now summary-first on phones.** Feature-flag descriptions
+  and advanced flag rows are collapsed by default; the visible rows retain
+  label, safety classification, ON/OFF state and the compact switch. A small
+  graphic-backed details action restores the descriptions, while desktop keeps
+  the full explanatory surface.
 - **Compact GoTo is now core-first on phones.** Coordinate entry, mode selection,
   Slew, Cancel and Reset remain visible; plate solve, star alignment and
   auto-level are behind one small graphic-backed More tools disclosure.

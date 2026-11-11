@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
 
@@ -215,28 +216,45 @@ internal fun sectionFor(spec: FlagSpec): FlagSection = when {
 
 /** A single row in the flags pane. */
 @Composable
-private fun FlagRow(spec: FlagSpec, isOn: Boolean, onToggle: (Boolean) -> Unit) {
+private fun FlagRow(
+    spec: FlagSpec,
+    isOn: Boolean,
+    onToggle: (Boolean) -> Unit,
+    showDescription: Boolean,
+) {
+    val compactLayout = LocalOpenPolarisCompact.current
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = if (compactLayout) 2.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(spec.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    spec.label,
+                    style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 if (spec.destructive) {
                     Text("DESTRUCTIVE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                 } else if (!spec.safe) {
                     Text("UNVERIFIED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 }
             }
+            if (showDescription) {
+                Text(
+                    spec.description,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
-                spec.description,
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                "code: ${spec.name}   effective: ${if (isOn) "ON" else "OFF"}",
+                if (compactLayout) {
+                    if (isOn) "ON" else "OFF"
+                } else {
+                    "code: ${spec.name}   effective: ${if (isOn) "ON" else "OFF"}"
+                },
                 style = MaterialTheme.typography.labelSmall,
+                color = if (isOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // The switch is interactive when the spec is `safe` (read/write
@@ -282,6 +300,7 @@ private fun SectionHeader(
     expanded: Boolean,
     onToggle: () -> Unit,
     rowCount: Int,
+    showBlurb: Boolean,
 ) {
     val titleColor = when (section) {
         FlagSection.Admin -> MaterialTheme.colorScheme.error
@@ -306,10 +325,12 @@ private fun SectionHeader(
                 color = titleColor,
             )
         }
-        Text(
-            section.blurb,
-            style = MaterialTheme.typography.bodySmall,
-        )
+        if (showBlurb) {
+            Text(
+                section.blurb,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }
 
@@ -394,17 +415,33 @@ fun FeatureFlagsPaneContent(
     // a `mutableStateOf` to force recomposition).
     var revision by remember { mutableStateOf(0) }
     var pending by remember { mutableStateOf<Pair<FlagSpec, Boolean>?>(null) }
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showDescriptions by remember(compactLayout) { mutableStateOf(!compactLayout) }
     // Admin section starts collapsed so a casual user never sees the
     // reboot / shutdown / firmware / format toggles unless they
     // explicitly expand the bottom group.
-    var adminExpanded by remember { mutableStateOf(false) }
-    var advancedExpanded by remember { mutableStateOf(true) }
-    var dayToDayExpanded by remember { mutableStateOf(true) }
+    var adminExpanded by remember(compactLayout) { mutableStateOf(false) }
+    var advancedExpanded by remember(compactLayout) { mutableStateOf(!compactLayout) }
+    var dayToDayExpanded by remember(compactLayout) { mutableStateOf(true) }
 
     val bySection = remember { flagSpecs.groupBy { sectionFor(it) } }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FlagsHeader()
+        if (compactLayout) {
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.More,
+                label = if (showDescriptions) "Hide descriptions" else "Flag details",
+                contentDescription = if (showDescriptions) {
+                    "Hide feature flag descriptions"
+                } else {
+                    "Show feature flag descriptions"
+                },
+                onClick = { showDescriptions = !showDescriptions },
+                modifier = Modifier.testTag("feature-flag-details-toggle"),
+                outlined = true,
+            )
+        }
         // Read revision to subscribe the header to flag changes too.
         revision
         Spacer(Modifier.height(4.dp))
@@ -441,6 +478,7 @@ fun FeatureFlagsPaneContent(
                             }
                         },
                         rowCount = rows.size,
+                        showBlurb = !compactLayout || showDescriptions,
                     )
                     if (expanded) {
                         rows.forEach { spec ->
@@ -448,6 +486,7 @@ fun FeatureFlagsPaneContent(
                             FlagRow(
                                 spec = spec,
                                 isOn = on,
+                                showDescription = !compactLayout || showDescriptions,
                                 onToggle = { desired ->
                                     if (spec.destructive) {
                                         pending = spec to desired

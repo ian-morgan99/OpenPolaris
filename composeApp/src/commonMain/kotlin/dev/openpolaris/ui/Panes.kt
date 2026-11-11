@@ -1869,9 +1869,12 @@ fun MissionDashboardPane(
                     Text(stage.summary, style = MaterialTheme.typography.bodySmall)
                     stage.actionLabel?.let { actionLabel ->
                         if (onAction != null) {
-                            TextButton(onClick = { onAction(stage.stage.actionId) }) {
-                                Text("Next: " + actionLabel)
-                            }
+                            ResponsiveTextActionButton(
+                                graphic = OpenPolarisGraphic.Forward,
+                                label = "Next: " + actionLabel,
+                                contentDescription = "Next: $actionLabel",
+                                onClick = { onAction(stage.stage.actionId) },
+                            )
                         } else {
                             Text("Next: " + actionLabel, style = MaterialTheme.typography.labelSmall)
                         }
@@ -2094,9 +2097,12 @@ fun MissionDashboardPane(
                     Text(card.summary, style = MaterialTheme.typography.bodySmall)
                     card.actionLabel?.let { actionLabel ->
                         if (onAction != null) {
-                            TextButton(onClick = { onAction(card.id) }) {
-                                Text("Next: $actionLabel")
-                            }
+                            ResponsiveTextActionButton(
+                                graphic = OpenPolarisGraphic.Forward,
+                                label = "Next: $actionLabel",
+                                contentDescription = "Next: $actionLabel",
+                                onClick = { onAction(card.id) },
+                            )
                         } else {
                             Text("Next: $actionLabel", style = MaterialTheme.typography.labelSmall)
                         }

@@ -321,4 +321,18 @@ class MobileCompactControlsContractTest {
         assertTrue("Text(\"Forget\")" in dialog, "irreversible marker removal remains explicitly textual")
     }
 
+    @Test
+    fun remainingSecondaryActionsCollapseToGraphicsOnPhones() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val fullPanes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("graphic = OpenPolarisGraphic.Forward" in panes)
+        assertTrue("contentDescription = \"Next: \$actionLabel\"" in panes)
+        assertFalse("TextButton(onClick = { onAction(stage.stage.actionId) })" in panes)
+        assertFalse("TextButton(onClick = { onAction(card.id) })" in panes)
+        assertTrue("contentDescription = \"Connect to a mount Wi-Fi network\"" in fullPanes)
+        assertTrue("contentDescription = \"Disconnect mount Wi-Fi\"" in fullPanes)
+        assertFalse("OutlinedButton(onClick = { vm.connectWifiSsid(\"\") })" in fullPanes)
+        assertFalse("OutlinedButton(onClick = vm::disconnectWifi)" in fullPanes)
+    }
 }

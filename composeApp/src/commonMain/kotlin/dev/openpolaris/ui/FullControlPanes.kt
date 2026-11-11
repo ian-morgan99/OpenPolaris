@@ -386,8 +386,20 @@ private fun WifiRow(vm: AppViewModel) {
     }
     if (FeatureFlags.isEnabled("wifiConnect")) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { vm.connectWifiSsid("") }) { Text("Connect SSID…") }
-            OutlinedButton(onClick = vm::disconnectWifi) { Text("Disconnect") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Connection,
+                label = "Connect SSID…",
+                contentDescription = "Connect to a mount Wi-Fi network",
+                onClick = { vm.connectWifiSsid("") },
+                outlined = true,
+            )
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Cancel,
+                label = "Disconnect",
+                contentDescription = "Disconnect mount Wi-Fi",
+                onClick = vm::disconnectWifi,
+                outlined = true,
+            )
         }
     } else {
         // Read-only: scanning is safe, but the connect/disconnect path is

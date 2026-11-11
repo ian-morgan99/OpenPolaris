@@ -1345,3 +1345,15 @@ remain open.
   safety tests passed. Full shared/Compose JVM, Android compilation and
   desktop packaging remain required for this slice. No live SLOW route,
   named-head acknowledgement, Bluetooth, mount or physical stop was exercised.
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (remaining secondary compact actions):**
+  Mission next-action links, mount Wi-Fi connect/disconnect and the reconnect
+  dialog's Different mount action now use ResponsiveTextActionButton or
+  ResponsiveActionButton. Phones get small graphics with full semantic
+  descriptions; desktop retains the text labels. The irreversible Forget
+  marker action remains textual by design.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest and the
+  focused Compose JVM test passed, followed by the full shared/Compose JVM
+  suites, Android Kotlin compilation and desktop packaging. No phone
+  screenshot, mount, Bluetooth, camera or physical qualification was
+  performed.

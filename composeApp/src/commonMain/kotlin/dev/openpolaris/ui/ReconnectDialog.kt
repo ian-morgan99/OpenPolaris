@@ -162,9 +162,12 @@ fun ReconnectDialog(vm: AppViewModel) {
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = { vm.dismissReconnect() }) {
-                    Text("Different mount")
-                }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Back,
+                    label = "Different mount",
+                    contentDescription = "Choose a different mount",
+                    onClick = { vm.dismissReconnect() },
+                )
                 TextButton(onClick = { vm.forgetMarker() }) {
                     Text("Forget")
                 }

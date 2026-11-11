@@ -11,7 +11,7 @@ issues, or hardware outside OpenPolaris were changed.
 
 | Item | Snapshot | Evidence |
 |---|---|---|
-| OpenPolaris | `main` at `4b2c670ea6ee0f19f4121fc8711d39b3eb6d33a3` | Current local checkout; JVM tests passed for the capture/Bluetooth consolidation. |
+| OpenPolaris | published `main` at `52c42b4ce635cddc17f95122d7e6cff0dfbec8d2` | Remote main used for this refresh; the canonical local checkout is dirty and was not used as frozen package evidence. |
 | Astro WebUI source checkout | `/home/ian/Documents/VSCodeProjects/BenroPolarisPatcher`, branch `archive/wip-20261103-v94-audit`, HEAD `032651dc1ce21e39efe0cc023bd45fbaafe557d7` | Source checkout was dirty with unrelated WIP; it was not edited. |
 | WebUI client | `container/astro/webui/index.html`, `app.js`, `app.css` | Source-verified at the snapshot above; the last commit touching the WebUI is `f593d918fcb5d8f47782b166a7083f4e560b4944` (`webui: reconcile camera writes instead of assuming they landed`). |
 | WebUI server | `container/astro/polaris-httpd.c` | Source-verified; embeds the WebUI assets and exposes the `/api/*` routes. |
@@ -23,6 +23,50 @@ Evidence labels used below: **source** means the implementation was read;
 **hardware** means a version-bound physical observation; **gap** means the
 capability is absent or not yet safe to advertise. A source match is not a
 hardware qualification.
+
+## Published package refresh (2026-11-11)
+
+The source matrix below was originally frozen against an older OpenPolaris
+commit. This section is the current package-level status for the published main
+commit and must be read together with the source rows. It does not turn source
+or simulator evidence into physical qualification.
+
+| Area | Current published state at `52c42b4` | Evidence class | Remaining boundary |
+|---|---|---|---|
+| Endpoint and route health | `EndpointKind`, `EndpointProfile`, `EndpointAddress`, `EndpointPhase` and independent control/preview service states are implemented in `EndpointHealth.kt`; the UI shows Direct AP, Home LAN, PC bridge and demo intent separately. | source + simulator | No live Home LAN lease, route or restart observation in this refresh. |
+| Motion ownership and stop | `MotionSupervisor`, fast-jog ownership, shared STOP ALL and demo SLOW dead-man controls are wired through the common UI. Pointer cancellation, focus loss, competing direction arbitration and explicit recovery have deterministic tests. | source + simulator | No live motor command is enabled by the default build; physical stop/recovery and limits remain open. |
+| SLOW and fine rate | `SlowMotionController`, `SlowMotionCapabilityRecord` and the source-aligned 532/533/534 formatter exist; `SlowMotionCapabilities.current` is immutable and unqualified, so runtime flags cannot manufacture live permission. | source + simulator | Exact firmware/gimbal/source-app identity, signs, units, acknowledgement, watchdog, physical stop, disconnect recovery and limit evidence are still missing. |
+| Native camera capture | The capture phase machine separates request, busy, complete, failed and outcome-unknown; native completion requires lifecycle and non-empty file publication evidence. | source + simulator | Named-camera and firmware physical M/B, file and recovery qualification remain open. |
+| Astro WebUI shutter | `AstroWebUiCapture` and the ViewModel dispatch M/B and explicit B stop with bounded strict JSON acknowledgement. HTTP queue acknowledgement is never treated as shutter or file completion. | source + simulator | The resident WebUI route and same-firmware camera lifecycle still need supervised qualification. |
+| Astro WebUI read-only parity | Typed clients now cover media, status, link, site, solve, run state, guide, autofocus, focal, limits, keep-Wi-Fi, Wi-Fi, target, session, programme and motion-programme source surfaces. Default-off flags protect writes and programme starts. | source + simulator | Live resident endpoint, response corpus and feature-by-feature installed runtime checks remain open. |
+| Phone and PC shell | Compact phone graphics are 12 dp with 32 dp action footprints and icon-only state toggles; desktop keeps labelled actions and 48 dp rail sizing. | source + package build | No physical phone screenshot or touch/rotation observation was performed in this refresh. |
+| Release artifact | The rolling Android APK for `52c42b4` is signed, tag `latest` points to that commit, and the verified SHA-256 is `2f3703ca1f60b9fa6b93322b8694f3c4314dd17717d9ee34bdaf6ed73405b36a`. | package + signature verifier | User phone installation and rendered interaction are still external acceptance evidence. |
+
+### Gap ranking and WBS ownership
+
+| Rank | Capability group | Decision | Next owner and evidence gate |
+|---|---|---|---|
+| P0 | Endpoint truth, capture state, source readback and safe UI state | Keep in the shared controllers and expose as truthful `READY`, `UNKNOWN`, `BLOCKED`, `FAILED` or `OUTCOME_UNKNOWN` states. | WBS-02, WBS-04 and WBS-05; JVM replay plus named endpoint/camera evidence. |
+| P1 | Mobile and PC presentation, gallery review and Astro read-only inspection | Continue app-only work behind the existing typed clients; preserve one session owner and bounded media/export policy. | WBS-01, WBS-07 and WBS-09; Compose contracts, desktop package and installed-phone review. |
+| P2 | Astro session, tracking, guide, autofocus, site save and programme controls | Keep readback visible; enable writes only per capability flag after positive acknowledgement, cancellation and recovery contracts are proven. | WBS-05 and WBS-06; source payload tests, simulator state machines and exact resident response fixtures. |
+| P3 | Native and Astro M/B, video, focus and file lifecycle | Do not broaden release paths or add fallback retries. Correlate request, lifecycle, file and idle state on a named camera/firmware pair. | WBS-04; issues #60, #81, #96, #99 and #100; supervised physical evidence required. |
+| P4 | SLOW manual motion and fine-rate correction | Continue planner, simulator and UX work, but keep live transport unavailable until every capability-record blocker is evidenced. | WBS-03; issues #98 and #103; exact binary/source provenance plus physical stop and limit tests required. |
+| External | Station Wi-Fi configuration and Alpaca/INDI/LX200 server interoperability | Keep these as explicit external adapters, not hidden prerequisites for the native client. | Issue #102 and later bridge work; network/process ownership and protocol tests required. |
+
+### Current release verification
+
+The published package was backed by these local checks on the isolated main
+worktree before push:
+
+```text
+./gradlew :shared:jvmTest :composeApp:jvmTest --console=plain --no-daemon
+ANDROID_HOME=/home/ian/android-sdk ANDROID_SDK_ROOT=/home/ian/android-sdk ./gradlew :androidApp:compileDebugKotlinAndroid --rerun-tasks --console=plain --no-daemon
+./gradlew :desktopApp:createDistributable --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --console=plain --no-daemon
+```
+
+These checks prove source/package readiness only. They do not prove live mount,
+Bluetooth, camera, Astro WebUI, physical SLOW or installed-phone behavior.
 
 ## Data-flow comparison
 
@@ -147,7 +191,7 @@ interchangeability of subtype 2 and subtype 4.
 
 | Claim | Minimum evidence | Current status |
 |---|---|---|
-| OpenPolaris builds and unit tests pass | Required JVM/KMP test command and clean diff | Passed at the frozen OpenPolaris commit before this document. |
+| OpenPolaris builds and unit tests pass | Required JVM/KMP test command and clean diff | Passed for published `52c42b4`; the canonical checkout remains intentionally dirty and is excluded from this package claim. |
 | Native capture is complete | 264 lifecycle correlated to a new non-empty 773 path, with camera/firmware versions | Simulator tests exist; physical qualification remains open. |
 | Home-LAN control works | Station lease, route, `9090` TCP connect, non-destructive handshake, reconnect after DHCP/restart | Not tested from this document; see the issue #102 runbook. |
 | Astro WebUI feature is portable | Source route plus stable firmware/protocol contract and simulator replay | Most rows are source-only or gaps. |

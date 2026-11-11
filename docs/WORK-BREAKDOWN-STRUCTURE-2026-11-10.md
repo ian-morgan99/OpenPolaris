@@ -1277,3 +1277,6 @@ remain open.
 
 
 - **2026-11-11 - WBS-01.3/09.1 ACTIVE (third compact density pass):** reduced compact phone graphics to 12 dp, icon-action footprints to 32 dp and the primary destination row to 32 dp. Track, half-speed, AHRS and fine-correction selectors now use small icon-only graphics on phones with explicit accessible names/state semantics; desktop labels remain unchanged. Focused Compose/JVM contract tests passed. Installed-phone rendering and live hardware qualification remain open.
+
+
+- **2026-11-11 - WBS-00/01/02/03/04/05/07/09/10 ACTIVE (parity provenance refresh):** refreshed `docs/ASTRO-WEBUI-OPENPOLARIS-PARITY-2026-11-09.md` from the published `main` commit `52c42b4`. The matrix now has a current package-status section, exact endpoint/motion/capture/Astro/mobile entry points, a ranked gap table and the package test commands. Source, simulator, package and physical evidence classes remain separate; no live SLOW, camera, Bluetooth or installed-phone claim was added.

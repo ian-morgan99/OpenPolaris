@@ -1783,3 +1783,14 @@ Focused verification passed:
 ```
 
 No installed-phone screenshot, live mount, camera, Bluetooth or physical motion/capture qualification was performed.
+
+
+### WBS-00/01/02/03/04/05/07/09/10 — Published parity provenance refresh
+
+Updated the Astro WebUI and OpenPolaris parity artifact to the published main
+commit `52c42b4`. The document now records the current endpoint health model,
+motion ownership and unqualified SLOW capability record, native and Astro M/B
+capture boundaries, typed WebUI readback coverage, compact mobile/desktop shell
+state, signed APK provenance, ranked gaps and the exact package verification
+commands. The refresh does not claim live firmware, camera, Bluetooth, SLOW or
+installed-phone behavior.

@@ -2214,3 +2214,15 @@ unchanged.
 Focused MobileCompactControlsContractTest passed. This is source/package UX
 evidence only; no installed-phone rendering or live hardware operation was
 performed.
+
+
+### WBS-01.3/09.1 - Compact Guide summary
+
+The phone Guide no longer opens directly into the full bundled manual. It now
+shows the first section headings as a bounded quick-guide summary and exposes
+the complete Markdown-rendered manual through one graphic-backed Read manual
+action. Desktop still opens the complete manual, and missing-resource/error
+handling is unchanged.
+
+Focused and full cross-platform verification passed. This is source/package UX
+evidence only; no installed-phone rendering was performed.

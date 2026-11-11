@@ -597,6 +597,19 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactGuideIsSummaryFirstWithRecoverableManual() {
+        val manual = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/UserManualPane.kt")
+
+        assertTrue("var showManualDetails by remember(compactLayout)" in manual)
+        assertTrue("val manualSections = remember(manualText)" in manual)
+        assertTrue("testTag(\"manual-details-toggle\")" in manual)
+        assertTrue("Read the full user manual" in manual)
+        assertTrue("Hide the full user manual" in manual)
+        assertTrue("if (showManualDetails)" in manual)
+        assertTrue("ManualBody(text = manualText)" in manual)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

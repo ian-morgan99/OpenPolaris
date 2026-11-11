@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact Guide is now summary-first on phones.** The phone Guide opens with
+  a short list of manual sections and a graphic-backed Read manual action;
+  the complete bundled manual remains available on demand. Desktop keeps the
+  full manual open and resource/error handling is unchanged.
 - **Compact helper and system panes are now summary-first on phones.** Astro
   helper state, Wi-Fi state and reboot/shutdown gate state remain visible while
   their longer control rows are behind small graphic-backed Details actions.

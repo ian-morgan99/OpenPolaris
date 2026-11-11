@@ -11,8 +11,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -34,21 +38,26 @@ import dev.openpolaris.core.domain.readResourceText
  */
 @Composable
 fun UserManualPane(modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showManualDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val manualText = remember { readResourceText("USER-MANUAL.md") }
+    val manualSections = remember(manualText) {
+        manualText?.lines()
+            ?.filter { it.startsWith("## ") }
+            ?.map { it.removePrefix("## ").trim() }
+            .orEmpty()
+    }
 
     Surface(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(
             modifier = Modifier.padding(openPolarisCardInnerPadding()).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp),
         ) {
             Text("User Manual", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "Bundled with the app. Latest source on GitHub: " +
                     "github.com/ian-morgan99/OpenPolaris/blob/main/docs/USER-MANUAL.md",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            HorizontalDivider()
             if (manualText == null) {
                 Text(
                     "Manual could not be loaded. Check that the build bundled " +
@@ -56,7 +65,37 @@ fun UserManualPane(modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
+            } else if (compactLayout) {
+                Text("Quick guide", style = MaterialTheme.typography.titleSmall)
+                if (manualSections.isEmpty()) {
+                    Text("Manual content is available.", style = MaterialTheme.typography.labelSmall)
+                } else {
+                    manualSections.take(8).forEach { section ->
+                        Text(
+                            section,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showManualDetails) "Hide manual" else "Read manual",
+                    contentDescription = if (showManualDetails) {
+                        "Hide the full user manual"
+                    } else {
+                        "Read the full user manual"
+                    },
+                    onClick = { showManualDetails = !showManualDetails },
+                    modifier = Modifier.testTag("manual-details-toggle"),
+                    outlined = true,
+                )
+                if (showManualDetails) {
+                    HorizontalDivider()
+                    ManualBody(text = manualText)
+                }
             } else {
+                HorizontalDivider()
                 ManualBody(text = manualText)
             }
         }

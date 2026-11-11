@@ -30,6 +30,8 @@ internal enum class OpenPolarisGraphic {
     Plus,
     Minus,
     Preview,
+    Save,
+    Share,
     More,
     Tonight,
     Helpers,
@@ -198,6 +200,21 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
             drawStyledRoundRect(color, Offset(1.5f, 3f), Size(size.width - 3f, size.height - 6f), 2.dp.toPx(), 2.dp.toPx(), stroke)
             drawStyledLine(color, Offset(8f, 7f), Offset(14f, c.y), stroke)
             drawStyledLine(color, Offset(14f, c.y), Offset(8f, 13f), stroke)
+        }
+        OpenPolarisGraphic.Save -> {
+            drawStyledRoundRect(color, Offset(3f, 2f), Size(size.width - 6f, size.height - 4f), 1.5.dp.toPx(), 1.5.dp.toPx(), stroke)
+            drawStyledRoundRect(color, Offset(6f, 3.5f), Size(6f, 4f), 0.8.dp.toPx(), 0.8.dp.toPx(), thin)
+            drawCircle(color, r * 0.35f, Offset(c.x, c.y + r * 0.55f), style = thin)
+        }
+        OpenPolarisGraphic.Share -> {
+            val top = Offset(c.x, 4f)
+            val left = Offset(4f, c.y + 3f)
+            val right = Offset(size.width - 4f, c.y - 3f)
+            drawStyledLine(color, left, top, thin)
+            drawStyledLine(color, top, right, thin)
+            drawCircle(color, 2.dp.toPx(), top, style = stroke)
+            drawCircle(color, 2.dp.toPx(), left, style = stroke)
+            drawCircle(color, 2.dp.toPx(), right, style = stroke)
         }
         OpenPolarisGraphic.More -> {
             drawCircle(color, 1.7.dp.toPx(), Offset(4f, c.y))

@@ -478,19 +478,25 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             val enabled = FeatureFlags.isEnabled("astroWebUiMedia")
             val statusEnabled = FeatureFlags.isEnabled("astroWebUiStatus")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh gallery",
+                    contentDescription = "Refresh Astro WebUI gallery",
                     enabled = enabled,
                     onClick = vm::refreshAstroMedia,
-                ) { Text("Refresh gallery") }
+                )
                 if (!enabled) {
                     Text("Disabled by config", style = MaterialTheme.typography.labelSmall)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh Astro status",
+                    contentDescription = "Refresh Astro WebUI status",
                     enabled = statusEnabled,
                     onClick = vm::refreshAstroWebUiStatus,
-                ) { Text("Refresh Astro status") }
+                )
             }
             when (val state = vm.astroWebUiStatus) {
                 AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
@@ -608,14 +614,21 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             }
-                            TextButton(
+                            ResponsiveActionButton(
+                                graphic = OpenPolarisGraphic.Preview,
+                                label = "Thumb",
+                                contentDescription = "Load thumbnail for ${item.path}",
                                 enabled = enabled,
                                 onClick = { vm.loadAstroMedia(item.path, AstroMediaTransferKind.THUMBNAIL) },
-                            ) { Text("Thumb") }
-                            OutlinedButton(
+                            )
+                            ResponsiveActionButton(
+                                graphic = OpenPolarisGraphic.Camera,
+                                label = "Full",
+                                contentDescription = "Load full file for ${item.path}",
                                 enabled = enabled,
                                 onClick = { vm.loadAstroMedia(item.path, AstroMediaTransferKind.FULL_FILE) },
-                            ) { Text("Full") }
+                                outlined = true,
+                            )
                         }
                         val preview = vm.astroMediaPreview
                         if (preview?.path == item.path) {
@@ -634,14 +647,21 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                             )
                             if (preview.kind == AstroMediaTransferKind.FULL_FILE) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Button(
+                                    ResponsiveActionButton(
+                                        graphic = OpenPolarisGraphic.Save,
+                                        label = "Save copy",
+                                        contentDescription = "Save a copy of the Astro WebUI preview",
                                         enabled = enabled,
                                         onClick = { vm.exportAstroMedia(AstroMediaExportDestination.SAVE_COPY) },
-                                    ) { Text("Save copy") }
-                                    OutlinedButton(
+                                    )
+                                    ResponsiveActionButton(
+                                        graphic = OpenPolarisGraphic.Share,
+                                        label = "Share",
+                                        contentDescription = "Share the Astro WebUI preview",
                                         enabled = enabled,
                                         onClick = { vm.exportAstroMedia(AstroMediaExportDestination.SHARE) },
-                                    ) { Text("Share") }
+                                        outlined = true,
+                                    )
                                 }
                             }
                         }

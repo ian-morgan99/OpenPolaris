@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GoTo, alignment and recovery actions now use the same compact graphic
   boundary.** Phone controls retain 48 dp touch targets and descriptive labels
   for accessibility; PC keeps the familiar text actions.
+- **Astro WebUI gallery actions now scale down on phones.** Gallery/status
+  refresh, thumbnail/full-file reads, and Save copy/Share use small graphics
+  with explicit accessible descriptions on compact layouts; PC keeps the
+  labelled actions and the media/export lifecycle is unchanged.
 
 ## [0.1.19] - 2026-10-09
 ### Fixed

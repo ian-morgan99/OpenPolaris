@@ -1596,3 +1596,17 @@ information, rather than replacing them with ambiguous symbols.
 No command payload, motion ownership, capture lifecycle or qualification gate
 changed. This is source/package UX evidence; installed-phone rendering and
 physical operation remain open.
+
+### WBS-01.3/07.1/09.1 — Compact Astro WebUI gallery actions
+
+The phone Astro WebUI gallery now uses purpose-built small graphics for the
+gallery/status refresh actions, thumbnail and full-file reads, and Save copy
+and Share export actions. Each remains a 48 dp target with an explicit content
+description; desktop keeps the labelled controls. Media categories, counts,
+state messages and the export lifecycle remain text because those values are
+the user's file-selection and verification context.
+
+No media request, export destination, capture lifecycle or evidence gate
+changed. This is source/package UX evidence; live Astro WebUI, camera,
+Bluetooth, installed-phone rendering and physical export qualification remain
+open.

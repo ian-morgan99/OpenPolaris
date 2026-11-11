@@ -1152,3 +1152,14 @@ The current implementation slice must not send a new motor frame, alter firmware
   Focused/full JVM tests, Android compilation and desktop packaging are
   required. No installed-phone render or physical mount operation was
   exercised.
+- **2026-11-11 - WBS-01.3/07.1/09.1 ACTIVE (compact Astro WebUI gallery
+  actions):** extended the responsive graphic boundary to gallery/status
+  refresh, thumbnail/full-file reads and Save copy/Share. Phone controls now
+  use small purpose-built graphics inside 48 dp targets with explicit content
+  descriptions; desktop retains the labelled actions. Category names, counts,
+  media state and export lifecycle remain textual because they carry the
+  information needed to choose and verify a file.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No live Astro
+  WebUI, camera, Bluetooth or physical media/export qualification was
+  exercised.

@@ -115,4 +115,24 @@ class MobileCompactControlsContractTest {
         assertTrue("alignment-record-star" in panes)
         assertFalse("Button(onClick = vm::goto)" in panes)
     }
+
+    @Test
+    fun astroGalleryActionsUseCompactGraphicsWithExplicitMediaLabels() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("OpenPolarisGraphic.Save" in graphics)
+        assertTrue("OpenPolarisGraphic.Share" in graphics)
+        assertTrue("contentDescription = \"Refresh Astro WebUI gallery\"" in panes)
+        assertTrue("contentDescription = \"Refresh Astro WebUI status\"" in panes)
+        assertTrue("contentDescription = \"Load thumbnail for \${item.path}\"" in panes)
+        assertTrue("contentDescription = \"Load full file for \${item.path}\"" in panes)
+        assertTrue("contentDescription = \"Save a copy of the Astro WebUI preview\"" in panes)
+        assertTrue("contentDescription = \"Share the Astro WebUI preview\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Preview" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Camera" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Save" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Share" in panes)
+        assertTrue("Text(\"All (\${allItems.size})\")" in panes)
+    }
 }

@@ -422,7 +422,7 @@ fun FeatureFlagsPaneContent(
     // explicitly expand the bottom group.
     var adminExpanded by remember(compactLayout) { mutableStateOf(false) }
     var advancedExpanded by remember(compactLayout) { mutableStateOf(!compactLayout) }
-    var dayToDayExpanded by remember(compactLayout) { mutableStateOf(true) }
+    var dayToDayExpanded by remember(compactLayout) { mutableStateOf(!compactLayout) }
 
     val bySection = remember { flagSpecs.groupBy { sectionFor(it) } }
 

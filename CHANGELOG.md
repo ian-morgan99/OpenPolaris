@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone Settings now separates Health and Flags.** The evidence
+  report and feature-gate list no longer stack into one long mobile surface;
+  each gets its own graphic-selected tab, and the Day-to-day flag group starts
+  collapsed on phones. All flags, build identity, descriptions and destructive
+  confirmations remain recoverable; desktop remains expanded.
 - **Compact phone status and Slew surfaces now avoid duplicate scrolling.**
   The always-visible status strip is one dense graphic-action row, and the
   mobile Slew callout switches between GoTo and SLOW instead of stacking both

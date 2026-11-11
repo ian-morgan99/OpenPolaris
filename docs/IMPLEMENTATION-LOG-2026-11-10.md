@@ -2265,3 +2265,19 @@ Focused verification passed:
 
 This is source/package UX evidence only. Installed-phone rendering, live SLOW,
 GoTo, Bluetooth, mount, camera and physical qualification remain open.
+
+### WBS-01.3/09.1 — Compact Settings surfaces
+
+The phone Settings callout now separates observed Health from feature Flags
+with two small graphic-selected surfaces. Evidence and flag rows no longer
+form one combined scroll page; the compact flag surface also starts all three
+sections collapsed, so a user opens only the group they need. Build identity,
+flag descriptions, unsafe/read-only markers and destructive confirmations remain
+available, while desktop retains the expanded Settings layout.
+
+Focused verification passed:
+
+    ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --console=plain --no-daemon
+
+This is source/package UX evidence only. Installed-phone rendering and live
+mount, camera, Bluetooth, Astro WebUI and physical qualification remain open.

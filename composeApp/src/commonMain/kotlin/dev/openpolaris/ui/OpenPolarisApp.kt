@@ -390,14 +390,22 @@ fun OpenPolarisApp(
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { UserManualPane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        EvidenceCentrePane(
-                            vm,
-                            Modifier.fillMaxWidth(),
+                    if (LocalOpenPolarisCompact.current) {
+                        CompactSettingsWorkspace(
+                            vm = vm,
                             versionLabel = versionLabel,
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        HorizontalDivider()
-                        FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            EvidenceCentrePane(
+                                vm,
+                                Modifier.fillMaxWidth(),
+                                versionLabel = versionLabel,
+                            )
+                            HorizontalDivider()
+                            FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
+                        }
                     }
                 }
                 null -> {}
@@ -994,6 +1002,64 @@ private fun StatusStrip(
                 }
             }
 
+        }
+    }
+}
+
+private enum class CompactSettingsSurface {
+    EVIDENCE,
+    FLAGS,
+}
+
+/**
+ * Settings contains two long, different jobs on a phone: inspect evidence or
+ * change feature gates. Keep those jobs as separate compact surfaces so the
+ * user does not scroll through a support report to reach a flag.
+ */
+@Composable
+private fun CompactSettingsWorkspace(
+    vm: AppViewModel,
+    versionLabel: String?,
+    modifier: Modifier = Modifier,
+) {
+    var surface by remember { mutableStateOf(CompactSettingsSurface.EVIDENCE) }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            CompactFilterChip(
+                selected = surface == CompactSettingsSurface.EVIDENCE,
+                onClick = { surface = CompactSettingsSurface.EVIDENCE },
+                label = { Text("Health") },
+                compactLabel = "H",
+                graphic = OpenPolarisGraphic.Connection,
+                contentDescription = "Show observed health and support evidence",
+                modifier = Modifier.weight(1f).testTag("settings-surface-evidence"),
+            )
+            CompactFilterChip(
+                selected = surface == CompactSettingsSurface.FLAGS,
+                onClick = { surface = CompactSettingsSurface.FLAGS },
+                label = { Text("Flags") },
+                compactLabel = "F",
+                graphic = OpenPolarisGraphic.Settings,
+                contentDescription = "Show feature flags",
+                modifier = Modifier.weight(1f).testTag("settings-surface-flags"),
+            )
+        }
+        when (surface) {
+            CompactSettingsSurface.EVIDENCE -> EvidenceCentrePane(
+                vm = vm,
+                modifier = Modifier.fillMaxWidth(),
+                versionLabel = versionLabel,
+            )
+            CompactSettingsSurface.FLAGS -> FeatureFlagsPaneContent(
+                Modifier.fillMaxWidth(),
+                versionLabel = versionLabel,
+            )
         }
     }
 }

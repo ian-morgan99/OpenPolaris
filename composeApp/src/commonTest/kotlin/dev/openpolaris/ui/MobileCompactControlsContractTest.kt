@@ -568,6 +568,7 @@ class MobileCompactControlsContractTest {
         assertTrue("var advancedExpanded by remember(compactLayout)" in flags)
         assertTrue("mutableStateOf(!compactLayout)" in flags)
         assertTrue("CompactSwitch(" in flags)
+        assertTrue("var dayToDayExpanded by remember(compactLayout)" in flags)
     }
 
     @Test

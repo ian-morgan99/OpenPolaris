@@ -79,6 +79,19 @@ class MobileCompactDensityContractTest {
     }
 
     @Test
+    fun compactSettingsShowsHealthAndFlagsAsSeparateSurfaces() {
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val flags = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
+
+        assertTrue("CompactSettingsWorkspace" in shell)
+        assertTrue("testTag(\"settings-surface-evidence\")" in shell)
+        assertTrue("testTag(\"settings-surface-flags\")" in shell)
+        assertTrue("CompactSettingsSurface.EVIDENCE -> EvidenceCentrePane" in shell)
+        assertTrue("CompactSettingsSurface.FLAGS -> FeatureFlagsPaneContent" in shell)
+        assertTrue("mutableStateOf(!compactLayout)" in flags)
+    }
+
+    @Test
     fun compactSlewCalloutShowsOneControlFamilyAtATime() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
 

@@ -122,6 +122,8 @@ import dev.openpolaris.core.domain.AstroWebUiHdrParameters
 import dev.openpolaris.core.domain.AstroWebUiFocusParameters
 import dev.openpolaris.core.domain.SlowMotionCapabilities
 import dev.openpolaris.core.domain.SlowMotionCalibration
+import dev.openpolaris.core.domain.SlowMotionTelemetryEvent
+import dev.openpolaris.core.domain.SlowMotionTelemetryEventKind
 import dev.openpolaris.core.domain.SupportBundleExportState
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
@@ -2842,6 +2844,35 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
 }
 
+private fun SlowMotionTelemetryEvent.timelineLabel(): String {
+    val prefix = atMs?.let { "t=${it} ms · " } ?: ""
+    val eventLabel = when (kind) {
+        SlowMotionTelemetryEventKind.STARTED -> "Started"
+        SlowMotionTelemetryEventKind.COMMAND_ATTEMPTED -> "Command"
+        SlowMotionTelemetryEventKind.POSITIVE_ACKNOWLEDGEMENT -> "Positive acknowledgement"
+        SlowMotionTelemetryEventKind.REJECTED -> "Command rejected"
+        SlowMotionTelemetryEventKind.UNKNOWN -> "Command outcome unknown"
+        SlowMotionTelemetryEventKind.STOP_REQUESTED -> "Stop requested"
+        SlowMotionTelemetryEventKind.STOP_CONFIRMED -> "Stop confirmed"
+        SlowMotionTelemetryEventKind.STOP_REJECTED -> "Stop rejected"
+        SlowMotionTelemetryEventKind.STOP_UNKNOWN -> "Stop outcome unknown"
+        SlowMotionTelemetryEventKind.RECOVERED -> "Recovered after reconnect"
+    }
+    val commandLabel = command?.let { command ->
+        val axisLabel = when (command.axis) {
+            dev.openpolaris.core.domain.RateAxis.M1_PAN -> "M1"
+            dev.openpolaris.core.domain.RateAxis.M2_TILT -> "M2"
+            dev.openpolaris.core.domain.RateAxis.M3_ROTATION -> "M3"
+        }
+        val pointLabel = command.point?.let { point ->
+            "key${point.key}/state${point.state}/level${point.level}"
+        } ?: "idle"
+        " · $axisLabel ${command.kind.name.lowercase()} $pointLabel"
+    } ?: ""
+    val detailLabel = detail?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+    return prefix + eventLabel + commandLabel + detailLabel
+}
+
 /**
  * Slow-motion workspace.
  *
@@ -2911,9 +2942,11 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             "SLOW telemetry: awaiting acknowledgement for the last point."
         }
     }
+    val compactLayout = LocalOpenPolarisCompact.current
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
     var showShortcuts by remember { mutableStateOf(false) }
+    var showSlowEvents by remember { mutableStateOf(!compactLayout) }
     var heldControl by remember { mutableStateOf<String?>(null) }
     val motionSelectionEnabled = controlsEnabled && heldControl == null
     fun startHeldMotion(control: String, action: () -> Unit) {
@@ -2989,6 +3022,43 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 },
                 modifier = Modifier.testTag("slow-motion-acknowledgement"),
             )
+            if (slowTelemetry.events.isNotEmpty()) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showSlowEvents) "Hide events" else "Events",
+                    contentDescription = if (showSlowEvents) {
+                        "Hide recent slow-motion events"
+                    } else {
+                        "Show recent slow-motion events"
+                    },
+                    onClick = { showSlowEvents = !showSlowEvents },
+                    modifier = Modifier.testTag("slow-motion-event-toggle"),
+                    outlined = true,
+                )
+                if (showSlowEvents) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 2.dp else 4.dp),
+                        modifier = Modifier.testTag("slow-motion-event-timeline"),
+                    ) {
+                        slowTelemetry.events
+                            .takeLast(if (compactLayout) 4 else 8)
+                            .asReversed()
+                            .forEach { event ->
+                                Text(
+                                    event.timelineLabel(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = when (event.kind) {
+                                        SlowMotionTelemetryEventKind.REJECTED,
+                                        SlowMotionTelemetryEventKind.UNKNOWN,
+                                        SlowMotionTelemetryEventKind.STOP_REJECTED,
+                                        SlowMotionTelemetryEventKind.STOP_UNKNOWN -> MaterialTheme.colorScheme.error
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                    }
+                }
+            }
             if (motionState is dev.openpolaris.core.domain.MotionState.Faulted && vm.slowMotionFaulted) {
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Refresh,

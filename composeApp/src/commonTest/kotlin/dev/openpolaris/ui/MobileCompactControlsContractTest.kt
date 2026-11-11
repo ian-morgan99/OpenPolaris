@@ -61,7 +61,10 @@ class MobileCompactControlsContractTest {
 
         assertTrue("slowMotionTelemetry" in vm)
         assertTrue("lastPositiveAcknowledgementAtMs" in controller)
+        assertTrue("SlowMotionTelemetryEventKind" in controller)
         assertTrue("slow-motion-acknowledgement" in panes)
+        assertTrue("slow-motion-event-toggle" in panes)
+        assertTrue("slow-motion-event-timeline" in panes)
         assertTrue("Do not retry; recover explicitly." in panes)
     }
 

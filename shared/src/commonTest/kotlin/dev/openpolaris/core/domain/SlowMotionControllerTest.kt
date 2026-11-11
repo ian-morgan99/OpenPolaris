@@ -62,6 +62,14 @@ class SlowMotionControllerTest {
         assertEquals(75L, telemetry.lastCommandAtMs)
         assertEquals(75L, telemetry.lastPositiveAcknowledgementAtMs)
         assertEquals(SlowMotionTransportResult.Accepted, telemetry.lastOutcome)
+        assertEquals(
+            listOf(
+                SlowMotionTelemetryEventKind.STARTED,
+                SlowMotionTelemetryEventKind.COMMAND_ATTEMPTED,
+                SlowMotionTelemetryEventKind.POSITIVE_ACKNOWLEDGEMENT,
+            ),
+            telemetry.events.map { it.kind },
+        )
     }
 
     @Test
@@ -78,6 +86,52 @@ class SlowMotionControllerTest {
         assertEquals(75L, telemetry.lastCommandAtMs)
         assertNull(telemetry.lastPositiveAcknowledgementAtMs)
         assertEquals(SlowMotionTransportResult.Unknown("ack lost"), telemetry.lastOutcome)
+        assertEquals(
+            listOf(
+                SlowMotionTelemetryEventKind.STARTED,
+                SlowMotionTelemetryEventKind.COMMAND_ATTEMPTED,
+                SlowMotionTelemetryEventKind.UNKNOWN,
+            ),
+            telemetry.events.map { it.kind },
+        )
+    }
+
+    @Test
+    fun telemetryRecordsStopAndExplicitRecoveryEvents() = runTest {
+        val (controller, lease, _) = ready()
+
+        assertEquals(SlowMotionActionResult.Applied(3), controller.tick(lease, 75L))
+        assertEquals(SlowMotionActionResult.Stopped, controller.release(lease))
+        assertEquals(
+            listOf(
+                SlowMotionTelemetryEventKind.STARTED,
+                SlowMotionTelemetryEventKind.COMMAND_ATTEMPTED,
+                SlowMotionTelemetryEventKind.POSITIVE_ACKNOWLEDGEMENT,
+                SlowMotionTelemetryEventKind.STOP_REQUESTED,
+                SlowMotionTelemetryEventKind.STOP_CONFIRMED,
+            ),
+            controller.telemetry.value.events.map { it.kind },
+        )
+
+        val recoveredLease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertTrue(controller.recoverAfterReconnect(recoveredLease))
+        assertEquals(SlowMotionTelemetryEventKind.RECOVERED, controller.telemetry.value.events.last().kind)
+    }
+
+    @Test
+    fun telemetryHistoryIsBounded() = runTest {
+        val controller = SlowMotionController(FakeTransport())
+
+        repeat(5) {
+            val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+            assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(), it * 100L))
+            assertEquals(SlowMotionActionResult.Stopped, controller.release(lease))
+        }
+
+        val events = controller.telemetry.value.events
+        assertEquals(12, events.size)
+        assertTrue(events.zipWithNext().all { (left, right) -> right.sequence > left.sequence })
+        assertTrue(events.first().sequence > 1L)
     }
 
     @Test

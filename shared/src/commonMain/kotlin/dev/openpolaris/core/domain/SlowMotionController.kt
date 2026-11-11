@@ -14,6 +14,27 @@ sealed interface SlowMotionTransportResult {
     data class Unknown(val reason: String) : SlowMotionTransportResult
 }
 
+enum class SlowMotionTelemetryEventKind {
+    STARTED,
+    COMMAND_ATTEMPTED,
+    POSITIVE_ACKNOWLEDGEMENT,
+    REJECTED,
+    UNKNOWN,
+    STOP_REQUESTED,
+    STOP_CONFIRMED,
+    STOP_REJECTED,
+    STOP_UNKNOWN,
+    RECOVERED,
+}
+
+data class SlowMotionTelemetryEvent(
+    val sequence: Long,
+    val atMs: Long? = null,
+    val kind: SlowMotionTelemetryEventKind,
+    val command: SlowScheduleCommand? = null,
+    val detail: String? = null,
+)
+
 /**
  * The only wire-independent transport seam for SLOW. Implementations must
  * provide an exact, evidence-backed command mapping; this interface does not
@@ -60,6 +81,7 @@ data class SlowMotionTelemetry(
     val lastCommandAtMs: Long? = null,
     val lastPositiveAcknowledgementAtMs: Long? = null,
     val lastOutcome: SlowMotionTransportResult? = null,
+    val events: List<SlowMotionTelemetryEvent> = emptyList(),
 )
 
 sealed interface SlowMotionState {
@@ -100,6 +122,7 @@ class SlowMotionController(
     /** Last attempted point and explicit positive acknowledgement evidence. */
     val telemetry: StateFlow<SlowMotionTelemetry> = mutableTelemetry.asStateFlow()
     private var nextToken = 1L
+    private var nextTelemetrySequence = 1L
 
     suspend fun acquire(): SlowMotionAcquireResult = lock.withLock {
         when (val current = mutableState.value) {
@@ -142,6 +165,7 @@ class SlowMotionController(
         }
         scheduler.setPlan(plan, nowMs)
         mutableState.value = SlowMotionState.Holding(lease, plan, nowMs)
+        recordTelemetryEvent(SlowMotionTelemetryEventKind.STARTED, atMs = nowMs)
         SlowMotionActionResult.Started
     }
 
@@ -184,6 +208,11 @@ class SlowMotionController(
                     lastCommandAtMs = nowMs,
                     lastOutcome = null,
                 )
+                recordTelemetryEvent(
+                    SlowMotionTelemetryEventKind.COMMAND_ATTEMPTED,
+                    atMs = nowMs,
+                    command = command,
+                )
             }
             when (val result = runCatching { transport.apply(command) }.getOrElse {
                 SlowMotionTransportResult.Unknown(
@@ -196,11 +225,22 @@ class SlowMotionController(
                             lastOutcome = result,
                             lastPositiveAcknowledgementAtMs = nowMs,
                         )
+                        recordTelemetryEvent(
+                            SlowMotionTelemetryEventKind.POSITIVE_ACKNOWLEDGEMENT,
+                            atMs = nowMs,
+                            command = command,
+                        )
                     }
                 }
                 is SlowMotionTransportResult.Rejected -> {
                     if (!logicalNoOp) {
                         mutableTelemetry.value = mutableTelemetry.value.copy(lastOutcome = result)
+                        recordTelemetryEvent(
+                            SlowMotionTelemetryEventKind.REJECTED,
+                            atMs = nowMs,
+                            command = command,
+                            detail = result.reason,
+                        )
                     }
                     mutableState.value = SlowMotionState.Faulted(result.reason, lease)
                     return@withLock SlowMotionActionResult.Rejected
@@ -208,6 +248,12 @@ class SlowMotionController(
                 is SlowMotionTransportResult.Unknown -> {
                     if (!logicalNoOp) {
                         mutableTelemetry.value = mutableTelemetry.value.copy(lastOutcome = result)
+                        recordTelemetryEvent(
+                            SlowMotionTelemetryEventKind.UNKNOWN,
+                            atMs = nowMs,
+                            command = command,
+                            detail = result.reason,
+                        )
                     }
                     mutableState.value = SlowMotionState.Faulted(result.reason, lease)
                     return@withLock SlowMotionActionResult.Unknown(result.reason)
@@ -225,15 +271,21 @@ class SlowMotionController(
             is SlowMotionState.Armed -> {
                 if (current.lease != lease) SlowMotionActionResult.Rejected
                 else {
+                    recordTelemetryEvent(
+                        SlowMotionTelemetryEventKind.STOP_REQUESTED,
+                        detail = reason.name,
+                    )
                     val supervisorResult = releaseSupervisor(lease, reason)
                     if (supervisorResult != MotionStopResult.Stopped) {
                         mutableState.value = SlowMotionState.Faulted(
                             "slow-motion ownership release was not confirmed",
                             lease,
                         )
+                        recordStopOutcome(supervisorResult)
                         mapStopResult(supervisorResult)
                     } else {
                         mutableState.value = SlowMotionState.Idle
+                        recordTelemetryEvent(SlowMotionTelemetryEventKind.STOP_CONFIRMED)
                         SlowMotionActionResult.Stopped
                     }
                 }
@@ -282,6 +334,7 @@ class SlowMotionController(
         if (currentLease != lease) return@withLock false
         motionSupervisor?.recoverAfterReconnect(lease.supervisorLease)
         mutableState.value = SlowMotionState.Idle
+        recordTelemetryEvent(SlowMotionTelemetryEventKind.RECOVERED)
         true
     }
 
@@ -294,32 +347,76 @@ class SlowMotionController(
         }
         motionSupervisor?.recoverAfterReconnect(sharedLease)
         mutableState.value = SlowMotionState.Idle
+        if (sharedLease != null) recordTelemetryEvent(SlowMotionTelemetryEventKind.RECOVERED)
     }
 
     private suspend fun stopLocked(
         lease: SlowMotionLease,
         reason: MotionStopReason,
     ): SlowMotionActionResult {
+        recordTelemetryEvent(
+            SlowMotionTelemetryEventKind.STOP_REQUESTED,
+            detail = reason.name,
+        )
         return try {
             when (val result = releaseSupervisor(lease, reason)) {
                 MotionStopResult.Stopped -> {
                     mutableState.value = SlowMotionState.Idle
+                    recordTelemetryEvent(SlowMotionTelemetryEventKind.STOP_CONFIRMED)
                     SlowMotionActionResult.Stopped
                 }
                 MotionStopResult.Rejected -> {
                     mutableState.value = SlowMotionState.Faulted("slow-motion stop was rejected", lease)
+                    recordTelemetryEvent(SlowMotionTelemetryEventKind.STOP_REJECTED)
                     SlowMotionActionResult.Rejected
                 }
                 is MotionStopResult.Unknown -> {
                     mutableState.value = SlowMotionState.Faulted(result.reason, lease)
+                    recordTelemetryEvent(
+                        SlowMotionTelemetryEventKind.STOP_UNKNOWN,
+                        detail = result.reason,
+                    )
                     SlowMotionActionResult.Unknown(result.reason)
                 }
             }
         } catch (error: Exception) {
             val reasonText = "slow-motion stop failed: ${error.message ?: error::class.simpleName ?: "unknown error"}"
             mutableState.value = SlowMotionState.Faulted(reasonText, lease)
+            recordTelemetryEvent(
+                SlowMotionTelemetryEventKind.STOP_UNKNOWN,
+                detail = reasonText,
+            )
             SlowMotionActionResult.Unknown(reasonText)
         }
+    }
+
+    private fun recordStopOutcome(result: MotionStopResult) {
+        when (result) {
+            MotionStopResult.Stopped -> recordTelemetryEvent(SlowMotionTelemetryEventKind.STOP_CONFIRMED)
+            MotionStopResult.Rejected -> recordTelemetryEvent(SlowMotionTelemetryEventKind.STOP_REJECTED)
+            is MotionStopResult.Unknown -> recordTelemetryEvent(
+                SlowMotionTelemetryEventKind.STOP_UNKNOWN,
+                detail = result.reason,
+            )
+        }
+    }
+
+    private fun recordTelemetryEvent(
+        kind: SlowMotionTelemetryEventKind,
+        atMs: Long? = null,
+        command: SlowScheduleCommand? = null,
+        detail: String? = null,
+    ) {
+        val event = SlowMotionTelemetryEvent(
+            sequence = nextTelemetrySequence++,
+            atMs = atMs,
+            kind = kind,
+            command = command,
+            detail = detail,
+        )
+        mutableTelemetry.value = mutableTelemetry.value.copy(
+            events = (mutableTelemetry.value.events + event).takeLast(MAX_SLOW_TELEMETRY_EVENTS),
+        )
     }
 
     private suspend fun releaseSupervisor(
@@ -341,3 +438,5 @@ class SlowMotionController(
         require(nowMs >= 0L) { "slow-motion time must be monotonic and non-negative" }
     }
 }
+
+private const val MAX_SLOW_TELEMETRY_EVENTS = 12

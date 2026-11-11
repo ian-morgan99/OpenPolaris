@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phone overflow menus now use compact graphic rows.** The More controls
+  menus use 26 dp rows with small line graphics and full accessible names on
+  compact layouts; desktop keeps the native labelled Material menu items.
 - **Firmware delivery radio indicators now stay compact on phones.** The
   verified SSH and unavailable wire choices retain their descriptive text and
   radio semantics, but the phone indicator uses a small custom graphic instead

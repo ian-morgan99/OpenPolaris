@@ -48,7 +48,7 @@ class MobileCompactControlsContractTest {
         assertTrue("OpenPolarisGraphic.Fine" in shell)
         assertTrue("CompactGraphicButton" in shell)
         assertTrue("OpenPolarisGraphicIcon" in shell)
-        assertTrue("leadingIcon = { OpenPolarisGraphicIcon(c.graphic) }" in shell)
+        assertTrue("callout.graphic" in shell, "overflow actions must retain their graphics")
         assertTrue("graphic: OpenPolarisGraphic? = null" in panes)
         assertTrue("contentDescription = \"\$label. Hold to move; release to stop.\"" in panes)
         assertTrue("OpenPolarisGraphic.Up" in panes)
@@ -442,6 +442,9 @@ class MobileCompactControlsContractTest {
             .find(noComments)?.value ?: error("Cannot locate compact destination bar")
         assertTrue("CompactGraphicTabButton(" in navigation)
         assertFalse("TextButton(" in navigation, "phone destination tabs must not inherit Material TextButton chrome")
+        assertTrue("CompactOverflowMenuItem(" in navigation, "phone overflow rows must use the compact menu boundary")
+        assertTrue(".height(26.dp)" in noComments, "phone overflow rows must avoid the stock 48 dp menu row")
+        assertTrue("contentDescription = callout.accessibilityLabel" in noComments)
         assertTrue("ResponsiveTextActionButton(" in noComments)
         assertTrue("graphic = OpenPolarisGraphic.Back" in noComments)
     }

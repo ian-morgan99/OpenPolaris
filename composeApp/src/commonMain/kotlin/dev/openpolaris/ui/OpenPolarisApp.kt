@@ -1,5 +1,6 @@
 package dev.openpolaris.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -494,7 +495,9 @@ private val MoreItems: List<Callout> = listOf(
  * is useful on a tablet, but wastes most of a phone's vertical workspace when
  * the labels already identify the destinations. The row uses the same small
  * line graphics as the action controls; full names remain in semantics and
- * the More menu so icon-only controls do not become ambiguous.
+ * the More menu so icon-only controls do not become ambiguous. The overflow
+ * menu also uses compact 26 dp rows on phones instead of stock Material menu
+ * chrome.
  */
 @Composable
 private fun CompactDestinationBar(
@@ -543,9 +546,8 @@ private fun CompactDestinationBar(
         ) {
             AdvancedItems.forEachIndexed { i, callout ->
                 if (i > 0) HorizontalDivider()
-                DropdownMenuItem(
-                    leadingIcon = { OpenPolarisGraphicIcon(callout.graphic) },
-                    text = { Text(callout.glyph) },
+                CompactOverflowMenuItem(
+                    callout = callout,
                     modifier = Modifier.testTag("destination-more-" + callout.name.lowercase()),
                     onClick = {
                         expanded = false
@@ -681,9 +683,8 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
         ) {
             AdvancedItems.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
-                DropdownMenuItem(
-                    leadingIcon = { OpenPolarisGraphicIcon(c.graphic) },
-                    text = { Text(c.glyph) },
+                CompactOverflowMenuItem(
+                    callout = c,
                     modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
                     onClick = {
                         expanded = false
@@ -692,6 +693,42 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CompactOverflowMenuItem(
+    callout: Callout,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    if (LocalOpenPolarisCompact.current) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = callout.accessibilityLabel
+                },
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OpenPolarisGraphicIcon(callout.graphic)
+            Text(
+                callout.glyph,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    } else {
+        DropdownMenuItem(
+            leadingIcon = { OpenPolarisGraphicIcon(callout.graphic) },
+            text = { Text(callout.glyph) },
+            modifier = modifier,
+            onClick = onClick,
+        )
     }
 }
 

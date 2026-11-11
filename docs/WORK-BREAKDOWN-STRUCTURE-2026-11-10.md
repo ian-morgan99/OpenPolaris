@@ -1473,3 +1473,7 @@ remain open.
 - **2026-11-11 — verification:** compact-control and density contracts, the
   full shared/Compose JVM suites, Android debug compilation and desktop
   distributable creation passed.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (compact overflow menus):** phone More
+  controls now use 26 dp graphic-first rows with short visible labels and full
+  accessibility names; desktop and tablet retain native labelled menu items.
+  The destination/action routing and all hardware gates are unchanged.

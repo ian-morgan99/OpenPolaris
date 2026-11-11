@@ -5,6 +5,24 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/09.1 - Compact phone overflow menus
+
+The compact More controls menus now use 26 dp graphic-first rows instead of
+Material3's large menu-item chrome. Each row keeps a short visible label for
+recognition, the matching small line graphic and the full Callout accessibility
+name; keyboard/click semantics and test tags remain attached. Desktop and
+tablet paths retain the native labelled menu items. No destination, action,
+feature gate or hardware contract changed.
+
+Verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest :composeApp:compileKotlinJvm --rerun-tasks --console=plain --no-daemon
+```
+
+The focused mobile contracts and Compose JVM compilation passed. Installed
+phone rendering and hardware qualification remain open.
+
 ### WBS-03.5/03.6 - Positive SLOW acknowledgement boundary
 
 The qualified runtime seam no longer treats MountSession.sendOnly() as a

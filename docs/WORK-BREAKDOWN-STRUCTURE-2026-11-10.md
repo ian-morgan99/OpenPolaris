@@ -191,6 +191,8 @@
 - Separate control port health from 8080 MJPEG health.
 - Add frame age, empty-stream terminal state, overlays, histogram/focus-peaking hooks and fullscreen.
 
+- **2026-11-11 progress:** added an explicit fullscreen preview surface with a compact graphic-first action, bounded dismissal, visible frame age and accessible semantics. The surface is presentation-only and does not create a second preview transport or alter camera/mount state.
+
 ### WBS-04.3 — Source-aligned M/B capture — P0
 
 - Keep ordinary and Bulb paths distinct; mode-read before dispatch; no blind subtype retry.

@@ -1741,3 +1741,16 @@ Focused verification passed:
 ```
 
 No physical K-1 II/K-3 III regression check was performed in this environment.
+
+
+### WBS-04.2 — Fullscreen preview presentation
+
+The Preview pane now offers a fullscreen presentation surface on both phone and desktop. It uses the current decoded frame and local frame-age evidence, retains an accessible exit action, and closes cleanly through dialog dismissal. The fullscreen surface does not start a second MJPEG transport, mutate camera state or change the existing framing, centre-mark, histogram or focus-peaking presentation aids.
+
+`PreviewOverlayContractTest` now guards the fullscreen graphic, open/exit semantics, bounded dialog properties and test tag. Focused verification passed:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.PreviewOverlayContractTest --console=plain --no-daemon
+```
+
+Installed-phone rendering and live preview qualification remain open.

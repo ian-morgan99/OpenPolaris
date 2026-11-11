@@ -37,6 +37,7 @@ internal enum class OpenPolarisGraphic {
     Plus,
     Minus,
     Preview,
+    Fullscreen,
     Save,
     Share,
     Protect,
@@ -242,6 +243,18 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
             drawStyledRoundRect(color, Offset(1.5f, 3f), Size(size.width - 3f, size.height - 6f), 2.dp.toPx(), 2.dp.toPx(), stroke)
             drawStyledLine(color, Offset(8f, 7f), Offset(14f, c.y), stroke)
             drawStyledLine(color, Offset(14f, c.y), Offset(8f, 13f), stroke)
+        }
+        OpenPolarisGraphic.Fullscreen -> {
+            val inset = 2.5f
+            val reach = 6.5f
+            drawStyledLine(color, Offset(inset, inset + reach), Offset(inset, inset), stroke)
+            drawStyledLine(color, Offset(inset, inset), Offset(inset + reach, inset), stroke)
+            drawStyledLine(color, Offset(size.width - inset - reach, inset), Offset(size.width - inset, inset), stroke)
+            drawStyledLine(color, Offset(size.width - inset, inset), Offset(size.width - inset, inset + reach), stroke)
+            drawStyledLine(color, Offset(inset, size.height - inset - reach), Offset(inset, size.height - inset), stroke)
+            drawStyledLine(color, Offset(inset, size.height - inset), Offset(inset + reach, size.height - inset), stroke)
+            drawStyledLine(color, Offset(size.width - inset - reach, size.height - inset), Offset(size.width - inset, size.height - inset), stroke)
+            drawStyledLine(color, Offset(size.width - inset, size.height - inset - reach), Offset(size.width - inset, size.height - inset), stroke)
         }
         OpenPolarisGraphic.Save -> {
             drawStyledRoundRect(color, Offset(3f, 2f), Size(size.width - 6f, size.height - 4f), 1.5.dp.toPx(), 1.5.dp.toPx(), stroke)

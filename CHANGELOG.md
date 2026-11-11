@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Preview now has an explicit fullscreen surface.** The live frame can expand into a bounded, dismissible black presentation surface on phone and desktop; frame age and an accessible exit action remain visible, while the preview transport, overlays and camera state are unchanged.
 - **Phone controls are now genuinely compact.** Icon actions render a 16 dp
   line graphic in a 40 dp phone control footprint (48 dp is retained on the
   wider desktop rail), while text selectors use a 30 dp compact chip. Full

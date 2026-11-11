@@ -29,6 +29,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,6 +67,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.openpolaris.core.config.FeatureFlags
@@ -4588,6 +4591,7 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var centreMark by remember { mutableStateOf(false) }
     var showHistogram by remember { mutableStateOf(false) }
     var focusPeaking by remember { mutableStateOf(false) }
+    var fullscreen by remember { mutableStateOf(false) }
     val frame = vm.previewFrame
     val analysis = vm.previewPixelAnalysis
     val state = vm.previewState
@@ -4600,6 +4604,44 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
     val frameAgeSeconds = vm.previewFrameReceivedAtMs?.let { received ->
         ((nowMs - received).coerceAtLeast(0L) / 1_000L)
+    }
+    if (fullscreen && frame != null) {
+        Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize().testTag("preview-fullscreen"),
+                color = Color.Black,
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.Image(
+                        bitmap = frame,
+                        contentDescription = "Fullscreen live camera preview",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                    )
+                    Row(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        frameAgeSeconds?.let { age ->
+                            Text(
+                                if (age == 0L) "under 1 s" else "${age} s old",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        CompactGraphicButton(
+                            graphic = OpenPolarisGraphic.Fullscreen,
+                            contentDescription = "Exit fullscreen camera preview",
+                            onClick = { fullscreen = false },
+                        )
+                    }
+                }
+            }
+        }
     }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
@@ -4670,6 +4712,13 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Fullscreen,
+                    label = "Fullscreen",
+                    contentDescription = "Open fullscreen camera preview",
+                    enabled = frame != null,
+                    onClick = { fullscreen = true },
+                )
                 CompactFilterChip(
                     selected = framingGrid,
                     onClick = { framingGrid = !framingGrid },

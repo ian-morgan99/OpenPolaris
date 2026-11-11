@@ -24,5 +24,10 @@ class PreviewOverlayContractTest {
         assertTrue("do not alter camera or mount state" in source)
         assertTrue("Preview endpoint is open but no frames arrived" in source)
         assertTrue("Frame age: under 1 s" in source)
+        assertTrue("OpenPolarisGraphic.Fullscreen" in source)
+        assertTrue("Open fullscreen camera preview" in source)
+        assertTrue("Exit fullscreen camera preview" in source)
+        assertTrue("preview-fullscreen" in source)
+        assertTrue("DialogProperties(usePlatformDefaultWidth = false)" in source)
     }
 }

@@ -5,6 +5,25 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/02.1/09.1 — Summary-first mobile connection health
+
+Compact phones keep connection mode, host/port, primary connect/wake/demo/
+disconnect actions, endpoint/control/preview health, failure class and the
+current status line immediately usable. Host/port detail, failure guidance,
+optional password, bridge/Wi-Fi discovery, Bluetooth wake evidence and Astro
+control-link/Wi-Fi diagnostics are reachable through a graphic-backed Details
+disclosure. Desktop remains expanded; endpoint, control-versus-preview,
+Bluetooth and recovery semantics are unchanged.
+
+Focused verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --console=plain --no-daemon
+```
+
+This is source/package evidence only. Installed-phone rendering, Bluetooth,
+mount, Astro WebUI and physical qualification remain open.
+
 ### WBS-01.3/04.1/09.1 — Summary-first mobile camera
 
 Compact phones keep camera identity/attachment, release mode, qualification

@@ -347,6 +347,8 @@ fun ConnectionPane(
 ) {
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         val scope = rememberCoroutineScope()
+        val compactLayout = LocalOpenPolarisCompact.current
+        var showConnectionDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Connection mode", style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -367,14 +369,23 @@ fun ConnectionPane(
                     modifier = Modifier.testTag("connection-mode-home-lan"),
                 )
             }
-            Text(
-                if (vm.connectionMode == ConnectionMode.DIRECT_AP) {
-                    "Join the Polaris_* access point; the usual mount address is 192.168.0.1."
-                } else {
-                    "Stay on your trusted home Wi-Fi and enter the Polaris station IP. No AP join or bridge is performed."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (compactLayout) {
+                Text(
+                    if (vm.connectionMode == ConnectionMode.DIRECT_AP) "Direct AP · enter mount address"
+                    else "Home LAN · enter station address",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.testTag("connection-mode-summary"),
+                )
+            } else {
+                Text(
+                    if (vm.connectionMode == ConnectionMode.DIRECT_AP) {
+                        "Join the Polaris_* access point; the usual mount address is 192.168.0.1."
+                    } else {
+                        "Stay on your trusted home Wi-Fi and enter the Polaris station IP. No AP join or bridge is performed."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             // No header — the Benro Connect aesthetic is a flat, full-width
             // form; the app name is already in the launcher icon, not the
             // content area. The status line beneath the form acts as the
@@ -444,6 +455,30 @@ fun ConnectionPane(
                     outlined = true,
                 )
             }
+            if (vm.statusMessage.isNotBlank()) {
+                Text(
+                    vm.statusMessage,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("connection-compact-status"),
+                )
+            }
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showConnectionDetails) "Hide details" else "Details",
+                    contentDescription = if (showConnectionDetails) {
+                        "Hide connection diagnostics and secondary actions"
+                    } else {
+                        "Show connection diagnostics and secondary actions"
+                    },
+                    onClick = { showConnectionDetails = !showConnectionDetails },
+                    modifier = Modifier.testTag("connection-details-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showConnectionDetails) {
             // Connection-password field. Most production gimbal firmware
             // does not require a password (820→821 skipped, `needed:0`),
             // in which case leaving this blank is the correct state and
@@ -724,7 +759,10 @@ fun ConnectionPane(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
+            if (!compactLayout && vm.statusMessage.isNotBlank()) {
+                Text(vm.statusMessage, style = MaterialTheme.typography.bodyMedium)
+            }
+            }
         }
     }
 }
@@ -837,6 +875,8 @@ private fun EndpointHealthSection(
     onOpenConnection: (() -> Unit)? = null,
 ) {
     val endpoint = vm.endpointHealth
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showEndpointDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     var clockMs by remember { mutableStateOf(vm.nowMs().coerceAtLeast(0L)) }
     LaunchedEffect(endpoint.phase, endpoint.phaseSinceMs) {
         if (endpoint.phaseSinceMs == null) {
@@ -860,55 +900,95 @@ private fun EndpointHealthSection(
         modifier = Modifier.testTag("endpoint-health"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Connection health", style = MaterialTheme.typography.titleMedium)
-        endpoint.profile?.let { profile ->
+        Text(if (compactLayout) "Connection" else "Connection health", style = MaterialTheme.typography.titleMedium)
+        if (compactLayout) {
             Text(
-                "${profile.label} - ${profile.kind.name.lowercase().replace('_', ' ')}",
+                listOf(
+                    endpoint.profile?.label ?: "No endpoint",
+                    endpoint.phase.name.lowercase(),
+                    "C:${endpoint.control.name.lowercase()}",
+                    "P:${endpoint.preview.name.lowercase()}",
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("endpoint-compact-summary"),
+            )
+            endpoint.lastFailureKind?.let { kind ->
+                Text(
+                    "Failure: ${kind.label}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("endpoint-failure-kind"),
+                )
+            }
+        }
+        if (!compactLayout || showEndpointDetails) {
+            endpoint.profile?.let { profile ->
+                Text(
+                    "${profile.label} - ${profile.kind.name.lowercase().replace('_', ' ')}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("endpoint-route"),
+                )
+                Text(
+                    "Control ${profile.address.host}:${profile.address.controlPort} - Preview ${profile.address.host}:${profile.address.previewPort}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } ?: Text(
+                "No endpoint selected",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("endpoint-route"),
             )
             Text(
-                "Control ${profile.address.host}:${profile.address.controlPort} - Preview ${profile.address.host}:${profile.address.previewPort}",
+                "Route ${endpoint.phase.name.lowercase()} - phase age $ageText",
                 style = MaterialTheme.typography.bodySmall,
             )
-        } ?: Text(
-            "No endpoint selected",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.testTag("endpoint-route"),
-        )
-        Text(
-            "Route ${endpoint.phase.name.lowercase()} - phase age $ageText",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            "Control service: ${endpoint.control.name.lowercase()}",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.testTag("endpoint-control-service"),
-        )
-        Text(
-            "Preview service: ${endpoint.preview.name.lowercase()}",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.testTag("endpoint-preview-service"),
-        )
-        endpoint.lastFailureKind?.let { kind ->
             Text(
-                "Failure class: ${kind.label}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.testTag("endpoint-failure-kind"),
+                "Control service: ${endpoint.control.name.lowercase()}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("endpoint-control-service"),
             )
             Text(
-                kind.guidance,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Preview service: ${endpoint.preview.name.lowercase()}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("endpoint-preview-service"),
             )
+            endpoint.lastFailureKind?.let { kind ->
+                Text(
+                    "Failure class: ${kind.label}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("endpoint-failure-kind"),
+                )
+                Text(
+                    kind.guidance,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            endpoint.lastFailure?.let { failure ->
+                Text(
+                    "Last failure: $failure",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("endpoint-last-failure"),
+                )
+            }
         }
-        endpoint.lastFailure?.let { failure ->
-            Text(
-                "Last failure: $failure",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.testTag("endpoint-last-failure"),
+        if (compactLayout) {
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.More,
+                label = if (showEndpointDetails) "Hide details" else "Details",
+                contentDescription = if (showEndpointDetails) {
+                    "Hide connection health details"
+                } else {
+                    "Show connection health details"
+                },
+                onClick = { showEndpointDetails = !showEndpointDetails },
+                modifier = Modifier.testTag("endpoint-details-toggle"),
+                outlined = true,
             )
         }
         onOpenConnection?.let { open ->

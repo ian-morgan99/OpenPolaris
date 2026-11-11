@@ -76,6 +76,39 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactEndpointHealthIsSummaryFirstWithRecoverableDetails() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("var showEndpointDetails by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"endpoint-compact-summary\")" in panes)
+        assertTrue("testTag(\"endpoint-details-toggle\")" in panes)
+        assertTrue("Show connection health details" in panes)
+        assertTrue("Hide connection health details" in panes)
+        assertTrue("if (!compactLayout || showEndpointDetails)" in panes)
+        assertTrue("endpoint.control.name.lowercase()" in panes)
+        assertTrue("endpoint.preview.name.lowercase()" in panes)
+        assertTrue("Open connection" in panes)
+    }
+
+    @Test
+    fun compactConnectionKeepsPrimaryRecoveryActionsAndHidesSecondaryDiagnostics() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("var showConnectionDetails by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"connection-mode-summary\")" in panes)
+        assertTrue("testTag(\"connection-compact-status\")" in panes)
+        assertTrue("testTag(\"connection-details-toggle\")" in panes)
+        assertTrue("Show connection diagnostics and secondary actions" in panes)
+        assertTrue("Hide connection diagnostics and secondary actions" in panes)
+        assertTrue("if (!compactLayout || showConnectionDetails)" in panes)
+        assertTrue("Connect to mount" in panes)
+        assertTrue("Wake mount over Bluetooth" in panes)
+        assertTrue("Disconnect from mount" in panes)
+        assertTrue("Connection password (optional)" in panes)
+        assertTrue("Bridge to mount Wi-Fi…" in panes)
+    }
+
+    @Test
     fun compactCameraAndFineRateActionsRetainAccessibleLabels() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")

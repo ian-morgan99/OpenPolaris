@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Connection health is now summary-first on compact phones.** The phone
+  surface keeps the endpoint, route, control/preview health, failure class and
+  primary connection actions visible, while host/port detail, failure guidance,
+  Bluetooth evidence and Astro link diagnostics remain behind a compact Details
+  disclosure. Desktop keeps the full diagnostic surface and no route, wake,
+  reconnect or safety semantics changed.
 - **Camera is now summary-first on compact phones.** Camera identity,
   attachment state, release mode, qualification state, primary capture, native
   Bulb and Astro WebUI M/B controls remain visible; readback, setting steppers,

@@ -134,6 +134,18 @@
   phase age and last failure, with a safe action back to the Connection owner.
   Phase-age calculation is clock-safe and covered by the shared domain test.
 
+- **2026-11-11 - WBS-01.3/02.1/09.1 ACTIVE (summary-first connection
+  health):** compact phones keep connection mode, host/port, primary
+  connect/wake/demo/disconnect actions, endpoint/control/preview health, failure
+  class and current status visible. Host/port details, failure guidance,
+  optional password, bridge/Wi-Fi discovery, Bluetooth wake evidence and Astro
+  link/Wi-Fi diagnostics are behind a graphic-backed Details disclosure;
+  desktop remains expanded and no route, wake, reconnect or safety semantic
+  changed. Installed-phone rendering remains open.
+- **2026-11-11 - verification:** compact connection/endpoint, mission and
+  SLOW safety contracts passed. Full JVM, Android compilation and desktop
+  packaging are required before publication of this slice.
+
 ### WBS-02.2 — Single session owner — P0
 
 - Audit all controllers for connection ownership, reconnect and teardown ordering.

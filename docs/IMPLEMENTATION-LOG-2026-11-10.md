@@ -5,6 +5,26 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-03.5/03.6 - Positive SLOW acknowledgement boundary
+
+The qualified runtime seam no longer treats MountSession.sendOnly() as a
+positive 532/533/534 result. AppViewModel now accepts an optional,
+firmware-specific frame sender that must return Accepted only after the
+target acknowledgement has been parsed. The production default is absent, so
+a capability record cannot by itself expose a live path; the Motion pane
+shows the missing acknowledgement sender as a blocker. The fake-head VM
+integration supplies a strict ret:0 response for each SLOW frame and still
+verifies the source-aligned active and explicit state-0 stop frames.
+
+Focused verification:
+
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelQualifiedSlowMotionTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --console=plain --no-daemon
+
+This is a safer package/source contract. The patcher evidence still does not
+establish a universal 532/533/534 acknowledgement shape, so no production
+sender or physical SLOW capability was promoted.
+
+
 ### WBS-03.6/09.1 — Graphic-first SLOW motion dock
 
 The SLOW dock now uses compact, dependency-free Direction A, Direction B and

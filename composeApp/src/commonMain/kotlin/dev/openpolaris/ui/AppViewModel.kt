@@ -199,6 +199,7 @@ import dev.openpolaris.core.domain.SlowMotionTransportResult
 import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
+import dev.openpolaris.core.protocol.SlowMotionWireFrame
 import dev.openpolaris.core.domain.createAstroMediaExportSink
 import dev.openpolaris.core.domain.createSupportBundleExportSink
 import dev.openpolaris.core.domain.createAstroWebUiMediaClient
@@ -398,6 +399,12 @@ class AppViewModel(
     private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
     /** Evidence-backed SLOW allow-list; production defaults to the unqualified record. */
     private val slowMotionCapabilityRecord: SlowMotionCapabilityRecord = SlowMotionCapabilities.current,
+    /**
+     * Optional exact firmware-bound sender. It must return Accepted only after
+     * the target firmware positively acknowledges the frame. A missing sender
+     * keeps the live path unavailable even if a capability record is supplied.
+     */
+    private val slowMotionFrameSender: (suspend (MountSession, SlowMotionWireFrame) -> SlowMotionTransportResult)? = null,
     /** Clock seam for deterministic SLOW hold/release tests; production uses wall time. */
     private val slowMotionNow: () -> Long = { SystemMillis.now() },
 ) {
@@ -752,12 +759,16 @@ class AppViewModel(
         capability = slowMotionCapabilityRecord,
     ) { frame ->
         val activeSession = session
-        if (activeSession == null) {
-            SlowMotionTransportResult.Unknown("mount session unavailable for SLOW transport")
-        } else {
-            try {
-                activeSession.sendOnly(frame.code, frame.payload)
-                SlowMotionTransportResult.Accepted
+        val sender = slowMotionFrameSender
+        when {
+            activeSession == null ->
+                SlowMotionTransportResult.Unknown("mount session unavailable for SLOW transport")
+            sender == null ->
+                SlowMotionTransportResult.Unknown(
+                    "SLOW positive-acknowledgement sender is not installed",
+                )
+            else -> try {
+                sender(activeSession, frame)
             } catch (error: Throwable) {
                 SlowMotionTransportResult.Unknown(
                     "SLOW frame dispatch failed: " +
@@ -846,6 +857,10 @@ class AppViewModel(
     /** The exact SLOW evidence record used by both the UI and runtime adapter. */
     val slowMotionCapability: SlowMotionCapabilityRecord
         get() = slowMotionCapabilityRecord
+
+    /** True only when an exact positive-acknowledgement sender is installed. */
+    val slowMotionTransportInstalled: Boolean
+        get() = slowMotionFrameSender != null
 
     val fastJogState: StateFlow<FastJogState>
         get() = fastJogController.state
@@ -2946,7 +2961,10 @@ class AppViewModel(
 
     /** Start one logical SLOW direction in Demo or qualified live mode. */
     private fun liveSlowMotionReady(): Boolean =
-        !demoMode && session != null && slowMotionCapabilityRecord.liveReady
+        !demoMode &&
+            session != null &&
+            slowMotionCapabilityRecord.liveReady &&
+            slowMotionFrameSender != null
 
     fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
         slowMotionAdmissionBlocker()?.let {

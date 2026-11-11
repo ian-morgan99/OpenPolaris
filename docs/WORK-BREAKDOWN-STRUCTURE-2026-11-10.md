@@ -1331,3 +1331,17 @@ remain open.
 - **2026-11-11 - verification:** focused capture-phase tests, full shared and
   Compose JVM suites, Android Kotlin compilation and desktop packaging passed.
   No live camera, mount or physical capture was exercised.
+
+
+- **2026-11-11 - WBS-03.5/03.6 ACTIVE (positive SLOW acknowledgement boundary):**
+  the qualified runtime seam no longer treats a MountSession.sendOnly() write
+  as a successful 532/533/534 operation. AppViewModel now requires an explicit
+  firmware-specific frame sender that returns Accepted only after positive
+  acknowledgement parsing; the production default is absent, and the Motion
+  pane surfaces that missing sender as a blocker even when an evidence record
+  is supplied. The fake-head VM integration models strict ret:0 responses
+  and still verifies active plus explicit state-0 stop frames.
+- **2026-11-11 - verification:** focused qualified-SLOW and Motion-pane
+  safety tests passed. Full shared/Compose JVM, Android compilation and
+  desktop packaging remain required for this slice. No live SLOW route,
+  named-head acknowledgement, Bluetooth, mount or physical stop was exercised.

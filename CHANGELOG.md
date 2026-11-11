@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Qualified SLOW transport now requires an explicit positive acknowledgement sender.** A socket write is no longer treated as a successful 532/533/534 operation; the default production sender is absent, and the Motion surface reports that blocker even if a capability record is supplied. The fake-head integration now models strict ret:0 acknowledgements, while live hardware qualification remains closed.
 - **Reconnect progress and admission actions now collapse on phones.** The
   in-flight Cancel and validated Reconnect actions use small graphics with full
   content descriptions, while irreversible marker removal remains explicitly

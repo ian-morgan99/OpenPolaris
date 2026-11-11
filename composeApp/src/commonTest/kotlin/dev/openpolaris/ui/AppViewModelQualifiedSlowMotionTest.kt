@@ -6,6 +6,7 @@ import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.MountSession
 import dev.openpolaris.core.domain.RateAxis
 import dev.openpolaris.core.domain.SlowMotionCapabilityRecord
+import dev.openpolaris.core.domain.SlowMotionTransportResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -47,12 +48,31 @@ class AppViewModelQualifiedSlowMotionTest {
                 String(request, Charsets.US_ASCII).startsWith("1&284&") -> connection.enqueue("1&284&2&mode:0;#")
                 String(request, Charsets.US_ASCII).startsWith("1&820&") -> connection.enqueue("820@needed:0;#")
                 String(request, Charsets.US_ASCII).startsWith("1&823&") -> connection.enqueue("823@app:openpolaris;ver:test;#")
+                String(request, Charsets.US_ASCII).startsWith("1&532&") -> connection.enqueue("532@ret:0;#")
+                String(request, Charsets.US_ASCII).startsWith("1&533&") -> connection.enqueue("533@ret:0;#")
+                String(request, Charsets.US_ASCII).startsWith("1&534&") -> connection.enqueue("534@ret:0;#")
             }
         }
         val vm = AppViewModel(
             scope = this,
             connectionFactory = { connection },
             slowMotionCapabilityRecord = capability(),
+            slowMotionFrameSender = { activeSession, frame ->
+                when (val ack = activeSession.request<Int>(
+                    code = frame.code,
+                    payload = frame.payload,
+                    subtype = frame.subtype,
+                    timeoutMs = 500L,
+                ) { it.int("ret") }) {
+                    is MountSession.CmdResult.Ok ->
+                        if (ack.value == 0) SlowMotionTransportResult.Accepted
+                        else SlowMotionTransportResult.Rejected("fake head returned ret:" + ack.value)
+                    MountSession.CmdResult.Timeout ->
+                        SlowMotionTransportResult.Unknown("fake head acknowledgement timed out")
+                    is MountSession.CmdResult.ProtocolError ->
+                        SlowMotionTransportResult.Unknown("fake head acknowledgement failed: " + ack.message)
+                }
+            },
             slowMotionNow = { clock },
         )
         val session = MountSession(connectionFactory = { connection }, host = "127.0.0.1", port = 9090, readerScope = this)

@@ -2822,7 +2822,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     // physical stop result. The default record remains unqualified.
     val capabilityRecord = vm.slowMotionCapability
     val liveTransportQualified = capabilityRecord.liveReady
-    val liveControlsEnabled = gateOpen && liveTransportQualified && capabilityRecord.liveReady && vm.mount.connected
+    val liveTransportInstalled = vm.slowMotionTransportInstalled
+    val liveControlsEnabled = gateOpen && liveTransportQualified && liveTransportInstalled && vm.mount.connected
     val demoControlsEnabled = vm.demoMode
     val connectionText = if (vm.mount.connected) "Mount connected" else "Connect to a mount first"
     val motionState by vm.motionState.collectAsState()
@@ -2884,6 +2885,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     demoControlsEnabled -> "Demo simulation is active: planner and scheduler transitions are shown without sending a hardware command."
                     !gateOpen -> "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
                     !liveTransportQualified -> "Host planner is implemented, but no firmware-bound slow-motion transport is enabled in this build."
+                    !liveTransportInstalled -> "Qualification evidence is present, but no positive-acknowledgement sender is installed in this build."
                     !vm.mount.connected -> "Connect to a mount before using slow motion."
                     else -> "Qualified slow-motion controls are ready for this build."
                 },
@@ -2926,10 +2928,13 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     outlined = true,
                 )
             }
-            if (!liveTransportQualified) {
+            if (!liveTransportQualified || !liveTransportInstalled) {
+                val blockers = buildList {
+                    addAll(capabilityRecord.blockers)
+                    if (!liveTransportInstalled) add("positive-acknowledgement sender")
+                }.distinct()
                 Text(
-                    "Live qualification blockers: " +
-                        capabilityRecord.blockers.joinToString(", ") + ".",
+                    "Live qualification blockers: " + blockers.joinToString(", ") + ".",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

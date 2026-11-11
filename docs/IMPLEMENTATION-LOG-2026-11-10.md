@@ -5,6 +5,27 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/09.1 — Graphic-first compact controls
+
+Commit `e12524b` replaces the phone shell's visible navigation and jog
+arrows with small dependency-free line graphics. The visual symbols are 20 dp
+inside 48 dp touch targets; the full text labels remain in accessibility
+semantics and overflow menus. Hold-to-jog still preserves the existing
+press/start and release/stop lifecycle. The selected destination is indicated
+by tint rather than a larger text label.
+
+The regression contract is in `739f3a7`
+(`MobileCompactControlsContractTest`). Clean-baseline verification passed:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --rerun-tasks --console=plain --no-daemon
+./gradlew :composeApp:compileKotlinJvm --console=plain --no-daemon
+ANDROID_HOME=/home/ian/android-sdk ANDROID_SDK_ROOT=/home/ian/android-sdk ./gradlew :androidApp:compileDebugKotlinAndroid --rerun-tasks --console=plain --no-daemon
+```
+
+This improves visual density without treating a smaller visible symbol as a
+smaller safety hit target; physical phone screenshot acceptance remains open.
+
 ### WBS-04.3 — Astro WebUI shutter contract
 
 Commits `4da4618`, `c77c492`, and `5cd87b1` add a transport-neutral, source-

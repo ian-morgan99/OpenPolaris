@@ -56,7 +56,7 @@
 
 - Mobile bottom navigation/sheets; tablet master-detail; PC rail/workspace/inspector.
 - Preserve dark adaptation and 48 dp touch targets while keeping the visual phone chrome compact.
-- 2026-11-10 progress: phone navigation is now a text-only 48 dp row with no oversized icon slot; the desktop rail remains unchanged. The phone shell also uses tighter 4 dp outer/section spacing. Contract tests cover the responsive selection, stable destinations, overflow and accessibility semantics.
+- 2026-11-10 progress: phone navigation now uses small 20 dp graphics inside a 48 dp row; the desktop rail remains unchanged. Primary destinations and jog arrows are graphic-first, while full labels remain available through accessibility semantics and overflow menus. The phone shell also uses tighter 4 dp outer/section spacing. Contract tests cover responsive selection, stable destinations, overflow, accessibility semantics and the visual/hit-target density contract.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

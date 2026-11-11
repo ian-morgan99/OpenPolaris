@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -2835,13 +2836,14 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SlowDemoHoldButton(
                     label = "Direction A",
                     enabled = controlsEnabled && (heldControl == null || heldControl == "Direction A"),
-                    modifier = Modifier.weight(1f).testTag("slow-motion-direction-a"),
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    modifier = Modifier.testTag("slow-motion-direction-a"),
                     onPress = {
                         startHeldMotion("Direction A") {
                             vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel)
@@ -2849,18 +2851,21 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     },
                     onRelease = { stopHeldMotion("Direction A") },
                 )
-                Button(
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    contentDescription = "STOP ALL motion",
                     onClick = {
                         heldControl = null
                         vm.emergencyStopMotion()
                     },
                     enabled = motionState is dev.openpolaris.core.domain.MotionState.Owned,
-                    modifier = Modifier.weight(1f).testTag("slow-motion-stop-all"),
-                ) { Text("STOP ALL") }
+                    modifier = Modifier.testTag("slow-motion-stop-all"),
+                )
                 SlowDemoHoldButton(
                     label = "Direction B",
                     enabled = controlsEnabled && (heldControl == null || heldControl == "Direction B"),
-                    modifier = Modifier.weight(1f).testTag("slow-motion-direction-b"),
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    modifier = Modifier.testTag("slow-motion-direction-b"),
                     onPress = {
                         startHeldMotion("Direction B") {
                             vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel)
@@ -2936,7 +2941,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 SlowDemoHoldButton(
                     label = "A · rotate",
                     enabled = controlsEnabled && (heldControl == null || heldControl == "A · rotate"),
-                    modifier = Modifier.weight(1f).testTag("slow-motion-rotate-a"),
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    modifier = Modifier.testTag("slow-motion-rotate-a"),
                     onPress = {
                         startHeldMotion("A · rotate") {
                             vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, 1, selectedLevel)
@@ -2947,7 +2953,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 SlowDemoHoldButton(
                     label = "B · rotate",
                     enabled = controlsEnabled && (heldControl == null || heldControl == "B · rotate"),
-                    modifier = Modifier.weight(1f).testTag("slow-motion-rotate-b"),
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    modifier = Modifier.testTag("slow-motion-rotate-b"),
                     onPress = {
                         startHeldMotion("B · rotate") {
                             vm.demoSlowMotionStart(dev.openpolaris.core.domain.RateAxis.M3_ROTATION, -1, selectedLevel)
@@ -3257,7 +3264,10 @@ private fun SlowDemoHoldButton(
         if (graphic == null) {
             Text(if (holdActive) "$label · HOLDING" else label)
         } else {
-            OpenPolarisGraphicIcon(graphic)
+            OpenPolarisGraphicIcon(
+                graphic,
+                tint = if (holdActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+            )
         }
     }
 }

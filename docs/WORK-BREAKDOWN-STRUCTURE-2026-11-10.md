@@ -158,6 +158,11 @@
 - **2026-11-10 - WBS-03.1/03.6 ACTIVE (common emergency stop):** replaced the demo-only STOP ALL action with a shared Motion dock stop path. It delegates to the active controller's lease-scoped emergency boundary for FAST_JOG and SLOW_MOVE, uses the supervisor boundary for GoTo/alignment, cancels local motion jobs after the stop result, and keeps unknown or faulted outcomes visible instead of clearing them to idle. Deterministic FastJog and ViewModel tests passed; physical stop observation remains required.
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (focus-loss dead-man hardening):** the shared mobile/desktop hold control now releases the motion owner when keyboard focus is lost, and guards pointer/key cleanup against duplicate release callbacks. The source contract test covers the focus-loss seam; hardware stop qualification remains separate.
 - **2026-11-10 - WBS-03.6/09.1 ACTIVE (global motion safety chrome):** the responsive status strip now surfaces the active motion owner and exposes STOP ALL without requiring navigation to the Control or Slew workspace. Faulted stop state is rendered as an error instead of disappearing. The shell contract and Compose JVM tests passed.
+- **2026-11-11 - WBS-03.6/09.1 ACTIVE (compact SLOW dock):** the mobile/PC
+  Direction A/B hold controls and STOP ALL action now use small line graphics
+  inside 48 dp targets. Full semantics remain available to accessibility and
+  keyboard users; active hold tint is visual feedback only. The physical sign
+  mapping, live transport and stop qualification gates remain unchanged.
 
 ### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
 

@@ -35,6 +35,9 @@ internal enum class OpenPolarisGraphic {
     Down,
     Left,
     Right,
+    DirectionA,
+    DirectionB,
+    Stop,
 }
 
 /**
@@ -186,6 +189,18 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
         OpenPolarisGraphic.Down -> arrowGraphic(color, Offset(0f, 1f), stroke)
         OpenPolarisGraphic.Left -> arrowGraphic(color, Offset(-1f, 0f), stroke)
         OpenPolarisGraphic.Right -> arrowGraphic(color, Offset(1f, 0f), stroke)
+        OpenPolarisGraphic.DirectionA -> directionGraphic(color, Offset(-1f, 0f), stroke)
+        OpenPolarisGraphic.DirectionB -> directionGraphic(color, Offset(1f, 0f), stroke)
+        OpenPolarisGraphic.Stop -> {
+            drawCircle(color, r * 0.95f, c, style = thin)
+            drawRoundRect(
+                color = color,
+                topLeft = c - Offset(r * 0.42f, r * 0.42f),
+                size = Size(r * 0.84f, r * 0.84f),
+                cornerRadius = CornerRadius(r * 0.08f, r * 0.08f),
+                style = Stroke(width = stroke.width, cap = StrokeCap.Round),
+            )
+        }
     }
 }
 
@@ -223,6 +238,17 @@ private fun DrawScope.arrowGraphic(color: Color, direction: Offset, stroke: Stro
     val perpendicular = Offset(-direction.y, direction.x)
     drawStyledLine(color, tip, tip - direction * 4.dp.toPx() + perpendicular * 3.dp.toPx(), stroke)
     drawStyledLine(color, tip, tip - direction * 4.dp.toPx() - perpendicular * 3.dp.toPx(), stroke)
+}
+
+private fun DrawScope.directionGraphic(color: Color, direction: Offset, stroke: Stroke) {
+    val c = Offset(size.width / 2f, size.height / 2f)
+    drawCircle(color, 2.dp.toPx(), c, style = stroke)
+    val tip = c + direction * 6.dp.toPx()
+    val tail = c + direction * 2.dp.toPx()
+    drawStyledLine(color, tail, tip, stroke)
+    val perpendicular = Offset(-direction.y, direction.x)
+    drawStyledLine(color, tip, tip - direction * 3.dp.toPx() + perpendicular * 2.5.dp.toPx(), stroke)
+    drawStyledLine(color, tip, tip - direction * 3.dp.toPx() - perpendicular * 2.5.dp.toPx(), stroke)
 }
 
 private fun DrawScope.arrowHead(tip: Offset, direction: Offset, color: Color, stroke: Stroke) {

@@ -30,6 +30,11 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic: OpenPolarisGraphic? = null" in panes)
         assertTrue("contentDescription = \"\$label. Hold to move; release to stop.\"" in panes)
         assertTrue("OpenPolarisGraphic.Up" in panes)
+        assertTrue("DirectionA" in graphics && "DirectionB" in graphics)
+        assertTrue("OpenPolarisGraphic.Stop" in graphics)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionA" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionB" in panes)
+        assertTrue("contentDescription = \"STOP ALL motion\"" in panes)
         assertFalse("Text(\"More\"" in shell)
     }
 }

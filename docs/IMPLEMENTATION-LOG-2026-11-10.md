@@ -5,6 +5,26 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-03.6/09.1 — Graphic-first SLOW motion dock
+
+The SLOW dock now uses compact, dependency-free Direction A, Direction B and
+STOP graphics for the mobile/PC hold controls. Each visible symbol remains in a
+48 dp target; the existing pointer capture, keyboard hold/release, focus-loss
+stop, owner arbitration and emergency-stop callbacks are unchanged. Direction
+A/B deliberately remains abstract because the physical sign mapping is not
+qualified. The active hold is shown by tint, while semantics retain the full
+direction label and release-to-stop instruction.
+
+`MobileCompactControlsContractTest` now guards the graphic vocabulary, call
+sites and accessible STOP ALL label. Focused Compose JVM verification passed:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --rerun-tasks --console=plain --no-daemon
+```
+
+This reduces visual bulk in the highest-risk control surface without changing
+the unqualified live transport gate or claiming physical slow-motion support.
+
 ### WBS-01.3/09.1 — Graphic-first compact controls
 
 Commit `e12524b` replaces the phone shell's visible navigation and jog

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wider desktop rail), while text selectors use a 30 dp compact chip. Full
   labels remain available on PC and every icon-only action retains an explicit
   accessibility description.
+- **Native capture failures now fail closed.** Ordinary captures treat camera state `-110` as terminal without emitting a generic `264/state:0` cleanup or exposing Bulb stop; known transient `-1005` remains non-terminal and later lifecycle/file evidence can still complete the capture. Late stop-shaped or stale file events are ignored after failure.
 - **Remaining mobile Astro and programme actions now use compact graphics.**
   Solve, GoTo, autofocus, session/tracking, resident-programme, Astro composer,
   observation-programme and intervalometer actions keep explicit accessible

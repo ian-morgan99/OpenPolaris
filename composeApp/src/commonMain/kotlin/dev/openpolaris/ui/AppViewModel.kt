@@ -617,9 +617,14 @@ class AppViewModel(
     var captureSource by mutableStateOf<CaptureSource?>(null)
         private set
 
+    /** Set only after the native 264/state:1 reply echoes acceptance. */
+    private var nativeBulbCommandAccepted by mutableStateOf(false)
+
     /** Native Bulb only: Astro WebUI has a separate stop route and must not use 264/state:0 here. */
     val nativeBulbCaptureActive: Boolean
-        get() = captureKind == CaptureKind.BULB && captureSource == CaptureSource.NATIVE
+        get() = captureKind == CaptureKind.BULB &&
+            captureSource == CaptureSource.NATIVE &&
+            nativeBulbCommandAccepted
 
     var capturePhase by mutableStateOf<CapturePhase>(CapturePhase.Idle)
         private set
@@ -2067,6 +2072,7 @@ class AppViewModel(
         capturePhase = CapturePhase.Idle
         captureKind = null
         captureSource = null
+        nativeBulbCommandAccepted = false
         captureEvidence.clear()
         pendingCapturePublication = null
         lastCapturePublication = null
@@ -2362,6 +2368,15 @@ class AppViewModel(
                     bulb = frame.int("bulb") ?: 0,
                     c = frame.int("c") ?: -1,
                 )
+                // Pentax firmware uses -1005 as a transient busy/error edge
+                // during a successful capture. It is not terminal evidence.
+                // -110, however, is a terminal shutter failure: do not feed it
+                // into the positive evidence gate, and never turn a later idle
+                // edge into a Bulb stop or a successful capture.
+                if (state == -110) {
+                    failCaptureFromCameraState(state)
+                    return
+                }
                 // Idle alone is not evidence that this shutter began. Require
                 // a post-request non-idle lifecycle state before accepting a
                 // subsequent file notification as correlated.
@@ -2386,6 +2401,29 @@ class AppViewModel(
                 }
             }
         }
+    }
+
+    private fun failCaptureFromCameraState(state: Int) {
+        val reason = "camera capture failed: state " + state
+        captureWatchdogJob?.cancel()
+        captureWatchdogJob = null
+        captureEvidence.fail(reason)
+        // A sequence/programme must not advance after a terminal camera
+        // failure. Stopping the owner also clears its in-flight shutter guard.
+        intervalometer?.stop()
+        programmeConfirmation?.complete(null)
+        observationExecutor?.stop()
+        astroWebUiCaptureActive = false
+        astroWebUiCaptureDispatching = false
+        astroWebUiBulbActive = false
+        astroWebUiBulbStopQueued = false
+        captureKind = null
+        captureSource = null
+        nativeBulbCommandAccepted = false
+        capturePhase = CapturePhase.Failed(reason)
+        appendCaptureTimeline(CaptureTimelineStage.FAILED, reason)
+        statusMessage = "Capture failed: state " + state
+        restoreCaptureWorkloads()
     }
 
     private fun completeCaptureIfCorrelated() {
@@ -2428,6 +2466,7 @@ class AppViewModel(
         statusMessage = "Capture completed"
         captureKind = null
         captureSource = null
+        nativeBulbCommandAccepted = false
         if (!sequenceActive) restoreCaptureWorkloads()
     }
 
@@ -4624,6 +4663,7 @@ class AppViewModel(
     private fun failCaptureAdmission(reason: String) {
         captureKind = null
         captureSource = null
+        nativeBulbCommandAccepted = false
         captureEvidence.fail(reason)
         capturePhase = CapturePhase.Failed(reason)
         appendCaptureTimeline(CaptureTimelineStage.FAILED, "Capture blocked: $reason")
@@ -4793,6 +4833,7 @@ class AppViewModel(
             }
             captureKind = CaptureKind.NORMAL
             captureSource = CaptureSource.NATIVE
+            nativeBulbCommandAccepted = false
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
@@ -4847,10 +4888,11 @@ class AppViewModel(
             }
             captureKind = CaptureKind.BULB
             captureSource = CaptureSource.NATIVE
+            nativeBulbCommandAccepted = false
             capturePhase = CapturePhase.Requested
             captureEvidence.begin()
             pendingCapturePublication = null
-            beginCaptureTimeline("Bulb release sent")
+            beginCaptureTimeline("Bulb command requested; awaiting acknowledgement")
             suspendCaptureWorkloads()
             if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
             val result = ownerController.captureBulb(seconds)
@@ -4859,13 +4901,15 @@ class AppViewModel(
                 captureEvidence.fail(reason)
                 captureKind = null
                 captureSource = null
+                nativeBulbCommandAccepted = false
                 capturePhase = CapturePhase.Failed("Bulb command rejected: $reason")
                 appendCaptureTimeline(CaptureTimelineStage.FAILED, "Bulb command rejected: $reason")
                 statusMessage = "Bulb command rejected: $reason"
                 restoreCaptureWorkloads()
                 return@launch
             }
-            statusMessage = "Bulb capture sent (${seconds}s)"
+            nativeBulbCommandAccepted = true
+            statusMessage = "Bulb command accepted (${seconds}s); waiting for lifecycle/file evidence"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
                 delay(maxOf(CAPTURE_TIMEOUT_MS, seconds * 1000L + 15_000L))
@@ -4925,6 +4969,7 @@ class AppViewModel(
         capturePhase = CapturePhase.Idle
         captureKind = null
         captureSource = null
+        nativeBulbCommandAccepted = false
         captureEvidence.clear()
         pendingCapturePublication = null
         captureTimeline = emptyList()

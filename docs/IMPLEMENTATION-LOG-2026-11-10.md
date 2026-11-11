@@ -1722,3 +1722,22 @@ keyboard users do not lose the action vocabulary.
 This is source/package UX evidence only. No installed-phone rendering, live
 Astro WebUI, Bluetooth, camera, mount or physical motion/capture qualification
 was performed.
+
+### WBS-04.3 — Fail-closed native capture lifecycle
+
+Native capture event handling now distinguishes the known K-3 III transient `264` state `-1005` from terminal camera state `-110`. `-1005` is retained as busy evidence and still requires a later lifecycle/file pair; `-110` cancels the watchdog, records a failed capture, clears native Bulb ownership and prevents a later idle or stale `773` frame from completing the request. Sequence/programme owners are stopped or released at the shared failure boundary so a terminal camera error cannot trigger another exposure.
+
+Deterministic `AppViewModelCapturePhaseTest` coverage now includes:
+
+- ordinary `-110` failure with no Bulb stop and no acceptance of later stop-shaped/stale-file frames;
+- ordinary `-1005` followed by positive lifecycle and publication evidence;
+- native Bulb stop remaining hidden before the explicit state-1 acknowledgement;
+- native Bulb command timeout and ordinary no-file timeout remaining non-Bulb and outcome-unknown where appropriate.
+
+Focused verification passed:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelCapturePhaseTest --console=plain --no-daemon
+```
+
+No physical K-1 II/K-3 III regression check was performed in this environment.

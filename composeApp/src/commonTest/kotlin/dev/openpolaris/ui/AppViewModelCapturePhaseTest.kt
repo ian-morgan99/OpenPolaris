@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -26,6 +27,9 @@ class AppViewModelCapturePhaseTest {
         private val channel = Channel<ByteArray>(Channel.BUFFERED)
         val written = mutableListOf<String>()
         var cameraFrame: String? = "1&286&2&manufacturer:Pentax;model:K-3 III;state:1;storage:128;photoFormat:1;#"
+        var photoRecordStartFrame: String? = null
+        var photoRecordStopFrame: String? = null
+        var shutterIndex: Int = 0
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit
         override suspend fun write(data: ByteArray) {
@@ -34,7 +38,9 @@ class AppViewModelCapturePhaseTest {
             val response = when {
                 wire.startsWith("1&284&") -> "1&284&2&mode:0;#"
                 wire.startsWith("1&286&") -> cameraFrame
-                wire.startsWith("1&268&") -> "1&268&2&V:0;R:M,B;RD:1;#"
+                wire.startsWith("1&268&") -> "1&268&2&V:" + shutterIndex + ";R:M,B;RD:1;#"
+                wire.startsWith("1&264&2&state:1;") -> photoRecordStartFrame
+                wire.startsWith("1&264&2&state:0;") -> photoRecordStopFrame
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
                 wire.startsWith("1&823&") -> "1&823&2&app:openpolaris;ver:test;#"
                 wire.startsWith("1&770&") -> "1&770&2&type:1;page:2;count:2;id:11;name:SP_0011.dng;prot:0;id:12;name:SP_0012.jpg;prot:1;#"
@@ -184,6 +190,123 @@ class AppViewModelCapturePhaseTest {
             assertEquals(false, vm.startSequence(shotCount = 1, intervalMs = 0))
             assertEquals(0, conn.count(264), "no-camera sequence must not reach the shutter command")
         } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+
+    @Test
+    fun rejectedNativeBulbNeverExposesStopOrSendsASecond264() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply {
+            shutterIndex = 1
+            photoRecordStartFrame = "1&264&2&state:0;bulb:0;c:-1;#"
+        }
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.captureBulb(8)
+            advanceTimeBy(3_000)
+            runCurrent()
+
+            assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
+            assertTrue(vm.statusMessage.contains("Bulb command rejected"))
+            val writesAfterReject = conn.count(264)
+
+            vm.stopBulb()
+            runCurrent()
+
+            assertEquals(writesAfterReject, conn.count(264), "a rejected Bulb command must not emit a stop edge")
+            assertTrue(vm.statusMessage.contains("No native Bulb capture"))
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun nativeBulbStopIsAvailableOnlyAfterStateOneAcknowledgement() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply {
+            shutterIndex = 1
+            photoRecordStartFrame = "1&264&2&state:1;bulb:8;c:-1;#"
+            photoRecordStopFrame = "1&264&2&state:0;bulb:0;c:-1;#"
+        }
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.captureBulb(8)
+            advanceTimeBy(3_000)
+            runCurrent()
+
+            assertTrue(
+                vm.capturePhase is AppViewModel.CapturePhase.Requested ||
+                    vm.capturePhase is AppViewModel.CapturePhase.Busy,
+            )
+            assertTrue(vm.nativeBulbCaptureActive)
+            val writesAfterStart = conn.count(264)
+
+            vm.stopBulb()
+            runCurrent()
+
+            assertEquals(writesAfterStart + 1, conn.count(264), "accepted Bulb must use one matching 264/state:0 stop edge")
+            assertTrue(vm.statusMessage.contains("Bulb stop sent"))
+
+            vm.testOnCaptureFrame(frame("264@state:1;bulb:8;c:-1;#"))
+            vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
+            vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/bulb/SP_0088.dng;size:8;#"))
+
+            assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
+            assertEquals("/app/sd/bulb/SP_0088.dng", vm.lastCapturePublication?.path)
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun nativeBulbCommandTimeoutIsFailureAndNeverBulbActive() = runTest(UnconfinedTestDispatcher()) {
+        val vm = vm(this, FakeConnection().apply { shutterIndex = 1 })
+        try {
+            connect(this, vm)
+            vm.captureBulb(8)
+            advanceTimeBy(100)
+            runCurrent()
+            assertFalse(vm.nativeBulbCaptureActive, "Bulb stop must stay hidden while 264 acknowledgement is pending")
+            advanceTimeBy(11_000)
+            runCurrent()
+
+            assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
+            assertTrue(vm.statusMessage.contains("TIMEOUT"))
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
+    }
+
+    @Test
+    fun acceptedBulbWithoutLifecycleOrFileEvidenceBecomesOutcomeUnknown() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection().apply {
+            shutterIndex = 1
+            photoRecordStartFrame = "1&264&2&state:1;bulb:1;c:-1;#"
+        }
+        val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.captureBulb(1)
+            advanceTimeBy(3_000)
+            runCurrent()
+            assertTrue(vm.nativeBulbCaptureActive)
+
+            advanceTimeBy(17_000)
+            runCurrent()
+
+            assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
+            assertEquals(null, vm.lastCapturePublication)
+            assertTrue(vm.statusMessage.contains("outcome unknown"))
+        } finally {
+            vm.disconnect()
+            vm.preview.shutdown()
+        }
     }
 
     @Test
@@ -444,6 +567,48 @@ class AppViewModelCapturePhaseTest {
     }
 
     @Test
+    fun ordinaryCameraFailureDoesNotBecomeBulbActiveOrAcceptLaterStopFrame() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.capture(); advanceTimeBy(3_000)
+            vm.testOnCaptureFrame(frame("264@state:-110;bulb:0;c:-1;#"))
+
+            assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
+            assertTrue(vm.statusMessage.contains("state -110"), vm.statusMessage)
+            val writesAfterFailure = conn.count(264)
+
+            vm.stopBulb()
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
+            vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/stale.dng;size:42;#"))
+            runCurrent()
+
+            assertEquals(writesAfterFailure, conn.count(264), "ordinary failure must not emit a generic Bulb stop")
+            assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+            assertEquals(null, vm.lastCapturePublication)
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
+    fun transientNegativeCaptureStateDoesNotPreventLaterPositiveEvidence() = runTest(UnconfinedTestDispatcher()) {
+        val conn = FakeConnection(); val vm = vm(this, conn)
+        try {
+            connect(this, vm)
+            vm.capture(); advanceTimeBy(3_000)
+            vm.testOnCaptureFrame(frame("264@state:-1005;bulb:0;c:-1;#"))
+            assertIs<AppViewModel.CapturePhase.Busy>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
+
+            vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
+            vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/transient.dng;size:42;#"))
+
+            assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
+            assertEquals("/app/sd/normal/transient.dng", vm.lastCapturePublication?.path)
+        } finally { vm.disconnect(); vm.preview.shutdown() }
+    }
+
+    @Test
     fun fileEventWithoutLifecycleCannotCompleteCapture() = runTest(UnconfinedTestDispatcher()) {
         val conn = FakeConnection(); val vm = vm(this, conn)
         try {
@@ -480,6 +645,7 @@ class AppViewModelCapturePhaseTest {
             val attachmentPollsBeforeCapture = conn.count(286)
             vm.capture(); advanceTimeBy(20_000)
             assertIs<AppViewModel.CapturePhase.OutcomeUnknown>(vm.capturePhase)
+            assertFalse(vm.nativeBulbCaptureActive)
             assertEquals(attachmentPollsBeforeCapture + 1, conn.count(286), "only the one-shot readiness preflight may read camera attachment")
             vm.capture(); advanceTimeBy(100)
             assertEquals(1, conn.count(264), "unknown outcome requires operator recovery")

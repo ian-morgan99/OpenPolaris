@@ -202,6 +202,11 @@
 - Add manual focus hold/jog, video toggle and explicit hardware gates.
 - Exit: no focus direction claim without physical observation; no video UI without 263 evidence.
 
+### WBS-04.3 — Capture failure semantics — P0 — ACTIVE
+
+- **2026-11-11 progress:** terminal camera state `-110` now transitions the shared capture state machine to `Failed`, clears native Bulb ownership, cancels the watchdog and restores workloads without sending a generic `264/state:0` stop. Known transient `-1005` remains non-terminal until positive lifecycle and file evidence arrive. Deterministic tests cover ordinary failure, no-file timeout, stale stop-shaped frames and recovery after `-1005`.
+- Physical K-1 II/K-3 III regression capture remains a WBS-11 qualification item; no hardware result is claimed by this slice.
+
 ## WBS-05 — Astro mission workflow
 
 ### WBS-05.1 — Session prepare — P1

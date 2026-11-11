@@ -1717,3 +1717,19 @@ unchanged.
 Verification: compact density and callout single-scroll contract tests are
 required, followed by full shared/Compose JVM tests, Android compilation,
 desktop packaging and installed-phone rendering.
+
+### 2026-11-11 - WBS-01.3/03.6/09.1 compact SLOW command deck
+
+Compact phones now enter a short SLOW command deck before the detailed
+qualification surface. The first view keeps the current live/demo status,
+acknowledgement state, axis and speed selectors, hold-to-move direction
+controls, STOP ALL and recovery visible in a single compact card. Telemetry
+history, fine-rate readiness, calibration, keyboard help and longer safety
+prose remain recoverable through one Details action. The existing dead-man
+callbacks, motion ownership, explicit stop semantics, live qualification gate
+and desktop layout are unchanged.
+
+Verification: MobileCompactDensityContractTest and Compose JVM compilation
+passed for the source/package slice. Full shared/Compose JVM tests, Android
+compilation, desktop packaging and installed-phone rendering remain required;
+no live mount or physical SLOW operation was exercised.

@@ -67,4 +67,15 @@ class MobileCompactDensityContractTest {
         assertTrue("text = scrollableBody" in shell)
     }
 
+    @Test
+    fun compactSlowMotionUsesAShortCommandDeckBeforeDetails() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("if (compactLayout && !showMotionDetails)" in panes)
+        assertTrue("CompactSlowMotionDeck(" in panes)
+        assertTrue("testTag(\"slow-motion-compact-deck\")" in panes)
+        assertTrue("Hold A/B · release stops" in panes)
+        assertTrue("onShowDetails = { showMotionDetails = true }" in panes)
+    }
+
 }

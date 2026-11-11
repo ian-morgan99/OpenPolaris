@@ -3071,6 +3071,173 @@ private fun SlowMotionTelemetryEvent.timelineLabel(): String {
     return prefix + eventLabel + commandLabel + detailLabel
 }
 
+/** Compact phone command deck; detailed qualification remains one tap away. */
+@Composable
+private fun CompactSlowMotionDeck(
+    vm: AppViewModel,
+    modifier: Modifier,
+    capabilityStatus: String,
+    acknowledgement: String,
+    controlsEnabled: Boolean,
+    motionState: dev.openpolaris.core.domain.MotionState,
+    selectedAxis: String,
+    selectedLevel: Int,
+    motionSelectionEnabled: Boolean,
+    heldControl: String?,
+    onAxisSelected: (String) -> Unit,
+    onLevelSelected: (Int) -> Unit,
+    onStartHeldMotion: (String, () -> Unit) -> Unit,
+    onStopHeldMotion: (String) -> Unit,
+    onEmergencyStop: () -> Unit,
+    onRecover: () -> Unit,
+    onShowDetails: () -> Unit,
+    qualificationBlockerCount: Int,
+) {
+    Card(
+        modifier = modifier
+            .padding(openPolarisCardOuterPadding())
+            .testTag("slow-motion-compact-deck"),
+    ) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("SLOW", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    capabilityStatus,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("slow-motion-summary"),
+                )
+                Text(
+                    acknowledgement,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when (motionState) {
+                        is dev.openpolaris.core.domain.MotionState.Faulted -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.testTag("slow-motion-acknowledgement"),
+                )
+            }
+            if (motionState is dev.openpolaris.core.domain.MotionState.Faulted) {
+                Text(
+                    "Motion blocked",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Recover after confirming stopped",
+                    contentDescription = "Recover slow motion after confirming the mount is stopped",
+                    onClick = onRecover,
+                    enabled = vm.mount.connected,
+                    modifier = Modifier.testTag("slow-motion-recover"),
+                    outlined = true,
+                )
+            } else if (capabilityStatus.startsWith("Unavailable")) {
+                Text(
+                    "Live blocked · $qualificationBlockerCount checks",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("slow-motion-qualification-summary"),
+                )
+            }
+            Text(
+                "Hold A/B · release stops",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                listOf(
+                    "M1 · Pan / yaw" to OpenPolarisGraphic.DirectionA,
+                    "M2 · Tilt / pitch" to OpenPolarisGraphic.DirectionB,
+                    "M3 · Rotation / roll" to OpenPolarisGraphic.Slew,
+                ).forEach { (axis, graphic) ->
+                    CompactFilterChip(
+                        selected = selectedAxis == axis,
+                        onClick = { onAxisSelected(axis) },
+                        enabled = motionSelectionEnabled,
+                        label = { Text(axis.substringBefore(" ·")) },
+                        graphic = graphic,
+                        contentDescription = "Select $axis",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                (1..5).forEach { level ->
+                    CompactFilterChip(
+                        selected = selectedLevel == level,
+                        onClick = { onLevelSelected(level) },
+                        enabled = motionSelectionEnabled,
+                        label = { Text(level.toString()) },
+                        compactLabel = level.toString(),
+                        contentDescription = "Select speed level $level",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SlowDemoHoldButton(
+                    label = "Direction A",
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "Direction A"),
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    modifier = Modifier.testTag("slow-motion-direction-a"),
+                    onPress = {
+                        onStartHeldMotion("Direction A") {
+                            vm.demoSlowMotionStart(slowAxis(selectedAxis), 1, selectedLevel)
+                        }
+                    },
+                    onRelease = { onStopHeldMotion("Direction A") },
+                )
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    contentDescription = "STOP ALL motion",
+                    onClick = onEmergencyStop,
+                    enabled = motionState is dev.openpolaris.core.domain.MotionState.Owned,
+                    modifier = Modifier.testTag("slow-motion-stop-all"),
+                )
+                SlowDemoHoldButton(
+                    label = "Direction B",
+                    enabled = controlsEnabled && (heldControl == null || heldControl == "Direction B"),
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    modifier = Modifier.testTag("slow-motion-direction-b"),
+                    onPress = {
+                        onStartHeldMotion("Direction B") {
+                            vm.demoSlowMotionStart(slowAxis(selectedAxis), -1, selectedLevel)
+                        }
+                    },
+                    onRelease = { onStopHeldMotion("Direction B") },
+                )
+            }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.More,
+                label = "Details",
+                contentDescription = "Show detailed slow-motion safety and telemetry",
+                onClick = onShowDetails,
+                modifier = Modifier.testTag("slow-motion-details-toggle"),
+                outlined = true,
+            )
+        }
+    }
+}
+
 /**
  * Slow-motion workspace.
  *
@@ -3189,6 +3356,32 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         is dev.openpolaris.core.domain.SlowMotionTransportResult.Rejected -> "Ack: rejected"
         is dev.openpolaris.core.domain.SlowMotionTransportResult.Unknown -> "Ack: unknown"
         null -> if (slowTelemetry.lastCommandAtMs == null) "Ack: none" else "Ack: pending"
+    }
+    if (compactLayout && !showMotionDetails) {
+        CompactSlowMotionDeck(
+            vm = vm,
+            modifier = modifier,
+            capabilityStatus = compactSlowStatus,
+            acknowledgement = compactAcknowledgementText,
+            controlsEnabled = controlsEnabled,
+            motionState = motionState,
+            selectedAxis = selectedAxis,
+            selectedLevel = selectedLevel,
+            motionSelectionEnabled = motionSelectionEnabled,
+            heldControl = heldControl,
+            onAxisSelected = { selectedAxis = it },
+            onLevelSelected = { selectedLevel = it },
+            onStartHeldMotion = ::startHeldMotion,
+            onStopHeldMotion = ::stopHeldMotion,
+            onEmergencyStop = {
+                heldControl = null
+                vm.emergencyStopMotion()
+            },
+            onRecover = vm::recoverSlowMotionAfterReconnect,
+            onShowDetails = { showMotionDetails = true },
+            qualificationBlockerCount = liveQualificationBlockers.size,
+        )
+        return
     }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 10.dp)) {

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone SLOW is now a short command deck.** Phones show the
+  live qualification/acknowledgement summary, axis and speed graphics, hold
+  directions and STOP ALL first. Detailed telemetry, qualification evidence,
+  keyboard help and calibration remain behind one Details action; desktop keeps
+  the full safety and telemetry surface unchanged.
+
 - **Compact phone callouts now use a near-full-screen shell.** Advanced
   Connection, Motion, Camera, Preview, Guide, Settings and other overflow
   panes keep one bounded scroll region but reclaim the default dialog title,

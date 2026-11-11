@@ -1774,3 +1774,13 @@ recovery state and requires explicit STOP before another apply. Tests cover both
 the stale-invalid and newer-invalid cases, including the no-second-apply and
 stop-recovery invariants. No live SLOW transport or physical motor operation
 was performed; the capability record and default live gate remain unchanged.
+
+### 2026-11-11 - WBS-06.1/04.3/09.1 durable observation-programme recovery
+
+Planner steps are now serializable in a bounded schema-1 observation journal
+separate from the mount reconnect marker. AppViewModel records RUNNING, PAUSED
+and OUTCOME_UNKNOWN checkpoints with endpoint identity. Only a matching PAUSED
+checkpoint can be restored, and restore leaves the executor paused without
+acquiring the camera owner until explicit Resume. Interrupted or ambiguous
+runs remain non-resumable and require card/outcome reconciliation or discard.
+The common mobile and desktop programme surface exposes the recovery actions.

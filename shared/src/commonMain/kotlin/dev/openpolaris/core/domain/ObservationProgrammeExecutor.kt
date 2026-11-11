@@ -99,6 +99,20 @@ class ObservationProgrammeExecutor(
         return true
     }
 
+    /**
+     * Restore a durable paused checkpoint without acquiring the camera owner.
+     *
+     * The operator must explicitly call [resume] afterwards, which reacquires
+     * the owner and starts at the next unconfirmed step. Running or ambiguous
+     * checkpoints are intentionally not accepted here.
+     */
+    fun restorePaused(plan: ObservationProgrammePlanner.Plan, completedSteps: Int): Boolean {
+        if (state is State.Running || state is State.Paused || state is State.OutcomeUnknown) return false
+        if (completedSteps !in 0..plan.captureCount) return false
+        setState(State.Paused(plan, completedSteps))
+        return true
+    }
+
     fun stop() {
         val current = state
         if (current !is State.Running && current !is State.Paused) return

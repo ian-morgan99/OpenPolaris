@@ -30,8 +30,10 @@ import dev.openpolaris.core.domain.AstroMediaExportRegistry
 import dev.openpolaris.core.domain.SupportBundleExportRegistry
 import dev.openpolaris.core.io.FilePickerRegistry
 import dev.openpolaris.core.io.PickerBridge
+import dev.openpolaris.core.session.ObservationProgrammeJournalStore
 import dev.openpolaris.core.session.SessionStore
 import dev.openpolaris.core.session.UserPreferencesStore
+import dev.openpolaris.core.session.path.observationProgrammeStorePathForFilesDir
 import dev.openpolaris.core.session.path.preferencesStorePathForFilesDir
 import dev.openpolaris.core.session.path.sessionStorePathForFilesDir
 import dev.openpolaris.ui.AppViewModel
@@ -184,6 +186,9 @@ class MainActivity : ComponentActivity() {
         val sessionStore = SessionStore(
             filePath = sessionStorePathForFilesDir(applicationContext.filesDir),
         )
+        val observationJournalStore = ObservationProgrammeJournalStore(
+            filePath = observationProgrammeStorePathForFilesDir(applicationContext.filesDir),
+        )
         val preferenceStore = UserPreferencesStore(
             filePath = preferencesStorePathForFilesDir(applicationContext.filesDir),
         )
@@ -192,7 +197,7 @@ class MainActivity : ComponentActivity() {
         // the Activity composition is recreated.
         val retainedHostViewModel = ViewModelProvider(
             this,
-            OpenPolarisHostViewModelFactory(sessionStore),
+            OpenPolarisHostViewModelFactory(sessionStore, observationJournalStore),
         )[OpenPolarisHostViewModel::class.java]
         viewModel = retainedHostViewModel.appViewModel
 

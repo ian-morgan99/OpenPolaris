@@ -36,3 +36,7 @@ fun sessionStorePathForFilesDir(filesDir: File): String =
  */
 fun preferencesStorePathForFilesDir(filesDir: File): String =
     File(filesDir, "openpolaris").resolve("preferences.json").absolutePath
+
+/** Build the per-app observation-programme recovery journal path. */
+fun observationProgrammeStorePathForFilesDir(filesDir: File): String =
+    File(filesDir, "openpolaris").resolve("observation-programme.json").absolutePath

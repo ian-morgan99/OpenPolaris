@@ -1,5 +1,6 @@
 package dev.openpolaris.core.domain
 
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 
 /**
@@ -12,6 +13,7 @@ import kotlin.math.abs
  * Astro WebUI surface without guessing undocumented firmware semantics.
  */
 object ObservationProgrammePlanner {
+    @Serializable
     enum class Kind {
         LAPSE,
         HDR,
@@ -57,6 +59,7 @@ object ObservationProgrammePlanner {
         ) : Request
     }
 
+    @Serializable
     data class Step(
         val ordinal: Int,
         val label: String,
@@ -67,6 +70,7 @@ object ObservationProgrammePlanner {
         val pitchOffsetDeg: Double? = null,
     )
 
+    @Serializable
     data class Plan(
         val kind: Kind,
         val steps: List<Step>,

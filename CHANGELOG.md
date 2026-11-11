@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Observation programmes now have durable, endpoint-bound recovery.**
+  The exact planner steps and confirmed-step cursor are journaled separately from
+  the saved mount marker. Paused programmes can be explicitly recovered after
+  reconnecting to the same endpoint; interrupted or ambiguous runs remain
+  outcome-unknown and cannot be resumed blindly. Mobile and desktop expose
+  Recover and Discard actions without changing the live capture safety gates.
 - **SLOW replacement validation now preserves the last possible target.**
   Delayed stale drafts are rejected before field validation, so an invalid
   older UI event cannot fault a newer active correction. An invalid newer

@@ -5117,6 +5117,46 @@ fun CameraPane(
  * executor and capture evidence bridge are the only future execution path.
  */
 @Composable
+private fun ObservationProgrammeRecoverySection(vm: AppViewModel) {
+    val recovery = vm.observationProgrammeRecovery ?: return
+    val resumable = recovery.phase ==
+        dev.openpolaris.core.session.ObservationProgrammeJournal.Phase.PAUSED
+    Text(
+        "Saved ${recovery.plan.kind.label()} programme: ${recovery.completedSteps}/${recovery.plan.captureCount}",
+        style = MaterialTheme.typography.labelMedium,
+        color = if (resumable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+    )
+    Text(
+        if (resumable) {
+            "Reconnect to the same mount, verify the camera and card, then resume explicitly."
+        } else {
+            "The previous session ended with an uncertain shutter outcome. Reconcile the card before discarding."
+        },
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (resumable) {
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Apply,
+                label = "Recover",
+                contentDescription = "Recover the saved paused observation programme",
+                onClick = { vm.restoreObservationProgramme() },
+                modifier = Modifier.testTag("observation-programme-recover"),
+            )
+        }
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Stop,
+            label = "Discard",
+            contentDescription = "Discard the saved observation programme recovery checkpoint",
+            onClick = vm::discardObservationProgrammeRecovery,
+            outlined = true,
+            modifier = Modifier.testTag("observation-programme-discard"),
+        )
+    }
+}
+
+@Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
     var selectedKind by remember { mutableStateOf(ObservationProgrammePlanner.Kind.LAPSE) }
@@ -5128,6 +5168,7 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
         "Build a safe plan preview for lapse, HDR, focus-stack or panorama work. Previewing never moves the mount or fires the camera.",
         style = MaterialTheme.typography.bodySmall,
     )
+    ObservationProgrammeRecoverySection(vm)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         ObservationProgrammePlanner.Kind.entries.forEach { kind ->
             CompactFilterChip(

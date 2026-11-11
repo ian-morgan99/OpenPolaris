@@ -2301,3 +2301,27 @@ The full shared/Compose JVM, Android compilation and desktop packaging matrix
 also passed. This is source and simulator evidence only. The exact live SLOW
 transport, firmware identity, acknowledgement, watchdog, physical stop and
 installed-hardware qualification remain open.
+
+### WBS-06.1/04.3/09.1 - Durable observation-programme recovery
+
+Observation programme plans are now serializable and stored in a bounded,
+versioned journal separate from the reconnect marker. AppViewModel records
+running, paused and outcome-unknown checkpoints with the mount endpoint and
+demo identity. A paused checkpoint is offered only after an explicit match to
+the same endpoint; recovery restores the executor to Paused without acquiring
+camera ownership, and Resume is the only action that reacquires the owner.
+Running or ambiguous checkpoints are shown as outcome-unknown and cannot be
+resumed blindly. Normal completion, stop, failure and explicit discard clear
+the journal.
+
+Focused verification:
+
+```
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.session.ObservationProgrammeJournalStoreTest --tests dev.openpolaris.core.domain.ObservationProgrammeExecutorTest --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelObservationRecoveryTest --console=plain --no-daemon
+```
+
+The full shared/Compose JVM, Android compilation and desktop packaging matrix
+also passed. This is source, simulator and package evidence only. Installed
+phone rendering, live camera/file publication, resident Astro WebUI operation,
+Bluetooth, mount and physical qualification remain open.

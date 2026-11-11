@@ -123,6 +123,30 @@ class ObservationProgrammeExecutorTest {
     }
 
     @Test
+    fun `restored paused checkpoint waits for explicit resume and starts after completed step`() = runTest {
+        val owner = FakeOwner()
+        val seen = mutableListOf<Int>()
+        val executor = ObservationProgrammeExecutor(this, owner) { step ->
+            seen += step.ordinal
+            ObservationProgrammeExecutor.StepResult.Confirmed
+        }
+        val p = plan(0L, 0L, 0L)
+
+        assertTrue(executor.restorePaused(p, 1))
+        assertEquals(ObservationProgrammeExecutor.State.Paused(p, 1), executor.state)
+        assertEquals(emptyList(), seen)
+        assertEquals(0, owner.acquires)
+
+        assertTrue(executor.resume())
+        advanceUntilIdle()
+
+        assertEquals(listOf(2, 3), seen)
+        assertEquals(ObservationProgrammeExecutor.State.Completed(p, 3), executor.state)
+        assertEquals(1, owner.acquires)
+        assertEquals(1, owner.releases)
+    }
+
+    @Test
     fun stopDuringAnInFlightStepWaitsForItsOutcomeAndDoesNotRepeatIt() = runTest {
         val owner = FakeOwner()
         val releaseStep = CompletableDeferred<Unit>()

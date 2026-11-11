@@ -233,8 +233,11 @@ import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
 import dev.openpolaris.core.protocol.Codes
 import dev.openpolaris.core.protocol.ResponseParser
+import dev.openpolaris.core.session.ObservationProgrammeJournal
+import dev.openpolaris.core.session.ObservationProgrammeJournalStore
 import dev.openpolaris.core.session.SessionMarker
 import dev.openpolaris.core.session.SessionStore
+import dev.openpolaris.core.session.path.defaultObservationProgrammePath
 import dev.openpolaris.core.session.path.defaultSessionPath
 import dev.openpolaris.core.solver.NullStarDetector
 import dev.openpolaris.core.solver.OnDevicePlateSolver
@@ -355,6 +358,8 @@ class AppViewModel(
     private val solver: PlateSolver = OnDevicePlateSolver(SyntheticTestCatalog.asCatalog),
     private val starDetector: StarDetector = NullStarDetector,
     private val sessionStore: SessionStore = SessionStore(defaultSessionPath()),
+    private val observationJournalStore: ObservationProgrammeJournalStore =
+        ObservationProgrammeJournalStore(defaultObservationProgrammePath()),
     // The dispatcher used for session-marker I/O. Tests inject the
     // unconfined test dispatcher so marker reads complete synchronously
     // inside [tryReconnectIfMarkerExists]; production callers use the
@@ -4319,6 +4324,26 @@ class AppViewModel(
         private set
 
     /**
+     * A saved programme is never resumed implicitly. A PAUSED checkpoint may
+     * be restored only after reconnecting to the same endpoint and choosing
+     * Resume; RUNNING and OUTCOME_UNKNOWN checkpoints require reconciliation.
+     */
+    var observationProgrammeRecovery by mutableStateOf<ObservationProgrammeJournal?>(null)
+        private set
+
+    private sealed interface ObservationProgrammeJournalUpdate {
+        data class Save(val journal: ObservationProgrammeJournal) : ObservationProgrammeJournalUpdate
+        data object Clear : ObservationProgrammeJournalUpdate
+    }
+
+    private val observationJournalWriteMutex = Mutex()
+    private var observationJournalWriteJob: Job? = null
+    private val observationJournalLoadJob = scope.launch {
+        val journal = withContext(ioDispatcher) { observationJournalStore.read() }
+        if (journal != null) observationProgrammeRecovery = journal
+    }
+
+    /**
      * Build a fresh [dev.openpolaris.core.domain.IntervalometerController] bound
      * to the current session's camera controller. Its shot loop runs on [scope]
      * (the app scope in production, the virtual-time test scope in tests), and
@@ -4399,11 +4424,123 @@ class AppViewModel(
         awaitConfirmation = ::awaitObservationConfirmation,
     )
 
+    private fun recordObservationProgrammeState(
+        state: dev.openpolaris.core.domain.ObservationProgrammeExecutor.State,
+    ) {
+        val update = when (state) {
+            is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ->
+                ObservationProgrammeJournalUpdate.Save(
+                    observationJournal(
+                        state.plan,
+                        ObservationProgrammeJournal.Phase.RUNNING,
+                        state.completedSteps,
+                    ),
+                )
+            is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused ->
+                ObservationProgrammeJournalUpdate.Save(
+                    observationJournal(
+                        state.plan,
+                        ObservationProgrammeJournal.Phase.PAUSED,
+                        state.completedSteps,
+                    ),
+                )
+            is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown -> {
+                val journal = observationJournal(
+                    state.plan,
+                    ObservationProgrammeJournal.Phase.OUTCOME_UNKNOWN,
+                    state.completedSteps,
+                    state.reason,
+                )
+                observationProgrammeRecovery = journal
+                ObservationProgrammeJournalUpdate.Save(journal)
+            }
+            else -> ObservationProgrammeJournalUpdate.Clear
+        }
+        enqueueObservationJournalUpdate(update)
+    }
+
+    private fun observationJournal(
+        plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan,
+        phase: ObservationProgrammeJournal.Phase,
+        completedSteps: Int,
+        reason: String? = null,
+    ): ObservationProgrammeJournal = ObservationProgrammeJournal(
+        host = host,
+        port = port,
+        demoMode = demoMode,
+        plan = plan,
+        phase = phase,
+        completedSteps = completedSteps,
+        reason = reason,
+        updatedAtEpochMs = nowMs().coerceAtLeast(0L),
+    )
+
+    private fun enqueueObservationJournalUpdate(update: ObservationProgrammeJournalUpdate) {
+        observationJournalWriteJob?.cancel()
+        observationJournalWriteJob = scope.launch {
+            try {
+                observationJournalWriteMutex.withLock {
+                    withContext(ioDispatcher) {
+                        when (update) {
+                            is ObservationProgrammeJournalUpdate.Save ->
+                                observationJournalStore.write(update.journal)
+                            ObservationProgrammeJournalUpdate.Clear ->
+                                observationJournalStore.forget()
+                        }
+                    }
+                }
+            } finally {
+                if (observationJournalWriteJob === currentCoroutineContext()[Job]) {
+                    observationJournalWriteJob = null
+                }
+            }
+        }
+    }
+
+    private fun clearObservationProgrammeRecovery() {
+        observationProgrammeRecovery = null
+        enqueueObservationJournalUpdate(ObservationProgrammeJournalUpdate.Clear)
+    }
+
+    fun restoreObservationProgramme(): Boolean {
+        val journal = observationProgrammeRecovery
+            ?: run {
+                statusMessage = "No saved observation programme"
+                return false
+            }
+        if (!journal.belongsTo(host, port, demoMode)) {
+            statusMessage = "Saved programme belongs to another mount endpoint"
+            return false
+        }
+        if (journal.phase != ObservationProgrammeJournal.Phase.PAUSED) {
+            statusMessage = "Previous programme outcome is not safely resumable"
+            return false
+        }
+        val executor = observationExecutor
+            ?: run {
+                statusMessage = "Connect to the saved mount before recovering the programme"
+                return false
+            }
+        if (!executor.restorePaused(journal.plan, journal.completedSteps)) {
+            statusMessage = "Programme is already active or recovery is unavailable"
+            return false
+        }
+        observationProgrammeRecovery = null
+        statusMessage = "Paused programme recovered; verify the camera and card before Resume"
+        return true
+    }
+
+    fun discardObservationProgrammeRecovery() {
+        clearObservationProgrammeRecovery()
+        statusMessage = "Saved observation programme discarded"
+    }
+
     private fun createObservationProgrammeExecutor(): dev.openpolaris.core.domain.ObservationProgrammeExecutor =
         dev.openpolaris.core.domain.ObservationProgrammeExecutor(
             scope = scope,
             owner = observationOwner,
             onStateChange = { state ->
+                recordObservationProgrammeState(state)
                 observationProgrammeState = state
                 when (state) {
                     is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ->
@@ -4431,6 +4568,10 @@ class AppViewModel(
      */
     fun startObservationProgramme(plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan): Boolean {
         if (blockCaptureDuringSlowMotion()) return false
+        if (observationProgrammeRecovery != null) {
+            statusMessage = "Recover or discard the saved observation programme first"
+            return false
+        }
         val requiresExtraCapability =
             plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
                 plan.steps.any {

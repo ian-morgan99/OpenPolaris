@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone status and Slew surfaces now avoid duplicate scrolling.**
+  The always-visible status strip is one dense graphic-action row, and the
+  mobile Slew callout switches between GoTo and SLOW instead of stacking both
+  long control families in one scroll surface. Full action names remain in
+  accessibility semantics and desktop still shows the expanded controls.
 - **Compact phone mission status is now shorter and more visual.** The
   connection-health row uses the small connection graphic, and the readiness
   line reports only READY n/m or NEXT <check> on the initial surface.

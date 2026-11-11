@@ -193,7 +193,8 @@ class MobileResponsiveLayoutContractTest {
         assertTrue("compact = true" in noComments, "phone status strip must opt into compact mode")
         assertTrue("status-details-toggle" in noComments, "phone status strip needs an explicit details toggle")
         assertTrue("if (!compact || expanded)" in noComments, "secondary readiness and safety details must be collapsible")
-        assertTrue("horizontalScroll(rememberScrollState())" in noComments, "status actions must remain reachable on narrow phones")
+        assertTrue("testTag(\"status-actions\")" in noComments, "compact status actions need a stable automation target")
+        assertTrue("graphic actions second" in src, "the compact strip must explain its one-row information hierarchy")
         assertTrue("TextOverflow.Ellipsis" in noComments, "long status text must not expand the phone card")
     }
 

@@ -79,6 +79,17 @@ class MobileCompactDensityContractTest {
     }
 
     @Test
+    fun compactSlewCalloutShowsOneControlFamilyAtATime() {
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+
+        assertTrue("CompactSlewWorkspace" in shell)
+        assertTrue("testTag(\"slew-surface-goto\")" in shell)
+        assertTrue("testTag(\"slew-surface-slow\")" in shell)
+        assertTrue("CompactSlewSurface.GOTO -> GotoPane" in shell)
+        assertTrue("CompactSlewSurface.SLOW -> SlowMotionPane" in shell)
+    }
+
+    @Test
     fun compactCameraUsesACaptureFirstDeckBeforeDetails() {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
 

@@ -1,7 +1,6 @@
 package dev.openpolaris.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -802,90 +801,84 @@ private fun StatusStrip(
             verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp),
         ) {
             if (compact) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            vm.statusMessage,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
-                        Text(
-                            battery.compactLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = when (battery.severity) {
-                                BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
-                                BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
-                                else -> MaterialTheme.colorScheme.onSurface
+                // The phone shell already has destination tabs for Mission and
+                // Gallery. Keep this strip to one dense row: state first,
+                // graphic actions second, with full names retained in semantics.
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("status-actions"),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        vm.statusMessage,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
+                    Text(
+                        battery.compactLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when (battery.severity) {
+                            BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
+                            BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier
+                            .testTag("battery-status")
+                            .semantics {
+                                contentDescription = battery.contentDescription
+                                stateDescription = battery.severity.label
                             },
-                            modifier = Modifier
-                                .testTag("battery-status")
-                                .semantics {
-                                    contentDescription = battery.contentDescription
-                                    stateDescription = battery.severity.label
-                                },
-                        )
-                        Text(
-                            buildString {
-                                if (s.tracking == true) append("TRK")
-                                if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .testTag("status-actions"),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        onOpenDetails?.let { open ->
-                            ResponsiveActionButton(
-                                graphic = OpenPolarisGraphic.Guide,
-                                label = "Details",
-                                contentDescription = "Open mission details",
-                                onClick = open,
-                                modifier = Modifier.testTag("mission-details"),
-                                outlined = true,
-                            )
-                        }
-                        onOpenGallery?.let { open ->
-                            ResponsiveActionButton(
-                                graphic = OpenPolarisGraphic.Preview,
-                                label = "Gallery",
-                                contentDescription = "Open Gallery",
-                                onClick = open,
-                                modifier = Modifier.testTag("open-gallery"),
-                                outlined = true,
-                            )
-                        }
-                        onToggleDim?.let { toggle ->
-                            ResponsiveActionButton(
-                                graphic = OpenPolarisGraphic.Tonight,
-                                label = if (dimMode) "Bright" else "Dim",
-                                contentDescription = if (dimMode) "Set screen to bright mode" else "Set screen to dim mode",
-                                onClick = toggle,
-                                modifier = Modifier.testTag("night-dim-toggle"),
-                                outlined = true,
-                            )
-                        }
+                    )
+                    Text(
+                        buildString {
+                            if (s.tracking == true) append("TRK")
+                            if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    onOpenDetails?.let { open ->
                         ResponsiveActionButton(
-                            graphic = OpenPolarisGraphic.More,
-                            label = if (expanded) "Less" else "More",
-                            contentDescription = if (expanded) "Show less mission details" else "Show more mission details",
-                            onClick = { expanded = !expanded },
-                            modifier = Modifier.testTag("status-details-toggle"),
+                            graphic = OpenPolarisGraphic.Guide,
+                            label = "Details",
+                            contentDescription = "Open mission details",
+                            onClick = open,
+                            modifier = Modifier.testTag("mission-details"),
                             outlined = true,
                         )
                     }
+                    onOpenGallery?.let { open ->
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.Preview,
+                            label = "Gallery",
+                            contentDescription = "Open Gallery",
+                            onClick = open,
+                            modifier = Modifier.testTag("open-gallery"),
+                            outlined = true,
+                        )
+                    }
+                    onToggleDim?.let { toggle ->
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.Tonight,
+                            label = if (dimMode) "Bright" else "Dim",
+                            contentDescription = if (dimMode) "Set screen to bright mode" else "Set screen to dim mode",
+                            onClick = toggle,
+                            modifier = Modifier.testTag("night-dim-toggle"),
+                            outlined = true,
+                        )
+                    }
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.More,
+                        label = if (expanded) "Less" else "More",
+                        contentDescription = if (expanded) "Show less mission details" else "Show more mission details",
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.testTag("status-details-toggle"),
+                        outlined = true,
+                    )
                 }
             } else {
                 Row(
@@ -1001,6 +994,56 @@ private fun StatusStrip(
                 }
             }
 
+        }
+    }
+}
+
+private enum class CompactSlewSurface {
+    GOTO,
+    SLOW,
+}
+
+/**
+ * The Slew callout is a choice of two control families on a phone. Keep only
+ * the active family in the viewport so GoTo and SLOW do not become one long
+ * scroll surface; the desktop still presents both panes together.
+ */
+@Composable
+private fun CompactSlewWorkspace(
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+) {
+    var surface by remember { mutableStateOf(CompactSlewSurface.GOTO) }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            CompactFilterChip(
+                selected = surface == CompactSlewSurface.GOTO,
+                onClick = { surface = CompactSlewSurface.GOTO },
+                label = { Text("GoTo") },
+                compactLabel = "G",
+                graphic = OpenPolarisGraphic.Forward,
+                contentDescription = "Show GoTo controls",
+                modifier = Modifier.weight(1f).testTag("slew-surface-goto"),
+            )
+            CompactFilterChip(
+                selected = surface == CompactSlewSurface.SLOW,
+                onClick = { surface = CompactSlewSurface.SLOW },
+                label = { Text("SLOW") },
+                compactLabel = "S",
+                graphic = OpenPolarisGraphic.Fine,
+                contentDescription = "Show slow-motion controls",
+                modifier = Modifier.weight(1f).testTag("slew-surface-slow"),
+            )
+        }
+        when (surface) {
+            CompactSlewSurface.GOTO -> GotoPane(vm, Modifier.fillMaxWidth())
+            CompactSlewSurface.SLOW -> SlowMotionPane(vm, Modifier.fillMaxWidth())
         }
     }
 }

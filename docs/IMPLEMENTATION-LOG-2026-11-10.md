@@ -2246,3 +2246,22 @@ Verification: MobileCompactControlsContractTest,
 MountSessionSlowMotionSenderTest, existing qualified SLOW tests, the full JVM
 test suites, Kotlin/JVM compilation, Android debug compilation and desktop
 distributable creation.
+
+### WBS-01.3/09.1 — Compact mobile status and Slew hierarchy
+
+The phone status strip is now a single dense row: current status, battery and
+tracking remain visible beside graphic-only Details, Gallery, dim-mode and
+More actions. This removes a second action row from every mobile destination
+without removing any action or its full accessibility name.
+
+The compact Slew callout now presents GoTo and SLOW as mutually exclusive
+control surfaces. Only the selected family is mounted in the bounded dialog
+scroll region, so coordinate entry and slow-motion controls no longer form one
+long stacked mobile page. Desktop continues to show both panes together.
+
+Focused verification passed:
+
+    ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+
+This is source/package UX evidence only. Installed-phone rendering, live SLOW,
+GoTo, Bluetooth, mount, camera and physical qualification remain open.

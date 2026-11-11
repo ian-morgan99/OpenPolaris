@@ -1415,3 +1415,6 @@ remain open.
   source/package evidence; installed-phone rendering, resident
   Astro WebUI operation, camera, Bluetooth, SLOW and physical qualification
   remain open.
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (compact choice-control pass):** phone selectors now always use the compact 20 dp tile branch, with short aliases or existing small graphics and full content descriptions retained for accessibility. The phone switch visual is a custom 26x14 dp track inside a 36x24 dp semantic toggle target; desktop keeps the native labelled Material switch. This addresses the remaining oversized text-chip and switch chrome on mobile while preserving the same state and action contracts. Installed-phone rendering and hardware qualification remain open.
+- **2026-11-11 - verification:** focused MobileCompactControlsContractTest and MobileResponsiveLayoutContractTest passed after the change.

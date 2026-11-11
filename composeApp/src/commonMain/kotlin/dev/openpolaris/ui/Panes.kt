@@ -349,12 +349,16 @@ fun ConnectionPane(
                     selected = vm.connectionMode == ConnectionMode.DIRECT_AP,
                     onClick = { vm.selectConnectionMode(ConnectionMode.DIRECT_AP) },
                     label = { Text("Direct AP") },
+                    compactLabel = "AP",
+                    contentDescription = "Use Direct AP connection",
                     modifier = Modifier.testTag("connection-mode-direct-ap"),
                 )
                 CompactFilterChip(
                     selected = vm.connectionMode == ConnectionMode.HOME_LAN,
                     onClick = { vm.selectConnectionMode(ConnectionMode.HOME_LAN) },
                     label = { Text("Home Wi-Fi (LAN)") },
+                    compactLabel = "LAN",
+                    contentDescription = "Use Home Wi-Fi LAN connection",
                     modifier = Modifier.testTag("connection-mode-home-lan"),
                 )
             }
@@ -1794,12 +1798,16 @@ fun MissionDashboardPane(
                     onClick = { selectedAstroRate = AstroWebUiTrackRate.SIDEREAL },
                     enabled = sessionControlsEnabled,
                     label = { Text("Sidereal") },
+                    compactLabel = "S",
+                    contentDescription = "Use sidereal tracking rate",
                 )
                 CompactFilterChip(
                     selected = selectedAstroRate == AstroWebUiTrackRate.LUNAR,
                     onClick = { selectedAstroRate = AstroWebUiTrackRate.LUNAR },
                     enabled = sessionControlsEnabled,
                     label = { Text("Lunar") },
+                    compactLabel = "L",
+                    contentDescription = "Use lunar tracking rate",
                 )
                 CompactSwitch(
                     checked = selectedAstroHalfSpeed,
@@ -2174,6 +2182,8 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
                 selected = kind == option,
                 onClick = { kind = option; armed = false },
                 label = { Text(option.name.lowercase().replace('_', ' ')) },
+                compactLabel = option.name.take(2),
+                contentDescription = "Select ${option.name.lowercase().replace('_', ' ')} programme",
             )
         }
     }
@@ -2453,11 +2463,15 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             selected = !sunset,
             onClick = { sunset = false; armed = false },
             label = { Text("Sunrise") },
+            compactLabel = "↑",
+            contentDescription = "Use sunrise window",
         )
         CompactFilterChip(
             selected = sunset,
             onClick = { sunset = true; armed = false },
             label = { Text("Sunset") },
+            compactLabel = "↓",
+            contentDescription = "Use sunset window",
         )
         ResponsiveActionButton(
             graphic = OpenPolarisGraphic.Clock,
@@ -2616,6 +2630,12 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                 selected = kind == option,
                 onClick = { kind = option; armed = false },
                 label = { Text(option) },
+                compactLabel = when (option) {
+                    "PLC" -> "PLC"
+                    "Path-lapse" -> "P-L"
+                    else -> "HG"
+                },
+                contentDescription = "Select $option programme",
             )
         }
     }
@@ -3026,6 +3046,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         onClick = { selectedAxis = axis },
                         enabled = motionSelectionEnabled,
                         label = { Text(axis.substringBefore(" ·")) },
+                        compactLabel = axis.substringBefore(" ·"),
+                        contentDescription = "Select $axis",
                     )
                 }
             }
@@ -3116,6 +3138,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         onClick = { selectedLevel = level },
                         enabled = motionSelectionEnabled,
                         label = { Text(levelLabel) },
+                        compactLabel = level.toString(),
+                        contentDescription = "Select speed $levelLabel",
                     )
                 }
             }
@@ -4193,6 +4217,8 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                     plan = null
                 },
                 label = { Text(kind.label()) },
+                compactLabel = kind.name.take(2),
+                contentDescription = "Select ${kind.label()} observation programme",
             )
         }
     }
@@ -4765,23 +4791,29 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     selected = framingGrid,
                     onClick = { framingGrid = !framingGrid },
                     label = { Text("Grid") },
+                    compactLabel = "G",
+                    contentDescription = "Toggle preview grid",
                 )
                 CompactFilterChip(
                     selected = centreMark,
                     onClick = { centreMark = !centreMark },
                     label = { Text("Centre") },
+                    compactLabel = "+",
+                    contentDescription = "Toggle preview centre mark",
                 )
                 CompactFilterChip(
                     selected = showHistogram,
                     onClick = { showHistogram = !showHistogram },
                     label = { Text("Histogram") },
-                    modifier = Modifier.semantics { contentDescription = "Toggle preview histogram" },
+                    compactLabel = "H",
+                    contentDescription = "Toggle preview histogram",
                 )
                 CompactFilterChip(
                     selected = focusPeaking,
                     onClick = { focusPeaking = !focusPeaking },
                     label = { Text("Focus peaks") },
-                    modifier = Modifier.semantics { contentDescription = "Toggle preview focus peaking" },
+                    compactLabel = "F",
+                    contentDescription = "Toggle preview focus peaking",
                 )
             }
             Text(

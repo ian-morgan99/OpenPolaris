@@ -1024,6 +1024,8 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                         selected = vm.trackingRate == rate,
                         onClick = { vm.trackingRate = rate },
                         label = { Text(rate.label) },
+                        compactLabel = if (rate == TrackingRate.SIDEREAL) "S" else "L",
+                        contentDescription = "${rate.label} tracking rate",
                     )
                 }
             }

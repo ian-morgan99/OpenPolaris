@@ -2,6 +2,7 @@ package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
@@ -11,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
@@ -94,8 +94,9 @@ internal fun CompactFilterChip(
     enabled: Boolean = true,
     graphic: OpenPolarisGraphic? = null,
     contentDescription: String? = null,
+    compactLabel: String? = null,
 ) {
-    if (LocalOpenPolarisCompact.current && graphic != null) {
+    if (LocalOpenPolarisCompact.current) {
         Box(
             modifier = modifier
                 .size(if (LocalOpenPolarisCompact.current) 20.dp else 32.dp)
@@ -121,7 +122,15 @@ internal fun CompactFilterChip(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            OpenPolarisGraphicIcon(graphic)
+            if (graphic != null) {
+                OpenPolarisGraphicIcon(graphic)
+            } else {
+                Text(
+                    compactLabel ?: "•",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+            }
         }
     } else {
         FilterChip(
@@ -151,14 +160,66 @@ internal fun CompactSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Switch(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        enabled = enabled,
-        modifier = modifier.then(
-            if (LocalOpenPolarisCompact.current) Modifier.scale(0.72f) else Modifier,
-        ),
-    )
+    if (!LocalOpenPolarisCompact.current) {
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+            modifier = modifier,
+        )
+        return
+    }
+
+    val interactionModifier = if (onCheckedChange == null) {
+        modifier
+    } else {
+        modifier.toggleable(
+            value = checked,
+            enabled = enabled,
+            role = Role.Switch,
+            onValueChange = onCheckedChange,
+        )
+    }
+    val colors = MaterialTheme.colorScheme
+    val trackColor = if (enabled) {
+        if (checked) colors.primary.copy(alpha = 0.55f) else colors.outline
+    } else {
+        colors.onSurface.copy(alpha = 0.18f)
+    }
+    val thumbColor = if (enabled) {
+        if (checked) colors.primary else colors.onSurfaceVariant
+    } else {
+        colors.onSurface.copy(alpha = 0.38f)
+    }
+    Canvas(
+        modifier = interactionModifier
+            .size(width = 36.dp, height = 24.dp)
+            .semantics {
+                stateDescription = if (checked) "On" else "Off"
+            },
+    ) {
+        val trackWidth = 26.dp.toPx()
+        val trackHeight = 14.dp.toPx()
+        val trackLeft = (size.width - trackWidth) / 2f
+        val trackTop = (size.height - trackHeight) / 2f
+        drawRoundRect(
+            color = trackColor,
+            topLeft = Offset(trackLeft, trackTop),
+            size = Size(trackWidth, trackHeight),
+            cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
+        )
+        val thumbRadius = 5.dp.toPx()
+        val thumbX = if (checked) {
+            trackLeft + trackWidth - thumbRadius
+        } else {
+            trackLeft + thumbRadius
+        }
+        drawCircle(
+            color = thumbColor,
+            radius = thumbRadius,
+            center = Offset(thumbX, size.height / 2f),
+        )
+    }
 }
 
 /**

@@ -135,7 +135,9 @@ class MobileResponsiveLayoutContractTest {
     fun nativeSwitchesUseTheCompactVisualWrapper() {
         val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
         assertTrue("internal fun CompactSwitch(" in graphics)
-        assertTrue("Modifier.scale(0.72f)" in graphics)
+        assertTrue("modifier.toggleable(" in graphics)
+        assertTrue("size(width = 36.dp, height = 24.dp)" in graphics)
+        assertFalse("Modifier.scale(0.72f)" in graphics)
         for (path in listOf(
             "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",
             "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt",

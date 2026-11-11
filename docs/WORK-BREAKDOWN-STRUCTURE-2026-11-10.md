@@ -120,6 +120,13 @@
   painted symbol with a separate compact selectable boundary; desktop labels and
   full accessibility descriptions remain unchanged. Source/package evidence is
   complete; installed-phone rendering remains open.
+- **2026-11-11 - WBS-01.3/07.1/09.1 ACTIVE (Astro gallery summary-first follow-up):**
+  compact phones now retain a one-line Astro status/media summary and the primary
+  gallery refresh while status readback, export lifecycle and secondary diagnostics
+  stay behind one accessible details disclosure. Media rows use a single-line
+  filename/size summary and selected previews use a shorter phone height; the
+  complete path remains available through the action/image semantics and desktop
+  retains full metadata and expanded diagnostics.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

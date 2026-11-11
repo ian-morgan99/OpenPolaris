@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AstroMediaExportDestination
@@ -631,6 +632,7 @@ fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val compactLayout = LocalOpenPolarisCompact.current
     var showAllMedia by remember(compactLayout) { mutableStateOf(!compactLayout) }
+    var showAstroDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Astro WebUI gallery", style = MaterialTheme.typography.titleMedium)
@@ -652,92 +654,141 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     Text("Disabled by config", style = MaterialTheme.typography.labelSmall)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ResponsiveActionButton(
-                    graphic = OpenPolarisGraphic.Refresh,
-                    label = "Refresh Astro status",
-                    contentDescription = "Refresh Astro WebUI status",
-                    enabled = statusEnabled,
-                    onClick = vm::refreshAstroWebUiStatus,
-                )
+            val astroStatusSummary = when (val state = vm.astroWebUiStatus) {
+                AstroWebUiStatusState.Idle -> "Astro status not checked"
+                AstroWebUiStatusState.Loading -> "Reading Astro mode…"
+                is AstroWebUiStatusState.Ready -> if (state.status.active) "Astro active" else "Astro inactive"
+                is AstroWebUiStatusState.Failed -> state.reason
             }
-            when (val state = vm.astroWebUiStatus) {
-                AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
-                AstroWebUiStatusState.Loading -> Text("Reading Astro mode…", style = MaterialTheme.typography.labelSmall)
-                is AstroWebUiStatusState.Ready -> {
-                    val status = state.status
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            if (status.active) "Astro mode active" else "Astro mode inactive",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                        if (status.latitudeDeg != null && status.longitudeDeg != null) {
-                            Text(
-                                "Site ${status.latitudeDeg}, ${status.longitudeDeg}",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                        status.trackRequested?.let { requested ->
-                            Text(
-                                "Tracking requested: ${if (requested) "yes" else "no"}",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                        status.rateIndex?.let { rate ->
-                            Text("Rate index: ${rate}", style = MaterialTheme.typography.labelSmall)
-                        }
-                        status.halfSpeed?.let { half ->
-                            Text(
-                                "Half speed: ${if (half) "yes" else "no"}",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                        status.alignmentHeadingDeg?.let { heading ->
-                            Text(
-                                "Alignment heading: ${heading} deg",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                        Text(
-                            "Session/request state only; mount telemetry remains authoritative.",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+            val astroMediaSummary = when (val state = vm.astroMediaState) {
+                AstroMediaState.Idle -> "Media not loaded"
+                AstroMediaState.LoadingList -> "Loading media…"
+                is AstroMediaState.LoadingItem -> "Loading ${state.kind.name.lowercase()}…"
+                is AstroMediaState.Failed -> state.reason
+                is AstroMediaState.Ready -> "${state.reportedCount} media · ${vm.astroMediaItems?.size ?: 0} shown"
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        astroStatusSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        astroMediaSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                is AstroWebUiStatusState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+                if (compactLayout) {
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.More,
+                        label = if (showAstroDetails) "Hide details" else "Details",
+                        contentDescription = if (showAstroDetails) {
+                            "Hide Astro WebUI status and export details"
+                        } else {
+                            "Show Astro WebUI status and export details"
+                        },
+                        onClick = { showAstroDetails = !showAstroDetails },
+                        modifier = Modifier.testTag("astro-gallery-details-toggle"),
+                        outlined = true,
+                    )
+                }
             }
+            if (!compactLayout || showAstroDetails) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Refresh,
+                        label = "Refresh Astro status",
+                        contentDescription = "Refresh Astro WebUI status",
+                        enabled = statusEnabled,
+                        onClick = vm::refreshAstroWebUiStatus,
+                    )
+                }
+                when (val state = vm.astroWebUiStatus) {
+                    AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
+                    AstroWebUiStatusState.Loading -> Text("Reading Astro mode…", style = MaterialTheme.typography.labelSmall)
+                    is AstroWebUiStatusState.Ready -> {
+                        val status = state.status
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (status.active) "Astro mode active" else "Astro mode inactive",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            if (status.latitudeDeg != null && status.longitudeDeg != null) {
+                                Text(
+                                    "Site ${status.latitudeDeg}, ${status.longitudeDeg}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            status.trackRequested?.let { requested ->
+                                Text(
+                                    "Tracking requested: ${if (requested) "yes" else "no"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            status.rateIndex?.let { rate ->
+                                Text("Rate index: ${rate}", style = MaterialTheme.typography.labelSmall)
+                            }
+                            status.halfSpeed?.let { half ->
+                                Text(
+                                    "Half speed: ${if (half) "yes" else "no"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            status.alignmentHeadingDeg?.let { heading ->
+                                Text(
+                                    "Alignment heading: ${heading} deg",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            Text(
+                                "Session/request state only; mount telemetry remains authoritative.",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                    is AstroWebUiStatusState.Failed -> Text(state.reason, style = MaterialTheme.typography.labelSmall)
+                }
 
-            when (val state = vm.astroMediaState) {
-                AstroMediaState.Idle -> Text("No WebUI media list loaded.", style = MaterialTheme.typography.bodySmall)
-                AstroMediaState.LoadingList -> Text("Loading WebUI media list…", style = MaterialTheme.typography.bodySmall)
-                is AstroMediaState.LoadingItem -> Text(
-                    "Loading ${state.kind.name.lowercase()} for ${state.path}…",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                is AstroMediaState.Failed -> Text(state.reason, style = MaterialTheme.typography.bodySmall)
-                is AstroMediaState.Ready -> Text(
-                    "WebUI reports ${state.reportedCount} item(s); showing ${vm.astroMediaItems?.size ?: 0}.",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-            when (val exportState = vm.astroMediaExportState) {
-                AstroMediaExportState.Idle -> Unit
-                is AstroMediaExportState.Ready -> Text(
-                    "Ready to export ${exportState.request.suggestedName} (${exportState.bytesExpected} bytes).",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                is AstroMediaExportState.Exporting -> Text(
-                    "Exporting ${exportState.request.suggestedName}…",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                is AstroMediaExportState.Complete -> Text(
-                    "Exported ${exportState.request.suggestedName} (${exportState.bytesStored} bytes).",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                is AstroMediaExportState.Failed -> Text(
-                    "Export unavailable: ${exportState.reason}",
-                    style = MaterialTheme.typography.labelSmall,
-                )
+                when (val state = vm.astroMediaState) {
+                    AstroMediaState.Idle -> Text("No WebUI media list loaded.", style = MaterialTheme.typography.bodySmall)
+                    AstroMediaState.LoadingList -> Text("Loading WebUI media list…", style = MaterialTheme.typography.bodySmall)
+                    is AstroMediaState.LoadingItem -> Text(
+                        "Loading ${state.kind.name.lowercase()} for ${state.path}…",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    is AstroMediaState.Failed -> Text(state.reason, style = MaterialTheme.typography.bodySmall)
+                    is AstroMediaState.Ready -> Text(
+                        "WebUI reports ${state.reportedCount} item(s); showing ${vm.astroMediaItems?.size ?: 0}.",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                when (val exportState = vm.astroMediaExportState) {
+                    AstroMediaExportState.Idle -> Unit
+                    is AstroMediaExportState.Ready -> Text(
+                        "Ready to export ${exportState.request.suggestedName} (${exportState.bytesExpected} bytes).",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroMediaExportState.Exporting -> Text(
+                        "Exporting ${exportState.request.suggestedName}…",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroMediaExportState.Complete -> Text(
+                        "Exported ${exportState.request.suggestedName} (${exportState.bytesStored} bytes).",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    is AstroMediaExportState.Failed -> Text(
+                        "Export unavailable: ${exportState.reason}",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
             val allItems = vm.astroMediaItems.orEmpty()
             if (allItems.isNotEmpty()) {
@@ -796,11 +847,22 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(item.path, style = MaterialTheme.typography.bodySmall)
                                 Text(
-                                    "${item.category} · ${item.sizeBytes} bytes",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    if (compactLayout) {
+                                        "${item.path.substringAfterLast('/')} · ${item.sizeBytes} B"
+                                    } else {
+                                        item.path
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
+                                if (!compactLayout) {
+                                    Text(
+                                        "${item.category} · ${item.sizeBytes} bytes",
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
                             }
                             ResponsiveActionButton(
                                 graphic = OpenPolarisGraphic.Preview,
@@ -826,7 +888,7 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                     bitmap = bitmap,
                                     contentDescription = item.path,
                                     contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                                    modifier = Modifier.fillMaxWidth().height(if (compactLayout) 120.dp else 180.dp),
                                 )
                             }
                             Text(

@@ -2127,3 +2127,21 @@ Verification passed:
 This is source/package UX evidence only. No installed-phone render, live
 firmware delivery, Bluetooth, camera, mount or physical SLOW qualification was
 performed.
+
+
+### WBS-01.3/07.1/09.1 - Summary-first Astro WebUI gallery
+
+The compact phone Astro WebUI gallery now keeps the current Astro/media state and
+primary gallery refresh visible while moving status readback, export lifecycle and
+secondary diagnostics behind one accessible details action. Media rows use a
+single-line filename/size summary and selected previews are shorter on phones; the
+full path remains represented by the image/action semantics and desktop retains the
+full metadata surface.
+
+Focused verification passed:
+
+    ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --console=plain --no-daemon
+
+This is source/package UX evidence only. No installed-phone render, live Astro
+WebUI, camera, mount, Bluetooth or physical media/export qualification was
+performed.

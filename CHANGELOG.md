@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separate from the painted symbol; desktop labels and accessibility names are
   unchanged.
 
+- **The compact Astro WebUI gallery is now summary-first.** Phones keep the
+  current Astro/media state and the primary gallery refresh visible, while
+  status readback, export lifecycle and secondary diagnostics sit behind one
+  accessible details action. Media rows use the filename and bounded size on
+  one line, with the full path still available through the image/action
+  semantics; selected previews are shorter on phones. Desktop keeps the full
+  metadata and expanded diagnostics.
+
 ### Fixed
 - **Resident Astro WebUI programmes now participate in shared motion ownership.**
   Enabled timelapse, panorama, HDR, focus, solar, PLC and path-lapse starts

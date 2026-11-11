@@ -1274,3 +1274,6 @@ No route, command, feature gate, motion owner, shutter lifecycle or evidence
 contract changed. This is source/package UX evidence; live Astro WebUI,
 camera, mount, Bluetooth, installed-phone rendering and physical qualification
 remain open.
+
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (third compact density pass):** reduced compact phone graphics to 12 dp, icon-action footprints to 32 dp and the primary destination row to 32 dp. Track, half-speed, AHRS and fine-correction selectors now use small icon-only graphics on phones with explicit accessible names/state semantics; desktop labels remain unchanged. Focused Compose/JVM contract tests passed. Installed-phone rendering and live hardware qualification remain open.

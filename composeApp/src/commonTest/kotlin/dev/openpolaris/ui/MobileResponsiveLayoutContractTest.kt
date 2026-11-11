@@ -124,7 +124,7 @@ class MobileResponsiveLayoutContractTest {
         val noComments = stripComments(src)
         assertTrue("CompactDestinationBar(" in noComments, "phone layout must use the compact destination bar")
         assertTrue("CompactDestinationItem(" in noComments, "each primary destination needs a compact semantic target")
-        assertTrue("height(40.dp)" in noComments, "compact navigation must use the reduced 40 dp touch row")
+        assertTrue("height(32.dp)" in noComments, "compact navigation must use the reduced 32 dp touch row")
         assertTrue("PaddingValues(horizontal = 2.dp)" in noComments, "compact destinations must remove the oversized icon-slot padding")
         assertFalse("NavigationBarItem(" in noComments, "phone navigation must not restore the oversized icon-and-label items")
         assertTrue("testTag(\"primary-navigation\")" in noComments, "primary navigation needs a stable automation target")

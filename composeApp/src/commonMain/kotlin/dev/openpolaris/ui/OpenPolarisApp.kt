@@ -486,7 +486,7 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Compact phone navigation: graphic-only, one 40 dp touch row.
+ * Compact phone navigation: graphic-only, one 32 dp touch row.
  *
  * Material3 NavigationBar reserves a large icon slot above every label. That
  * is useful on a tablet, but wastes most of a phone's vertical workspace when
@@ -504,7 +504,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(40.dp)
+            .height(32.dp)
             .testTag("primary-navigation"),
     ) {
         Row(
@@ -976,16 +976,34 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.headlineSmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactFilterChip(selected = vm.mount.tracking == true, onClick = {
-                    if (vm.mount.tracking == true) vm.stopTracking() else vm.startTracking()
-                }, label = { Text("Track") })
-                CompactFilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
-                CompactFilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
+                CompactFilterChip(
+                    selected = vm.mount.tracking == true,
+                    onClick = { if (vm.mount.tracking == true) vm.stopTracking() else vm.startTracking() },
+                    label = { Text("Track") },
+                    graphic = OpenPolarisGraphic.Tracking,
+                    contentDescription = "Toggle tracking",
+                )
+                CompactFilterChip(
+                    selected = vm.mount.halfSpeed,
+                    onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) },
+                    label = { Text("½ speed") },
+                    graphic = OpenPolarisGraphic.HalfSpeed,
+                    contentDescription = "Toggle half speed",
+                )
+                CompactFilterChip(
+                    selected = vm.mount.ahrsEnabled,
+                    onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) },
+                    label = { Text("AHRS") },
+                    graphic = OpenPolarisGraphic.Ahrs,
+                    contentDescription = "Toggle AHRS",
+                )
                 CompactFilterChip(
                     selected = false,
                     onClick = {},
                     enabled = FeatureFlags.isEnabled("fineRateControl"),
                     label = { Text("Fine correction") },
+                    graphic = OpenPolarisGraphic.Fine,
+                    contentDescription = "Fine correction",
                 )
             }
             if (!FeatureFlags.isEnabled("fineRateControl")) {

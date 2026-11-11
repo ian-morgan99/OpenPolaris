@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
@@ -56,6 +57,10 @@ internal enum class OpenPolarisGraphic {
     Right,
     DirectionA,
     DirectionB,
+    Tracking,
+    HalfSpeed,
+    Ahrs,
+    Fine,
     Apply,
     Cancel,
     Stop,
@@ -63,7 +68,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 36.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 32.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -73,13 +78,26 @@ internal fun CompactFilterChip(
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    graphic: OpenPolarisGraphic? = null,
+    contentDescription: String? = null,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
         enabled = enabled,
-        label = label,
-        modifier = modifier.height(if (LocalOpenPolarisCompact.current) 28.dp else 32.dp),
+        label = {
+            if (LocalOpenPolarisCompact.current && graphic != null) {
+                OpenPolarisGraphicIcon(graphic)
+            } else {
+                label()
+            }
+        },
+        modifier = modifier
+            .height(if (LocalOpenPolarisCompact.current) 28.dp else 32.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription?.let { this.contentDescription = it }
+                stateDescription = if (selected) "On" else "Off"
+            },
     )
 }
 
@@ -161,7 +179,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 14.dp else 20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 12.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }
@@ -366,6 +384,27 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
         OpenPolarisGraphic.Right -> arrowGraphic(color, Offset(1f, 0f), stroke)
         OpenPolarisGraphic.DirectionA -> directionGraphic(color, Offset(-1f, 0f), stroke)
         OpenPolarisGraphic.DirectionB -> directionGraphic(color, Offset(1f, 0f), stroke)
+        OpenPolarisGraphic.Tracking -> {
+            drawCircle(color, r * 0.78f, c, style = thin)
+            drawCircle(color, r * 0.16f, c)
+            arrowHead(Offset(c.x + r * 0.78f, c.y), Offset(0f, 1f), color, thin)
+        }
+        OpenPolarisGraphic.HalfSpeed -> {
+            drawStyledLine(color, Offset(c.x - r * 0.75f, c.y - r * 0.55f), Offset(c.x + r * 0.75f, c.y - r * 0.55f), thin)
+            drawStyledLine(color, Offset(c.x - r * 0.75f, c.y + r * 0.55f), Offset(c.x + r * 0.75f, c.y + r * 0.55f), thin)
+            drawStyledLine(color, Offset(c.x - r * 0.62f, c.y - r * 0.85f), Offset(c.x + r * 0.62f, c.y + r * 0.85f), thin)
+        }
+        OpenPolarisGraphic.Ahrs -> {
+            drawCircle(color, r * 0.78f, c, style = thin)
+            drawStyledLine(color, Offset(c.x, c.y - r), Offset(c.x, c.y + r), thin)
+            drawStyledLine(color, Offset(c.x - r, c.y), Offset(c.x + r, c.y), thin)
+            drawCircle(color, r * 0.18f, c)
+        }
+        OpenPolarisGraphic.Fine -> {
+            drawCircle(color, r * 0.2f, c, style = thin)
+            drawStyledLine(color, Offset(c.x - r, c.y), Offset(c.x + r, c.y), thin)
+            drawStyledLine(color, Offset(c.x, c.y - r), Offset(c.x, c.y + r), thin)
+        }
         OpenPolarisGraphic.Apply -> {
             drawStyledLine(color, Offset(c.x - r, c.y), Offset(c.x - r * 0.25f, c.y + r * 0.7f), stroke)
             drawStyledLine(color, Offset(c.x - r * 0.25f, c.y + r * 0.7f), Offset(c.x + r, c.y - r), stroke)

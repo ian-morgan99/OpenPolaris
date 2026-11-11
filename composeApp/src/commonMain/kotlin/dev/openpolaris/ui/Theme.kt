@@ -125,11 +125,11 @@ fun OpenPolarisTheme(
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
     CompositionLocalProvider(
         LocalOpenPolarisCompact provides compact,
-        // The compact shell deliberately uses a 36 dp interaction footprint.
-        // It is still larger than the visible 14 dp line graphics, but avoids
+        // The compact shell deliberately uses a 32 dp interaction footprint.
+        // It is still larger than the visible 12 dp line graphics, but avoids
         // Material3's default 48 dp expansion making every phone row feel
         // like a tablet control. Desktop keeps the normal 48 dp target.
-        LocalMinimumInteractiveComponentSize provides if (compact) 36.dp else 48.dp,
+        LocalMinimumInteractiveComponentSize provides if (compact) 32.dp else 48.dp,
     ) {
         MaterialTheme(
             colorScheme = if (dim) DimNightColors else NightColors,

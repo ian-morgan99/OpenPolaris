@@ -1770,3 +1770,16 @@ No route, command, feature gate, motion owner, shutter lifecycle or evidence
 contract changed. This is source/package UX evidence only; installed-phone
 rendering and live Astro WebUI, camera, Bluetooth, mount and physical
 qualification remain open.
+
+
+### WBS-01.3/09.1 — Third compact density pass and icon-only state controls
+
+The phone shell now uses 12 dp line graphics, 32 dp icon-action footprints and a 32 dp primary destination row. Material3 minimum interactive component size is scoped to the compact shell so raw controls do not expand back to tablet-scale rows. Track, half-speed, AHRS and fine-correction selectors render as small state graphics on compact screens while retaining full labels on desktop and explicit content descriptions/state semantics everywhere.
+
+Focused verification passed:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --console=plain --no-daemon
+```
+
+No installed-phone screenshot, live mount, camera, Bluetooth or physical motion/capture qualification was performed.

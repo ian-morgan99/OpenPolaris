@@ -2,9 +2,11 @@ name: Publish (rolling)
 
 # Every merge to `main` produces a fresh signed Android APK + Windows
 # installer (EXE + ZIP, best-effort MSI), attached to a single rolling
-# **prerelease** named "latest". Tagged releases (`v*.*.*`, see
-# release.yml) remain the stable milestones; this workflow is the
-# always-current build line.
+# **prerelease** named "latest". Android and Windows build independently;
+# one final publish job collects and verifies both generations before moving
+# the rolling tag or replacing release assets. Tagged releases (`v*.*.*`, see
+# release.yml) remain the stable milestones; this workflow is the always-current
+# build line.
 #
 # iOS: the `ios` job is a placeholder — it activates automatically once
 # an `iosApp/` Xcode project exists in the repo AND the
@@ -93,29 +95,25 @@ jobs:
           echo "APK SHA-256: $(cut -d' ' -f1 apk-sha256.txt)"
           echo "Signer SHA-256: $(cat apk-signer-sha256.txt)"
 
-      - name: Move rolling tag to this commit
+      - name: Stage Android artifacts
         run: |
           set -euo pipefail
-          git tag --force latest "${GITHUB_SHA}"
-          git push --force origin refs/tags/latest
+          mkdir -p out/android
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk out/android/
+          cp apk-sha256.txt apk-signer-sha256.txt out/android/
 
-      - name: Upload APK to rolling prerelease
-        uses: softprops/action-gh-release@v2
+      - name: Upload Android artifacts for final publish
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: latest
-          name: ${{ env.ROLLING_RELEASE_NAME }}
-          prerelease: true
-          make_latest: false
-          files: |
-            androidApp/build/outputs/apk/release/androidApp-release.apk
-            apk-sha256.txt
-            apk-signer-sha256.txt
+          name: rolling-android-${{ github.sha }}
+          path: out/android/*
+          if-no-files-found: error
+          retention-days: 7
 
   windows:
     name: Build Windows installer (rolling)
     runs-on: windows-latest
     timeout-minutes: 45
-    needs: android
     steps:
       - uses: actions/checkout@v4
 
@@ -158,17 +156,114 @@ jobs:
             Write-Host "EXE: $($f.Name) ($($f.Length) bytes)"
           }
 
-      - name: Upload Windows artifacts to rolling prerelease
+      - name: Stage Windows artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          $exe = Get-ChildItem desktopApp\build\inno\output\*-Setup-*.exe | Select-Object -First 1
+          Copy-Item $exe.FullName out\OpenPolaris-Setup.exe
+          Copy-Item desktopApp\build\compose\binaries\main\app\OpenPolaris-windows-x64.zip out\OpenPolaris-windows-x64.zip
+          $msi = Get-ChildItem desktopApp\build\compose\binaries\main\msi\*.msi -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($msi) {
+            Copy-Item $msi.FullName out\OpenPolaris.msi
+          } else {
+            Write-Host 'MSI not produced; EXE + ZIP remain the required Windows artifacts.'
+          }
+
+      - name: Upload Windows artifacts for final publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: rolling-windows-${{ github.sha }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish verified rolling release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: [android, windows]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rolling-android-${{ github.sha }}
+          path: dist/android
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rolling-windows-${{ github.sha }}
+          path: dist/windows
+
+      - name: Verify complete same-SHA artifact set
+        run: |
+          set -euo pipefail
+          test -s dist/android/androidApp-release.apk
+          test -s dist/android/apk-sha256.txt
+          test -s dist/android/apk-signer-sha256.txt
+          test -s dist/windows/OpenPolaris-Setup.exe
+          test -s dist/windows/OpenPolaris-windows-x64.zip
+          (cd dist/android && sha256sum -c apk-sha256.txt)
+          {
+            echo "source_commit=${GITHUB_SHA}"
+            echo "artifact=androidApp-release.apk sha256=$(sha256sum dist/android/androidApp-release.apk | cut -d' ' -f1)"
+            echo "artifact=OpenPolaris-Setup.exe sha256=$(sha256sum dist/windows/OpenPolaris-Setup.exe | cut -d' ' -f1)"
+            echo "artifact=OpenPolaris-windows-x64.zip sha256=$(sha256sum dist/windows/OpenPolaris-windows-x64.zip | cut -d' ' -f1)"
+            if [ -s dist/windows/OpenPolaris.msi ]; then
+              echo "artifact=OpenPolaris.msi sha256=$(sha256sum dist/windows/OpenPolaris.msi | cut -d' ' -f1)"
+            fi
+          } > dist/OpenPolaris-release-manifest.txt
+          cat dist/OpenPolaris-release-manifest.txt
+
+      - name: Move rolling tag only after all required builds pass
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git tag --force latest "${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/tags/latest
+
+      - name: Remove stale rolling assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asset_ids=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/latest" --jq '.assets[].id' 2>/dev/null || true)
+          for asset_id in ${asset_ids}; do
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+          done
+
+      - name: Upload complete rolling release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: ${{ env.ROLLING_RELEASE_NAME }}
           prerelease: true
           make_latest: false
+          fail_on_unmatched_files: false
           files: |
-            desktopApp\build\inno\output\*-Setup-*.exe
-            desktopApp\build\compose\binaries\main\msi\*.msi
-            desktopApp\build\compose\binaries\main\app\OpenPolaris-windows-x64.zip
+            dist/android/androidApp-release.apk
+            dist/android/apk-sha256.txt
+            dist/android/apk-signer-sha256.txt
+            dist/windows/OpenPolaris-Setup.exe
+            dist/windows/OpenPolaris-windows-x64.zip
+            dist/windows/OpenPolaris.msi
+            dist/OpenPolaris-release-manifest.txt
+
+      - name: Verify rolling tag and manifest identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/latest" --jq '.object.sha')" = "${GITHUB_SHA}"
+          gh release download latest --repo "${GITHUB_REPOSITORY}" --pattern OpenPolaris-release-manifest.txt --dir verify
+          grep -Fx "source_commit=${GITHUB_SHA}" verify/OpenPolaris-release-manifest.txt
 
   # ---------------------------------------------------------------------------
   # iOS (placeholder). Activates automatically when BOTH are true:

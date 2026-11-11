@@ -377,6 +377,7 @@
 
 - Source SHA, build flags, artifact hashes, tests, known gaps, device matrix and rollback notes.
 - Current record: docs/BUILD-EVIDENCE-2026-11-10.md.
+- **2026-11-11 - WBS-10.3 ACTIVE (atomic rolling publication):** Android and Windows now upload SHA-named intermediate artifacts; one final job verifies the complete required set, writes `OpenPolaris-release-manifest.txt`, removes stale rolling assets, moves `latest` only after both builds pass and verifies the tag/manifest identity. The iOS placeholder remains separate and does not block the required Android/Windows release. Source-contract coverage guards the single-publisher topology; external GitHub execution remains the release evidence.
 
 ## WBS-11 — Physical qualification and release gate
 

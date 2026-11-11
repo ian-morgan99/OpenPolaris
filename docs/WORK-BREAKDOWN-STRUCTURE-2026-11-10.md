@@ -1245,3 +1245,11 @@ No route, command, feature gate, motion owner, capture lifecycle or evidence
 contract changed. This is source/package UX evidence; installed-phone
 rendering, live Astro WebUI, camera, Bluetooth and physical qualification
 remain open.
+
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (second-pass compact phone controls):**
+  reduced icon actions to 16 dp graphics in 40 dp phone targets and reduced
+  state selectors to a 30 dp compact chip boundary. Desktop retains the 48 dp
+  graphic rail and labelled actions; accessibility descriptions remain on
+  icon-only controls. Installed-phone rendering and live hardware qualification
+  remain open.

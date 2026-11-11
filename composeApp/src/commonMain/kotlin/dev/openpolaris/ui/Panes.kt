@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -344,13 +343,13 @@ fun ConnectionPane(
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Connection mode", style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
+                CompactFilterChip(
                     selected = vm.connectionMode == ConnectionMode.DIRECT_AP,
                     onClick = { vm.selectConnectionMode(ConnectionMode.DIRECT_AP) },
                     label = { Text("Direct AP") },
                     modifier = Modifier.testTag("connection-mode-direct-ap"),
                 )
-                FilterChip(
+                CompactFilterChip(
                     selected = vm.connectionMode == ConnectionMode.HOME_LAN,
                     onClick = { vm.selectConnectionMode(ConnectionMode.HOME_LAN) },
                     label = { Text("Home Wi-Fi (LAN)") },
@@ -1768,13 +1767,13 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
+                CompactFilterChip(
                     selected = selectedAstroRate == AstroWebUiTrackRate.SIDEREAL,
                     onClick = { selectedAstroRate = AstroWebUiTrackRate.SIDEREAL },
                     enabled = sessionControlsEnabled,
                     label = { Text("Sidereal") },
                 )
-                FilterChip(
+                CompactFilterChip(
                     selected = selectedAstroRate == AstroWebUiTrackRate.LUNAR,
                     onClick = { selectedAstroRate = AstroWebUiTrackRate.LUNAR },
                     enabled = sessionControlsEnabled,
@@ -2143,7 +2142,7 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         AstroWebUiProgrammeStartResult.Kind.entries.forEach { option ->
-            FilterChip(
+            CompactFilterChip(
                 selected = kind == option,
                 onClick = { kind = option; armed = false },
                 label = { Text(option.name.lowercase().replace('_', ' ')) },
@@ -2422,12 +2421,12 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        FilterChip(
+        CompactFilterChip(
             selected = !sunset,
             onClick = { sunset = false; armed = false },
             label = { Text("Sunrise") },
         )
-        FilterChip(
+        CompactFilterChip(
             selected = sunset,
             onClick = { sunset = true; armed = false },
             label = { Text("Sunset") },
@@ -2585,7 +2584,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         listOf("PLC", "Path-lapse", "Holy Grail").forEach { option ->
-            FilterChip(
+            CompactFilterChip(
                 selected = kind == option,
                 onClick = { kind = option; armed = false },
                 label = { Text(option) },
@@ -2989,7 +2988,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 listOf("M1 · Pan / yaw", "M2 · Tilt / pitch", "M3 · Rotation / roll").forEach { axis ->
-                    FilterChip(
+                    CompactFilterChip(
                         selected = selectedAxis == axis,
                         onClick = { selectedAxis = axis },
                         enabled = motionSelectionEnabled,
@@ -3079,7 +3078,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         5 -> level.toString() + " Fast"
                         else -> level.toString()
                     }
-                    FilterChip(
+                    CompactFilterChip(
                         selected = selectedLevel == level,
                         onClick = { selectedLevel = level },
                         enabled = motionSelectionEnabled,
@@ -3452,7 +3451,7 @@ private fun SlowDemoHoldButton(
         modifier = if (graphic == null) {
             inputModifier
         } else {
-            inputModifier.height(48.dp).width(48.dp)
+            inputModifier.height(compactActionTargetSize()).width(compactActionTargetSize())
         },
     ) {
         if (graphic == null) {
@@ -3518,8 +3517,8 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             )
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = !vm.raDecMode, onClick = { vm.setRaDecMode(false) }, label = { Text("Az/Alt") })
-                FilterChip(selected = vm.raDecMode, onClick = { vm.setRaDecMode(true) }, label = { Text("RA/Dec") })
+                CompactFilterChip(selected = !vm.raDecMode, onClick = { vm.setRaDecMode(false) }, label = { Text("Az/Alt") })
+                CompactFilterChip(selected = vm.raDecMode, onClick = { vm.setRaDecMode(true) }, label = { Text("RA/Dec") })
             }
 
             if (vm.raDecMode) {
@@ -4142,7 +4141,7 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         ObservationProgrammePlanner.Kind.entries.forEach { kind ->
-            FilterChip(
+            CompactFilterChip(
                 selected = selectedKind == kind,
                 onClick = {
                     selectedKind = kind
@@ -4671,23 +4670,23 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                FilterChip(
+                CompactFilterChip(
                     selected = framingGrid,
                     onClick = { framingGrid = !framingGrid },
                     label = { Text("Grid") },
                 )
-                FilterChip(
+                CompactFilterChip(
                     selected = centreMark,
                     onClick = { centreMark = !centreMark },
                     label = { Text("Centre") },
                 )
-                FilterChip(
+                CompactFilterChip(
                     selected = showHistogram,
                     onClick = { showHistogram = !showHistogram },
                     label = { Text("Histogram") },
                     modifier = Modifier.semantics { contentDescription = "Toggle preview histogram" },
                 )
-                FilterChip(
+                CompactFilterChip(
                     selected = focusPeaking,
                     onClick = { focusPeaking = !focusPeaking },
                     label = { Text("Focus peaks") },

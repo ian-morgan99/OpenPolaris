@@ -19,7 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -977,12 +976,12 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.headlineSmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = vm.mount.tracking == true, onClick = {
+                CompactFilterChip(selected = vm.mount.tracking == true, onClick = {
                     if (vm.mount.tracking == true) vm.stopTracking() else vm.startTracking()
                 }, label = { Text("Track") })
-                FilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
-                FilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
-                FilterChip(
+                CompactFilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
+                CompactFilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
+                CompactFilterChip(
                     selected = false,
                     onClick = {},
                     enabled = FeatureFlags.isEnabled("fineRateControl"),
@@ -1003,7 +1002,7 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Rate", style = MaterialTheme.typography.labelSmall)
                 TrackingRate.entries.forEach { rate ->
-                    FilterChip(
+                    CompactFilterChip(
                         selected = vm.trackingRate == rate,
                         onClick = { vm.trackingRate = rate },
                         label = { Text(rate.label) },

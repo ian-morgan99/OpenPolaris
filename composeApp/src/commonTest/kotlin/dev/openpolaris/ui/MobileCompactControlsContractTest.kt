@@ -22,8 +22,10 @@ class MobileCompactControlsContractTest {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
 
-        assertTrue("Canvas(modifier.size(20.dp))" in graphics)
-        assertTrue(".size(48.dp)" in graphics)
+        assertTrue("16.dp else 20.dp" in graphics, "phone graphics must be visibly smaller than desktop graphics")
+        assertTrue("compactActionTargetSize" in graphics)
+        assertTrue("40.dp else 48.dp" in graphics, "phone action targets must use the compact footprint")
+        assertTrue("CompactFilterChip" in graphics, "text selectors must use the compact chip boundary")
         assertTrue("CompactGraphicButton" in shell)
         assertTrue("OpenPolarisGraphicIcon" in shell)
         assertTrue("leadingIcon = { OpenPolarisGraphicIcon(c.graphic) }" in shell)

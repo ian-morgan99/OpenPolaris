@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phone controls are now genuinely compact.** Icon actions render a 16 dp
+  line graphic in a 40 dp phone control footprint (48 dp is retained on the
+  wider desktop rail), while text selectors use a 30 dp compact chip. Full
+  labels remain available on PC and every icon-only action retains an explicit
+  accessibility description.
 - **Remaining mobile Astro and programme actions now use compact graphics.**
   Solve, GoTo, autofocus, session/tracking, resident-programme, Astro composer,
   observation-programme and intervalometer actions keep explicit accessible

@@ -1,13 +1,18 @@
 package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -16,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -54,10 +60,32 @@ internal enum class OpenPolarisGraphic {
     Stop,
 }
 
+/** The phone action footprint; the desktop rail retains the roomier target. */
+@Composable
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 40.dp else 48.dp
+
+/** Small selector used where a state choice is not safely icon-only. */
+@Composable
+internal fun CompactFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        enabled = enabled,
+        label = label,
+        modifier = modifier.height(if (LocalOpenPolarisCompact.current) 30.dp else 32.dp),
+    )
+}
+
 /**
- * Keeps the hit target usable while making the visible control a 20 dp line
- * graphic. The content description is retained because the symbol alone is
- * not sufficient for TalkBack, keyboard navigation, or desktop accessibility.
+ * Keeps the phone control footprint small while retaining a semantic action.
+ * The full action name remains in [contentDescription] because the symbol
+ * alone is not sufficient for TalkBack, keyboard navigation or desktop use.
  */
 @Composable
 internal fun CompactGraphicButton(
@@ -67,12 +95,16 @@ internal fun CompactGraphicButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
+    Box(
         modifier = modifier
-            .size(48.dp)
+            .size(compactActionTargetSize())
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
     ) {
         OpenPolarisGraphicIcon(graphic)
     }
@@ -128,7 +160,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 16.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }

@@ -1708,3 +1708,17 @@ No route, command, feature gate, motion owner, capture lifecycle or evidence
 contract changed. This is source/package UX evidence; installed-phone
 rendering, live Astro WebUI, camera, Bluetooth and physical qualification
 remain open.
+
+
+### WBS-01.3/09.1 — Second-pass compact phone controls
+
+The first graphic pass still left the phone action footprint feeling like a
+small desktop UI. Icon actions now use a 16 dp line graphic in a 40 dp compact
+phone target, while the 48 dp desktop rail is unchanged. State selectors use a
+30 dp compact chip boundary. Text is still retained for selectors and status
+meaning; icon-only actions retain explicit content descriptions so TalkBack and
+keyboard users do not lose the action vocabulary.
+
+This is source/package UX evidence only. No installed-phone rendering, live
+Astro WebUI, Bluetooth, camera, mount or physical motion/capture qualification
+was performed.

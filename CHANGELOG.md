@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Secondary mobile actions now collapse to accessible graphics.** Password
+  confirmation, endpoint-health navigation, firmware pick/clear/upload and
+  firmware step navigation use the same compact graphic/text boundary: phones
+  keep small graphics plus full content descriptions, while desktop preserves
+  familiar text labels. Contract tests cover stable tags and labels.
 - **Capture admission now preserves raw camera readiness failures.** A fresh
   shutter INFO preflight refuses -2110, timeout and partial-readback states
   before any 264 shutter write, while the user-visible failure retains the

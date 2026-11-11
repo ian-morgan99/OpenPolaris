@@ -782,7 +782,10 @@ fun PasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Apply,
+                label = "Connect",
+                contentDescription = "Connect using the entered password",
                 onClick = {
                     if (input.isNotEmpty()) {
                         vm.setConnectionPassword(input)
@@ -791,10 +794,13 @@ fun PasswordDialog(
                     }
                 },
                 enabled = input.isNotEmpty(),
-            ) { Text("Connect") }
+            )
         },
         dismissButton = {
-            TextButton(
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Cancel,
+                label = "Cancel",
+                contentDescription = "Cancel password entry",
                 onClick = {
                     // Clear the in-memory password so a later Connect
                     // doesn't accidentally retry with whatever the user
@@ -802,7 +808,7 @@ fun PasswordDialog(
                     vm.setConnectionPassword(null)
                     onDismiss()
                 },
-            ) { Text("Cancel") }
+            )
         },
     )
 }
@@ -885,12 +891,13 @@ private fun EndpointHealthSection(
             )
         }
         onOpenConnection?.let { open ->
-            TextButton(
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Connection,
+                label = "Open connection",
+                contentDescription = "Open connection settings",
                 onClick = open,
                 modifier = Modifier.testTag("open-connection"),
-            ) {
-                Text("Open connection")
-            }
+            )
         }
     }
 }
@@ -4931,23 +4938,39 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                OutlinedButton(
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Back,
+                    label = "Back",
+                    contentDescription = "Go to the previous firmware step",
                     onClick = { step = (step - 1).coerceAtLeast(1) },
                     enabled = step > 1,
-                ) { Text("Back") }
+                    modifier = Modifier.testTag("firmware-back"),
+                )
 
-                TextButton(
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Close",
+                    contentDescription = "Close firmware update",
                     onClick = { step = 1 },
-                ) { Text("Close") }
+                    modifier = Modifier.testTag("firmware-close"),
+                )
 
-                Button(
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Forward,
+                    label = if (step < 3) "Next" else "Done",
+                    contentDescription = if (step < 3) {
+                        "Go to the next firmware step"
+                    } else {
+                        "Finish firmware update"
+                    },
                     onClick = { step = (step + 1).coerceAtMost(3) },
                     enabled = when (step) {
                         1 -> picked && featureEnabled
                         2 -> vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE || vm.firmwareSshHost.isNotBlank()
                         else -> false
                     },
-                ) { Text(if (step < 3) "Next" else "Done") }
+                    modifier = Modifier.testTag("firmware-next"),
+                )
             }
         }
     }
@@ -5012,18 +5035,23 @@ private fun FirmwareStep1(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Firmware,
+                label = "Pick firmware…",
+                contentDescription = "Pick firmware ZIP",
                 onClick = vm::pickFirmwareFile,
-                modifier = Modifier
-                    .testTag("firmware-pick")
-                    .semantics { contentDescription = "Pick firmware ZIP" },
+                modifier = Modifier.testTag("firmware-pick"),
                 enabled = !vm.firmwareBusy,
-            ) { Text("Pick firmware…") }
+            )
             if (vm.pickedFirmwarePath != null) {
-                OutlinedButton(
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Delete,
+                    label = "Clear",
+                    contentDescription = "Clear selected firmware",
                     onClick = vm::clearPickedFirmware,
                     enabled = !vm.firmwareBusy,
-                ) { Text("Clear") }
+                    modifier = Modifier.testTag("firmware-clear"),
+                )
             }
         }
     }
@@ -5130,10 +5158,18 @@ private fun FirmwareStep3(
     status: dev.openpolaris.core.domain.FirmwareUpdateController.Status?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(
+        ResponsiveTextActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = if (vm.firmwareBusy) "Uploading..." else "Upload",
+            contentDescription = if (vm.firmwareBusy) {
+                "Firmware upload in progress"
+            } else {
+                "Upload selected firmware"
+            },
             onClick = vm::uploadPickedFirmware,
             enabled = featureEnabled && !vm.firmwareBusy && vm.pickedFirmwarePath != null,
-        ) { Text(if (vm.firmwareBusy) "Uploading…" else "Upload") }
+            modifier = Modifier.testTag("firmware-upload"),
+        )
 
         if (progress != null) {
             LinearProgressIndicator(

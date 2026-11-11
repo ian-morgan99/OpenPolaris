@@ -30,6 +30,6 @@ class Issue87UiGuidanceContractTest {
         val source = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
         assertTrue("testTag(\"firmware-pick\")" in source)
         assertTrue("contentDescription = \"Pick firmware ZIP\"" in source)
-        assertTrue("Text(\"Pick firmware…\")" in source)
+        assertTrue("label = \"Pick firmware…\"" in source)
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +71,8 @@ internal enum class OpenPolarisGraphic {
     Apply,
     Cancel,
     Stop,
+    Back,
+    Forward,
 }
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
@@ -220,6 +223,42 @@ internal fun ResponsiveActionButton(
             ) {
                 Text(label)
             }
+        }
+    }
+}
+
+/**
+ * A compact action for secondary text-button work. Phone layouts keep the
+ * action name in semantics while replacing the long label with a small
+ * graphic; desktop retains the familiar text button.
+ */
+@Composable
+internal fun ResponsiveTextActionButton(
+    graphic: OpenPolarisGraphic,
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    wideModifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    if (LocalOpenPolarisCompact.current) {
+        CompactGraphicButton(
+            graphic = graphic,
+            contentDescription = contentDescription,
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+        )
+    } else {
+        TextButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier.then(wideModifier).semantics {
+                this.contentDescription = contentDescription
+            },
+        ) {
+            Text(label)
         }
     }
 }
@@ -474,6 +513,14 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
                 cornerRadius = CornerRadius(r * 0.08f, r * 0.08f),
                 style = Stroke(width = stroke.width, cap = StrokeCap.Round),
             )
+        }
+        OpenPolarisGraphic.Back -> {
+            drawStyledLine(color, Offset(c.x + r, c.y), Offset(c.x - r * 0.55f, c.y), stroke)
+            arrowHead(Offset(c.x - r * 0.55f, c.y), Offset(1f, 0f), color, thin)
+        }
+        OpenPolarisGraphic.Forward -> {
+            drawStyledLine(color, Offset(c.x - r, c.y), Offset(c.x + r * 0.55f, c.y), stroke)
+            arrowHead(Offset(c.x + r * 0.55f, c.y), Offset(-1f, 0f), color, thin)
         }
     }
 }

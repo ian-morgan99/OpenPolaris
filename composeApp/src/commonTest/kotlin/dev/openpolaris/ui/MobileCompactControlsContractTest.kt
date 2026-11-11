@@ -288,4 +288,24 @@ class MobileCompactControlsContractTest {
         assertFalse("Text(\"Enter Astro\")" in panes)
     }
 
+
+    @Test
+    fun secondaryTextActionsCollapseToGraphicsWithoutLosingNames() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("internal fun ResponsiveTextActionButton" in graphics)
+        assertTrue("TextButton(" in graphics)
+        assertTrue("OpenPolarisGraphic.Back" in graphics)
+        assertTrue("OpenPolarisGraphic.Forward" in graphics)
+        assertTrue("firmware-pick" in panes)
+        assertTrue("firmware-clear" in panes)
+        assertTrue("firmware-upload" in panes)
+        assertTrue("firmware-back" in panes)
+        assertTrue("firmware-next" in panes)
+        assertTrue("Pick firmware ZIP" in panes)
+        assertTrue("Upload selected firmware" in panes)
+        assertTrue("Open connection settings" in panes)
+    }
+
 }

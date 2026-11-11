@@ -78,6 +78,7 @@ import dev.openpolaris.core.domain.CameraReleaseMode
 import dev.openpolaris.core.domain.ConnectionMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.AstroMissionFlow
+import dev.openpolaris.core.domain.AstroMissionEvidence
 import dev.openpolaris.core.domain.AstroMissionInput
 import dev.openpolaris.core.domain.AstroPrepareCheckState
 import dev.openpolaris.core.domain.AstroPrepareChecklist
@@ -1887,8 +1888,8 @@ fun MissionDashboardPane(
                     alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
                     tracking = vm.mount.tracking,
                     targetSelected = vm.targetSelected,
-                    focusReady = null,
-                    guideActive = false,
+                    focusReady = AstroMissionEvidence.focusReadiness(vm.astroWebUiAutofocus),
+                    guideActive = AstroMissionEvidence.guideReadiness(vm.astroWebUiGuide),
                     captureReady = vm.mount.connected && vm.cameraAttachment?.isAttached == true,
                     captureComplete = vm.lastCapturePublication != null,
                     reviewReady = vm.lastCapturePublication != null,

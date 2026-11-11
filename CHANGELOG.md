@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Astro Mission readiness now consumes resident readback evidence.** The
+  ordered mission flow no longer hard-codes focus as unknown and guiding as
+  inactive: a completed resident autofocus run with a best step can mark focus
+  evidence ready, and the resident guide readback distinguishes active,
+  inactive and not-read states. No write route or hardware readiness claim is
+  added.
 - **Compact SLOW and fast-jog hold controls now lose the oversized button
   container on phones.** The phone path keeps the existing press/start,
   release/stop, focus-loss stop, keyboard and accessibility semantics but uses

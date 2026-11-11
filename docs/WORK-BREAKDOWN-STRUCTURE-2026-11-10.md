@@ -274,6 +274,17 @@
 
 ## WBS-05 — Astro mission workflow
 
+- **2026-11-11 - WBS-05.1/05.4/09.1 ACTIVE (Astro Mission readback evidence):**
+  the ordered Mission flow now derives focus from a completed resident
+  autofocus readback with a non-null best step, and derives guiding from the
+  resident `/api/guide` state. Idle, loading, accepted and failed reads remain
+  unknown rather than being guessed inactive; a failed autofocus run is not
+  reported as ready. This is read-only state mapping and does not enable any
+  Astro write, mount motion or camera action. Installed Astro WebUI, camera,
+  mount and guide qualification remain open.
+
+## WBS-05 — Astro mission workflow
+
 ### WBS-05.1 — Session prepare — P1
 
 - Guided checklist for physical kit, camera, storage, level, tilt compensation, limits and focus mode.

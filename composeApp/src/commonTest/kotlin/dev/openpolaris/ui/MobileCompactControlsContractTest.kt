@@ -453,6 +453,21 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun astroMissionUsesReadOnlyFocusAndGuideEvidence() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val evidence = source("shared/src/commonMain/kotlin/dev/openpolaris/core/domain/AstroMissionEvidence.kt")
+
+        assertTrue("AstroMissionEvidence.focusReadiness(vm.astroWebUiAutofocus)" in panes)
+        assertTrue("AstroMissionEvidence.guideReadiness(vm.astroWebUiGuide)" in panes)
+        assertFalse("focusReady = null" in panes)
+        assertFalse("guideActive = false" in panes)
+        assertTrue("status == \"done\"" in evidence)
+        assertTrue("state.state.running" in evidence)
+        assertTrue("is AstroWebUiAutofocusUiState.Failed" in evidence)
+        assertTrue("is AstroWebUiGuideUiState.Failed" in evidence)
+    }
+
+    @Test
     fun compactMissionReadinessActionUsesGraphicFirstBoundary() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
 

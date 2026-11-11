@@ -5,6 +5,25 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-05.1/05.4/09.1 — Astro Mission readback evidence
+
+The shared Astro Mission flow now derives focus and guiding stages from the
+resident WebUI readback already owned by the Mission surface. Focus is ready
+only when both resident and progress states are `done` and a best autofocus
+step exists; a failed run is not treated as success. Guiding maps only a
+positive `/api/guide` readback, while idle/loading/accepted/failed reads remain
+unknown rather than being guessed inactive. This is read-only evidence mapping:
+it opens no write route and does not claim physical focus, tracking or guide
+corrections.
+
+Focused verification:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.AstroMissionEvidenceTest --tests dev.openpolaris.core.domain.AstroMissionFlowTest --console=plain --no-daemon
+```
+
+Installed Astro WebUI, camera, mount and guide qualification remain open.
+
 ### WBS-01.3/03.6/09.1 — Graphic-only compact hold controls
 
 Compact SLOW rotation and fast-jog hold controls no longer use a Material

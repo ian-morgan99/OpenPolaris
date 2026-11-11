@@ -4,6 +4,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Physical motor axes. These names remain valid after M3/rotation moves. */
 enum class RateAxis {
@@ -149,6 +151,11 @@ sealed interface RateAdjustState {
  * AC-4A command. Until the exact firmware route, units, signs, acknowledgements
  * and stop/watchdog semantics are qualified, production code can only use this
  * boundary with a simulator or a replay transport.
+ *
+ * Accepted requests are versioned replacements: a newer request may supersede
+ * the active target without an intermediate stop, while a delayed older
+ * request is rejected without disturbing the active target. A rejected or
+ * unknown replacement requires an explicit stop before another apply.
  */
 class SafeRateAdjustController(
     private val transport: RateAdjustTransport,
@@ -161,13 +168,16 @@ class SafeRateAdjustController(
     private var capability: RateAdjustCapability? = null
     private var context = RateAdjustContext()
     private var lastVersion = 0L
+    /** Set only when an applied command has an unknown/rejected replacement outcome. */
     private var stopRequired = false
+    private val commandLock = Mutex()
 
     override fun setCapability(value: RateAdjustCapability?) {
         val current = mutableState.value
         capability = value
         val request = currentRequest(current)
         if (request != null) {
+            stopRequired = true
             mutableState.value = RateAdjustState.Stale(
                 "rate capability changed; explicitly stop or reconnect before applying another request",
                 request,
@@ -182,6 +192,7 @@ class SafeRateAdjustController(
         context = value
         val request = currentRequest(current)
         if (request != null && gateReason(capability) != null) {
+            stopRequired = true
             mutableState.value = RateAdjustState.Stale(
                 "rate context no longer permits correction; explicitly stop or reconnect",
                 request,
@@ -191,42 +202,48 @@ class SafeRateAdjustController(
         }
     }
 
-    override suspend fun apply(request: RateAdjustRequest): RateCommandResult {
+    override suspend fun apply(request: RateAdjustRequest): RateCommandResult = commandLock.withLock {
+        val current = currentRequest(mutableState.value)
         val cap = capability
         val gate = gateReason(cap)
         if (gate != null) {
-            val current = currentRequest(mutableState.value)
             mutableState.value = if (current == null) {
                 RateAdjustState.Unavailable(gate)
             } else {
+                stopRequired = true
                 RateAdjustState.Stale("rate context no longer permits correction: $gate", current)
             }
-            return RateCommandResult.Rejected(gate)
+            return@withLock RateCommandResult.Rejected(gate)
         }
         val validation = cap!!.validate(request)
-        if (validation != null) return reject(validation, request)
+        if (validation != null) return@withLock reject(validation, request, current != null)
         if (request.version <= lastVersion) {
-            return reject("request version is stale", request)
+            // A delayed UI event must not replace or fault a newer active
+            // request. The currently applied target remains authoritative.
+            return@withLock RateCommandResult.Rejected("request version is stale")
         }
         if (stopRequired) {
-            return RateCommandResult.Rejected("an explicit stop or reconnect is required before retrying")
+            return@withLock RateCommandResult.Rejected("an explicit stop or reconnect is required before retrying")
         }
 
         mutableState.value = RateAdjustState.Applying(request)
-        stopRequired = true
-        return try {
+        return@withLock try {
             when (val result = transport.apply(request)) {
                 is RateCommandResult.Accepted -> {
                     lastVersion = request.version
+                    stopRequired = false
                     mutableState.value = RateAdjustState.Active(request)
                     result
                 }
                 is RateCommandResult.Rejected -> {
-                    stopRequired = false
+                    // If a live target was being replaced, the physical state
+                    // is not safe to assume after a rejected replacement.
+                    stopRequired = current != null
                     mutableState.value = RateAdjustState.Faulted(result.reason, request)
                     result
                 }
                 is RateCommandResult.Unknown -> {
+                    stopRequired = true
                     mutableState.value = RateAdjustState.Stale(result.reason, request)
                     result
                 }
@@ -235,37 +252,46 @@ class SafeRateAdjustController(
             throw error
         } catch (error: Exception) {
             val reason = "rate transport failed: ${error.message ?: error::class.simpleName ?: "unknown error"}"
+            stopRequired = true
             mutableState.value = RateAdjustState.Stale(reason, request)
             RateCommandResult.Unknown(reason)
         }
     }
 
-    override suspend fun stopCorrection(): RateCommandResult {
-        val active = currentRequest(mutableState.value)
-        if (active == null) {
-            mutableState.value = readyOrUnavailable()
-            return RateCommandResult.Accepted()
-        }
-        return stopAndSettle(active)
+    override suspend fun stopCorrection(): RateCommandResult = commandLock.withLock {
+        stopCorrectionLocked()
     }
 
-    override suspend fun onTrackingStopped() {
-        val result = stopCorrection()
+    override suspend fun onTrackingStopped() = commandLock.withLock {
+        val result = stopCorrectionLocked()
         context = context.copy(trackingConfirmed = false)
         if (result is RateCommandResult.Accepted) mutableState.value = readyOrUnavailable()
     }
 
-    override suspend fun onDisconnected() {
-        val result = stopCorrection()
+    override suspend fun onDisconnected() = commandLock.withLock {
+        val result = stopCorrectionLocked()
         context = context.copy(connected = false, trackingConfirmed = false)
         if (result is RateCommandResult.Accepted) mutableState.value = readyOrUnavailable()
     }
 
-    override suspend fun onLeaseExpired() {
+    override suspend fun onLeaseExpired() = commandLock.withLock {
         val active = currentRequest(mutableState.value)
-        if (active != null) stopAndSettle(active)
+        if (active != null) {
+            val result = stopAndSettle(active)
+            if (result !is RateCommandResult.Accepted) return@withLock
+        }
         stopRequired = true
         mutableState.value = RateAdjustState.Stale("rate-control lease expired; correction was stopped", active)
+    }
+
+    private suspend fun stopCorrectionLocked(): RateCommandResult {
+        val active = currentRequest(mutableState.value)
+        if (active == null) {
+            stopRequired = false
+            mutableState.value = readyOrUnavailable()
+            return RateCommandResult.Accepted()
+        }
+        return stopAndSettle(active)
     }
 
     private suspend fun stopAndSettle(request: RateAdjustRequest): RateCommandResult = try {
@@ -276,10 +302,12 @@ class SafeRateAdjustController(
                 result
             }
             is RateCommandResult.Rejected -> {
+                stopRequired = true
                 mutableState.value = RateAdjustState.Faulted(result.reason, request)
                 result
             }
             is RateCommandResult.Unknown -> {
+                stopRequired = true
                 mutableState.value = RateAdjustState.Stale(result.reason, request)
                 result
             }
@@ -288,11 +316,13 @@ class SafeRateAdjustController(
         throw error
     } catch (error: Exception) {
         val reason = "rate stop failed: ${error.message ?: error::class.simpleName ?: "unknown error"}"
+        stopRequired = true
         mutableState.value = RateAdjustState.Stale(reason, request)
         RateCommandResult.Unknown(reason)
     }
 
-    private fun reject(reason: String, request: RateAdjustRequest): RateCommandResult {
+    private fun reject(reason: String, request: RateAdjustRequest, active: Boolean): RateCommandResult {
+        stopRequired = active
         mutableState.value = RateAdjustState.Faulted(reason, request)
         return RateCommandResult.Rejected(reason)
     }
@@ -301,6 +331,7 @@ class SafeRateAdjustController(
         is RateAdjustState.Applying -> state.request
         is RateAdjustState.Active -> state.request
         is RateAdjustState.Stale -> state.request
+        is RateAdjustState.Faulted -> state.request
         else -> null
     }
 

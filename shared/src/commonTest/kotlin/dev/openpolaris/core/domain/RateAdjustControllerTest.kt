@@ -103,6 +103,71 @@ class RateAdjustControllerTest {
     }
 
     @Test
+    fun `newer accepted request atomically supersedes the active target`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 1))
+
+        assertEquals(RateCommandResult.Accepted(), controller.apply(request(version = 2)))
+        assertEquals(listOf(request(version = 1), request(version = 2)), transport.applied)
+        assertEquals(RateAdjustState.Active(request(version = 2)), controller.state.value)
+        assertEquals(0, transport.stops)
+    }
+
+    @Test
+    fun `delayed stale request cannot fault or replace the active target`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 2))
+
+        val result = controller.apply(request(version = 1))
+
+        assertEquals(RateCommandResult.Rejected("request version is stale"), result)
+        assertEquals(listOf(request(version = 2)), transport.applied)
+        assertEquals(RateAdjustState.Active(request(version = 2)), controller.state.value)
+    }
+
+    @Test
+    fun `unknown result requires explicit stop before a newer request`() = runTest {
+        val transport = FakeTransport().also {
+            it.nextApply = RateCommandResult.Unknown("acknowledgement lost")
+        }
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 1))
+
+        assertIs<RateCommandResult.Rejected>(controller.apply(request(version = 2)))
+        assertEquals(1, transport.applied.size)
+        assertEquals(RateCommandResult.Accepted(), controller.stopCorrection())
+
+        transport.nextApply = RateCommandResult.Accepted()
+        assertEquals(RateCommandResult.Accepted(), controller.apply(request(version = 2)))
+        assertEquals(2, transport.applied.size)
+        assertEquals(RateAdjustState.Active(request(version = 2)), controller.state.value)
+    }
+
+    @Test
+    fun `rejected replacement requires stop because the prior target may remain active`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 1))
+        transport.nextApply = RateCommandResult.Rejected("replacement refused")
+
+        assertIs<RateCommandResult.Rejected>(controller.apply(request(version = 2)))
+        assertIs<RateAdjustState.Faulted>(controller.state.value)
+        assertIs<RateCommandResult.Rejected>(controller.apply(request(version = 3)))
+        assertEquals(2, transport.applied.size)
+
+        assertEquals(RateCommandResult.Accepted(), controller.stopCorrection())
+        transport.nextApply = RateCommandResult.Accepted()
+        assertEquals(RateCommandResult.Accepted(), controller.apply(request(version = 3)))
+        assertEquals(3, transport.applied.size)
+    }
+
+    @Test
     fun `invalid target is rejected before transport`() = runTest {
         val transport = FakeTransport()
         val controller = SafeRateAdjustController(transport)
@@ -212,7 +277,7 @@ class RateAdjustControllerTest {
 
         assertIs<RateCommandResult.Rejected>(result)
         assertEquals(1, transport.applied.size)
-        assertIs<RateAdjustState.Faulted>(controller.state.value)
+        assertIs<RateAdjustState.Active>(controller.state.value)
     }
 
     @Test

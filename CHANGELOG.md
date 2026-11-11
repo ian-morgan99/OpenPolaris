@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Fine-rate rehearsal now serializes versioned target updates safely.** A
+  newer positively acknowledged request can replace the active target, while
+  delayed stale UI events cannot fault or replace it. Rejected or ambiguous
+  replacements retain an explicit-stop/recovery boundary; no live firmware
+  adapter or transport route is enabled.
 - **Astro Mission readiness now consumes resident readback evidence.** The
   ordered mission flow no longer hard-codes focus as unknown and guiding as
   inactive: a completed resident autofocus run with a best step can mark focus

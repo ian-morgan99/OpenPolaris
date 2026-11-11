@@ -5,6 +5,28 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-03.3/03.6 — Versioned fine-rate rehearsal safety
+
+The transport-neutral `SafeRateAdjustController` now serializes apply and stop
+operations. A newer request with a higher version supersedes an active target
+only after a positive acknowledgement; delayed stale UI events are rejected
+without faulting or replacing the active target. A rejected replacement is
+also treated conservatively because the previous target may still be active,
+and an unknown or rejected replacement requires an explicit stop before a new
+apply. Capability/context loss marks the request stale and preserves the same
+recovery boundary. No live 532/533/534 or AC 4A frame is enabled.
+
+Focused verification:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.RateAdjustControllerTest --console=plain --no-daemon
+```
+
+The tests cover accepted supersession, stale UI events, rejected replacement,
+unknown acknowledgement, explicit stop recovery and existing tracking/half-
+speed/solve gates. Firmware identity, physical stop and installed-hardware
+qualification remain open.
+
 ### WBS-05.1/05.4/09.1 — Astro Mission readback evidence
 
 The shared Astro Mission flow now derives focus and guiding stages from the

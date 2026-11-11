@@ -140,6 +140,15 @@
 
 ## WBS-03 — Motion ownership and slow-motion control
 
+- **2026-11-11 - WBS-03.3/03.6 ACTIVE (versioned fine-rate rehearsal):** the
+  transport-neutral fine-rate controller now serializes apply/stop operations,
+  allows a newer positively acknowledged request to replace an active target,
+  rejects delayed stale UI events without disturbing the active target, and
+  requires an explicit stop after a rejected or ambiguous replacement. This
+  remains a simulator/replay seam; the live 532/533/534 and AC 4A adapters are
+  still hard-gated by firmware, acknowledgement, watchdog, physical-stop and
+  limit evidence.
+
 - **2026-11-11 - WBS-03.1/03.6 ACTIVE (SLOW session boundary):** a newly acquired SLOW lease now clears scheduler point history and command/ack telemetry. The first point is therefore replayed after a confirmed prior stop even when it uses the same calibrated rung, while a new session cannot show a stale positive acknowledgement from an earlier lease. Deterministic controller coverage preserves the bounded event timeline and remains simulator/package evidence only.
 
 ### WBS-03.1 — Typed motion arbitration — P0

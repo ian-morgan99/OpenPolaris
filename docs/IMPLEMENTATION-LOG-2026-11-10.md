@@ -5,6 +5,33 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/07.1/09.1 — Compact mobile command-deck follow-up
+
+The phone Gallery callout no longer stacks Latest capture, the Astro WebUI
+gallery and the SD-card file manager in one scroll surface. A compact graphic
+selector shows exactly one section at a time; the desktop workspace retains the
+existing all-sections layout. The Tonight callout now starts with a Sun/Moon
+at-a-glance row and keeps the longer twilight, planet, comet and catalog
+sections behind one details action.
+
+Static explanatory paragraphs in the primary Connection, Astro, programme and
+gallery surfaces now use a compact-only description boundary. Dynamic state,
+errors, qualification blockers and safety warnings remain visible on phones.
+The compact graphic primitive now separates the existing small painted symbol from its compact selectable action boundary, with
+small selector tiles and a compact custom switch boundary. Desktop labels and full accessibility descriptions
+are unchanged.
+
+Focused verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileResponsiveLayoutContractTest --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --console=plain --no-daemon
+ANDROID_HOME=/home/ian/android-sdk ANDROID_SDK_ROOT=/home/ian/android-sdk ./gradlew :composeApp:compileDebugKotlinAndroid --console=plain --no-daemon
+```
+
+This is source/package evidence only. Installed-phone rendering, Bluetooth,
+mount, Astro WebUI, camera and physical qualification remain open.
+
 ### WBS-03.1/03.6/06.1 — Shared Astro resident-programme motion ownership
 
 Enabled Astro WebUI resident starts now acquire the shared `PROGRAMME` motion

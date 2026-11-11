@@ -84,9 +84,21 @@ internal enum class OpenPolarisGraphic {
     Forward,
 }
 
-/** The phone action footprint; the desktop rail retains the roomier target. */
+/**
+ * The phone action footprint; the desktop rail retains the roomier target.
+ *
+ * The footprint is deliberately separate from the painted symbol. The
+ * symbol can stay small enough for a dense command deck while the invisible
+ * action boundary remains large enough to select reliably with a finger.
+ */
 @Composable
 internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 18.dp else 48.dp
+
+@Composable
+internal fun compactSelectorTargetSize() = if (LocalOpenPolarisCompact.current) 16.dp else 32.dp
+
+@Composable
+internal fun compactGraphicSize() = if (LocalOpenPolarisCompact.current) 6.dp else 20.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -103,7 +115,7 @@ internal fun CompactFilterChip(
     if (LocalOpenPolarisCompact.current) {
         Box(
             modifier = modifier
-                .size(if (LocalOpenPolarisCompact.current) 16.dp else 32.dp)
+                .size(compactSelectorTargetSize())
                 .clip(RoundedCornerShape(5.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
@@ -507,8 +519,28 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 6.dp else 20.dp)) {
+    Canvas(modifier.size(compactGraphicSize())) {
         drawOpenPolarisGraphic(graphic, color)
+    }
+}
+
+/**
+ * Static explanation belongs in the details state on a phone. Dynamic
+ * status, errors and safety warnings remain ordinary Text so an operator
+ * never loses important current-state information just because the shell is
+ * compact.
+ */
+@Composable
+internal fun CompactDescription(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    if (!LocalOpenPolarisCompact.current) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = modifier,
+        )
     }
 }
 

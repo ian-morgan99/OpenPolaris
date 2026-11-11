@@ -125,7 +125,7 @@ fun OpenPolarisTheme(
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
     CompositionLocalProvider(
         LocalOpenPolarisCompact provides compact,
-        // The compact shell uses an 18 dp control footprint and 6 dp line graphics.
+        // The compact shell uses an 18 dp selectable footprint and 6 dp line graphics.
         // Action semantics and full content descriptions remain attached to
         // every control; desktop keeps the normal 48 dp Material target.
         LocalMinimumInteractiveComponentSize provides if (compact) 18.dp else 48.dp,

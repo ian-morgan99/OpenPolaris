@@ -65,13 +65,13 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         )
     } else null
 
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
+
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
-        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 12.dp)) {
+        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (compactLayout) 5.dp else 12.dp)) {
             Text("Tonight", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "What is above the horizon right now. Tap Slew to point the mount.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            CompactDescription("What is above the horizon right now. Tap Slew to point the mount.")
 
             // -- Observer location -----------------------------------------
             SectionCard("Observer") {
@@ -105,6 +105,37 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // tick is consumed so the LaunchedEffect re-fires recompositions
             @Suppress("UNUSED_EXPRESSION") tick
 
+            if (compactLayout) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Sun", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "${summary.sun.altitudeDeg.format2()}° / ${summary.sun.azimuthDeg.format2()}°",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("Moon", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "${summary.moon.altitudeDeg.format2()}° / ${summary.moon.azimuthDeg.format2()}°",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.More,
+                        label = if (showDetails) "Hide sky details" else "Sky details",
+                        contentDescription = if (showDetails) "Hide sky details" else "Show sky details",
+                        onClick = { showDetails = !showDetails },
+                        modifier = Modifier,
+                        outlined = true,
+                    )
+                }
+            }
+
+            if (!compactLayout || showDetails) {
             // -- Sun + twilight --------------------------------------------
             SectionCard("Sun") {
                 val s = summary.sun
@@ -258,6 +289,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         onClick = { vm.slewToObject(o) },
                     )
                 }
+            }
             }
         }
     }

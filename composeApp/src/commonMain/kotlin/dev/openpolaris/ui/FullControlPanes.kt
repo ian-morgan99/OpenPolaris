@@ -528,40 +528,98 @@ fun CaptureTimelinePane(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
 }
 
+private enum class GallerySection {
+    LATEST,
+    ASTRO_WEB_UI,
+    SD_CARD,
+}
+
 @Composable
-fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp)) {
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 5.dp else 6.dp)) {
-                Text("Latest capture", style = MaterialTheme.typography.titleMedium)
-                val publication = vm.lastCapturePublication
-                if (publication == null) {
-                    Text(
-                        "No capture has been confirmed in this session.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                } else {
-                    Text(publication.path, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        buildString {
-                            publication.type?.let { append("type $it") }
-                            publication.sizeBytes?.let {
-                                if (isNotEmpty()) append(" · ")
-                                append("${it} bytes")
-                            }
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text(
-                        "Published only after the capture lifecycle and file event were correlated.",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
+private fun LatestCaptureCard(vm: AppViewModel, modifier: Modifier = Modifier) {
+    Card(modifier) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 5.dp else 6.dp),
+        ) {
+            Text("Latest capture", style = MaterialTheme.typography.titleMedium)
+            val publication = vm.lastCapturePublication
+            if (publication == null) {
+                Text(
+                    "No capture has been confirmed in this session.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                Text(publication.path, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    buildString {
+                        publication.type?.let { append("type $it") }
+                        publication.sizeBytes?.let {
+                            if (isNotEmpty()) append(" · ")
+                            append("${it} bytes")
+                        }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                CompactDescription("Published only after the capture lifecycle and file event were correlated.")
             }
         }
-        CaptureTimelinePane(vm, Modifier.fillMaxWidth())
-        AstroWebUiGalleryPane(vm, Modifier.fillMaxWidth())
-        FilesPane(vm, Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var selectedSection by remember(compactLayout) { mutableStateOf(GallerySection.LATEST) }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp)) {
+        if (compactLayout) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("gallery-section-selector"),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                CompactFilterChip(
+                    selected = selectedSection == GallerySection.LATEST,
+                    onClick = { selectedSection = GallerySection.LATEST },
+                    label = { Text("Latest") },
+                    compactLabel = "1",
+                    graphic = OpenPolarisGraphic.Clock,
+                    contentDescription = "Show latest capture",
+                    modifier = Modifier.testTag("gallery-section-latest"),
+                )
+                CompactFilterChip(
+                    selected = selectedSection == GallerySection.ASTRO_WEB_UI,
+                    onClick = { selectedSection = GallerySection.ASTRO_WEB_UI },
+                    label = { Text("Astro") },
+                    compactLabel = "A",
+                    graphic = OpenPolarisGraphic.Preview,
+                    contentDescription = "Show Astro WebUI gallery",
+                    modifier = Modifier.testTag("gallery-section-astro"),
+                )
+                CompactFilterChip(
+                    selected = selectedSection == GallerySection.SD_CARD,
+                    onClick = { selectedSection = GallerySection.SD_CARD },
+                    label = { Text("SD") },
+                    compactLabel = "SD",
+                    graphic = OpenPolarisGraphic.Save,
+                    contentDescription = "Show SD card files",
+                    modifier = Modifier.testTag("gallery-section-sd"),
+                )
+            }
+            when (selectedSection) {
+                GallerySection.LATEST -> {
+                    LatestCaptureCard(vm, Modifier.fillMaxWidth())
+                    CaptureTimelinePane(vm, Modifier.fillMaxWidth())
+                }
+                GallerySection.ASTRO_WEB_UI -> AstroWebUiGalleryPane(vm, Modifier.fillMaxWidth())
+                GallerySection.SD_CARD -> FilesPane(vm, Modifier.fillMaxWidth())
+            }
+        } else {
+            LatestCaptureCard(vm, Modifier.fillMaxWidth())
+            CaptureTimelinePane(vm, Modifier.fillMaxWidth())
+            AstroWebUiGalleryPane(vm, Modifier.fillMaxWidth())
+            FilesPane(vm, Modifier.fillMaxWidth())
+        }
     }
 }
 
@@ -576,10 +634,9 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Astro WebUI gallery", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "Optional resident WebUI index with thumbnail and full-JPEG reads. " +
                     "This is separate from native 770/772/773 media transfer and cannot delete files.",
-                style = MaterialTheme.typography.bodySmall,
             )
             val enabled = FeatureFlags.isEnabled("astroWebUiMedia")
             val statusEnabled = FeatureFlags.isEnabled("astroWebUiStatus")

@@ -123,9 +123,9 @@ class MobileResponsiveLayoutContractTest {
         val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
         val theme = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt"))
         val app = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt"))
-        assertTrue("size(if (LocalOpenPolarisCompact.current) 16.dp else 32.dp)" in graphics)
+        assertTrue("compactSelectorTargetSize() = if (LocalOpenPolarisCompact.current) 16.dp else 32.dp" in graphics)
         assertTrue("compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 18.dp" in graphics)
-        assertTrue("Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 6.dp" in graphics)
+        assertTrue("compactGraphicSize() = if (LocalOpenPolarisCompact.current) 6.dp else 20.dp" in graphics)
         assertTrue("LocalMinimumInteractiveComponentSize provides if (compact) 18.dp" in theme)
         assertTrue("height(18.dp)" in app)
         assertTrue("padding(1.dp)" in app)
@@ -286,6 +286,28 @@ class MobileResponsiveLayoutContractTest {
     }
 
     // --- (5) Build identity in Settings still required --------------
+
+    @Test
+    fun compactModeSuppressesStaticProseButKeepsDynamicStatus() {
+        val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
+        val panes = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt"))
+        val tonight = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/TonightPane.kt"))
+        assertTrue("internal fun CompactDescription(" in graphics)
+        assertTrue("if (!LocalOpenPolarisCompact.current)" in graphics)
+        assertTrue("CompactDescription(" in panes, "primary panes must route static explanations through CompactDescription")
+        assertTrue("var showDetails by remember(compactLayout)" in tonight)
+        assertTrue("if (!compactLayout || showDetails)" in tonight)
+    }
+
+    @Test
+    fun compactGalleryUsesOneVisibleSectionInsteadOfStackingAllLists() {
+        val src = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt"))
+        assertTrue("private enum class GallerySection" in src)
+        assertTrue("gallery-section-selector" in src)
+        assertTrue("GallerySection.ASTRO_WEB_UI" in src)
+        assertTrue("GallerySection.SD_CARD" in src)
+        assertTrue("when (selectedSection)" in src)
+    }
 
     @Test
     fun settingsPaneStillExposesBuildIdentity() {

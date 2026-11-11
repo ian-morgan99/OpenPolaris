@@ -110,6 +110,16 @@
   state and full accessibility descriptions remain explicit; desktop
   navigation and labels are unchanged. Installed-phone rendering remains
   open.
+- **2026-11-11 - WBS-01.3/07.1/09.1 ACTIVE (compact command-deck follow-up):**
+  the phone Gallery callout now shows one of Latest capture, Astro WebUI or SD
+  card at a time through a graphic selector instead of stacking all three
+  scroll-heavy surfaces. Tonight starts with a Sun/Moon at-a-glance row and
+  keeps twilight, catalogue and target sections behind one details action.
+  Static explanatory prose is suppressed in compact mode while dynamic state,
+  errors and safety warnings remain visible. Compact graphics now use a small
+  painted symbol with a separate compact selectable boundary; desktop labels and
+  full accessibility descriptions remain unchanged. Source/package evidence is
+  complete; installed-phone rendering remains open.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

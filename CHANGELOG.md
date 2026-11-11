@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Mobile workspaces now use a compact command-deck hierarchy.** The Gallery
+  callout shows one of Latest, Astro WebUI or SD card at a time on phones
+  instead of stacking all three scroll-heavy surfaces. Tonight opens with a
+  Sun/Moon at-a-glance row and keeps twilight, catalog and target lists behind
+  one details action. Static explanatory prose is suppressed in compact mode
+  while dynamic state, errors and safety warnings remain visible. Small line
+  graphics remain visually compact while their selectable action boundaries stay
+  separate from the painted symbol; desktop labels and accessibility names are
+  unchanged.
+
 ### Fixed
 - **Resident Astro WebUI programmes now participate in shared motion ownership.**
   Enabled timelapse, panorama, HDR, focus, solar, PLC and path-lapse starts

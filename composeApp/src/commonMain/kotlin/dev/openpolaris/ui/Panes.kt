@@ -563,9 +563,8 @@ fun ConnectionPane(
             EndpointHealthSection(vm)
             BluetoothWakeEvidenceSection(vm)
             Text("Astro control link", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "Read-only /api/link evidence from the resident Astro WebUI. It describes the server control link and cached opcode frames; it does not replace Bluetooth wake, bridge or native motion ownership.",
-                style = MaterialTheme.typography.bodySmall,
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -620,9 +619,8 @@ fun ConnectionPane(
             }
             HorizontalDivider()
             Text("Astro keep-Wi-Fi", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "The resident helper can keep the mount link awake after alignment. Readback distinguishes enabled, running, aligned and forced; it does not claim the Bluetooth or Wi-Fi bridge is healthy.",
-                style = MaterialTheme.typography.bodySmall,
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -708,9 +706,8 @@ fun ConnectionPane(
             }
             HorizontalDivider()
             Text("Astro Wi-Fi", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "Read-only interface and saved-network evidence from the resident Astro WebUI. This is separate from the app's Bluetooth wake and PC bridge phases.",
-                style = MaterialTheme.typography.bodySmall,
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1294,9 +1291,8 @@ fun MissionDashboardPane(
                 }
             }
             Text("Solve controls", style = MaterialTheme.typography.titleSmall)
-            Text(
+            CompactDescription(
                 "Solve start, cancel and apply are resident-server actions. Apply can change the mount alignment; all three remain disabled until solver, camera and recovery qualification is complete.",
-                style = MaterialTheme.typography.bodySmall,
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1345,9 +1341,8 @@ fun MissionDashboardPane(
             }
             HorizontalDivider()
             Text("Astro target and alignment", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "GoTo preview validates the target without moving the head. A second explicit action starts the resident slew; compass alignment and GoTo writes remain separately gated and require physical recovery evidence.",
-                style = MaterialTheme.typography.bodySmall,
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -2297,9 +2292,8 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
     }
 
     Text("Start resident programme", style = MaterialTheme.typography.titleMedium)
-    Text(
+    CompactDescription(
         "Lapse, panorama, HDR and focus use the resident Astro WebUI. Preview and validation never start a run; a confirmed start may move the mount or fire the shutter.",
-        style = MaterialTheme.typography.bodySmall,
     )
     if (!enabled) {
         Text(
@@ -2531,9 +2525,8 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
     }.getOrNull()
 
     Text("In-head Astro capture", style = MaterialTheme.typography.titleMedium)
-    Text(
+    CompactDescription(
         "Source Astro WebUI /api/astro/capture starts a resident 272 run. The server's /api/prog status remains authoritative after the HTTP acknowledgement; the source also warns that externally triggered Astro capture can be unreliable.",
-        style = MaterialTheme.typography.bodySmall,
     )
     if (!enabled) {
         Text(
@@ -2627,9 +2620,8 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
     val previewReady = state is AstroWebUiSunState.Preview
 
     Text("Scheduled solar lapse", style = MaterialTheme.typography.titleMedium)
-    Text(
+    CompactDescription(
         "Preview a sunrise or sunset window using the client clock, then explicitly start it. The resident programme status remains the completion authority.",
-        style = MaterialTheme.typography.bodySmall,
     )
     if (!enabled) {
         Text(
@@ -2793,9 +2785,8 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
         )
 
     Text("Extended Astro programmes", style = MaterialTheme.typography.titleMedium)
-    Text(
+    CompactDescription(
         "PLC and path-lapse capture live head poses as server-side waypoints. Holy Grail uploads a day-to-night exposure curve. Preview is non-committing; starts and uploads remain qualification-gated.",
-        style = MaterialTheme.typography.bodySmall,
     )
     if (!enabled) {
         Text(

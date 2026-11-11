@@ -123,11 +123,11 @@ class MobileResponsiveLayoutContractTest {
         val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
         val theme = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt"))
         val app = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt"))
-        assertTrue("size(if (LocalOpenPolarisCompact.current) 18.dp else 32.dp)" in graphics)
-        assertTrue("compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 20.dp" in graphics)
-        assertTrue("Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 8.dp" in graphics)
-        assertTrue("LocalMinimumInteractiveComponentSize provides if (compact) 20.dp" in theme)
-        assertTrue("height(20.dp)" in app)
+        assertTrue("size(if (LocalOpenPolarisCompact.current) 16.dp else 32.dp)" in graphics)
+        assertTrue("compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 18.dp" in graphics)
+        assertTrue("Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 6.dp" in graphics)
+        assertTrue("LocalMinimumInteractiveComponentSize provides if (compact) 18.dp" in theme)
+        assertTrue("height(18.dp)" in app)
         assertTrue("padding(1.dp)" in app)
     }
 
@@ -136,7 +136,7 @@ class MobileResponsiveLayoutContractTest {
         val graphics = stripComments(sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt"))
         assertTrue("internal fun CompactSwitch(" in graphics)
         assertTrue("modifier.toggleable(" in graphics)
-        assertTrue("size(width = 30.dp, height = 20.dp)" in graphics)
+        assertTrue("size(width = 24.dp, height = 16.dp)" in graphics)
         assertFalse("Modifier.scale(0.72f)" in graphics)
         for (path in listOf(
             "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",
@@ -162,7 +162,7 @@ class MobileResponsiveLayoutContractTest {
         val noComments = stripComments(src)
         assertTrue("CompactDestinationBar(" in noComments, "phone layout must use the compact destination bar")
         assertTrue("CompactDestinationItem(" in noComments, "each primary destination needs a compact semantic target")
-        assertTrue("height(20.dp)" in noComments, "compact navigation must use the reduced 20 dp visual row")
+        assertTrue("height(18.dp)" in noComments, "compact navigation must use the reduced 18 dp visual row")
         assertTrue("CompactGraphicTabButton(" in noComments, "compact destinations must use the graphic-only tab boundary")
         assertFalse("PaddingValues(0.dp)" in noComments, "compact destinations must not inherit Material text-button padding")
         assertFalse("NavigationBarItem(" in noComments, "phone navigation must not restore the oversized icon-and-label items")

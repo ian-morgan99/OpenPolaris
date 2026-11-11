@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Fifth compact phone density pass reduces the remaining visual scale.** Compact line graphics are now 6 dp, graphic actions use an 18 dp footprint, selector tiles use 16 dp, compact switches use a 24x16 dp visual, single-line fields cap at 40 dp and the primary destination row is 18 dp. The mission readiness next-action and overflow menu now use graphic-first mobile affordances; desktop labels and accessibility descriptions remain intact.
 - **Compact navigation no longer inherits Material text-button chrome.** The
   phone destination row, unavailable-feature close action and callout close
   action now use small graphics with tab/button semantics and full

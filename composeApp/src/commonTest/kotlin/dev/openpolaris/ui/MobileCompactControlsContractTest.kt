@@ -23,12 +23,12 @@ class MobileCompactControlsContractTest {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
         val theme = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt")
 
-        assertTrue("8.dp else 20.dp" in graphics, "phone graphics must be visibly smaller than desktop graphics")
+        assertTrue("6.dp else 20.dp" in graphics, "phone graphics must be visibly smaller than desktop graphics")
         assertTrue("compactActionTargetSize" in graphics)
-        assertTrue("20.dp else 48.dp" in graphics, "phone action targets must use the micro footprint")
-        assertTrue("18.dp else 32.dp" in graphics, "phone selector chips must use the micro footprint")
+        assertTrue("18.dp else 48.dp" in graphics, "phone action targets must use the micro footprint")
+        assertTrue("16.dp else 32.dp" in graphics, "phone selector chips must use the micro footprint")
         assertTrue("LocalMinimumInteractiveComponentSize" in theme)
-        assertTrue("if (compact) 20.dp else 48.dp" in theme)
+        assertTrue("if (compact) 18.dp else 48.dp" in theme)
         assertTrue("CompactFilterChip" in graphics, "text selectors must use the compact chip boundary")
         assertTrue("CompactTextButton" in graphics, "long text fallbacks must use the compact text boundary")
         assertTrue("CompactTextButton(" in panes, "alignment results must use the compact text fallback")
@@ -188,7 +188,7 @@ class MobileCompactControlsContractTest {
     fun singleLinePhoneFieldsUseTheCompactSizingBoundary() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         assertTrue("internal fun CompactOutlinedTextField(" in graphics)
-        assertTrue("heightIn(max = 44.dp)" in graphics)
+        assertTrue("heightIn(max = 40.dp)" in graphics)
         assertTrue("supportingText == null" in graphics)
         for (path in listOf(
             "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",
@@ -417,6 +417,15 @@ class MobileCompactControlsContractTest {
         assertTrue("contentDescription = \"Disconnect mount Wi-Fi\"" in fullPanes)
         assertFalse("OutlinedButton(onClick = { vm.connectWifiSsid(\"\") })" in fullPanes)
         assertFalse("OutlinedButton(onClick = vm::disconnectWifi)" in fullPanes)
+    }
+
+    @Test
+    fun compactMissionReadinessActionUsesGraphicFirstBoundary() {
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+
+        assertTrue("graphic = OpenPolarisGraphic.Forward" in shell)
+        assertTrue("contentDescription = \"Next: \$action\"" in shell)
+        assertFalse("TextButton(\n                                onClick = { open(next.id) }" in shell)
     }
 
     @Test

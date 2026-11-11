@@ -84,7 +84,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 20.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 18.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -101,7 +101,7 @@ internal fun CompactFilterChip(
     if (LocalOpenPolarisCompact.current) {
         Box(
             modifier = modifier
-                .size(if (LocalOpenPolarisCompact.current) 18.dp else 32.dp)
+                .size(if (LocalOpenPolarisCompact.current) 16.dp else 32.dp)
                 .clip(RoundedCornerShape(5.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
@@ -195,13 +195,13 @@ internal fun CompactSwitch(
     }
     Canvas(
         modifier = interactionModifier
-            .size(width = 30.dp, height = 20.dp)
+            .size(width = 24.dp, height = 16.dp)
             .semantics {
                 stateDescription = if (checked) "On" else "Off"
             },
     ) {
-        val trackWidth = 22.dp.toPx()
-        val trackHeight = 12.dp.toPx()
+        val trackWidth = 18.dp.toPx()
+        val trackHeight = 10.dp.toPx()
         val trackLeft = (size.width - trackWidth) / 2f
         val trackTop = (size.height - trackHeight) / 2f
         drawRoundRect(
@@ -210,7 +210,7 @@ internal fun CompactSwitch(
             size = Size(trackWidth, trackHeight),
             cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
         )
-        val thumbRadius = 4.dp.toPx()
+        val thumbRadius = 3.dp.toPx()
         val thumbX = if (checked) {
             trackLeft + trackWidth - thumbRadius
         } else {
@@ -228,7 +228,7 @@ internal fun CompactSwitch(
  * Graphic-only tab used by the compact destination bar. Material3's
  * TextButton still carries button-specific layout semantics even when its
  * content is only an icon; this keeps the tab role and selected state while
- * leaving the parent bar in control of the 20 dp row height.
+ * leaving the parent bar in control of the 18 dp row height.
  */
 @Composable
 internal fun CompactGraphicTabButton(
@@ -379,7 +379,7 @@ internal fun CompactTextButton(
         enabled = enabled,
         contentPadding = PaddingValues(horizontal = if (LocalOpenPolarisCompact.current) 4.dp else 8.dp, vertical = 0.dp),
         modifier = modifier
-            .heightIn(max = if (LocalOpenPolarisCompact.current) 28.dp else 48.dp)
+            .heightIn(max = if (LocalOpenPolarisCompact.current) 24.dp else 48.dp)
             .semantics(mergeDescendants = true) {
                 this.contentDescription = contentDescription
             },
@@ -417,7 +417,7 @@ internal fun CompactOutlinedTextField(
     minLines: Int = 1,
 ) {
     val compactModifier = if (LocalOpenPolarisCompact.current && singleLine && supportingText == null) {
-        modifier.heightIn(max = 44.dp)
+        modifier.heightIn(max = 40.dp)
     } else {
         modifier
     }
@@ -447,7 +447,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 8.dp else 20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 6.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }

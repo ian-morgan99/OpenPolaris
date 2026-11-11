@@ -488,7 +488,7 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Compact phone navigation: graphic-only, one 20 dp visual row.
+ * Compact phone navigation: graphic-only, one 18 dp visual row.
  *
  * Material3 NavigationBar reserves a large icon slot above every label. That
  * is useful on a tablet, but wastes most of a phone's vertical workspace when
@@ -506,7 +506,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(20.dp)
+            .height(18.dp)
             .testTag("primary-navigation"),
     ) {
         Row(
@@ -544,6 +544,7 @@ private fun CompactDestinationBar(
             AdvancedItems.forEachIndexed { i, callout ->
                 if (i > 0) HorizontalDivider()
                 DropdownMenuItem(
+                    leadingIcon = { OpenPolarisGraphicIcon(callout.graphic) },
                     text = { Text(callout.glyph) },
                     modifier = Modifier.testTag("destination-more-" + callout.name.lowercase()),
                     onClick = {
@@ -930,12 +931,13 @@ private fun StatusStrip(
                     )
                     next.actionLabel?.let { action ->
                         onOpenMissionAction?.let { open ->
-                            TextButton(
+                            ResponsiveTextActionButton(
+                                graphic = OpenPolarisGraphic.Forward,
+                                label = "Next: $action",
+                                contentDescription = "Next: $action",
                                 onClick = { open(next.id) },
                                 modifier = Modifier.testTag("mission-next-action"),
-                            ) {
-                                Text("Next: $action")
-                            }
+                            )
                         } ?: Text(
                             "Action: $action",
                             style = MaterialTheme.typography.labelSmall,

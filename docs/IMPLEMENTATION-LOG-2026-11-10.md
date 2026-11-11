@@ -1848,3 +1848,17 @@ Verification passed:
 This is source/package UX evidence only. No installed-phone render or live
 mount, camera, Bluetooth, Astro WebUI, motion or capture qualification was
 performed.
+
+### WBS-01.3/09.1 — Fifth compact phone density pass
+
+The previous compact pass still left the mobile shell visually heavy. Compact
+line graphics are now 6 dp, graphic actions use an 18 dp footprint, selector
+tiles use 16 dp, the custom switch visual is 24x16 dp, single-line fields cap
+at 40 dp and the primary destination row is 18 dp. Mission readiness next
+actions and overflow-menu entries use graphic-first compact affordances while
+desktop retains readable labels and every mobile action retains its full
+semantic description.
+
+This changes visual density only. No route, command, capture, motion owner,
+Bluetooth or feature gate changed. Focused source-contract tests passed; an
+installed-phone render and live hardware qualification remain open.

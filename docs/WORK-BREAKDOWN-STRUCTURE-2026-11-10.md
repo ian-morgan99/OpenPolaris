@@ -1373,7 +1373,7 @@ The current implementation slice must not send a new motor frame, alter firmware
   WebUI, camera, mount, Bluetooth or physical motion/capture operation was
   exercised.
 
-### WBS-01.3/05.1/06.1/09.1  Compact remaining Astro and programme actions
+### WBS-01.3/05.1/06.1/09.1 - Compact remaining Astro and programme actions
 
 The phone surface now uses small graphics for the remaining high-density
 mission actions: solve/GoTo/autofocus/session/tracking, resident programme
@@ -1604,3 +1604,17 @@ qualification block are unchanged.
 Verification is required before publication: focused mobile contracts, full
 Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
 rendering and physical motion qualification remain open.
+
+
+### 2026-11-11  - WBS-01.3/09.1 compact GoTo core-first surface
+
+On compact phones, GoTo keeps coordinate entry, coordinate-mode selection, Slew,
+Cancel and Reset visible. Plate solve, named-star alignment and auto-level are
+behind one graphic-backed More tools disclosure, so the primary destination
+does not require a long scroll before the operator reaches the core slew action.
+Desktop remains fully expanded; no command, motion-owner or qualification gate
+changed. Full tool access remains available through the disclosure.
+
+Verification is required before publication: focused mobile contracts, full
+Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
+rendering and live GoTo/plate-solve/auto-level qualification remain open.

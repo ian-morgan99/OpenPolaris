@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact GoTo is now core-first on phones.** Coordinate entry, mode selection,
+  Slew, Cancel and Reset remain visible; plate solve, star alignment and
+  auto-level are behind one small graphic-backed More tools disclosure.
+  Desktop keeps the complete labelled workspace and all motion/safety semantics
+  are unchanged.
+
 - **The compact phone Control destination is now a two-surface command deck.**
   Position, tracking, half-speed and AHRS state stay visible; fast jog and SLOW
   are selected with small graphic-backed tiles instead of being stacked in one

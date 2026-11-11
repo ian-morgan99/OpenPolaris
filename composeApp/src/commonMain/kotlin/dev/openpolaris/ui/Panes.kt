@@ -3915,6 +3915,8 @@ private fun JogButton(graphic: OpenPolarisGraphic, label: String, code: Int, vm:
 @Composable
 fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var alignmentQuery by remember { mutableStateOf("") }
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showGotoDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Slew", style = MaterialTheme.typography.titleMedium)
@@ -4018,6 +4020,22 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
 
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showGotoDetails) "Hide tools" else "More tools",
+                    contentDescription = if (showGotoDetails) {
+                        "Hide plate solve, alignment and auto-level tools"
+                    } else {
+                        "Show plate solve, alignment and auto-level tools"
+                    },
+                    onClick = { showGotoDetails = !showGotoDetails },
+                    modifier = Modifier.testTag("goto-details-toggle"),
+                    outlined = true,
+                )
+            }
+
+            if (!compactLayout || showGotoDetails) {
             HorizontalDivider()
 
             Text("Plate solve", style = MaterialTheme.typography.titleSmall)
@@ -4130,6 +4148,7 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
             AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
+            }
         }
     }
 }

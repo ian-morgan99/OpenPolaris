@@ -1943,7 +1943,7 @@ lifecycle changed. This is source/package UX evidence; live Astro WebUI,
 camera, mount, Bluetooth, installed-phone rendering and physical qualification
 remain open.
 
-### WBS-01.3/05.1/06.1/09.1  Compact remaining Astro and programme actions
+### WBS-01.3/05.1/06.1/09.1 - Compact remaining Astro and programme actions
 
 The phone surface now uses small graphics for the remaining high-density
 mission actions: solve/GoTo/autofocus/session/tracking, resident programme
@@ -2092,7 +2092,7 @@ This changes visual density only. No route, command, capture, motion owner,
 Bluetooth or feature gate changed. Focused source-contract tests passed; an
 installed-phone render and live hardware qualification remain open.
 
-### WBS-01.3/06.3/09.1  Compact Astro programme parameter rows
+### WBS-01.3/06.3/09.1 - Compact Astro programme parameter rows
 
 The Astro WebUI lapse and panorama composers now pair related numeric fields
 on compact phones: interval/shots, bulb/FPS, columns/rows, horizontal/vertical
@@ -2157,3 +2157,16 @@ and qualification semantics are unchanged.
 
 Focused source-contract coverage was added in
 MobileResponsiveLayoutContractTest.phoneControlDestinationUsesOneActiveCommandSurface.
+
+
+### WBS-01.3/09.1  - Compact GoTo core-first surface
+
+The compact phone GoTo pane now keeps the coordinate fields, mode selector and
+Slew/Cancel/Reset actions in the initial view. Plate solve, named alignment and
+auto-level are still available but are collapsed behind one graphic-backed
+More tools disclosure on phones; desktop remains expanded. No motion or
+qualification behavior changed.
+
+Focused source-contract verification is required before publication. This is
+source/package UX evidence only; installed-phone rendering and live GoTo,
+plate-solve and auto-level qualification remain open.

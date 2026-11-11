@@ -518,6 +518,21 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactGotoKeepsSlewCoreVisibleAndCollapsesSecondaryTools() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in panes)
+        assertTrue("var showGotoDetails by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"goto-details-toggle\")" in panes)
+        assertTrue("Show plate solve, alignment and auto-level tools" in panes)
+        assertTrue("Hide plate solve, alignment and auto-level tools" in panes)
+        assertTrue("if (!compactLayout || showGotoDetails)" in panes)
+        assertTrue("contentDescription = \"Slew to the entered coordinates\"" in panes)
+        assertTrue("contentDescription = \"Cancel the active slew\"" in panes)
+        assertTrue("contentDescription = \"Reset the mount position\"" in panes)
+    }
+
+    @Test
     fun compactMissionReadinessActionUsesGraphicFirstBoundary() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
 

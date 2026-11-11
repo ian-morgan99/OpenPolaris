@@ -204,6 +204,19 @@ class SlowMotionScheduler(
     private val cycleStartMs = LongArray(RateAxis.entries.size)
     private val stopSent = BooleanArray(RateAxis.entries.size)
 
+    /**
+     * Clear scheduler history at a new motion-session boundary. Without this,
+     * a previously acknowledged point can suppress the first point of a new
+     * lease when the new plan happens to begin on the same rung.
+     */
+    fun reset() {
+        plan = null
+        active.fill(null)
+        lastSwitchMs.fill(0L)
+        cycleStartMs.fill(0L)
+        stopSent.fill(false)
+    }
+
     fun setPlan(value: SlowMotionPlan, nowMs: Long) {
         require(nowMs >= 0L) { "scheduler time must be monotonic and non-negative" }
         plan = value

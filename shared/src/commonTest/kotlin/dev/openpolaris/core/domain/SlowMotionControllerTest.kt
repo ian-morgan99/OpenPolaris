@@ -114,18 +114,43 @@ class SlowMotionControllerTest {
         )
 
         val recoveredLease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertTrue(controller.telemetry.value.events.isEmpty())
         assertTrue(controller.recoverAfterReconnect(recoveredLease))
         assertEquals(SlowMotionTelemetryEventKind.RECOVERED, controller.telemetry.value.events.last().kind)
     }
 
     @Test
-    fun telemetryHistoryIsBounded() = runTest {
-        val controller = SlowMotionController(FakeTransport())
+    fun a_new_lease_replays_the_first_point_and_resets_session_evidence() = runTest {
+        val transport = FakeTransport()
+        val controller = SlowMotionController(transport)
+        val first = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertEquals(SlowMotionActionResult.Started, controller.start(first, targets(), 0L))
+        assertEquals(SlowMotionActionResult.Applied(3), controller.tick(first, 75L))
+        assertTrue(controller.telemetry.value.lastPositiveAcknowledgementAtMs != null)
+        assertEquals(SlowMotionActionResult.Stopped, controller.release(first))
 
-        repeat(5) {
-            val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
-            assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(), it * 100L))
-            assertEquals(SlowMotionActionResult.Stopped, controller.release(lease))
+        val second = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertNull(controller.telemetry.value.lastCommand)
+        assertTrue(controller.telemetry.value.events.isEmpty())
+        assertEquals(SlowMotionActionResult.Started, controller.start(second, targets(), 1_000L))
+        val before = transport.applied.size
+        assertEquals(SlowMotionActionResult.Applied(3), controller.tick(second, 1_075L))
+        assertEquals(3, transport.applied.size - before)
+    }
+
+    @Test
+    fun telemetryHistoryIsBounded() = runTest {
+        val controller = SlowMotionController(
+            FakeTransport(),
+            scheduler = SlowMotionScheduler(minimumDwellMs = 1L, normalCycleMs = 2L, reversingCycleMs = 2L),
+            leaseWindowMs = 1_000L,
+        )
+        val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        val halfRungRate = (0.0059 + 0.0119) / 2.0
+        assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(halfRungRate), 0L))
+        repeat(8) { index ->
+            assertEquals(SlowMotionActionResult.Renewed, controller.renew(lease, index + 1L))
+            controller.tick(lease, index + 1L)
         }
 
         val events = controller.telemetry.value.events

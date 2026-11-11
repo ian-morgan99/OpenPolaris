@@ -140,6 +140,11 @@ class SlowMotionController(
                     }
                 }
                 val lease = SlowMotionLease(nextToken++, supervisorLease)
+                scheduler.reset()
+                // Command/ack ages are scoped to the new lease. Retaining an
+                // old positive acknowledgement here would make a fresh
+                // session look hardware-ready before it had sent anything.
+                mutableTelemetry.value = SlowMotionTelemetry()
                 mutableState.value = SlowMotionState.Armed(lease)
                 SlowMotionAcquireResult.Granted(lease)
             }

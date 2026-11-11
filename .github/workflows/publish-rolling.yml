@@ -100,7 +100,12 @@ jobs:
           set -euo pipefail
           mkdir -p out/android
           cp androidApp/build/outputs/apk/release/androidApp-release.apk out/android/
-          cp apk-sha256.txt apk-signer-sha256.txt out/android/
+          # The build-side digest contains the runner's workspace path. Rewrite
+          # it to the staged filename so the final publisher can verify the
+          # downloaded artifact in its own workspace.
+          digest=$(cut -d' ' -f1 apk-sha256.txt)
+          printf '%s  androidApp-release.apk\n' "$digest" > out/android/apk-sha256.txt
+          cp apk-signer-sha256.txt out/android/
 
       - name: Upload Android artifacts for final publish
         uses: actions/upload-artifact@v4

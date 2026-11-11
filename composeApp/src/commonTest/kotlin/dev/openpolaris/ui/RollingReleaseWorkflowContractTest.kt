@@ -23,6 +23,7 @@ class RollingReleaseWorkflowContractTest {
         assertTrue("apk-signer-sha256.txt" in workflow)
         assertTrue("test -s apk-sha256.txt" in workflow)
         assertTrue("test -s apk-signer-sha256.txt" in workflow)
+        assertTrue("printf '%s  androidApp-release.apk\\n' \"\$digest\" > out/android/apk-sha256.txt" in workflow)
         assertFalse("awk -F': *' '/SHA-256 digest/ {print $2}' | head -1 > apk-sha256.txt" in workflow)
     }
 

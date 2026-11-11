@@ -250,4 +250,30 @@ class MobileCompactControlsContractTest {
         assertFalse("Button(\n                    enabled = FeatureFlags.isEnabled(\"astroWebUiRunState\"),\n                    onClick = vm::refreshAstroWebUiRunState" in panes)
     }
 
+
+    @Test
+    fun astroMissionAndProgrammeActionsUseCompactGraphics() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("contentDescription = \"Solve the latest Astro frame\"" in panes)
+        assertTrue("contentDescription = \"Confirm and start the Astro GoTo\"" in panes)
+        assertTrue("contentDescription = \"Start the resident Astro autofocus sweep\"" in panes)
+        assertTrue("contentDescription = \"Enter Astro mode\"" in panes)
+        assertTrue("contentDescription = if (observedAstroStatus?.trackRequested == true)" in panes)
+        assertTrue("contentDescription = \"Stop the resident Astro programme\"" in panes)
+        assertTrue("contentDescription = if (armed) \"Confirm and start in-head Astro capture\"" in panes)
+        assertTrue("contentDescription = solarActionLabel" in panes)
+        assertTrue("contentDescription = plcActionLabel" in panes)
+        assertTrue("contentDescription = pathActionLabel" in panes)
+        assertTrue("contentDescription = grailActionLabel" in panes)
+        assertTrue("contentDescription = \"Start the intervalometer sequence\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Camera" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Preview" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Stop" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
+        assertFalse("Text(\"Solve latest\")" in panes)
+        assertFalse("Text(\"Start sweep\")" in panes)
+        assertFalse("Text(\"Enter Astro\")" in panes)
+    }
+
 }

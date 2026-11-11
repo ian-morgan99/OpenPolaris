@@ -1230,3 +1230,18 @@ The current implementation slice must not send a new motor frame, alter firmware
   Android compilation and desktop packaging are required. No live Astro
   WebUI, camera, mount, Bluetooth or physical motion/capture operation was
   exercised.
+
+### WBS-01.3/05.1/06.1/09.1  Compact remaining Astro and programme actions
+
+The phone surface now uses small graphics for the remaining high-density
+mission actions: solve/GoTo/autofocus/session/tracking, resident programme
+pause/stop, Astro programme composers, observation-programme preview/run/pause/
+resume/stop, and intervalometer start/pause/resume/stop. Each retains an
+explicit accessible description and 48 dp hit target; desktop keeps the
+labelled controls. Preview/start and motion/capture warnings remain represented
+by accessible labels and surrounding safety text.
+
+No route, command, feature gate, motion owner, capture lifecycle or evidence
+contract changed. This is source/package UX evidence; installed-phone
+rendering, live Astro WebUI, camera, Bluetooth and physical qualification
+remain open.

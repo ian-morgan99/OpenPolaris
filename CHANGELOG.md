@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Remaining mobile Astro and programme actions now use compact graphics.**
+  Solve, GoTo, autofocus, session/tracking, resident-programme, Astro composer,
+  observation-programme and intervalometer actions keep explicit accessible
+  descriptions and 48 dp touch targets on phones; PC retains the full labels.
+  Preview/start and motion/capture safety wording remains available through
+  the labelled desktop surface and the surrounding mobile status text.
 - **Phone action icons no longer inherit desktop width modifiers.** Compact
   ResponsiveActionButton controls now keep their 48 dp graphic hit target even
   when the desktop layout uses full-width recovery/prepare actions or weighted

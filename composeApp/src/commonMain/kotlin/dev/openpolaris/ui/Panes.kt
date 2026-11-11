@@ -1146,22 +1146,36 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Guide,
+                    label = "Solve latest",
+                    contentDescription = "Solve the latest Astro frame",
                     enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
                     onClick = { vm.startAstroWebUiSolve(AstroWebUiSolveMode.LATEST) },
-                ) { Text("Solve latest") }
-                Button(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Solve fresh frame",
+                    contentDescription = "Solve a fresh Astro frame",
                     enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
                     onClick = { vm.startAstroWebUiSolve(AstroWebUiSolveMode.CAPTURE) },
-                ) { Text("Solve fresh frame") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel solve",
+                    contentDescription = "Cancel the Astro solve",
                     enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
                     onClick = vm::cancelAstroWebUiSolve,
-                ) { Text("Cancel solve") }
-                OutlinedButton(
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Apply last solution",
+                    contentDescription = "Apply the last Astro solve solution",
                     enabled = FeatureFlags.isEnabled("astroWebUiSolveControls"),
                     onClick = vm::applyAstroWebUiSolve,
-                ) { Text("Apply last solution") }
+                    outlined = true,
+                )
             }
             when (val control = vm.astroWebUiSolveControl) {
                 AstroWebUiSolveControlUiState.Idle -> Unit
@@ -1206,15 +1220,21 @@ fun MissionDashboardPane(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Preview,
+                    label = "Preview GoTo",
+                    contentDescription = "Preview the entered Astro GoTo",
                     enabled = FeatureFlags.isEnabled("astroWebUiTargetPreview") && gotoRequest != null,
                     onClick = { gotoRequest?.let(vm::previewAstroWebUiGoto) },
-                ) { Text("Preview GoTo") }
+                )
                 val previewMatches = (vm.astroWebUiTarget as? AstroWebUiTargetUiState.Preview)?.request == gotoRequest
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Slew,
+                    label = "Confirm GoTo",
+                    contentDescription = "Confirm and start the Astro GoTo",
                     enabled = FeatureFlags.isEnabled("astroWebUiTargetWrites") && previewMatches,
                     onClick = { gotoRequest?.let(vm::startAstroWebUiGoto) },
-                ) { Text("Confirm GoTo") }
+                )
             }
             Text(
                 compassHeadingSource?.let {
@@ -1265,10 +1285,14 @@ fun MissionDashboardPane(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    label = "Align compass",
+                    contentDescription = "Align Astro using the entered compass heading",
                     enabled = FeatureFlags.isEnabled("astroWebUiTargetWrites") && compassRequest != null,
                     onClick = { compassRequest?.let(vm::alignAstroWebUiCompass) },
-                ) { Text("Align compass") }
+                    outlined = true,
+                )
             }
             when (val target = vm.astroWebUiTarget) {
                 AstroWebUiTargetUiState.Idle -> Text(
@@ -1543,16 +1567,23 @@ fun MissionDashboardPane(
                 )
                 val autofocusRunning = (vm.astroWebUiAutofocus as? AstroWebUiAutofocusUiState.Ready)
                     ?.state?.status == "running"
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Start sweep",
+                    contentDescription = "Start the resident Astro autofocus sweep",
                     enabled = FeatureFlags.isEnabled("astroWebUiAutofocus") &&
                         !autofocusRunning &&
                         autofocusParameters != null,
                     onClick = { autofocusParameters?.let(vm::startAstroWebUiAutofocus) },
-                ) { Text("Start sweep") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Stop sweep",
+                    contentDescription = "Stop the resident Astro autofocus sweep",
                     enabled = FeatureFlags.isEnabled("astroWebUiAutofocus") && autofocusRunning,
                     onClick = vm::stopAstroWebUiAutofocus,
-                ) { Text("Stop sweep") }
+                    outlined = true,
+                )
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1717,14 +1748,21 @@ fun MissionDashboardPane(
             val observedAstroStatus =
                 (vm.astroWebUiStatus as? AstroWebUiStatusState.Ready)?.status
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Mission,
+                    label = "Enter Astro",
+                    contentDescription = "Enter Astro mode",
                     enabled = sessionControlsEnabled && observedAstroStatus?.active != true,
                     onClick = vm::enterAstroWebUi,
-                ) { Text("Enter Astro") }
-                Button(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Leave Astro",
+                    contentDescription = "Leave Astro mode",
                     enabled = sessionControlsEnabled && observedAstroStatus?.active == true,
                     onClick = vm::leaveAstroWebUi,
-                ) { Text("Leave Astro") }
+                    outlined = true,
+                )
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1749,7 +1787,10 @@ fun MissionDashboardPane(
                 )
                 Text("Half rate", style = MaterialTheme.typography.labelSmall)
             }
-            Button(
+            ResponsiveActionButton(
+                graphic = if (observedAstroStatus?.trackRequested == true) OpenPolarisGraphic.Stop else OpenPolarisGraphic.Apply,
+                label = if (observedAstroStatus?.trackRequested == true) "Stop Astro tracking" else "Start Astro tracking",
+                contentDescription = if (observedAstroStatus?.trackRequested == true) "Stop Astro tracking" else "Start Astro tracking",
                 enabled = sessionControlsEnabled && observedAstroStatus?.active == true,
                 onClick = {
                     val currentlyRequested = observedAstroStatus?.trackRequested == true
@@ -1762,15 +1803,7 @@ fun MissionDashboardPane(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    if (observedAstroStatus?.trackRequested == true) {
-                        "Stop Astro tracking"
-                    } else {
-                        "Start Astro tracking"
-                    },
-                )
-            }
+            )
             when (val state = vm.astroWebUiSessionControl) {
                 AstroWebUiSessionControlState.Idle -> Unit
                 is AstroWebUiSessionControlState.Working -> Text(
@@ -1965,15 +1998,21 @@ fun MissionDashboardPane(
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         val paused = programme.paused
                                         if (programme.kind == "panorama" && paused != null) {
-                                            OutlinedButton(
+                                            ResponsiveActionButton(
+                                                graphic = if (paused) OpenPolarisGraphic.Apply else OpenPolarisGraphic.Stop,
+                                                label = if (paused) "Resume panorama" else "Pause panorama",
+                                                contentDescription = if (paused) "Resume the resident Astro panorama" else "Pause the resident Astro panorama",
                                                 onClick = vm::toggleAstroWebUiPanoramaPause,
-                                            ) {
-                                                Text(if (paused) "Resume panorama" else "Pause panorama")
-                                            }
+                                                outlined = true,
+                                            )
                                         }
-                                        OutlinedButton(onClick = vm::cancelAstroWebUiProgramme) {
-                                            Text("Stop programme")
-                                        }
+                                        ResponsiveActionButton(
+                                            graphic = OpenPolarisGraphic.Stop,
+                                            label = "Stop programme",
+                                            contentDescription = "Stop the resident Astro programme",
+                                            onClick = vm::cancelAstroWebUiProgramme,
+                                            outlined = true,
+                                        )
                                     }
                                     Text(
                                         "Controls acknowledge a request; status polling remains the completion authority.",
@@ -2151,7 +2190,10 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
         kind == AstroWebUiProgrammeStartResult.Kind.FOCUS -> "Validate focus stack"
         else -> "Preview " + kind.name.lowercase().replace('_', ' ')
     }
-    Button(
+    ResponsiveActionButton(
+        graphic = if (matchingPreview && armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Preview,
+        label = actionLabel,
+        contentDescription = actionLabel,
         onClick = {
             when (kind) {
                 AstroWebUiProgrammeStartResult.Kind.LAPSE -> {
@@ -2217,9 +2259,7 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
             }
         },
         modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(actionLabel)
-    }
+    )
 
     when (val state = startState) {
         AstroWebUiProgrammeStartState.Idle -> Unit
@@ -2315,7 +2355,10 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
         )
     }
     val state = vm.astroWebUiAstroCapture
-    Button(
+    ResponsiveActionButton(
+        graphic = if (armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Apply,
+        label = if (armed) "Tap again to start in-head Astro capture" else "Arm in-head Astro capture",
+        contentDescription = if (armed) "Confirm and start in-head Astro capture" else "Arm in-head Astro capture",
         enabled = parameters != null,
         onClick = {
             if (armed) {
@@ -2326,14 +2369,7 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
             }
         },
         modifier = Modifier.fillMaxWidth().testTag("astro-webui-astro-capture-start"),
-    ) {
-        Text(
-            when {
-                armed -> "Tap again to start in-head Astro capture"
-                else -> "Arm in-head Astro capture"
-            },
-        )
-    }
+    )
     if (armed) {
         Text(
             "Armed: the next tap sends the source capture request and may move/fire. Check camera mode and framing first.",
@@ -2447,7 +2483,11 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             color = MaterialTheme.colorScheme.error,
         )
     }
-    Button(
+    val solarActionLabel = if (previewReady && armed) "Start solar programme - this may move/fire" else "Preview solar programme"
+    ResponsiveActionButton(
+        graphic = if (previewReady && armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Preview,
+        label = solarActionLabel,
+        contentDescription = solarActionLabel,
         enabled = parameters != null,
         onClick = {
             if (parameters != null) {
@@ -2461,9 +2501,7 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             }
         },
         modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(if (previewReady && armed) "Start solar programme - this may move/fire" else "Preview solar programme")
-    }
+    )
 
     when (state) {
         AstroWebUiSunState.Idle -> Unit
@@ -2588,7 +2626,11 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                 Switch(checked = plcHold, onCheckedChange = { plcHold = it; armed = false })
                 Text("Hold final pose", style = MaterialTheme.typography.bodySmall)
             }
-            Button(
+            val plcActionLabel = if (previewMatches && armed) "Run PLC - this may move/fire" else "Preview PLC"
+            ResponsiveActionButton(
+                graphic = if (previewMatches && armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Preview,
+                label = plcActionLabel,
+                contentDescription = plcActionLabel,
                 enabled = plc != null,
                 onClick = {
                     plc?.let {
@@ -2602,7 +2644,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (previewMatches && armed) "Run PLC - this may move/fire" else "Preview PLC") }
+            )
         }
         "Path-lapse" -> {
             OutlinedTextField(value = pathFrames, onValueChange = { pathFrames = it }, label = { Text("Frames on next leg (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -2623,7 +2665,11 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                 )
             }
             OutlinedTextField(value = pathInterval, onValueChange = { pathInterval = it; armed = false }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Button(
+            val pathActionLabel = if (previewMatches && armed) "Run path-lapse - this may move/fire" else "Preview path-lapse"
+            ResponsiveActionButton(
+                graphic = if (previewMatches && armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Preview,
+                label = pathActionLabel,
+                contentDescription = pathActionLabel,
                 enabled = path != null,
                 onClick = {
                     path?.let {
@@ -2637,7 +2683,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (previewMatches && armed) "Run path-lapse - this may move/fire" else "Preview path-lapse") }
+            )
         }
         else -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2653,9 +2699,19 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     contentDescription = "Refresh Holy Grail ramp status",
                     onClick = { vm.refreshAstroWebUiGrailStatus() },
                 )
-                OutlinedButton(onClick = { vm.disableAstroWebUiGrail() }) { Text("Disable ramp") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Disable ramp",
+                    contentDescription = "Disable the Holy Grail ramp",
+                    onClick = { vm.disableAstroWebUiGrail() },
+                    outlined = true,
+                )
             }
-            Button(
+            val grailActionLabel = if (previewMatches && armed) "Upload Holy Grail ramp" else "Preview Holy Grail ramp"
+            ResponsiveActionButton(
+                graphic = if (previewMatches && armed) OpenPolarisGraphic.Apply else OpenPolarisGraphic.Preview,
+                label = grailActionLabel,
+                contentDescription = grailActionLabel,
                 enabled = grail != null,
                 onClick = {
                     grail?.let {
@@ -2669,7 +2725,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (previewMatches && armed) "Upload Holy Grail ramp" else "Preview Holy Grail ramp") }
+            )
         }
     }
 
@@ -4097,7 +4153,10 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Preview,
+            label = "Preview plan",
+            contentDescription = "Preview observation programme plan",
             onClick = {
                 plan = runCatching {
                     ObservationProgrammePlanner.plan(
@@ -4114,8 +4173,7 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                     )
                 }.getOrNull()
             },
-            modifier = Modifier.semantics { contentDescription = "Preview observation programme plan" },
-        ) { Text("Preview plan") }
+        )
         Text("Read-only", style = MaterialTheme.typography.labelSmall)
     }
     plan?.let { preview ->
@@ -4129,20 +4187,37 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                 programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused
             val programmeUnknown = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Run qualified lapse",
+                    contentDescription = "Run the qualified lapse programme",
                     onClick = { vm.startObservationProgramme(preview) },
                     enabled = !programmeActive && !programmeUnknown,
-                    modifier = Modifier.semantics { contentDescription = "Run qualified lapse programme" },
-                ) { Text("Run qualified lapse") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    label = "Pause",
+                    contentDescription = "Pause the observation programme",
                     onClick = vm::pauseObservationProgramme,
                     enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running,
-                ) { Text("Pause") }
-                OutlinedButton(
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Resume",
+                    contentDescription = "Resume the observation programme",
                     onClick = { vm.resumeObservationProgramme() },
                     enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused,
-                ) { Text("Resume") }
-                OutlinedButton(onClick = vm::stopObservationProgramme, enabled = programmeActive) { Text("Stop") }
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Stop",
+                    contentDescription = "Stop the observation programme",
+                    onClick = vm::stopObservationProgramme,
+                    enabled = programmeActive,
+                    outlined = true,
+                )
             }
             ObservationProgrammeProgress(programmeState, demo = false)
             Text(
@@ -4164,23 +4239,37 @@ private fun ObservationProgrammePreviewSection(vm: AppViewModel) {
                 programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused
             val programmeUnknown = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Run Demo programme",
+                    contentDescription = "Run the Demo observation programme",
                     onClick = { vm.startObservationProgramme(preview) },
                     enabled = !programmeActive && !programmeUnknown,
-                    modifier = Modifier.semantics { contentDescription = "Run Demo observation programme" },
-                ) { Text("Run Demo programme") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    label = "Pause",
+                    contentDescription = "Pause the Demo observation programme",
                     onClick = vm::pauseObservationProgramme,
                     enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running,
-                ) { Text("Pause") }
-                OutlinedButton(
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Resume",
+                    contentDescription = "Resume the Demo observation programme",
                     onClick = { vm.resumeObservationProgramme() },
                     enabled = programmeState is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused,
-                ) { Text("Resume") }
-                OutlinedButton(
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Stop",
+                    contentDescription = "Stop the Demo observation programme",
                     onClick = vm::stopObservationProgramme,
                     enabled = programmeActive,
-                ) { Text("Stop") }
+                    outlined = true,
+                )
             }
             ObservationProgrammeProgress(programmeState, demo = true)
             Text(
@@ -4312,7 +4401,10 @@ private fun IntervalometerSection(vm: AppViewModel) {
         )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Camera,
+            label = "Start",
+            contentDescription = "Start the intervalometer sequence",
             onClick = {
                 val count = shotCountText.trim().toIntOrNull() ?: 0
                 val intervalMs = (intervalSecText.trim().toDoubleOrNull()?.times(1000.0))?.toLong() ?: 0L
@@ -4320,10 +4412,31 @@ private fun IntervalometerSection(vm: AppViewModel) {
                 vm.startSequence(count, intervalMs, preDelayMs)
             },
             enabled = canStart,
-        ) { Text("Start") }
-        OutlinedButton(onClick = vm::pauseSequence, enabled = running) { Text("Pause") }
-        OutlinedButton(onClick = vm::resumeSequence, enabled = paused) { Text("Resume") }
-        OutlinedButton(onClick = vm::stopSequence, enabled = active) { Text("Stop") }
+        )
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.DirectionA,
+            label = "Pause",
+            contentDescription = "Pause the intervalometer sequence",
+            onClick = vm::pauseSequence,
+            enabled = running,
+            outlined = true,
+        )
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = "Resume",
+            contentDescription = "Resume the intervalometer sequence",
+            onClick = vm::resumeSequence,
+            enabled = paused,
+            outlined = true,
+        )
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Stop,
+            label = "Stop",
+            contentDescription = "Stop the intervalometer sequence",
+            onClick = vm::stopSequence,
+            enabled = active,
+            outlined = true,
+        )
     }
     when (state) {
         is dev.openpolaris.core.domain.IntervalometerController.State.Idle ->

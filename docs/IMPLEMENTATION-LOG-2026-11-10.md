@@ -5,6 +5,22 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/07.1/09.1 — Summary-first mobile media lists
+
+Compact phones now render a bounded first six rows for the Astro WebUI gallery
+and native SD-card file list. A small graphic-backed Show media/Show files
+disclosure reveals the remaining rows without removing category filters,
+thumbnail/full-file reads, export, paging, protection or deletion actions.
+Desktop keeps the existing visible-list behavior. No transfer, path-safety,
+native file, destructive-action or hardware gate changed.
+
+Focused verification:
+
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+
+This is source/package evidence only. Installed-phone rendering, resident
+Astro WebUI, SD-card, camera and physical qualification remain open.
+
 ### WBS-01.2/01.3/05.1/09.1 — Summary-first mobile mission surface
 
 The compact Mission dashboard now exposes a one-line readiness summary and its

@@ -27,6 +27,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.openpolaris.core.config.FeatureFlags
@@ -570,6 +571,8 @@ fun GalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showAllMedia by remember(compactLayout) { mutableStateOf(!compactLayout) }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Astro WebUI gallery", style = MaterialTheme.typography.titleMedium)
@@ -713,8 +716,24 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     "Showing ${vm.astroMediaCategory?.let(AstroMediaPolicy::labelFor) ?: "all media"} · ${items.size} item(s)",
                     style = MaterialTheme.typography.labelSmall,
                 )
+                val mediaDisplayLimit = if (compactLayout && !showAllMedia) 6 else 40
+                val visibleItems = items.take(mediaDisplayLimit)
+                if (compactLayout && items.size > 6) {
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.More,
+                        label = if (showAllMedia) "Show fewer" else "Show media",
+                        contentDescription = if (showAllMedia) {
+                            "Show fewer Astro WebUI media items"
+                        } else {
+                            "Show more Astro WebUI media items"
+                        },
+                        onClick = { showAllMedia = !showAllMedia },
+                        modifier = Modifier.testTag("astro-gallery-list-toggle"),
+                        outlined = true,
+                    )
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items.take(40).forEach { item ->
+                    visibleItems.forEach { item ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -793,6 +812,8 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showAllFiles by remember(compactLayout) { mutableStateOf(!compactLayout) }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
             Text("SD card files", style = MaterialTheme.typography.titleMedium)
@@ -825,6 +846,7 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
             val fileList = vm.fileList
             val files = fileList?.files.orEmpty()
+            val visibleFiles = if (compactLayout && !showAllFiles) files.take(6) else files
             if (fileList != null) {
                 Text(
                     "Type ${vm.fileListType} · page ${vm.fileListPage}" +
@@ -837,8 +859,22 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Text("(no files loaded — hit Refresh list)", style = MaterialTheme.typography.bodySmall)
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    files.forEach { f -> FileRow(vm, f) }
+                    visibleFiles.forEach { f -> FileRow(vm, f) }
                 }
+            }
+            if (compactLayout && files.size > 6) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showAllFiles) "Show fewer" else "Show files",
+                    contentDescription = if (showAllFiles) {
+                        "Show fewer SD card files"
+                    } else {
+                        "Show more SD card files"
+                    },
+                    onClick = { showAllFiles = !showAllFiles },
+                    modifier = Modifier.testTag("sd-file-list-toggle"),
+                    outlined = true,
+                )
             }
             val canNextPage = fileList?.count?.let { total ->
                 files.isNotEmpty() && (vm.fileListPage + 1) * files.size < total

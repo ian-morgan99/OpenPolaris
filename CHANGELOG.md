@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Compact phone gallery and SD-file lists are now summary-first.** Phone
+  layouts show a bounded first set of media/file rows and expose the remaining
+  rows through a small graphic-backed disclosure; desktop keeps the full
+  visible list. Paging, preview/full-file actions, export, protection and
+  deletion semantics are unchanged.
 - **Mission and Astro controls are now summary-first on compact phones.** Phones
   show the next readiness action and keep the full resident Astro WebUI,
   preparation checks and readiness rows behind the existing More controls

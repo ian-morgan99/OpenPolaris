@@ -175,6 +175,12 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic = OpenPolarisGraphic.Save" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Share" in panes)
         assertTrue("Text(\"All (\${allItems.size})\")" in panes)
+        assertTrue("var showAllMedia by remember(compactLayout)" in panes)
+        assertTrue("val visibleItems = items.take(mediaDisplayLimit)" in panes)
+        assertTrue("testTag(\"astro-gallery-list-toggle\")" in panes)
+        assertTrue("var showAllFiles by remember(compactLayout)" in panes)
+        assertTrue("val visibleFiles = if (compactLayout && !showAllFiles) files.take(6) else files" in panes)
+        assertTrue("testTag(\"sd-file-list-toggle\")" in panes)
     }
 
     @Test

@@ -1522,3 +1522,14 @@ remain open.
 - **2026-11-11 - verification:** focused `MobileCompactControlsContractTest`
   passed; full shared/Compose JVM suites, Android compilation and desktop
   packaging remain required before publication.
+
+- **2026-11-11 - WBS-01.3/07.1/09.1 ACTIVE (summary-first media lists):**
+  compact phones now bound Astro WebUI gallery and native SD-file rendering to
+  six visible rows by default, with graphic-backed Show media/Show files
+  disclosures for the rest. Gallery filters, thumbnail/full reads, export,
+  native paging and file protection/deletion remain reachable and unchanged;
+  desktop keeps the full visible-list behavior. This is source/package
+  evidence only; installed-phone and physical media qualification remain open.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest passed.
+  Full JVM, Android compilation and desktop packaging are required before
+  publication of this slice.

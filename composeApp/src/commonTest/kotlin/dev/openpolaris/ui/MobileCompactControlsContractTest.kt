@@ -60,6 +60,14 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic = OpenPolarisGraphic.DirectionA" in panes)
         assertTrue("graphic = OpenPolarisGraphic.DirectionB" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Stop" in panes)
+        assertTrue("camera-refresh-attachment" in panes)
+        assertTrue("camera-auxiliary-readback" in panes)
+        assertTrue("camera-arm-settings" in panes)
+        assertTrue("contentDescription = \"Capture Astro WebUI manual exposure\"" in panes)
+        assertTrue("contentDescription = \"Start Astro WebUI Bulb exposure\"" in panes)
+        assertTrue("contentDescription = \"Stop Astro WebUI Bulb exposure\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Preview" in panes)
+        assertTrue("Review the last capture in Gallery" in panes)
     }
 
 }

@@ -1540,3 +1540,17 @@ video remain qualification-gated. `MobileCompactControlsContractTest`, the
 focused SLOW/capture contracts, the full shared/Compose JVM suites and Android
 Debug Kotlin compilation passed. No installed-phone render, named-camera
 lifecycle or physical hardware qualification was claimed.
+
+### WBS-04.3/08.2/09.1 — Compact Camera and Astro WebUI actions
+
+The phone Camera workspace now uses the shared compact graphic action boundary
+for attachment refresh, auxiliary readback, qualification arming, Gallery
+review, Astro WebUI M/B release, and Astro B stop. Desktop keeps the existing
+visible text labels. The 20 dp graphics retain 48 dp touch targets and explicit
+content descriptions; the capture lock, verified M/B readback, no-retry
+unknown-outcome rule, and lifecycle plus file-publication completion gate are
+unchanged.
+
+MobileCompactControlsContractTest covers the new call sites and labels. This
+is source/package UX evidence only; live Astro WebUI, camera, Bluetooth and
+physical shutter qualification remain open.

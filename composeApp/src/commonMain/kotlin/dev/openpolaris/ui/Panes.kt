@@ -3534,9 +3534,15 @@ fun CameraPane(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            TextButton(onClick = vm::refreshCameraAttachment) {
-                Text("Refresh camera status")
-            }
+            CameraActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Refresh camera status",
+                contentDescription = "Refresh camera attachment status",
+                onClick = vm::refreshCameraAttachment,
+                enabled = true,
+                modifier = Modifier.testTag("camera-refresh-attachment"),
+                outlined = true,
+            )
             Text(
                 "Parameter readback: ${vm.cameraReadbackAgeText}. Dynamic options load only after an explicit qualified refresh.",
                 style = MaterialTheme.typography.bodySmall,
@@ -3545,13 +3551,15 @@ fun CameraPane(
                 "Auxiliary source readback: ${vm.cameraAuxiliaryReadbackAgeText}. These values are read-only evidence; writes remain separately gated.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            OutlinedButton(
+            CameraActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Read auxiliary camera state",
+                contentDescription = "Read auxiliary camera state",
                 onClick = vm::refreshCameraAuxiliary,
                 enabled = vm.demoMode || attachment?.isAttached == true,
                 modifier = Modifier.testTag("camera-auxiliary-readback"),
-            ) {
-                Text("Read auxiliary camera state")
-            }
+                outlined = true,
+            )
             val auxiliary = vm.cameraAuxiliaryReadback
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -3599,9 +3607,14 @@ fun CameraPane(
                 )
             }
             if (qualificationEnabled && !qualificationArmed) {
-                Button(onClick = { qualificationArmed = true }) {
-                    Text("I understand — arm setting tests")
-                }
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Settings,
+                    label = "I understand — arm setting tests",
+                    contentDescription = "Arm camera setting tests after confirming the qualification warning",
+                    onClick = { qualificationArmed = true },
+                    enabled = true,
+                    modifier = Modifier.testTag("camera-arm-settings"),
+                )
             }
             // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
             // phone in landscape. Was a single 10-row Column that clipped
@@ -3684,12 +3697,15 @@ fun CameraPane(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 onOpenGallery?.let { open ->
-                    TextButton(
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Preview,
+                        label = "Review in Gallery",
+                        contentDescription = "Review the last capture in Gallery",
                         onClick = open,
+                        enabled = true,
                         modifier = Modifier.testTag("review-capture-gallery"),
-                    ) {
-                        Text("Review in Gallery")
-                    }
+                        outlined = true,
+                    )
                 }
             }
             CaptureTimelinePane(vm, Modifier.fillMaxWidth())
@@ -3748,16 +3764,33 @@ fun CameraPane(
             } else {
                 val astroActive = vm.astroWebUiCaptureActive || vm.astroWebUiCaptureDispatching
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Button(
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Camera,
+                        label = "Astro M",
+                        contentDescription = "Capture Astro WebUI manual exposure",
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.MANUAL) },
                         enabled = !astroActive && !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.MANUAL,
-                    ) { Text("Astro M") }
-                    Button(
+                        modifier = Modifier.testTag("camera-astro-m"),
+                    )
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Camera,
+                        label = "Astro B",
+                        contentDescription = "Start Astro WebUI Bulb exposure",
                         onClick = { vm.captureAstroWebUi(CameraReleaseMode.BULB, bulbSecondsText.toIntOrNull() ?: 0) },
                         enabled = !astroActive && !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
-                    ) { Text("Astro B") }
+                        modifier = Modifier.testTag("camera-astro-b"),
+                        outlined = true,
+                    )
                     if (vm.astroWebUiBulbActive && !vm.astroWebUiBulbStopQueued) {
-                        OutlinedButton(onClick = vm::stopAstroWebUiBulb) { Text("Stop Astro B") }
+                        CameraActionButton(
+                            graphic = OpenPolarisGraphic.Stop,
+                            label = "Stop Astro B",
+                            contentDescription = "Stop Astro WebUI Bulb exposure",
+                            onClick = vm::stopAstroWebUiBulb,
+                            enabled = true,
+                            modifier = Modifier.testTag("camera-astro-b-stop"),
+                            outlined = true,
+                        )
                     }
                     if (vm.astroWebUiBulbStopQueued) {
                         Text("Astro B stop queued; waiting for capture evidence", style = MaterialTheme.typography.labelSmall)

@@ -1093,3 +1093,18 @@ The current implementation slice must not send a new motor frame, alter firmware
 
 - **2026-11-10 - WBS-02.1/09.1 ACTIVE (adaptive pose polling):** commit `9b51779` completes the software side of issue #89. The 284 and 517 reads remain concurrent with an 800 ms timeout; idle/non-tracking mounts now use a 2 s cadence, while tracking, GoTo and any shared motion owner return to 1 Hz. This targets <=1.5 pose requests/s when idle without reducing active-motion responsiveness.
 - **2026-11-10 - verification:** `PosePollPolicyTest` covers the cadence policy and ViewModel wiring; the full shared/Compose JVM suite, Android compilation/assembly, merged asset verification and desktop packaging passed. Android debug APK SHA-256: `abbb71080c4deff5f9c8c8e14d54ba4a9fcdb9305e84ec4327f32306a5c93149`. Hardware latency measurement remains open.
+
+
+- **2026-11-11 - WBS-04.3/08.2/09.1 ACTIVE (compact Camera/Astro WebUI actions):**
+  extended the phone-only compact graphic action treatment across the remaining
+  Camera workspace commands: attachment and auxiliary refresh, qualification
+  arming, Gallery review, Astro WebUI M/B release and Astro B stop. Each keeps
+  its full desktop text label and phone content description while using a
+  20 dp line graphic inside the existing 48 dp target. Capture admission,
+  unknown-outcome quarantine, M/B mode gates and lifecycle/file evidence
+  contracts are unchanged.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest now pins
+  the compact action call sites and accessible labels; focused UI safety tests,
+  full shared/Compose JVM tests and Android compilation remain required before
+  push. No live Astro WebUI, camera, Bluetooth or physical shutter operation
+  was exercised.

@@ -169,4 +169,21 @@ class MobileCompactControlsContractTest {
         assertFalse("OutlinedButton(onClick = vm::refreshSettling)" in panes)
         assertFalse("OutlinedButton(onClick = vm::refreshAutoLevel)" in panes)
     }
+
+    @Test
+    fun systemPaneActionsUseCompactGraphicsWithSafetyLabels() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("OpenPolarisGraphic.Clock" in graphics)
+        assertTrue("contentDescription = \"Set mount system time\"" in panes)
+        assertTrue("contentDescription = \"Use the current system time\"" in panes)
+        assertTrue("contentDescription = \"Set mount timezone offset\"" in panes)
+        assertTrue("contentDescription = \"Set mount language\"" in panes)
+        assertTrue("contentDescription = \"Scan mount WiFi bands\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Clock" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
+        assertTrue("Text(\"Reboot mount\")" in panes)
+        assertTrue("Text(\"Shutdown mount\")" in panes)
+    }
 }

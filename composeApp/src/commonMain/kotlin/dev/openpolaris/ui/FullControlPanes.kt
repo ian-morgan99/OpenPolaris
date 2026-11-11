@@ -269,12 +269,20 @@ private fun TimeRow(vm: AppViewModel) {
             label = { Text("seconds since 1970") },
             modifier = Modifier.width(160.dp),
         )
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = "Set",
+            contentDescription = "Set mount system time",
             enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toLongOrNull()?.let(vm::setSystemTime) },
-        ) { Text("Set") }
-        Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick = { draft = (System.currentTimeMillis() / 1000L).toString() }) { Text("Now") }
+        )
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Clock,
+            label = "Now",
+            contentDescription = "Use the current system time",
+            onClick = { draft = (System.currentTimeMillis() / 1000L).toString() },
+            outlined = true,
+        )
     }
 }
 
@@ -290,10 +298,13 @@ private fun TzRow(vm: AppViewModel) {
             label = { Text("offset hours") },
             modifier = Modifier.width(110.dp),
         )
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = "Set",
+            contentDescription = "Set mount timezone offset",
             enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toIntOrNull()?.let(vm::setTimezone) },
-        ) { Text("Set") }
+        )
     }
 }
 
@@ -309,10 +320,13 @@ private fun LangRow(vm: AppViewModel) {
             label = { Text("index") },
             modifier = Modifier.width(110.dp),
         )
-        Button(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Apply,
+            label = "Set",
+            contentDescription = "Set mount language",
             enabled = FeatureFlags.isEnabled("systemSettingsUnverified"),
             onClick = { draft.toIntOrNull()?.let(vm::setLanguage) },
-        ) { Text("Set") }
+        )
     }
 }
 
@@ -359,10 +373,14 @@ private fun WifiRow(vm: AppViewModel) {
             modifier = Modifier.width(80.dp),
             fontWeight = FontWeight.SemiBold,
         )
-        OutlinedButton(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Refresh,
+            label = "Scan",
+            contentDescription = "Scan mount WiFi bands",
             enabled = FeatureFlags.isEnabled("wifiScan"),
             onClick = vm::refreshWifiScan,
-        ) { Text("Scan") }
+            outlined = true,
+        )
         Spacer(Modifier.width(8.dp))
         Text(vm.wifiScanResult?.take(40) ?: "—", style = MaterialTheme.typography.bodySmall)
     }

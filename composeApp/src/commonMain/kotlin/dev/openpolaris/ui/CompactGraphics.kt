@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 internal enum class OpenPolarisGraphic {
     Mission,
     Connection,
+    Clock,
     Slew,
     Camera,
     Refresh,
@@ -165,6 +166,12 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
                 style = thin,
             )
             drawCircle(color, r * 0.12f, c + Offset(0f, r * 0.55f))
+        }
+        OpenPolarisGraphic.Clock -> {
+            drawCircle(color, r * 0.9f, c, style = thin)
+            drawStyledLine(color, c, Offset(c.x, c.y - r * 0.62f), stroke)
+            drawStyledLine(color, c, Offset(c.x + r * 0.5f, c.y + r * 0.28f), stroke)
+            drawCircle(color, 1.2.dp.toPx(), c)
         }
         OpenPolarisGraphic.Slew -> {
             drawStyledLine(color, Offset(c.x, 2f), Offset(c.x, size.height - 2f), stroke)

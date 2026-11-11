@@ -1182,3 +1182,13 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-11 - verification:** source-contract and Compose/JVM tests,
   Android compilation and desktop packaging are required. No live mount,
   Bluetooth, Astro helper or physical auto-level operation was exercised.
+
+- **2026-11-11 - WBS-01.3/02.1/09.1 ACTIVE (compact System-pane actions):**
+  applied the responsive graphic boundary to system time Set/Now, timezone Set,
+  language Set and WiFi band Scan. Phone controls keep 48 dp targets and
+  explicit descriptions; PC keeps labels. Reboot, shutdown and WiFi
+  connect/disconnect remain textual because they carry safety or connection
+  context.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No live mount, WiFi,
+  Bluetooth or physical system-setting operation was exercised.

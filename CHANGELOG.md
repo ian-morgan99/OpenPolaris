@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Astro helper actions now stay compact on phones.** Refresh, settling Apply,
   and auto-level Run/Refresh use small graphics with accessible descriptions;
   PC retains the labelled controls and all feature gates remain unchanged.
+- **System time, timezone, language and WiFi scan actions now use compact phone
+  graphics.** Explicit descriptions preserve their meaning; reboot, shutdown
+  and WiFi connect/disconnect remain textual safety actions.
 
 ## [0.1.19] - 2026-10-09
 ### Fixed

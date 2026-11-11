@@ -1635,3 +1635,16 @@ unchanged.
 
 This is source/package UX evidence; live mount, Bluetooth, Astro helper,
 installed-phone rendering and physical auto-level qualification remain open.
+
+### WBS-01.3/02.1/09.1 — Compact System-pane actions
+
+The phone System pane now uses small graphics for system-time Set/Now,
+timezone Set, language Set and WiFi-band Scan. Each retains a 48 dp target and
+explicit content description; desktop keeps the labelled controls. Reboot,
+shutdown and WiFi connect/disconnect remain textual safety and connection
+context.
+
+No system command, feature gate, WiFi policy or destructive confirmation
+behavior changed. This is source/package UX evidence; live mount, WiFi,
+Bluetooth, installed-phone rendering and physical system-setting qualification
+remain open.

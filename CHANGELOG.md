@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Compact SLOW and fast-jog hold controls now lose the oversized button
+  container on phones.** The phone path keeps the existing press/start,
+  release/stop, focus-loss stop, keyboard and accessibility semantics but uses
+  a graphic-only semantic surface; desktop and labelled controls retain their
+  normal Material button path.
 - **Compact phone dialogs now use small graphics for secondary actions.**
   Reconnect-forget, feature-flag confirmation, reboot, shutdown and SD-format
   dialog actions keep explicit safety copy and full accessibility descriptions,

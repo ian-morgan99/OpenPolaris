@@ -5,6 +5,23 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/03.6/09.1 — Graphic-only compact hold controls
+
+Compact SLOW rotation and fast-jog hold controls no longer use a Material
+Button container around their small line graphic. Phones use a graphic-only
+semantic surface at the existing compact target size; the existing pointer
+press/release, keyboard hold/release, focus-loss release and stop ordering are
+retained. Desktop and labelled controls keep the normal Material button path.
+
+Focused verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+```
+
+This is source/package UX evidence only. Installed-phone rendering and live
+SLOW, fast-jog, mount, camera and Bluetooth qualification remain open.
+
 ### WBS-01.3/09.1 — Compact confirmation-dialog actions
 
 The remaining phone-only oversized text-button chrome is now removed from

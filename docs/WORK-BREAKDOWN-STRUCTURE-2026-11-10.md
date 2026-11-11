@@ -1483,3 +1483,14 @@ remain open.
   controls now use 26 dp graphic-first rows with short visible labels and full
   accessibility names; desktop and tablet retain native labelled menu items.
   The destination/action routing and all hardware gates are unchanged.
+
+- **2026-11-11 - WBS-01.3/03.6/09.1 ACTIVE (graphic-only compact hold
+  controls):** compact SLOW rotation and fast-jog hold controls now replace
+  the phone Material Button container with a graphic-only semantic surface at
+  the existing compact target size. Pointer press/release, keyboard
+  hold/release, focus-loss stop and desktop labelled-button behavior remain
+  unchanged. Installed-phone rendering and live motion qualification remain
+  open.
+- **2026-11-11 - verification:** focused `MobileCompactControlsContractTest`
+  passed; full shared/Compose JVM suites, Android compilation and desktop
+  packaging remain required before publication.

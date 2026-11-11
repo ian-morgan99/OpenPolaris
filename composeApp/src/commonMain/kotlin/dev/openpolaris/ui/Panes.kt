@@ -1,6 +1,7 @@
 package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -3683,33 +3685,56 @@ private fun SlowDemoHoldButton(
             role = Role.Button
         }
         .focusable(enabled)
-    Button(
-        onClick = {
-            if (suppressNextClick) suppressNextClick = false
-            else {
-                onPress()
-                onRelease()
-            }
-        },
-        enabled = enabled,
-        contentPadding = if (graphic == null) {
-            androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 8.dp)
-        } else {
-            androidx.compose.foundation.layout.PaddingValues(0.dp)
-        },
-        modifier = if (graphic == null) {
-            inputModifier
-        } else {
-            inputModifier.height(compactActionTargetSize()).width(compactActionTargetSize())
-        },
-    ) {
-        if (graphic == null) {
-            Text(if (holdActive) "$label · HOLDING" else label)
-        } else {
+    val invokeFromClick = {
+        if (suppressNextClick) suppressNextClick = false
+        else {
+            onPress()
+            onRelease()
+        }
+    }
+    if (graphic != null && LocalOpenPolarisCompact.current) {
+        // Material Button still paints its container and minimum visual chrome
+        // even with zero padding. The compact phone path uses the same
+        // semantic/focus/pointer contract with a graphic-only Box, so the
+        // small line symbol is not surrounded by a visually oversized button.
+        Box(
+            modifier = inputModifier
+                .size(compactActionTargetSize())
+                .clickable(
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = invokeFromClick,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
             OpenPolarisGraphicIcon(
                 graphic,
                 tint = if (holdActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
             )
+        }
+    } else {
+        Button(
+            onClick = invokeFromClick,
+            enabled = enabled,
+            contentPadding = if (graphic == null) {
+                androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+            } else {
+                androidx.compose.foundation.layout.PaddingValues(0.dp)
+            },
+            modifier = if (graphic == null) {
+                inputModifier
+            } else {
+                inputModifier.height(compactActionTargetSize()).width(compactActionTargetSize())
+            },
+        ) {
+            if (graphic == null) {
+                Text(if (holdActive) "$label · HOLDING" else label)
+            } else {
+                OpenPolarisGraphicIcon(
+                    graphic,
+                    tint = if (holdActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                )
+            }
         }
     }
 }

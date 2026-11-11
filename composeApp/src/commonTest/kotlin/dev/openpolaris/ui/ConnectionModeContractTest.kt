@@ -52,5 +52,9 @@ class ConnectionModeContractTest {
         assertTrue("vm.restoreConnectionMode(loaded.connectionMode)" in shell)
         assertTrue("fun selectConnectionMode(mode: ConnectionMode)" in model)
         assertTrue("val connectionMode: ConnectionMode" in preferences)
+        assertTrue("directApHost" in preferences)
+        assertTrue("homeLanHost" in preferences)
+        assertTrue("setConnectionEndpointPersistence" in model)
+        assertTrue("restoreConnectionEndpoints" in shell)
     }
 }

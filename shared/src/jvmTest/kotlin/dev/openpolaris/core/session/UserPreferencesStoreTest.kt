@@ -45,6 +45,10 @@ class UserPreferencesStoreTest {
         val expected = UserPreferences(
             dimMode = true,
             reducedMotion = true,
+            directApHost = "192.168.0.7",
+            directApPort = 9091,
+            homeLanHost = "10.0.0.42",
+            homeLanPort = 9092,
             observerLatitudeDeg = 51.5074,
             observerLongitudeDeg = -0.1278,
         )

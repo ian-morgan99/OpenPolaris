@@ -52,6 +52,7 @@ import androidx.compose.ui.window.DialogProperties
 import dev.openpolaris.core.domain.BatteryAwareness
 import dev.openpolaris.core.domain.BatterySeverity
 import dev.openpolaris.core.domain.Connection
+import dev.openpolaris.core.domain.ConnectionMode
 import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.MissionReadiness
 import dev.openpolaris.core.domain.MissionReadinessInput
@@ -182,6 +183,20 @@ fun OpenPolarisApp(
         vm.setConnectionModePersistence { mode ->
             persistPreferences(preferences.copy(connectionMode = mode))
         }
+        vm.setConnectionEndpointPersistence { mode, host, port ->
+            persistPreferences(
+                when (mode) {
+                    ConnectionMode.DIRECT_AP -> preferences.copy(
+                        directApHost = host,
+                        directApPort = port,
+                    )
+                    ConnectionMode.HOME_LAN -> preferences.copy(
+                        homeLanHost = host,
+                        homeLanPort = port,
+                    )
+                },
+            )
+        }
         vm.setObserverLocationPersistence { latitude, longitude ->
             persistPreferences(
                 preferences.copy(
@@ -196,6 +211,12 @@ fun OpenPolarisApp(
                 preferences = loaded
                 dimMode = loaded.dimMode
                 vm.restoreConnectionMode(loaded.connectionMode)
+                vm.restoreConnectionEndpoints(
+                    directApHost = loaded.directApHost,
+                    directApPort = loaded.directApPort,
+                    homeLanHost = loaded.homeLanHost,
+                    homeLanPort = loaded.homeLanPort,
+                )
                 vm.restoreObserverLocation(
                     loaded.observerLatitudeDeg,
                     loaded.observerLongitudeDeg,

@@ -45,4 +45,57 @@ class AppViewModelConnectionModeTest {
         )
         vmScope.cancel()
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun endpointDraftsRemainSeparateForDirectApAndHomeLan() = runTest {
+        val vmScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+        val vm = AppViewModel(
+            scope = vmScope,
+            connectionFactory = { NoopConnection() },
+        )
+        val persisted = mutableListOf<Triple<ConnectionMode, String, Int>>()
+        vm.setConnectionEndpointPersistence { mode, host, port ->
+            persisted += Triple(mode, host, port)
+        }
+
+        vm.updateHost("192.168.0.7")
+        vm.updatePort(9091)
+        vm.selectConnectionMode(ConnectionMode.HOME_LAN)
+        assertEquals("", vm.host)
+        assertEquals(9090, vm.port)
+
+        vm.updateHost("10.0.0.42")
+        vm.updatePort(9092)
+        vm.selectConnectionMode(ConnectionMode.DIRECT_AP)
+        assertEquals("192.168.0.7", vm.host)
+        assertEquals(9091, vm.port)
+        vm.selectConnectionMode(ConnectionMode.HOME_LAN)
+        assertEquals("10.0.0.42", vm.host)
+        assertEquals(9092, vm.port)
+        assertEquals(Triple(ConnectionMode.HOME_LAN, "10.0.0.42", 9092), persisted.last())
+        vmScope.cancel()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun restoredEndpointDraftsFollowTheRestoredModeWithoutPersistence() = runTest {
+        val vmScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+        val vm = AppViewModel(
+            scope = vmScope,
+            connectionFactory = { NoopConnection() },
+        )
+        var persistenceCalls = 0
+        vm.setConnectionModePersistence { persistenceCalls++ }
+        vm.setConnectionEndpointPersistence { _, _, _ -> persistenceCalls++ }
+
+        vm.restoreConnectionMode(ConnectionMode.HOME_LAN)
+        vm.restoreConnectionEndpoints("192.168.0.9", 9090, "10.0.0.42", 9093)
+
+        assertEquals("10.0.0.42", vm.host)
+        assertEquals(9093, vm.port)
+        assertEquals(0, persistenceCalls)
+        vmScope.cancel()
+    }
+
 }

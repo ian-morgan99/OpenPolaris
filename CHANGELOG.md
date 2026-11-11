@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Direct AP and Home Wi-Fi endpoints are remembered separately.** Switching
+  modes restores that mode's host and control port. Home Wi-Fi uses ordinary
+  LAN routing and never invokes Direct AP Bluetooth wake, scan or bridge
+  actions; control and preview endpoint evidence remain independent. This
+  improves station-LAN setup without claiming hardware listener or mesh
+  qualification.
+
 - **Compact phone Camera is now capture-first.** Phones keep camera
   attachment, release mode, normal capture, native/Astro M/B controls, Bulb
   stop, latest publication and Gallery review in one short command deck.

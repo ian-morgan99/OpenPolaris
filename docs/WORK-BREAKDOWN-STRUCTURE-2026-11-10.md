@@ -1748,3 +1748,19 @@ Verification: MobileCompactDensityContractTest and Compose JVM compilation
 passed for the source/package slice. Full shared/Compose JVM tests, Android
 compilation, desktop packaging and installed-phone rendering remain required;
 no live camera capture was exercised.
+
+### 2026-11-11 - WBS-02.1/02.3/08.1 mode-specific endpoint memory
+
+Direct AP and Home Wi-Fi now retain independent host and control-port drafts in
+versioned user preferences. Switching modes restores the selected endpoint;
+Home Wi-Fi continues to use ordinary client routing and cannot invoke the
+Direct AP Bluetooth wake, Wi-Fi scan or desktop bridge actions. Control port
+health remains separate from the fixed preview port, and invalid stored ports
+are clamped to the safe range. This is a source/package improvement only: the
+Polaris station listener, mesh routing and physical LAN acceptance still need
+named-device qualification.
+
+Verification: UserPreferencesStoreTest, AppViewModelConnectionModeTest and
+ConnectionModeContractTest passed; full shared/Compose JVM tests, Android
+compilation, desktop packaging and a real Home Wi-Fi/Direct AP matrix remain
+required.

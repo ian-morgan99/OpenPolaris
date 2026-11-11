@@ -427,19 +427,27 @@ class AppViewModel(
     var connectionMode by mutableStateOf(ConnectionMode.DIRECT_AP)
         private set
     private var connectionModePersistence: ((ConnectionMode) -> Unit)? = null
+    private var connectionEndpointPersistence: ((ConnectionMode, String, Int) -> Unit)? = null
 
     fun setConnectionModePersistence(persistence: (ConnectionMode) -> Unit) {
         connectionModePersistence = persistence
     }
 
+    fun setConnectionEndpointPersistence(persistence: (ConnectionMode, String, Int) -> Unit) {
+        connectionEndpointPersistence = persistence
+    }
+
     /** Restore presentation/routing intent without writing preferences again. */
     fun restoreConnectionMode(mode: ConnectionMode) {
         connectionMode = mode
+        applyEndpointFor(mode)
     }
 
     fun selectConnectionMode(mode: ConnectionMode) {
+        rememberCurrentEndpoint()
         if (connectionMode == mode) return
         connectionMode = mode
+        applyEndpointFor(mode)
         connectionModePersistence?.invoke(mode)
         if (session != null) {
             statusMessage = "Connection mode changed to ${mode.name.lowercase().replace('_', ' ')}; reconnect to apply"
@@ -452,7 +460,56 @@ class AppViewModel(
     var port by mutableStateOf(9090)
         private set
 
-    fun updatePort(p: Int) { port = p }
+    private data class ConnectionEndpointDraft(val host: String, val port: Int)
+
+    private var directApEndpoint = ConnectionEndpointDraft("192.168.0.1", 9090)
+    private var homeLanEndpoint = ConnectionEndpointDraft("", 9090)
+
+    private fun endpointFor(mode: ConnectionMode): ConnectionEndpointDraft = when (mode) {
+        ConnectionMode.DIRECT_AP -> directApEndpoint
+        ConnectionMode.HOME_LAN -> homeLanEndpoint
+    }
+
+    private fun rememberCurrentEndpoint() {
+        val draft = ConnectionEndpointDraft(host, port.coerceIn(1, 65535))
+        when (connectionMode) {
+            ConnectionMode.DIRECT_AP -> directApEndpoint = draft
+            ConnectionMode.HOME_LAN -> homeLanEndpoint = draft
+        }
+    }
+
+    private fun applyEndpointFor(mode: ConnectionMode) {
+        val draft = endpointFor(mode)
+        host = draft.host
+        port = draft.port.coerceIn(1, 65535)
+    }
+
+    private fun notifyEndpointChanged() {
+        connectionEndpointPersistence?.invoke(connectionMode, host, port)
+    }
+
+    fun restoreConnectionEndpoints(
+        directApHost: String,
+        directApPort: Int,
+        homeLanHost: String,
+        homeLanPort: Int,
+    ) {
+        directApEndpoint = ConnectionEndpointDraft(
+            host = directApHost.trim().ifBlank { "192.168.0.1" },
+            port = directApPort.coerceIn(1, 65535),
+        )
+        homeLanEndpoint = ConnectionEndpointDraft(
+            host = homeLanHost.trim(),
+            port = homeLanPort.coerceIn(1, 65535),
+        )
+        applyEndpointFor(connectionMode)
+    }
+
+    fun updatePort(p: Int) {
+        port = p.coerceIn(1, 65535)
+        rememberCurrentEndpoint()
+        notifyEndpointChanged()
+    }
 
     // #74: the MJPEG preview endpoint is a *separate* service from the
     // configurable control socket. The Polaris serves it on a fixed 8080;
@@ -1198,7 +1255,11 @@ class AppViewModel(
         )
     }
 
-    fun updateHost(h: String) { host = h }
+    fun updateHost(h: String) {
+        host = h
+        rememberCurrentEndpoint()
+        notifyEndpointChanged()
+    }
 
     /**
      * Read the persisted [SessionMarker] (if any) and, if valid, set

@@ -77,10 +77,13 @@ mount Wi-Fi…" shortcut in the Connection dialog (see §3).
 1. Launch the app. You land on the main screen (a status strip, position
    readout, and a four-button jog pad).
 2. Tap **Wi-Fi** in the callout rail — the Connection dialog opens.
-3. The host defaults to `192.168.0.1` and the port to **9090**. Both are
-   editable; the port field accepts a numeric value and falls back to `9090`
-   on a non-numeric entry.
-4. Tap **Connect**.
+3. Choose **Direct AP** for the mount's private access point or
+   **Home Wi-Fi** for a mount station address already reachable on the
+   ordinary LAN. Each mode remembers its own host and control port.
+4. Enter the host and port for the selected mode, then tap **Connect**.
+   Direct AP defaults to `192.168.0.1:9090`; Home Wi-Fi starts with a blank
+   station host and port `9090`. Preview evidence remains on the separate
+   `:8080` service.
 
 The status line under the buttons updates:
 
@@ -99,8 +102,9 @@ A modal card titled **Connection**.
 
 | Control | Effect |
 |---|---|
-| Mount host | Text field; the gimbal's IP (default `192.168.0.1`). |
-| Port | Numeric field; default `9090`. |
+| Connection mode | **Direct AP** uses the mount AP; **Home Wi-Fi** uses ordinary client-LAN routing to the configured station host. Home Wi-Fi does not wake Bluetooth, scan for the AP or run the desktop bridge. |
+| Mount host | Mode-specific host field: Direct AP defaults to `192.168.0.1`; Home Wi-Fi is blank until the station address is known. |
+| Port | Mode-specific numeric control port, default `9090`; the preview service is independently checked on `8080`. |
 | **Connect** | Opens the TCP socket and starts the post-connect bootstrap. |
 | **Demo mode** | Spins up the in-process simulator — no network. |
 | **Disconnect** | Tears down the session, stops the preview, shuts down the simulator. |
@@ -394,8 +398,10 @@ The implementation lives in `androidApp/.../VRActivity.kt` and
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Connect` returns `Connection refused` | Wrong host or port, or the gimbal AP isn't joined. | Tap **Connect mount Wi-Fi…** (Android) or the bridge button (desktop). |
-| `Connect` returns `timeout` | The gimbal is on the tplink subnet, not the `polaris_*` AP. | Re-join the gimbal AP. From a tplink subnet, `192.168.0.1` is the AP's admin page. |
+| Direct AP `Connect` returns `Connection refused` | Wrong AP host/port or the mount AP is not joined. | Join the mount AP, select **Direct AP**, verify `192.168.0.1:9090`, then retry. |
+| Home Wi-Fi `Connect` returns `Connection refused` | The station host/port is wrong or the mount is not listening on the LAN. | Select **Home Wi-Fi**, enter the station address and control port, and verify the mount's LAN listener; do not use the Direct AP bridge path. |
+| Direct AP `Connect` returns `timeout` | The phone/PC is not routed to the private mount AP. | Join the `Polaris_*` AP or use the desktop bridge, then retry. |
+| Home Wi-Fi `Connect` returns `timeout` | The station route or LAN listener is unavailable. | Confirm the mount and client are on the same LAN and that the station listener is enabled; OpenPolaris does not change home-LAN routing. |
 | Status line says `crash: …` after `Connected` | A post-connect setup step threw (camera poll or capture-event observer). | The app has already called `disconnect()`. Tap **Connect** again — if the symptom persists, file an issue with the crash text. |
 | Preview is not streaming | OpenPolaris now starts 8080 only while the Preview pane is open, so it does not compete with another camera-control app by default. | Open the **Preview** pane. Leaving it closes OpenPolaris' stream. |
 | Preview pane says `Stream unavailable: …` | Camera is off, USB is unplugged, or the mount isn't on. | Confirm the mount connection and camera attachment; do not reconnect solely to start preview. If preview remains unavailable, record the status and file an issue. |

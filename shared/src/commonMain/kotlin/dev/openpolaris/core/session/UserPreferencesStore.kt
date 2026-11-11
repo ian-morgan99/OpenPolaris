@@ -22,6 +22,10 @@ data class UserPreferences(
     val dimMode: Boolean = false,
     val reducedMotion: Boolean = false,
     val connectionMode: ConnectionMode = ConnectionMode.DIRECT_AP,
+    val directApHost: String = "192.168.0.1",
+    val directApPort: Int = 9090,
+    val homeLanHost: String = "",
+    val homeLanPort: Int = 9090,
     val observerLatitudeDeg: Double? = null,
     val observerLongitudeDeg: Double? = null,
 ) {

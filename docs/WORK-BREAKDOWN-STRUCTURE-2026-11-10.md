@@ -78,6 +78,14 @@
   and prepare readiness visible while placing focal, limits, guide, autofocus,
   session, programme and advanced composer controls behind an accessible More
   controls graphic. PC remains expanded; no action or capability gate changed.
+- **2026-11-11 - WBS-01.2/01.3/05.1/09.1 ACTIVE (summary-first
+  mission surface):** compact phones now show the highest-priority readiness
+  summary and safe next action immediately after endpoint health. Resident
+  Astro WebUI controls, preparation checks and detailed readiness rows are
+  reachable through the same More controls disclosure; PC remains expanded and
+  all routes, action semantics and safety/qualification gates are unchanged.
+  The compact SLOW surface uses the same summary-first hierarchy for owner,
+  qualification and acknowledgement evidence.
 - **2026-11-11 - verification:** focused responsive/compact Compose contracts,
   full shared/Compose JVM suites and desktop distributable creation passed. No
   phone screenshot or hardware qualification was performed.

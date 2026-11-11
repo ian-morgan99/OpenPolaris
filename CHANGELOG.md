@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Mission and Astro controls are now summary-first on compact phones.** Phones
+  show the next readiness action and keep the full resident Astro WebUI,
+  preparation checks and readiness rows behind the existing More controls
+  disclosure. Desktop remains expanded; action routes, accessibility names and
+  all qualification/safety gates are unchanged.
+- **Mobile Slow Motion is now summary-first.** Phones show a one-line
+  qualification/acknowledgement/owner summary and keep fine-rate evidence,
+  calibration prose, keyboard detail and full recovery guidance behind one
+  Details disclosure; desktop remains fully labelled. Hold/release and STOP
+  semantics are unchanged.
 - **Fine-rate rehearsal now serializes versioned target updates safely.** A
   newer positively acknowledged request can replace the active target, while
   delayed stale UI events cannot fault or replace it. Rejected or ambiguous

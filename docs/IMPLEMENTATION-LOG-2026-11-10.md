@@ -5,6 +5,30 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.2/01.3/05.1/09.1 — Summary-first mobile mission surface
+
+The compact Mission dashboard now exposes a one-line readiness summary and its
+highest-priority safe next action immediately after endpoint health. The full
+resident Astro WebUI surface, preparation checklist and detailed readiness rows
+are behind the existing accessible More controls disclosure on phones; desktop
+remains expanded. No Astro route, write capability, action dispatch,
+qualification gate or safety semantic changed, and all advanced controls remain
+reachable through the disclosure.
+
+The earlier compact Slow Motion surface follows the same rule: owner,
+qualification and acknowledgement state remain visible while long evidence and
+recovery prose sit behind Details. Core axis, speed, hold/release and STOP
+controls remain present.
+
+Focused verification:
+
+\`\`\`text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactDensityContractTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --tests dev.openpolaris.ui.SlowMotionPaneSafetyContractTest --console=plain --no-daemon
+\`\`\`
+
+This is source/package evidence only. Installed-phone rendering, Astro WebUI
+runtime qualification and physical motion/capture qualification remain open.
+
 ### WBS-03.3/03.6 — Versioned fine-rate rehearsal safety
 
 The transport-neutral `SafeRateAdjustController` now serializes apply and stop

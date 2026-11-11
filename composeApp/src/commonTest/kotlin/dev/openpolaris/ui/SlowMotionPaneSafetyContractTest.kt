@@ -93,6 +93,11 @@ class SlowMotionPaneSafetyContractTest {
         assertTrue("testTag(\"slow-motion-direction-a\")" in source)
         assertTrue("testTag(\"slow-motion-stop-all\")" in source)
         assertTrue("testTag(\"slow-motion-speed-row\")" in source)
+        assertTrue("val compactSlowStatus" in source)
+        assertTrue("val compactAcknowledgementText" in source)
+        assertTrue("Live unavailable · \${liveQualificationBlockers.size} checks" in source)
+        assertTrue("Fine correction demo · open Details" in source)
+        assertTrue("maxLines = if (compactLayout) 1 else Int.MAX_VALUE" in source)
     }
 
     @Test

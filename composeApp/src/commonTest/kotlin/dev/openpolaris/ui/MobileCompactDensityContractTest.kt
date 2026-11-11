@@ -37,6 +37,18 @@ class MobileCompactDensityContractTest {
     }
 
     @Test
+    fun missionSurfaceIsSummaryFirstOnCompactPhones() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("val nextReadiness = cards.firstOrNull" in panes)
+        assertTrue("testTag(\"mission-compact-summary\")" in panes)
+        assertTrue("maxLines = 1" in panes)
+        assertTrue(panes.contains("if (!compactLayout || showAdvancedAstro)"))
+        assertTrue(panes.contains("AstroWebUiProgrammeComposer(vm)"))
+        assertTrue(panes.contains("contentDescription = if (showAdvancedAstro)"))
+    }
+
+    @Test
     fun desktopThemeDoesNotInheritPhoneTypography() {
         val theme = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Theme.kt")
         assertTrue("typography = if (compact) CompactNightTypography else NightTypography" in theme)

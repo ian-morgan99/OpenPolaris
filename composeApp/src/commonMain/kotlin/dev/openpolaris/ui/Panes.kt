@@ -64,6 +64,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -1045,6 +1046,50 @@ fun MissionDashboardPane(
                 vm = vm,
                 onOpenConnection = onAction?.let { action -> { action("connection") } },
             )
+            if (compactLayout) {
+                val nextReadiness = cards.firstOrNull {
+                    it.level != dev.openpolaris.core.domain.ReadinessLevel.READY
+                }
+                val readyCount = cards.count {
+                    it.level == dev.openpolaris.core.domain.ReadinessLevel.READY
+                }
+                Text(
+                    if (nextReadiness == null) {
+                        "Mission ready · " + readyCount + " checks"
+                    } else {
+                        "Mission next · " + nextReadiness.label + ": " + nextReadiness.summary
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("mission-compact-summary"),
+                )
+                nextReadiness?.let { card ->
+                    card.actionLabel?.let { actionLabel ->
+                        if (onAction != null) {
+                            ResponsiveTextActionButton(
+                                graphic = OpenPolarisGraphic.Forward,
+                                label = "Next: " + actionLabel,
+                                contentDescription = "Next: $actionLabel",
+                                onClick = { onAction(card.id) },
+                            )
+                        }
+                    }
+                }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showAdvancedAstro) "Hide advanced" else "More controls",
+                    contentDescription = if (showAdvancedAstro) {
+                        "Hide advanced Astro controls"
+                    } else {
+                        "Show advanced Astro controls"
+                    },
+                    onClick = { showAdvancedAstro = !showAdvancedAstro },
+                    modifier = Modifier.testTag("astro-advanced-controls-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showAdvancedAstro) {
             HorizontalDivider()
             Text("Resident Astro WebUI", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1364,21 +1409,6 @@ fun MissionDashboardPane(
                 )
             }
             HorizontalDivider()
-            if (compactLayout) {
-                ResponsiveActionButton(
-                    graphic = OpenPolarisGraphic.More,
-                    label = if (showAdvancedAstro) "Hide advanced" else "More controls",
-                    contentDescription = if (showAdvancedAstro) {
-                        "Hide advanced Astro controls"
-                    } else {
-                        "Show advanced Astro controls"
-                    },
-                    onClick = { showAdvancedAstro = !showAdvancedAstro },
-                    modifier = Modifier.testTag("astro-advanced-controls-toggle"),
-                    outlined = true,
-                )
-            }
-            if (!compactLayout || showAdvancedAstro) {
             Text("Solve focal length", style = MaterialTheme.typography.titleMedium)
             Text(
                 "The resident solver prefers a manual override, then the last frame's EXIF focal length, then its configured default. Setting a focal override changes future solves; it does not re-solve or apply alignment.",
@@ -2092,6 +2122,7 @@ fun MissionDashboardPane(
             HorizontalDivider()
             AstroWebUiExtendedProgrammeComposer(vm)
             }
+            if (!compactLayout || showAdvancedAstro) {
             HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(
@@ -2150,6 +2181,7 @@ fun MissionDashboardPane(
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -3042,11 +3074,29 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
         "Solve confidence at least 0.60" to ((solve?.confidence ?: 0.0) >= 0.60),
         "Field rotation within 5 degrees" to false,
     )
+    val liveQualificationBlockers = buildList {
+        addAll(capabilityRecord.blockers)
+        if (!liveTransportInstalled) add("positive-acknowledgement sender")
+    }.distinct()
+    val compactSlowStatus = when {
+        demoControlsEnabled -> "Demo · logical only"
+        !gateOpen -> "Unavailable · qualification off"
+        !liveTransportQualified -> "Unavailable · firmware not qualified"
+        !liveTransportInstalled -> "Unavailable · sender not installed"
+        !vm.mount.connected -> "Unavailable · connect mount"
+        else -> "Ready · qualified transport"
+    }
+    val compactAcknowledgementText = when (slowTelemetry.lastOutcome) {
+        dev.openpolaris.core.domain.SlowMotionTransportResult.Accepted -> "Ack: OK"
+        is dev.openpolaris.core.domain.SlowMotionTransportResult.Rejected -> "Ack: rejected"
+        is dev.openpolaris.core.domain.SlowMotionTransportResult.Unknown -> "Ack: unknown"
+        null -> if (slowTelemetry.lastCommandAtMs == null) "Ack: none" else "Ack: pending"
+    }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 10.dp)) {
             Text("Slow motion", style = MaterialTheme.typography.titleMedium)
             Text(
-                when {
+                if (compactLayout) compactSlowStatus else when {
                     demoControlsEnabled -> "Demo simulation is active: planner and scheduler transitions are shown without sending a hardware command."
                     !gateOpen -> "Slow-motion controls are unavailable until the firmware and physical stop contract are qualified."
                     !liveTransportQualified -> "Host planner is implemented, but no firmware-bound slow-motion transport is enabled in this build."
@@ -3054,25 +3104,36 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     !vm.mount.connected -> "Connect to a mount before using slow motion."
                     else -> "Qualified slow-motion controls are ready for this build."
                 },
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+                maxLines = if (compactLayout) 1 else Int.MAX_VALUE,
+                modifier = Modifier.testTag("slow-motion-summary"),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    when {
-                        demoControlsEnabled -> "Motion state: Demo ${vm.slowMotionDemoState.label}"
-                        liveControlsEnabled -> "Motion state: Qualified live"
-                        else -> "Motion state: Unavailable"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                Text(
-                    if (demoControlsEnabled) "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions"
-                    else connectionText,
-                    style = MaterialTheme.typography.bodySmall,
-                )
+            if (!compactLayout) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        when {
+                            demoControlsEnabled -> "Motion state: Demo ${vm.slowMotionDemoState.label}"
+                            liveControlsEnabled -> "Motion state: Qualified live"
+                            else -> "Motion state: Unavailable"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        if (demoControlsEnabled) {
+                            "No physical transport · ${vm.slowMotionDemoState.lastEvents.size} logical transitions"
+                        } else {
+                            connectionText
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             Text(
-                motionOwnerText,
+                if (compactLayout) when (val state = motionState) {
+                    dev.openpolaris.core.domain.MotionState.Idle -> "Owner: idle"
+                    is dev.openpolaris.core.domain.MotionState.Owned -> "Owner: " + state.lease.owner.name.lowercase().replace('_', ' ')
+                    is dev.openpolaris.core.domain.MotionState.Faulted -> "Owner: blocked"
+                } else motionOwnerText,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (motionState is dev.openpolaris.core.domain.MotionState.Faulted) {
                     MaterialTheme.colorScheme.error
@@ -3082,7 +3143,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.testTag("motion-owner-state"),
             )
             Text(
-                slowAcknowledgementText,
+                if (compactLayout) compactAcknowledgementText else slowAcknowledgementText,
                 style = MaterialTheme.typography.labelSmall,
                 color = when (slowTelemetry.lastOutcome) {
                     is dev.openpolaris.core.domain.SlowMotionTransportResult.Rejected,
@@ -3141,14 +3202,15 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
             if (!liveTransportQualified || !liveTransportInstalled) {
-                val blockers = buildList {
-                    addAll(capabilityRecord.blockers)
-                    if (!liveTransportInstalled) add("positive-acknowledgement sender")
-                }.distinct()
                 Text(
-                    "Live qualification blockers: " + blockers.joinToString(", ") + ".",
+                    if (compactLayout) {
+                        "Live unavailable · ${liveQualificationBlockers.size} checks"
+                    } else {
+                        "Live qualification blockers: " + liveQualificationBlockers.joinToString(", ") + "."
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("slow-motion-qualification-summary"),
                 )
             }
             if (compactLayout) {
@@ -3221,8 +3283,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
             Text(
-                "Select an axis, then press and hold a direction in Demo or qualified mode; release stops the session. The same dead-man contract applies to both. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
-                style = MaterialTheme.typography.bodySmall,
+                if (compactLayout) "Hold A/B · release stops" else "Select an axis, then press and hold a direction in Demo or qualified mode; release stops the session. The same dead-man contract applies to both. Axis signs remain Direction A/B until a firmware-bound calibration proves left/right, up/down or celestial meaning.",
+                style = if (compactLayout) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
             )
             Row(
                 modifier = Modifier
@@ -3241,7 +3303,9 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     )
                 }
             }
-            Text("Selected axis: " + selectedAxis, style = MaterialTheme.typography.bodySmall)
+            if (!compactLayout) {
+                Text("Selected axis: " + selectedAxis, style = MaterialTheme.typography.bodySmall)
+            }
             Text(
                 heldControl?.let { "Held input: $it — release to stop." } ?: "No direction held.",
                 style = MaterialTheme.typography.labelSmall,
@@ -3388,11 +3452,18 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 )
             }
 
-            if (demoControlsEnabled) {
+            if (demoControlsEnabled && (!compactLayout || showMotionDetails)) {
                 DemoFineRateCard(
                     vm = vm,
                     selectedAxis = slowAxis(selectedAxis),
                     modifier = Modifier.fillMaxWidth(),
+                )
+            } else if (demoControlsEnabled && compactLayout) {
+                Text(
+                    "Fine correction demo · open Details",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("fine-rate-demo-collapsed"),
                 )
             } else if (LocalOpenPolarisCompact.current) {
                 Text(
@@ -3406,22 +3477,24 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     Text("Fine correction — unavailable until tracking and rate transport are qualified")
                 }
             }
-            Text(
-                "Release, cancel, backgrounding, screen lock, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until explicit recovery.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                when {
-                    demoControlsEnabled ->
-                        "Demo mode records logical planner/scheduler transitions only; no 532/533/534 or alternative AC 4A frame is emitted."
-                    liveControlsEnabled ->
-                        "Qualified mode uses the evidence-backed 532/533/534 transport and the same dead-man stop boundary."
-                    else ->
-                        "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected."
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (!compactLayout || showMotionDetails) {
+                Text(
+                    "Release, cancel, backgrounding, screen lock, link loss, mode change and emergency stop must relinquish the motion lease. A failed or ambiguous stop blocks motion until explicit recovery.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    when {
+                        demoControlsEnabled ->
+                            "Demo mode records logical planner/scheduler transitions only; no 532/533/534 or alternative AC 4A frame is emitted."
+                        liveControlsEnabled ->
+                            "Qualified mode uses the evidence-backed 532/533/534 transport and the same dead-man stop boundary."
+                        else ->
+                            "Current qualification: planner and scheduler tests only; no 532/533/534 or alternative AC 4A transport is connected."
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -5094,6 +5094,8 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var showHistogram by remember { mutableStateOf(false) }
     var focusPeaking by remember { mutableStateOf(false) }
     var fullscreen by remember { mutableStateOf(false) }
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showPreviewDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val frame = vm.previewFrame
     val analysis = vm.previewPixelAnalysis
     val state = vm.previewState
@@ -5249,11 +5251,26 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     compactLabel = "F",
                     contentDescription = "Toggle preview focus peaking",
                 )
+                if (compactLayout) {
+                    ResponsiveActionButton(
+                        graphic = if (showPreviewDetails) OpenPolarisGraphic.Up else OpenPolarisGraphic.More,
+                        label = if (showPreviewDetails) "Hide details" else "Details",
+                        contentDescription = if (showPreviewDetails) {
+                            "Hide preview details"
+                        } else {
+                            "Show preview details"
+                        },
+                        onClick = { showPreviewDetails = !showPreviewDetails },
+                        modifier = Modifier.testTag("preview-details-toggle"),
+                    )
+                }
             }
-            Text(
-                "Framing overlays and pixel analysis are local presentation aids; they do not alter camera or mount state.",
-                style = MaterialTheme.typography.labelSmall,
-            )
+            if (!compactLayout || showPreviewDetails) {
+                Text(
+                    "Framing overlays and pixel analysis are local presentation aids; they do not alter camera or mount state.",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             if (showHistogram) {
                 if (analysis == null) {
                     Text(
@@ -5324,14 +5341,16 @@ fun PreviewPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            Text(
-                // 3h-BUG: surface the live preview port (vm.previewPort) instead
-                // of a hard-coded 8080 so the user knows which port the preview
-                // is actually using. (Was vm.port — the *control* socket port,
-                // which is wrong: the MJPEG stream lives on the fixed 8080.)
-                "Streamed from http://${vm.host}:${vm.previewPort}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (!compactLayout || showPreviewDetails) {
+                Text(
+                    // 3h-BUG: surface the live preview port (vm.previewPort) instead
+                    // of a hard-coded 8080 so the user knows which port the preview
+                    // is actually using. (Was vm.port — the *control* socket port,
+                    // which is wrong: the MJPEG stream lives on the fixed 8080.)
+                    "Streamed from http://${vm.host}:${vm.previewPort}/?action=stream. 16:9, best-effort, frames are dropped when stale.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
     }
 }

@@ -610,6 +610,19 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactPreviewKeepsLiveStateAndCollapsesExplanatoryText() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("var showPreviewDetails by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"preview-details-toggle\")" in panes)
+        assertTrue("Show preview details" in panes)
+        assertTrue("Hide preview details" in panes)
+        assertTrue("if (!compactLayout || showPreviewDetails)" in panes)
+        assertTrue("Framing overlays and pixel analysis are local presentation aids" in panes)
+        assertTrue(("Streamed from http://" + '$' + "{vm.host}:" + '$' + "{vm.previewPort}") in panes)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone preview is now summary-first.** The live frame, age,
+  no-camera/stream state, fullscreen and overlay toggles stay visible, while
+  static local-aid explanation and endpoint details are behind a small
+  graphic-backed Details action. Histogram/focus-wait output and dynamic
+  errors remain visible when active; desktop preview behavior is unchanged.
+
 - **Compact Guide is now summary-first on phones.** The phone Guide opens with
   a short list of manual sections and a graphic-backed Read manual action;
   the complete bundled manual remains available on demand. Desktop keeps the

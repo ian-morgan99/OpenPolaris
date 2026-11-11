@@ -1653,3 +1653,18 @@ unchanged.
 Verification is required before publication: focused mobile contracts, full
 Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
 rendering and hardware qualification remain open.
+
+### 2026-11-11  WBS-01.3/04.2/09.1 compact Preview summary-first surface
+
+The compact phone Preview pane now keeps the live frame, frame age, stream/camera
+state, fullscreen action and local overlay toggles in the first surface. Static
+local-aid explanation and the stream endpoint/transport detail are behind one
+graphic-backed Details action. Histogram and focus-peaking wait state remain
+visible when explicitly enabled, and dynamic errors and missing-camera warnings
+remain visible without expansion. Desktop stays expanded and preview lifecycle,
+frame freshness, overlay behavior and transport semantics are unchanged.
+
+Verification: focused MobileCompactControlsContractTest passed. Full shared
+and Compose JVM suites, Android compilation and desktop packaging remain
+required before publication of this slice. Installed-phone rendering and live
+camera/stream qualification remain open.

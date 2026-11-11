@@ -3538,8 +3538,20 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             )
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactFilterChip(selected = !vm.raDecMode, onClick = { vm.setRaDecMode(false) }, label = { Text("Az/Alt") })
-                CompactFilterChip(selected = vm.raDecMode, onClick = { vm.setRaDecMode(true) }, label = { Text("RA/Dec") })
+                CompactFilterChip(
+                    selected = !vm.raDecMode,
+                    onClick = { vm.setRaDecMode(false) },
+                    label = { Text("Az/Alt") },
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    contentDescription = "Use Azimuth and Altitude coordinates",
+                )
+                CompactFilterChip(
+                    selected = vm.raDecMode,
+                    onClick = { vm.setRaDecMode(true) },
+                    label = { Text("RA/Dec") },
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    contentDescription = "Use Right Ascension and Declination coordinates",
+                )
             }
 
             if (vm.raDecMode) {

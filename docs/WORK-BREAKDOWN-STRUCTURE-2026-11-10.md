@@ -66,6 +66,13 @@
   firmware step navigation now use small phone graphics with full content
   descriptions; desktop keeps familiar text labels. Stable tags and labels
   are covered by the compact-control contract tests.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (selector density follow-up):** Astro
+  WebUI media categories, SD-file categories and GoTo coordinate-mode
+  selectors now use compact graphic-backed selectors on phones while retaining
+  their full labels on desktop. Each selector keeps an explicit semantic
+  description; text remains visible wherever it is needed to distinguish
+  dynamic results such as alignment-star candidates. This is source/package
+  evidence only; installed-phone rendering remains open.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

@@ -149,6 +149,22 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun mediaAndCoordinateSelectorsUseSmallGraphicsWhenLabelsDoNotFit() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val full = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("contentDescription = \"Use Azimuth and Altitude coordinates\"" in panes)
+        assertTrue("contentDescription = \"Use Right Ascension and Declination coordinates\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionA" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionB" in panes)
+        assertTrue("contentDescription = \"Show all Astro WebUI media\"" in full)
+        assertTrue("categoryLabel} Astro WebUI media" in full)
+        assertTrue("label} files" in full)
+        assertTrue("graphic = if (type == 0) OpenPolarisGraphic.Preview else OpenPolarisGraphic.Camera" in full)
+        assertTrue("CompactFilterChip(" in full)
+    }
+
+    @Test
     fun fileListPagingAndMutationActionsUseCompactGraphics() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")

@@ -658,15 +658,24 @@ fun AstroWebUiGalleryPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    TextButton(
+                    CompactFilterChip(
+                        selected = vm.astroMediaCategory == null,
                         onClick = { vm.selectAstroMediaCategory(null) },
                         enabled = vm.astroMediaCategory != null,
-                    ) { Text("All (${allItems.size})") }
+                        label = { Text("All (${allItems.size})") },
+                        graphic = OpenPolarisGraphic.Preview,
+                        contentDescription = "Show all Astro WebUI media",
+                    )
                     categories.forEach { category ->
-                        TextButton(
+                        val categoryLabel = AstroMediaPolicy.labelFor(category)
+                        CompactFilterChip(
+                            selected = vm.astroMediaCategory == category,
                             onClick = { vm.selectAstroMediaCategory(category) },
                             enabled = vm.astroMediaCategory != category,
-                        ) { Text("${AstroMediaPolicy.labelFor(category)} (${allItems.count { it.category == category }})") }
+                            label = { Text("${categoryLabel} (${allItems.count { it.category == category }})") },
+                            graphic = OpenPolarisGraphic.Camera,
+                            contentDescription = "Show ${categoryLabel} Astro WebUI media",
+                        )
                     }
                 }
                 val items = vm.astroMediaCategory?.let { category ->
@@ -764,14 +773,18 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Category", style = MaterialTheme.typography.labelMedium)
                 listOf(0 to "All", 1 to "Normal").forEach { (type, label) ->
-                    TextButton(
+                    CompactFilterChip(
+                        selected = vm.fileListType == type,
                         enabled = fileManagerEnabled && vm.fileListType != type,
                         onClick = {
                             vm.setFileType(type)
                             vm.setFilePage(0)
                             vm.refreshFileList()
                         },
-                    ) { Text(label) }
+                        label = { Text(label) },
+                        graphic = if (type == 0) OpenPolarisGraphic.Preview else OpenPolarisGraphic.Camera,
+                        contentDescription = "Show ${label} files",
+                    )
                 }
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Refresh,

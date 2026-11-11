@@ -2198,3 +2198,19 @@ redaction semantics are unchanged.
 Focused source-contract verification passed. This is source/package evidence
 only; no installed-phone rendering, live capture, Bluetooth, mount or physical
 qualification was performed.
+
+
+### WBS-01.3/05.1/08.3/09.1 - Compact helper and system summaries
+
+The phone Astro helpers pane now opens with Dither, Limits and Auto-level state
+plus one Details action; settling, write controls, refresh actions and the
+full auto-level surface remain recoverable. The phone System pane now opens
+with Wi-Fi and reboot/shutdown gate summaries plus one Details action; time,
+timezone, language, indicator, Wi-Fi, reboot and shutdown controls remain
+available after expansion. Desktop keeps the existing expanded surfaces. Feature
+gates, destructive confirmations, action semantics and readback meaning are
+unchanged.
+
+Focused MobileCompactControlsContractTest passed. This is source/package UX
+evidence only; no installed-phone rendering or live hardware operation was
+performed.

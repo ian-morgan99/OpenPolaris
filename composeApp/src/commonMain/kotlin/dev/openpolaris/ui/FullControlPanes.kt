@@ -52,23 +52,69 @@ import dev.openpolaris.core.domain.format2
 
 @Composable
 fun HelpersPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showHelperDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
+
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
-        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 10.dp),
+        ) {
             Text("Astro helpers", style = MaterialTheme.typography.titleMedium)
             if (!FeatureFlags.isEnabled("advancedAstro") && !FeatureFlags.isEnabled("autoLevel")) {
                 Text(
                     "Helpers and auto-level are off in the current config. Enable " +
                         "advancedAstro and autoLevel in FeatureFlags to use this pane " +
                         "(both default ON; only flagged OFF on kiosk/test rigs).",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = if (compactLayout) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                 )
             }
-            DitherRow(vm)
-            SettlingRow(vm)
-            LimitsRow(vm)
-            HorizontalDivider()
-            AutoLevelRow(vm)
+            if (compactLayout) {
+                HelperSummaryRow(
+                    "Dither",
+                    vm.ditherEnabled?.let { if (it) "ON" else "OFF" } ?: "Unknown",
+                )
+                HelperSummaryRow(
+                    "Limits",
+                    vm.limitsEnabled?.let { if (it) "ON" else "OFF" } ?: "Unknown",
+                )
+                HelperSummaryRow(
+                    "Auto-level",
+                    vm.autoLevelEnabled?.let { if (it) "ON" else "OFF" } ?: "Unknown",
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showHelperDetails) "Hide details" else "Details",
+                    contentDescription = if (showHelperDetails) {
+                        "Hide Astro helper controls"
+                    } else {
+                        "Show Astro helper controls"
+                    },
+                    onClick = { showHelperDetails = !showHelperDetails },
+                    modifier = Modifier.testTag("helpers-details-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showHelperDetails) {
+                DitherRow(vm)
+                SettlingRow(vm)
+                LimitsRow(vm)
+                HorizontalDivider()
+                AutoLevelRow(vm)
+            }
         }
+    }
+}
+
+@Composable
+private fun HelperSummaryRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+        Text(value, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -240,20 +286,70 @@ private fun AutoLevelRow(vm: AppViewModel) {
 
 @Composable
 fun SystemPane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showSystemDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
+    val wifiBand = when (vm.wifiBand) {
+        0 -> "2.4 GHz"
+        1 -> "5 GHz"
+        null -> "Unknown"
+        else -> "Code " + vm.wifiBand
+    }
+    val powerSummary = "Reboot " +
+        (if (FeatureFlags.isEnabled("allowReboot")) "available" else "gated") +
+        " / Shutdown " +
+        (if (FeatureFlags.isEnabled("allowShutdown")) "available" else "gated")
+
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
-        Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 8.dp else 10.dp)) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 10.dp),
+        ) {
             Text("System", style = MaterialTheme.typography.titleMedium)
-            TimeRow(vm)
-            TzRow(vm)
-            LangRow(vm)
-            BuzzerRow(vm)
-            LedRow(vm)
-            HorizontalDivider()
-            WifiRow(vm)
-            HorizontalDivider()
-            RebootRow(vm)
-            ShutdownRow(vm)
+            if (compactLayout) {
+                Text(
+                    "Time, indicators, Wi-Fi and power controls",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                SystemSummaryRow("Wi-Fi", wifiBand)
+                SystemSummaryRow("Power", powerSummary)
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showSystemDetails) "Hide details" else "Details",
+                    contentDescription = if (showSystemDetails) {
+                        "Hide system settings and power controls"
+                    } else {
+                        "Show system settings and power controls"
+                    },
+                    onClick = { showSystemDetails = !showSystemDetails },
+                    modifier = Modifier.testTag("system-details-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showSystemDetails) {
+                TimeRow(vm)
+                TzRow(vm)
+                LangRow(vm)
+                BuzzerRow(vm)
+                LedRow(vm)
+                HorizontalDivider()
+                WifiRow(vm)
+                HorizontalDivider()
+                RebootRow(vm)
+                ShutdownRow(vm)
+            }
         }
+    }
+}
+
+@Composable
+private fun SystemSummaryRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+        Text(value, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 

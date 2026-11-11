@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact helper and system panes are now summary-first on phones.** Astro
+  helper state, Wi-Fi state and reboot/shutdown gate state remain visible while
+  their longer control rows are behind small graphic-backed Details actions.
+  Desktop keeps the expanded controls and all feature gates, confirmation
+  dialogs and hardware safety semantics are unchanged.
 - **Compact Evidence Centre is now summary-first on phones.** Route, mount,
   camera and capture health stay visible with a graphic-backed Details action;
   build identity, capability gates, capture timeline and endpoint diagnostics

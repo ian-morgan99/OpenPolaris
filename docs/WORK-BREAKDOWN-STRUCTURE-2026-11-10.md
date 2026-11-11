@@ -423,6 +423,13 @@
 - Event timeline, raw frame/log export, build identity, firmware identity, capability matrix and support bundle.
 
 - **2026-11-10 — WBS-08.2 ACTIVE:** added a read-only evidence and health centre to Settings. It reports build/route identity, separate control and preview health, observed device/camera/storage state, capture lifecycle/publication evidence, and the gated live-SLOW boundary. Raw-log export and support-bundle packaging remain future work.
+- **2026-11-11 - WBS-01.3/05.1/08.3/09.1 ACTIVE (compact helper and
+  system surfaces):** compact phones now keep helper state, Wi-Fi state and
+  reboot/shutdown gate state in short summaries. Dither/settling/limits/
+  auto-level controls and time/indicator/Wi-Fi/power controls are recoverable
+  through graphic-backed Details disclosures; desktop remains expanded and
+  feature gates, confirmations and safety semantics are unchanged. This is
+  source/package evidence only; installed-phone rendering remains open.
 - **2026-11-11 - WBS-01.3/08.2/09.1 ACTIVE (compact Evidence Centre):**
   phones now keep route, mount, camera and capture health in a summary-first
   card. Build identity, capability gates, capture timeline and endpoint

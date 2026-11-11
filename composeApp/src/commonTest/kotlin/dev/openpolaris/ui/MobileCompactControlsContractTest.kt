@@ -558,6 +558,32 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactHelpersKeepStateSummaryAndCollapseControlRows() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("var showHelperDetails by remember(compactLayout)" in panes)
+        assertTrue("HelperSummaryRow(" in panes)
+        assertTrue("testTag(\"helpers-details-toggle\")" in panes)
+        assertTrue("Show Astro helper controls" in panes)
+        assertTrue("Hide Astro helper controls" in panes)
+        assertTrue("if (!compactLayout || showHelperDetails)" in panes)
+        assertTrue("Run auto-level" in panes)
+    }
+
+    @Test
+    fun compactSystemKeepsWifiAndPowerSummaryAndCollapsesSettings() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("var showSystemDetails by remember(compactLayout)" in panes)
+        assertTrue("SystemSummaryRow(" in panes)
+        assertTrue("testTag(\"system-details-toggle\")" in panes)
+        assertTrue("Show system settings and power controls" in panes)
+        assertTrue("Hide system settings and power controls" in panes)
+        assertTrue("if (!compactLayout || showSystemDetails)" in panes)
+        assertTrue("Confirm shutdown of the mount" in panes)
+    }
+
+    @Test
     fun compactEvidenceKeepsCoreHealthAndCollapsesVerboseDetails() {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
 

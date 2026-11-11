@@ -308,4 +308,17 @@ class MobileCompactControlsContractTest {
         assertTrue("Open connection settings" in panes)
     }
 
+
+    @Test
+    fun reconnectDialogCompactsProgressAndReconnectWithoutHidingForget() {
+        val dialog = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/ReconnectDialog.kt")
+
+        assertTrue("ResponsiveTextActionButton" in dialog)
+        assertTrue("graphic = OpenPolarisGraphic.Cancel" in dialog)
+        assertTrue("contentDescription = \"Cancel reconnect\"" in dialog)
+        assertTrue("graphic = OpenPolarisGraphic.Connection" in dialog)
+        assertTrue("contentDescription = \"Reconnect to last mount\"" in dialog)
+        assertTrue("Text(\"Forget\")" in dialog, "irreversible marker removal remains explicitly textual")
+    }
+
 }

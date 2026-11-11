@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Reconnect progress and admission actions now collapse on phones.** The
+  in-flight Cancel and validated Reconnect actions use small graphics with full
+  content descriptions, while irreversible marker removal remains explicitly
+  textual. Desktop keeps the familiar labels.
 - **Secondary mobile actions now collapse to accessible graphics.** Password
   confirmation, endpoint-health navigation, firmware pick/clear/upload and
   firmware step navigation use the same compact graphic/text boundary: phones

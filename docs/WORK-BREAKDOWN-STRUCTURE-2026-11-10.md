@@ -57,6 +57,10 @@
 - Mobile bottom navigation/sheets; tablet master-detail; PC rail/workspace/inspector.
 - Preserve dark adaptation and 48 dp touch targets while keeping the visual phone chrome compact.
 - 2026-11-10 progress: phone navigation now uses small 20 dp graphics inside a 48 dp row; the desktop rail remains unchanged. Primary destinations and jog arrows are graphic-first, while full labels remain available through accessibility semantics and overflow menus. The phone shell also uses tighter 4 dp outer/section spacing. Contract tests cover responsive selection, stable destinations, overflow, accessibility semantics and the visual/hit-target density contract.
+- 2026-11-11 - WBS-02.1/09.1 ACTIVE (reconnect action density): the
+  in-flight Cancel and validated Reconnect actions now use compact graphics
+  with explicit content descriptions; irreversible marker removal remains
+  textual so its destructive meaning is not hidden.
 - 2026-11-11 - WBS-01.3/09.1 ACTIVE (secondary action density): password
   confirmation, endpoint-health navigation, firmware pick/clear/upload and
   firmware step navigation now use small phone graphics with full content

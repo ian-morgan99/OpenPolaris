@@ -94,7 +94,12 @@ fun ReconnectDialog(vm: AppViewModel) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { vm.cancelReconnect() }) { Text("Cancel") }
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel",
+                    contentDescription = "Cancel reconnect",
+                    onClick = vm::cancelReconnect,
+                )
             },
         )
         return
@@ -143,14 +148,17 @@ fun ReconnectDialog(vm: AppViewModel) {
             }
         },
         confirmButton = {
-            TextButton(
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Connection,
+                label = "Reconnect",
+                contentDescription = "Reconnect to last mount",
                 onClick = { vm.acceptReconnect() },
                 // 3b.5-BUG: the port must also be parseable before
                 // enabling the button. The host-only check (pre-fix)
                 // would let a user click Reconnect with a blank port
                 // and trigger the defensive fallback in acceptReconnect.
                 enabled = draftHost.isNotBlank() && draftPort.toIntOrNull() != null,
-            ) { Text("Reconnect") }
+            )
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

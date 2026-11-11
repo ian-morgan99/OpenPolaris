@@ -612,10 +612,27 @@ private fun ShutdownRow(vm: AppViewModel) {
 
 @Composable
 fun CaptureTimelinePane(vm: AppViewModel, modifier: Modifier = Modifier) {
-    val entries = vm.captureTimeline.takeLast(8)
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showTimelineDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
+    val entries = vm.captureTimeline.takeLast(if (compactLayout && !showTimelineDetails) 4 else 8)
     if (entries.isEmpty()) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Capture timeline", style = MaterialTheme.typography.titleSmall)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Capture timeline", style = MaterialTheme.typography.titleSmall)
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = if (showTimelineDetails) OpenPolarisGraphic.Up else OpenPolarisGraphic.More,
+                    label = if (showTimelineDetails) "Hide details" else "Details",
+                    contentDescription = if (showTimelineDetails) {
+                        "Hide capture timeline details"
+                    } else {
+                        "Show capture timeline details"
+                    },
+                    onClick = { showTimelineDetails = !showTimelineDetails },
+                    modifier = Modifier.testTag("capture-timeline-details-toggle"),
+                )
+            }
+        }
         entries.forEach { entry ->
             Text(
                 "${entry.stage.label}: ${entry.detail}",

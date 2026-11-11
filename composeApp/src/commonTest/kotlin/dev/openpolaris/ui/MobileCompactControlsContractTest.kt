@@ -646,6 +646,18 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactCaptureTimelineShowsRecentEvidenceWithRecoveryDetails() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("var showTimelineDetails by remember(compactLayout)" in panes)
+        assertTrue("takeLast(if (compactLayout && !showTimelineDetails) 4 else 8)" in panes)
+        assertTrue("capture-timeline-details-toggle" in panes)
+        assertTrue("Show capture timeline details" in panes)
+        assertTrue("Hide capture timeline details" in panes)
+        assertTrue("Capture timeline" in panes)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

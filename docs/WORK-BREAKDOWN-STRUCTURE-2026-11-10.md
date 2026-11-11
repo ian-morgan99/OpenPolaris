@@ -1692,3 +1692,14 @@ upload progress or recovery copy. Desktop spacing remains unchanged.
 
 Verification: focused MobileCompactControlsContractTest passed. The full
 cross-platform matrix remains required before publication.
+
+### 2026-11-11 - WBS-01.3/04.3/09.1 compact capture timeline
+
+The compact phone Gallery's capture timeline now shows the four most recent
+lifecycle entries by default and exposes the remaining bounded evidence through
+a graphic-backed Details action. Desktop retains eight entries without the
+disclosure. Capture stage labels and details remain unchanged, so lifecycle,
+publication and unknown-outcome evidence stays visible and recoverable.
+
+Verification: focused MobileCompactControlsContractTest passed. Full
+cross-platform packaging and installed-phone rendering remain required.

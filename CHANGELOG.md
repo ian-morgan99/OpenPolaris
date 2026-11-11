@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone capture timeline is now summary-first.** Gallery shows the
+  four most recent lifecycle entries by default and exposes the remaining
+  bounded evidence through a small Details graphic. Desktop keeps eight entries;
+  capture stage labels and publication/unknown-outcome evidence are unchanged.
+
 - **Compact phone firmware steps use tighter vertical rhythm.** The three
   paged firmware steps reduce internal spacing on phones to remove avoidable
   scrolling while retaining warnings, checksum controls, upload progress and

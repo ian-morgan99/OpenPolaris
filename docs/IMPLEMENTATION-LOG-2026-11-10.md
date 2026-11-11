@@ -1582,3 +1582,17 @@ and weighted labelled controls.
 No motion ownership, dead-man, qualification, transport or capture semantics
 were changed. This remains source/package UX evidence; installed-phone render
 and physical SLOW qualification are still required.
+
+
+### WBS-01.3/05.5/09.1 — Compact GoTo and recovery actions
+
+The phone compact action treatment now covers fast-jog recovery and the
+primary GoTo/alignment/auto-level controls. ResponsiveActionButton keeps the
+20 dp graphic and 48 dp hit target on compact layouts while the desktop path
+continues to render the familiar labelled controls. Search results and
+destructive confirmation dialogs remain text-based where text is the useful
+information, rather than replacing them with ambiguous symbols.
+
+No command payload, motion ownership, capture lifecycle or qualification gate
+changed. This is source/package UX evidence; installed-phone rendering and
+physical operation remain open.

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ResponsiveActionButton controls now keep their 48 dp graphic hit target even
   when the desktop layout uses full-width recovery/prepare actions or weighted
   Apply/Cancel controls. Desktop labels and layout are unchanged.
+- **GoTo, alignment and recovery actions now use the same compact graphic
+  boundary.** Phone controls retain 48 dp touch targets and descriptive labels
+  for accessibility; PC keeps the familiar text actions.
 
 ## [0.1.19] - 2026-10-09
 ### Fixed

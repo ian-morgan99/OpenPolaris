@@ -1138,3 +1138,17 @@ The current implementation slice must not send a new motor frame, alter firmware
   Android compilation and desktop packaging are required. No installed-phone
   render, live mount, Bluetooth, camera, Astro WebUI or physical SLOW
   operation was exercised.
+
+
+- **2026-11-11 - WBS-01.3/05.5/09.1 ACTIVE (compact GoTo and recovery
+  actions):** extended the responsive graphic action boundary to fast-jog
+  recovery, GoTo slew/cancel/reset, solve-now, alignment identity/record/reset
+  and auto-level run/refresh. The phone surface now avoids large text buttons
+  for these primary actions while the PC retains full labels; text-heavy star
+  search results and destructive confirmation dialogs remain deliberately
+  textual.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest pins the
+  new action descriptions and rejects the previous direct GoTo Button call.
+  Focused/full JVM tests, Android compilation and desktop packaging are
+  required. No installed-phone render or physical mount operation was
+  exercised.

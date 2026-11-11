@@ -99,4 +99,20 @@ class MobileCompactControlsContractTest {
         assertTrue("Text(label)" in graphics)
     }
 
+    @Test
+    fun gotoAlignmentAndRecoveryActionsUseCompactGraphics() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("contentDescription = \"Slew to the entered coordinates\"" in panes)
+        assertTrue("contentDescription = \"Cancel the active slew\"" in panes)
+        assertTrue("contentDescription = \"Reset the mount position\"" in panes)
+        assertTrue("contentDescription = \"Solve the current preview frame\"" in panes)
+        assertTrue("contentDescription = \"Record the centered alignment star\"" in panes)
+        assertTrue("contentDescription = \"Run auto-level\"" in panes)
+        assertTrue("contentDescription = \"Refresh auto-level status\"" in panes)
+        assertTrue("contentDescription = \"Recover fast jog after confirming the mount is stopped\"" in panes)
+        assertTrue("goto-slew" in panes)
+        assertTrue("alignment-record-star" in panes)
+        assertFalse("Button(onClick = vm::goto)" in panes)
+    }
 }

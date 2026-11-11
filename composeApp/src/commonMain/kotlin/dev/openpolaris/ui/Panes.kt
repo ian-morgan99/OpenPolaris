@@ -2613,12 +2613,15 @@ fun JogPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    OutlinedButton(
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Refresh,
+                        label = "Recover after confirming stopped",
+                        contentDescription = "Recover fast jog after confirming the mount is stopped",
                         onClick = vm::recoverFastJogAfterReconnect,
                         enabled = vm.mount.connected,
-                    ) {
-                        Text("Recover after confirming stopped")
-                    }
+                        modifier = Modifier.testTag("fast-jog-recover"),
+                        outlined = true,
+                    )
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -3391,9 +3394,29 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = vm::goto) { Text("Slew") }
-                OutlinedButton(onClick = vm::cancelSlew) { Text("Cancel slew") }
-                OutlinedButton(onClick = vm::resetPosition) { Text("Reset position") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Slew,
+                    label = "Slew",
+                    contentDescription = "Slew to the entered coordinates",
+                    onClick = vm::goto,
+                    modifier = Modifier.testTag("goto-slew"),
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Cancel slew",
+                    contentDescription = "Cancel the active slew",
+                    onClick = vm::cancelSlew,
+                    modifier = Modifier.testTag("goto-cancel-slew"),
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Reset position",
+                    contentDescription = "Reset the mount position",
+                    onClick = vm::resetPosition,
+                    modifier = Modifier.testTag("goto-reset-position"),
+                    outlined = true,
+                )
             }
 
             HorizontalDivider()
@@ -3404,12 +3427,14 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Preview,
+                    label = if (vm.solveInProgress) "Solving…" else "Solve now",
+                    contentDescription = "Solve the current preview frame",
                     onClick = vm::solveNow,
                     enabled = !vm.solveInProgress,
-                ) {
-                    Text(if (vm.solveInProgress) "Solving…" else "Solve now")
-                }
+                    modifier = Modifier.testTag("solve-now"),
+                )
             }
             val solve by vm.lastSolveResult.collectAsState()
             val solved = solve
@@ -3455,25 +3480,55 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
             }
             solved?.let { result ->
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Use last plate solve as alignment identity",
+                    contentDescription = "Use the last plate solve as the alignment identity",
                     onClick = { vm.selectAlignmentStar("plate-solve", result.raDeg, result.decDeg) },
-                ) { Text("Use last plate solve as alignment identity") }
+                    modifier = Modifier.testTag("alignment-use-last-solve"),
+                    outlined = true,
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = vm::submitAlignmentStar) { Text("Record star") }
-                OutlinedButton(onClick = vm::resetAlignment) { Text("Reset alignment") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Record star",
+                    contentDescription = "Record the centered alignment star",
+                    onClick = vm::submitAlignmentStar,
+                    modifier = Modifier.testTag("alignment-record-star"),
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Reset alignment",
+                    contentDescription = "Reset the alignment model",
+                    onClick = vm::resetAlignment,
+                    modifier = Modifier.testTag("alignment-reset"),
+                    outlined = true,
+                )
             }
 
             HorizontalDivider()
 
             Text("Auto-level", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::runAutoLevel, enabled = !vm.autoLevelRunning) {
-                    Text(if (vm.autoLevelRunning) "Leveling…" else "Level now")
-                }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Helpers,
+                    label = if (vm.autoLevelRunning) "Leveling…" else "Level now",
+                    contentDescription = "Run auto-level",
+                    onClick = vm::runAutoLevel,
+                    enabled = !vm.autoLevelRunning,
+                    modifier = Modifier.testTag("auto-level-run"),
+                )
                 Switch(checked = vm.autoLevelEnabled == true, onCheckedChange = vm::setAutoLevelEnabled)
                 Text(if (vm.autoLevelEnabled == true) "Enabled" else "Disabled / unknown")
-                OutlinedButton(onClick = vm::refreshAutoLevel) { Text("Refresh") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh",
+                    contentDescription = "Refresh auto-level status",
+                    onClick = vm::refreshAutoLevel,
+                    modifier = Modifier.testTag("auto-level-refresh"),
+                    outlined = true,
+                )
             }
             AutoLevelTiltStatus(tilt = vm.autoLevelTilt)
         }

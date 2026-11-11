@@ -203,6 +203,14 @@
   inside 48 dp targets. Full semantics remain available to accessibility and
   keyboard users; active hold tint is visual feedback only. The physical sign
   mapping, live transport and stop qualification gates remain unchanged.
+- **2026-11-11 - WBS-03.6/09.1 ACTIVE (compact SLOW details):** compact
+  phones keep axis selection, Direction A/B holds, STOP ALL, speed levels and
+  rotation controls visible while placing fine-rate readiness, calibration,
+  keyboard guidance and logical scheduler trace behind an accessible Details
+  graphic. Desktop remains expanded; no transport or safety gate changed.
+- **2026-11-11 - verification:** focused Motion-pane safety/compact contracts,
+  full shared/Compose JVM suites and desktop distributable creation passed. No
+  phone screenshot or physical SLOW qualification was performed.
 
 ### WBS-03.7 — Fine-rate Astro integration — P2, blocked by WBS-03.5
 

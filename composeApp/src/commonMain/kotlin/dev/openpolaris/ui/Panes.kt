@@ -2964,7 +2964,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
     var showShortcuts by remember { mutableStateOf(false) }
-    var showSlowEvents by remember { mutableStateOf(!compactLayout) }
+    var showSlowEvents by remember(compactLayout) { mutableStateOf(!compactLayout) }
+    var showMotionDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     var heldControl by remember { mutableStateOf<String?>(null) }
     val motionSelectionEnabled = controlsEnabled && heldControl == null
     fun startHeldMotion(control: String, action: () -> Unit) {
@@ -3100,6 +3101,21 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showMotionDetails) "Hide details" else "Details",
+                    contentDescription = if (showMotionDetails) {
+                        "Hide slow-motion qualification details"
+                    } else {
+                        "Show slow-motion qualification details"
+                    },
+                    onClick = { showMotionDetails = !showMotionDetails },
+                    modifier = Modifier.testTag("slow-motion-details-toggle"),
+                    outlined = true,
+                )
+            }
+            if (!compactLayout || showMotionDetails) {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("fine-rate-readiness"),
             ) {
@@ -3150,6 +3166,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     val point = event.point?.let { "key ${it.key} · state ${it.state} · level ${it.level}" } ?: "explicit stop"
                     Text("${event.axis.name}: ${event.kind.name} · $point", style = MaterialTheme.typography.labelSmall)
                 }
+            }
             }
 
             Text("Motion dock", style = MaterialTheme.typography.labelLarge)
@@ -3222,6 +3239,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     onRelease = { stopHeldMotion("Direction B") },
                 )
             }
+            if (!compactLayout || showMotionDetails) {
             Text(
                 "Pointer capture, dead-man renewal and stop ordering belong to the shared motion owner; the UI asserts the hold and never creates a repeat timer.",
                 style = MaterialTheme.typography.labelSmall,
@@ -3241,6 +3259,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("slow-motion-shortcuts-help"),
                 )
+            }
+
             }
 
             Text("Speed rail", style = MaterialTheme.typography.labelLarge)
@@ -3266,6 +3286,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     )
                 }
             }
+            if (!compactLayout || showMotionDetails) {
             Text(
                 "Level " + selectedLevel + " is a calibration step, not a degrees-per-second promise. The planner selects adjacent measured points and time-shares them; state 0 is STOP, never a running point.",
                 style = MaterialTheme.typography.bodySmall,
@@ -3286,6 +3307,7 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
             }
 
             Text("Rotation rocker · M3", style = MaterialTheme.typography.labelLarge)

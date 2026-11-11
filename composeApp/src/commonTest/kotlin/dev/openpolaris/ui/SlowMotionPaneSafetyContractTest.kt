@@ -83,6 +83,19 @@ class SlowMotionPaneSafetyContractTest {
     }
 
     @Test
+    fun compactMotionKeepsCoreControlsAndDisclosesVerboseDetails() {
+        val source = sourceText()
+        assertTrue("var showMotionDetails by remember(compactLayout)" in source)
+        assertTrue("testTag(\"slow-motion-details-toggle\")" in source)
+        assertTrue("label = if (showMotionDetails) \"Hide details\" else \"Details\"" in source)
+        assertTrue("Show slow-motion qualification details" in source)
+        assertTrue("if (!compactLayout || showMotionDetails)" in source)
+        assertTrue("testTag(\"slow-motion-direction-a\")" in source)
+        assertTrue("testTag(\"slow-motion-stop-all\")" in source)
+        assertTrue("testTag(\"slow-motion-speed-row\")" in source)
+    }
+
+    @Test
     fun mobileMotionSelectorsRemainScrollable() {
         val source = sourceText()
         assertTrue("horizontalScroll(rememberScrollState())" in source)

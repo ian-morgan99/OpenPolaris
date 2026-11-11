@@ -633,10 +633,10 @@ class AppViewModel(
      * response as completion (the pre-fix behaviour) made the UI flash a
      * false "failed" while the shot was actually succeeding.
      *
-     * Completion requires two correlated, post-request signals: a 264 lifecycle
-     * event and a positive 773 file event (non-empty `path`). Some firmware
-     * emits SP_ADD_FILE with no `size`, so size is useful telemetry but is not
-     * part of the portable completion contract. Missing
+     * Completion requires a correlated post-request 264 lifecycle, its
+     * terminal idle edge, and a positive 773 file event (non-empty `path`).
+     * Some firmware emits SP_ADD_FILE with no `size`, so size is useful
+     * telemetry but is not part of the portable completion contract. Missing
      * evidence becomes [OutcomeUnknown], never optimistic success.
      *
      * The shutter is debounced while any non-[Idle] phase is active: a second
@@ -1047,7 +1047,7 @@ class AppViewModel(
     // the primary exposure options.
     private var cameraAuxiliaryRefreshJob: Job? = null
     // #60: bounded watchdog for an in-flight capture. Started by [capture],
-    // cancelled when the capture-event observer correlates a lifecycle + file
+    // cancelled when the capture-event observer correlates a lifecycle + file + idle
     // event (shot done) or when the phase reaches a terminal state. If it
     // fires, the capture is reported as Failed("timeout") instead of hanging
     // on Busy.
@@ -2494,7 +2494,13 @@ class AppViewModel(
                 if (captureEvidence.observeLifecycle(state)) {
                     appendCaptureTimeline(CaptureTimelineStage.ACTIVE, "state $state")
                 }
-                capturePhase = CapturePhase.Busy
+                // A state:0 frame without a preceding non-idle lifecycle is
+                // not proof that this request started. Keep the phase
+                // Requested so a file-only or unrelated idle frame cannot
+                // complete or advance the capture.
+                if (captureEvidence.state != CaptureEvidenceGate.State.REQUESTED) {
+                    capturePhase = CapturePhase.Busy
+                }
                 completeCaptureIfCorrelated()
             }
             Codes.FILE_DOWNLOAD_DATA -> {
@@ -2543,7 +2549,7 @@ class AppViewModel(
         val confirmedProgrammePublication = captureEvidence.publication
         pendingCapturePublication?.let { lastCapturePublication = it }
         pendingCapturePublication = null
-        appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file evidence")
+        appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file + idle evidence")
         astroWebUiCaptureActive = false
         astroWebUiCaptureDispatching = false
         astroWebUiBulbActive = false
@@ -4664,7 +4670,7 @@ class AppViewModel(
         val confirmation = programmeConfirmation ?: return null
         val publication = withTimeoutOrNull(CAPTURE_TIMEOUT_MS) { confirmation.await() }
         if (publication == null && !confirmation.isCompleted) {
-            val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+            val reason = "timeout: missing correlated 264 lifecycle, terminal idle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
             captureEvidence.unknown(reason)
             capturePhase = CapturePhase.OutcomeUnknown(reason)
             appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
@@ -4677,7 +4683,7 @@ class AppViewModel(
     /**
      * §6: start a capture sequence (count + interval + optional pre-delay).
      * Each shot is fired by the engine and confirmed by the capture-event
-     * observer correlating the 264 lifecycle + 773 file events, which calls
+     * observer correlating the 264 lifecycle + 773 file events + terminal idle, which calls
      * [dev.openpolaris.core.domain.IntervalometerController.markShotDone].
      * Returns false (and reports why) when no session / camera is attached.
      */
@@ -5068,7 +5074,7 @@ class AppViewModel(
      * [capturePhase]. The shutter is debounced while any non-[Idle] phase is
      * active (a second press is ignored, never auto-retried — the camera may
      * already be exposing). A bounded watchdog ([CAPTURE_TIMEOUT_MS]) reports
-     * [OutcomeUnknown] if correlated lifecycle/file evidence never arrives.
+     * [OutcomeUnknown] if correlated lifecycle/file/idle evidence never arrives.
      */
     fun capture() {
         if (blockCaptureDuringSlowMotion()) return
@@ -5119,7 +5125,7 @@ class AppViewModel(
             captureWatchdogJob = scope.launch {
                 delay(CAPTURE_TIMEOUT_MS)
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+                    val reason = "timeout: missing correlated 264 lifecycle, terminal idle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
                     captureEvidence.unknown(reason)
                     capturePhase = CapturePhase.OutcomeUnknown(reason)
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
@@ -5182,12 +5188,12 @@ class AppViewModel(
                 return@launch
             }
             nativeBulbCommandAccepted = true
-            statusMessage = "Bulb command accepted (${seconds}s); waiting for lifecycle/file evidence"
+            statusMessage = "Bulb command accepted (${seconds}s); waiting for lifecycle/file/idle evidence"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
                 delay(maxOf(CAPTURE_TIMEOUT_MS, seconds * 1000L + 15_000L))
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    val reason = "timeout: missing correlated Bulb lifecycle/file event"
+                    val reason = "timeout: missing correlated Bulb lifecycle/file/idle event"
                     captureEvidence.unknown(reason)
                     capturePhase = CapturePhase.OutcomeUnknown(reason)
                     appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
@@ -7388,7 +7394,7 @@ class AppViewModel(
             CapturePhase.Idle -> "Idle"
             CapturePhase.Requested -> "Requested"
             CapturePhase.Busy -> "Camera active"
-            CapturePhase.Completed -> "Confirmed: lifecycle + file publication"
+            CapturePhase.Completed -> "Confirmed: lifecycle + file publication + idle"
             is CapturePhase.OutcomeUnknown -> "Outcome unknown: " + phase.reason
             is CapturePhase.Failed -> "Failed: " + phase.reason
         }
@@ -7551,7 +7557,7 @@ class AppViewModel(
                     astroWebUiCaptureDispatching = false
                     astroWebUiCaptureActive = true
                     astroWebUiBulbActive = mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB
-                    astroWebUiCaptureStatus = "HTTP bridge accepted 264; waiting for camera lifecycle and file evidence"
+                    astroWebUiCaptureStatus = "HTTP bridge accepted 264; waiting for camera lifecycle, file and idle evidence"
                     statusMessage = astroWebUiCaptureStatus.orEmpty()
                     captureWatchdogJob?.cancel()
                     captureWatchdogJob = scope.launch {
@@ -7560,7 +7566,7 @@ class AppViewModel(
                         } else CAPTURE_TIMEOUT_MS)
                         if (!ownsSession(ownerSession)) return@launch
                         if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                            val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle and/or 773 file evidence is missing"
+                            val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle, terminal idle and/or 773 file evidence is missing"
                             captureEvidence.unknown(reason)
                             capturePhase = CapturePhase.OutcomeUnknown(reason)
                             captureKind = null
@@ -7617,7 +7623,7 @@ class AppViewModel(
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiCaptureResult.Stopped -> {
-                    astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for file evidence"
+                    astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for lifecycle, file and idle evidence"
                     statusMessage = astroWebUiCaptureStatus.orEmpty()
                 }
                 is AstroWebUiCaptureResult.Failed -> {

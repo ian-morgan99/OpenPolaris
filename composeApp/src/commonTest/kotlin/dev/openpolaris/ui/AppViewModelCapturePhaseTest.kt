@@ -209,6 +209,7 @@ class AppViewModelCapturePhaseTest {
                 recoveredVm.testOnCaptureFrame(
                     frame("773@type:1;path:/app/sd/recovered/SP_0100.jpg;size:42;#"),
                 )
+                recoveredVm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
                 assertIs<AppViewModel.CapturePhase.Completed>(recoveredVm.capturePhase)
                 assertEquals("/app/sd/recovered/SP_0100.jpg", recoveredVm.lastCapturePublication?.path)
             } finally {
@@ -317,6 +318,7 @@ class AppViewModelCapturePhaseTest {
             vm.testOnCaptureFrame(frame("264@state:1;bulb:8;c:-1;#"))
             vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/bulb/SP_0088.dng;size:8;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertFalse(vm.nativeBulbCaptureActive)
@@ -615,6 +617,7 @@ class AppViewModelCapturePhaseTest {
             vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Busy>(vm.capturePhase)
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0042.dng;size:28198130;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals("/app/sd/normal/SP_0042.dng", vm.lastCapturePublication?.path)
             assertEquals(28198130L, vm.lastCapturePublication?.sizeBytes)
@@ -647,6 +650,7 @@ class AppViewModelCapturePhaseTest {
             vm.stopBulb()
             vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/stale.dng;size:42;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             runCurrent()
 
             assertEquals(writesAfterFailure, conn.count(264), "ordinary failure must not emit a generic Bulb stop")
@@ -667,6 +671,7 @@ class AppViewModelCapturePhaseTest {
 
             vm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/transient.dng;size:42;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals("/app/sd/normal/transient.dng", vm.lastCapturePublication?.path)
@@ -680,6 +685,7 @@ class AppViewModelCapturePhaseTest {
             connect(this, vm)
             vm.capture(); advanceTimeBy(3_000)
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/old.dng;size:42;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Requested>(vm.capturePhase)
             assertEquals(null, vm.lastCapturePublication)
             assertTrue(vm.captureTimeline.none { it.stage == AppViewModel.CaptureTimelineStage.PUBLISHED })
@@ -698,6 +704,7 @@ class AppViewModelCapturePhaseTest {
             vm.testOnCaptureFrame(frame("284@state:0;#"))
             vm.testOnCaptureFrame(frame("517@yaw:1;pitch:2;#"))
             vm.testOnCaptureFrame(frame("773@path:;size:0;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Requested>(vm.capturePhase)
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
@@ -739,6 +746,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(1, conn.count(264), "first shutter should be in flight")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0001.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<dev.openpolaris.core.domain.IntervalometerController.State.Running>(vm.sequenceState)
 
             // Confirming shot 1 releases the engine, which then waits the 1 s
@@ -749,6 +757,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(2, conn.count(264), "second shutter should be in flight")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0002.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             // Confirming shot 2 releases the engine, which waits the interval
             // before firing the final shot 3.
@@ -758,6 +767,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(3, conn.count(264), "third shutter should be in flight")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0003.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             runCurrent()
             val s = vm.sequenceState
@@ -804,6 +814,7 @@ class AppViewModelCapturePhaseTest {
             runCurrent()
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0001.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             vm.pauseSequence()
             assertIs<dev.openpolaris.core.domain.IntervalometerController.State.Paused>(vm.sequenceState)
 
@@ -815,6 +826,7 @@ class AppViewModelCapturePhaseTest {
             // interval before firing the final shot 3.
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0002.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             runCurrent()
             advanceTimeBy(1_000)
@@ -822,6 +834,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(3, conn.count(264), "final shutter should be in flight")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/SP_0003.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
 
             runCurrent()
             val s = vm.sequenceState
@@ -848,6 +861,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(1, conn.count(264), "programme must issue one shutter for its first step")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/PROGRAMME_0001.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             runCurrent()
 
             advanceTimeBy(1_000)
@@ -857,6 +871,7 @@ class AppViewModelCapturePhaseTest {
             assertEquals(2, conn.count(264), "programme must wait for evidence before the next shutter")
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/PROGRAMME_0002.dng;size:1;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             runCurrent()
 
             assertIs<dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed>(vm.observationProgrammeState)

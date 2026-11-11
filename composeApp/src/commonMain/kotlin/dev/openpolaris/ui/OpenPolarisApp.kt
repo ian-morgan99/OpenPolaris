@@ -363,9 +363,13 @@ fun OpenPolarisApp(
                     )
                 }
                 Callout.Slew -> CalloutDialog("Slew & Motion", { dialog = null }) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GotoPane(vm, Modifier.fillMaxWidth())
-                        SlowMotionPane(vm, Modifier.fillMaxWidth())
+                    if (LocalOpenPolarisCompact.current) {
+                        CompactSlewWorkspace(vm, Modifier.fillMaxWidth())
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            GotoPane(vm, Modifier.fillMaxWidth())
+                            SlowMotionPane(vm, Modifier.fillMaxWidth())
+                        }
                     }
                 }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }

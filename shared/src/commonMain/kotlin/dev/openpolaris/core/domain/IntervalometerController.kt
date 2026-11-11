@@ -124,7 +124,8 @@ class IntervalometerController(
             }
 
             // Command acceptance and elapsed time are not completion proof.
-            // The owner correlates the lifecycle and file events, then calls
+            // The owner correlates the lifecycle, terminal idle and file
+            // events, then calls
             // markShotDone(). This prevents overlapping exposures (#90).
             val completed = withTimeoutOrNull(shotTimeoutMs(plan)) { shotCompleted.receive() }
             if (completed == null) {
@@ -195,7 +196,8 @@ class IntervalometerController(
 
     /**
      * Progress observer hook: called by the capture-event watcher when a
-     * shot's file/lifecycle event confirms completion. Clears the in-flight
+     * shot's file/lifecycle/idle event confirms completion. Clears the
+     * in-flight
      * flag so a subsequent resume does not double-trigger the shutter.
      */
     fun markShotDone() {

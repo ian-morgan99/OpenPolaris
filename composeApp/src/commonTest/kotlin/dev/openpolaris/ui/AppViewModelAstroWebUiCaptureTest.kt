@@ -137,6 +137,7 @@ class AppViewModelAstroWebUiCaptureTest {
 
             vm.testOnCaptureFrame(frame("264@state:1;bulb:0;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/ASTRO_M_0001.dng;size:42;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals("/app/sd/normal/ASTRO_M_0001.dng", vm.lastCapturePublication?.path)
             assertEquals(false, vm.astroWebUiCaptureActive)
@@ -204,6 +205,7 @@ class AppViewModelAstroWebUiCaptureTest {
 
             vm.testOnCaptureFrame(frame("264@state:1;bulb:12;c:-1;#"))
             vm.testOnCaptureFrame(frame("773@type:1;path:/app/sd/normal/ASTRO_B_0001.dng;size:42;#"))
+            vm.testOnCaptureFrame(frame("264@state:0;bulb:0;c:-1;#"))
             assertIs<AppViewModel.CapturePhase.Completed>(vm.capturePhase)
             assertEquals(false, vm.astroWebUiBulbActive)
             assertEquals(false, vm.astroWebUiBulbStopQueued)

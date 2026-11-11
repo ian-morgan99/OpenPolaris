@@ -6,7 +6,8 @@ package dev.openpolaris.core.domain
  * [trigger] may issue exactly one shutter/capture request for the step. It
  * must not claim physical completion; [awaitConfirmation] returns only after
  * the event owner has correlated the post-request non-idle 264 lifecycle with
- * a non-empty 773 publication. This adapter is the intended function passed
+ * a non-empty 773 publication and the terminal idle edge. This adapter is
+ * the intended function passed
  * to [ObservationProgrammeExecutor].
  */
 class ObservationProgrammeCaptureBridge(
@@ -47,7 +48,7 @@ class ObservationProgrammeCaptureBridge(
         return if (publication != null && evidence.isConfirmed && evidence.publication == publication) {
             ObservationProgrammeExecutor.StepResult.Confirmed
         } else {
-            val reason = "capture confirmation did not include correlated lifecycle and file evidence"
+            val reason = "capture confirmation did not include correlated lifecycle, file and terminal-idle evidence"
             evidence.unknown(reason)
             ObservationProgrammeExecutor.StepResult.OutcomeUnknown(reason)
         }

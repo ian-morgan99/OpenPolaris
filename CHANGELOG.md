@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Capture completion now waits for the camera's terminal idle edge.**
+  Native, Astro WebUI and programme capture remain pending after a positive
+  lifecycle and file-publication event until the post-capture 264 state-0 edge
+  arrives. This mirrors the Benro Connect lifecycle and prevents a sequence
+  from firing its next shutter while the camera is still processing. The HTTP
+  bridge acknowledgement remains queue evidence only.
+- **Compact phone Slew callouts now show one control family at a time.**
+  The overflow/legacy Slew surface uses the same GoTo/SLOW selector as the
+  primary phone workspace, so opening it no longer stacks both long panes into
+  one scroll surface. Desktop keeps the expanded GoTo + SLOW layout.
+
 - **Observation programmes now have durable, endpoint-bound recovery.**
   The exact planner steps and confirmed-step cursor are journaled separately from
   the saved mount marker. Paused programmes can be explicitly recovered after

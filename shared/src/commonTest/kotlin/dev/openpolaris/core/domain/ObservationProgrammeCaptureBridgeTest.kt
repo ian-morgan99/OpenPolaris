@@ -18,6 +18,7 @@ class ObservationProgrammeCaptureBridgeTest {
             awaitConfirmation = {
                 evidence.observeLifecycle(1)
                 evidence.observePublication(publication.path, publication.type, publication.sizeBytes)
+                evidence.observeLifecycle(0)
                 publication
             },
         )

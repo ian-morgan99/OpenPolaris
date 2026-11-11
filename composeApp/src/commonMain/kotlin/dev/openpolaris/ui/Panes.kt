@@ -158,7 +158,7 @@ fun EvidenceCentrePane(
         AppViewModel.CapturePhase.Idle -> "Idle"
         AppViewModel.CapturePhase.Requested -> "Requested"
         AppViewModel.CapturePhase.Busy -> "Camera active"
-        AppViewModel.CapturePhase.Completed -> "Confirmed: lifecycle + file publication"
+        AppViewModel.CapturePhase.Completed -> "Confirmed: lifecycle + file publication + idle"
         is AppViewModel.CapturePhase.OutcomeUnknown -> "Outcome unknown: ${phase.reason}"
         is AppViewModel.CapturePhase.Failed -> "Failed: ${phase.reason}"
     }
@@ -4976,7 +4976,7 @@ fun CameraPane(
             HorizontalDivider()
             Text("Astro WebUI shutter", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Optional source-aligned resident WebUI route. HTTP acceptance is only queue evidence; the same lifecycle + file evidence gate decides completion.",
+                "Optional source-aligned resident WebUI route. HTTP acceptance is only queue evidence; the same lifecycle + file + idle evidence gate decides completion.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (!FeatureFlags.isEnabled("astroWebUiCapture")) {
@@ -5028,7 +5028,7 @@ fun CameraPane(
             // §6: client-driven capture sequence (intervalometer). The engine
             // fires one shutter per shot at the planned interval; each shot is
             // confirmed by the capture-event observer correlating the 264
-            // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
+            // lifecycle + 773 file events + terminal idle. Progress mirrors vm.sequenceState.
             if (!compactLayout || showCameraDetails) {
                 IntervalometerSection(vm)
                 ObservationProgrammePreviewSection(vm)

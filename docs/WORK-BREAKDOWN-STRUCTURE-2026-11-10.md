@@ -1784,3 +1784,24 @@ checkpoint can be restored, and restore leaves the executor paused without
 acquiring the camera owner until explicit Resume. Interrupted or ambiguous
 runs remain non-resumable and require card/outcome reconciliation or discard.
 The common mobile and desktop programme surface exposes the recovery actions.
+
+### 2026-11-11 - WBS-04.3/06.1/09.1 capture terminal-idle evidence
+
+The shared capture evidence gate now requires the source-observed post-request
+non-idle 264 lifecycle, a non-empty 773 publication, and the terminal 264
+state-0 edge before declaring a still complete. File-before-idle and
+idle-before-file orderings are both supported; idle without prior activity and
+file without lifecycle remain non-evidence. Native M/B, Astro WebUI M/B and
+interval/programme owners all consume the same gate, so no path can advance
+the next shutter on a file event alone. The replay contract covers the
+Benro Connect state 4/2/3/5/0 sequence. This remains simulator/package
+evidence; named camera/firmware physical qualification is still open.
+
+### 2026-11-11 - WBS-01.3/09.1 compact Slew callout convergence
+
+The compact phone Slew callout now reuses the GoTo/SLOW two-surface selector
+instead of rendering both long control families together. One control family
+is visible at a time while the desktop/tablet callout retains the expanded
+side-by-side workflow. Existing motion ownership, stop, recovery, and
+accessibility semantics are unchanged. Installed-phone rendering remains
+required.

@@ -46,6 +46,8 @@ class AstroCaptureContractTest {
         gate.observeLifecycle(1)
         assertFalse(gate.isConfirmed)
         gate.observePublication("normal/20261110_120000.jpg", type = 0, sizeBytes = 1234)
+        assertFalse(gate.isConfirmed)
+        gate.observeLifecycle(0)
         assert(gate.isConfirmed)
     }
 }

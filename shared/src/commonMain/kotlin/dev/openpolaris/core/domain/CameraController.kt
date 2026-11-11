@@ -288,6 +288,9 @@ class CameraController(private val session: MountSession) {
      *    requires an explicit `ret >= 0`.
      *  - GET 292 (empty payload) replies `state:<0|1>;` with NO `ret` field — a
      *    missing ret is normal here, so [accepted] only applies to SET results.
+     * [sent] means this process attempted to hand the frame to the connection;
+     * it does not mean the camera acknowledged it. A timeout or disconnect after
+     * that point is delivery-unknown and must not be retried as if unsent.
      * The image data itself streams on the separate 8080 multipart endpoint;
      * these commands only control the stream.
      */
@@ -324,11 +327,13 @@ class CameraController(private val session: MountSession) {
     }
 
     private suspend fun sendBenroPreview(code: Int, payload: String): PreviewResult {
+        var writeAttempted = false
         val reply = session.request(
             code = code,
             payload = payload,
             timeoutMs = 10_000,
             subtype = 2,
+            onWriteAttempted = { writeAttempted = true },
         ) { it }
         return when (reply) {
             is MountSession.CmdResult.Ok -> PreviewResult(
@@ -337,9 +342,9 @@ class CameraController(private val session: MountSession) {
                 state = reply.value.int("state"),
                 ret = reply.value.int("ret"),
             )
-            is MountSession.CmdResult.Timeout -> PreviewResult(code, sent = false, error = "TIMEOUT", raw = "TIMEOUT")
+            is MountSession.CmdResult.Timeout -> PreviewResult(code, sent = writeAttempted, error = "TIMEOUT", raw = "TIMEOUT")
             is MountSession.CmdResult.ProtocolError -> PreviewResult(
-                code, sent = false, error = reply.message, raw = "ERROR: ${reply.message}",
+                code, sent = writeAttempted, error = reply.message, raw = "ERROR: ${reply.message}",
             )
         }
     }

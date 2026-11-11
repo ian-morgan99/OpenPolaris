@@ -1357,3 +1357,15 @@ remain open.
   suites, Android Kotlin compilation and desktop packaging. No phone
   screenshot, mount, Bluetooth, camera or physical qualification was
   performed.
+
+- **2026-11-11 - WBS-04.2/04.3 ACTIVE (preview delivery-unknown boundary):**
+  MountSession now exposes an onWriteAttempted seam to side-effecting preview
+  commands. CameraController preserves sent=false only for pre-send rejection;
+  a timeout or protocol error after the 291/292 write attempt remains sent=true,
+  accepted=false and delivery-unknown. This prevents a UI or recovery path from
+  retrying a preview transition whose acknowledgement was lost.
+- **2026-11-11 - verification:** CameraPreviewContractTest covers exact 291/292
+  frames, post-write timeout as delivery-unknown and pre-connect unsent
+  rejection; the full shared and Compose JVM suites, Android compilation and
+  desktop packaging passed. No live
+  camera, stream, Bluetooth or mount qualification was performed.

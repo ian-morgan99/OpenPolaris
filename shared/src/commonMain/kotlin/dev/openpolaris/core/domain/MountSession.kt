@@ -668,6 +668,8 @@ class MountSession(
          * a newer request, such as camera INFO reads.
          */
         quarantineOnTimeout: Boolean = false,
+        /** Called immediately before the frame is handed to the connection. */
+        onWriteAttempted: () -> Unit = {},
         parse: (ResponseParser.Frame) -> T?,
     ): CmdResult<T> {
         val conn = connection
@@ -699,6 +701,7 @@ class MountSession(
                 try {
                     val frame = CommandBuilder(code, subtype).apply { putRaw(payload) }.build()
                     ProtocolTrace.logBytes("writer", "→ code=$code", frame)
+                    onWriteAttempted()
                     conn.write(frame)
                 } catch (e: Exception) {
                     pendingMutex.withLock { pending.remove(code) }

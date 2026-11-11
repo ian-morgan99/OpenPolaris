@@ -20,7 +20,8 @@ import dev.openpolaris.core.protocol.Codes
  *  - SET 291 replies carry `state:` + `ret:` — success requires explicit ret >= 0;
  *  - GET 292 replies carry `state:` but NO `ret` (live capture: `292@state:1;#`) —
  *    a missing ret must not be treated as failure for the query;
- *  - timeout / protocol-error handling never reporting success.
+ *  - post-write timeout / protocol-error handling preserving delivery-unknown;
+ *  - pre-send rejection remaining explicitly unsent.
  */
 class CameraPreviewContractTest {
 
@@ -118,7 +119,7 @@ class CameraPreviewContractTest {
     }
 
     @Test
-    fun `preview timeout is reported as not sent, not success`() = runTest {
+    fun `preview timeout after a write is delivery unknown`() = runTest {
         val conn = FakeConnection()
         // No response queued: the 10s preview timeout must elapse in virtual time.
         val (s, c) = newSession(conn, backgroundScope)
@@ -127,9 +128,23 @@ class CameraPreviewContractTest {
         val result = c.setCameraPreview(on = true)
 
         assertFalse(result.accepted)
-        assertFalse(result.sent)
+        assertTrue(result.sent)
+        assertTrue(conn.written.isNotEmpty())
         assertEquals("TIMEOUT", result.error)
         s.disconnect()
+    }
+
+    @Test
+    fun `preview rejected before connection is explicitly unsent`() = runTest {
+        val conn = FakeConnection()
+        val (s, c) = newSession(conn, backgroundScope)
+
+        val result = c.setCameraPreview(on = true)
+
+        assertFalse(result.accepted)
+        assertFalse(result.sent)
+        assertEquals("not connected", result.error)
+        assertTrue(conn.written.isEmpty())
     }
 
     @Test

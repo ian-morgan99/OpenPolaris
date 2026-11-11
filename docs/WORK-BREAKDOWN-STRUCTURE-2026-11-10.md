@@ -1192,3 +1192,18 @@ The current implementation slice must not send a new motor frame, alter firmware
 - **2026-11-11 - verification:** source-contract and Compose/JVM tests,
   Android compilation and desktop packaging are required. No live mount, WiFi,
   Bluetooth or physical system-setting operation was exercised.
+
+
+- **2026-11-11 - WBS-01.3/02.1/05.1/05.5/06.1/09.1 ACTIVE (compact
+  connection, Tonight and Astro helper actions):** extended the responsive
+  graphic boundary to connection/wake/bridge and support-bundle actions, Astro
+  status/solve/site/programme readback and helper actions, local compass and
+  focal helpers, panorama interval application, feature-flag reset and
+  Tonight catalogue Slew actions. Phone controls keep 48 dp targets and
+  explicit content descriptions; PC keeps labels. Confirmed GoTo, alignment,
+  resident starts, capture and destructive controls remain text-led where the
+  visible safety context matters.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No installed-phone
+  render, live mount, Bluetooth, camera, Astro WebUI or physical motion/capture
+  operation was exercised.

@@ -1648,3 +1648,19 @@ No system command, feature gate, WiFi policy or destructive confirmation
 behavior changed. This is source/package UX evidence; live mount, WiFi,
 Bluetooth, installed-phone rendering and physical system-setting qualification
 remain open.
+
+
+### WBS-01.3/02.1/05.1/05.5/06.1/09.1 — Compact connection, Tonight and Astro helpers
+
+The phone surface now uses small graphics for connection/wake/bridge and
+support-bundle actions, Astro status/solve/site/programme refresh and helper
+controls, local compass and focal helpers, panorama interval application, the
+feature-flag reset and Tonight catalogue Slew actions. Each remains a 48 dp
+target with an explicit content description; desktop keeps the labelled
+controls. Confirmed GoTo, alignment, resident starts, capture and destructive
+controls remain text-led where the safety context should stay visible.
+
+No endpoint, motion, capture, programme, file, feature-gate or destructive
+command semantics changed. This is source/package UX evidence; installed-phone
+rendering, live Astro WebUI, camera, Bluetooth and physical qualification
+remain open.

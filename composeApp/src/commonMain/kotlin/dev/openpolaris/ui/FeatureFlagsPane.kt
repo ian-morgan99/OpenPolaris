@@ -261,7 +261,13 @@ private fun FlagRow(spec: FlagSpec, isOn: Boolean, onToggle: (Boolean) -> Unit) 
 private fun FlagsHeader() {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Text("Feature flags (runtime overrides)", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { FeatureFlags.reset() }) { Text("Reset all") }
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Refresh,
+            label = "Reset all",
+            contentDescription = "Reset all feature flags",
+            onClick = { FeatureFlags.reset() },
+            outlined = true,
+        )
     }
 }
 

@@ -248,12 +248,13 @@ fun EvidenceCentrePane(
                 "Save a bounded snapshot of observed health and capture evidence. Hostnames, credentials, raw frames and camera bytes are omitted.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            Button(
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Save,
+                label = "Save support bundle",
+                contentDescription = "Save support bundle",
                 onClick = { vm.exportSupportBundle(versionLabel) },
                 enabled = vm.supportBundleExportState !is SupportBundleExportState.Exporting,
-            ) {
-                Text("Save support bundle")
-            }
+            )
             when (val export = vm.supportBundleExportState) {
                 SupportBundleExportState.Idle -> Unit
                 is SupportBundleExportState.Ready -> Text(
@@ -398,28 +399,40 @@ fun ConnectionPane(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Connection,
+                    label = "Connect",
+                    contentDescription = "Connect to mount",
                     onClick = vm::connect,
-                    modifier = Modifier.semantics {
-                        contentDescription = "Connect to mount"
-                    },
-                ) { Text("Connect") }
+                )
                 if (onWake != null) {
-                    OutlinedButton(
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Connection,
+                        label = when {
+                            vm.waking.value -> "Waking…"
+                            vm.connectionMode == ConnectionMode.HOME_LAN -> "Wake (Direct AP only)"
+                            else -> "Wake"
+                        },
+                        contentDescription = "Wake mount over Bluetooth",
                         onClick = onWake,
                         enabled = !vm.waking.value && vm.connectionMode == ConnectionMode.DIRECT_AP,
-                    ) {
-                        Text(
-                            when {
-                                vm.waking.value -> "Waking…"
-                                vm.connectionMode == ConnectionMode.HOME_LAN -> "Wake (Direct AP only)"
-                                else -> "Wake"
-                            }
-                        )
-                    }
+                        outlined = true,
+                    )
                 }
-                OutlinedButton(onClick = vm::connectDemo) { Text("Demo mode") }
-                OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Mission,
+                    label = "Demo mode",
+                    contentDescription = "Enter demo mode",
+                    onClick = vm::connectDemo,
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Disconnect",
+                    contentDescription = "Disconnect from mount",
+                    onClick = vm::disconnect,
+                    outlined = true,
+                )
             }
             // Connection-password field. Most production gimbal firmware
             // does not require a password (820→821 skipped, `needed:0`),
@@ -448,20 +461,33 @@ fun ConnectionPane(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (onBridgeWifi != null) {
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Connection,
+                    label = "Bridge to mount Wi-Fi…",
+                    contentDescription = "Bridge the computer to mount Wi-Fi",
                     onClick = onBridgeWifi,
                     enabled = vm.connectionMode == ConnectionMode.DIRECT_AP,
-                ) {
-                    Text("Bridge to mount Wi-Fi…")
-                }
+                    outlined = true,
+                )
             }
             if (onBridgeDown != null) {
-                OutlinedButton(onClick = onBridgeDown) {
-                    Text("Tear down bridge")
-                }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Tear down bridge",
+                    contentDescription = "Tear down the mount Wi-Fi bridge",
+                    onClick = onBridgeDown,
+                    outlined = true,
+                )
             }
             if (onMountWifiScan != null) {
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = when {
+                        vm.scanning.value -> "Scanning…"
+                        vm.connectionMode == ConnectionMode.HOME_LAN -> "Find & wake (Direct AP only)"
+                        else -> "Find & wake Polaris…"
+                    },
+                    contentDescription = "Find and wake a Polaris mount",
                     onClick = {
                         // Host handles its own long-running work and posts
                         // progress through the VM's statusMessage so the
@@ -475,23 +501,18 @@ fun ConnectionPane(
                         }
                     },
                     enabled = !vm.scanning.value && vm.connectionMode == ConnectionMode.DIRECT_AP,
-                ) {
-                    Text(
-                        when {
-                            vm.scanning.value -> "Scanning…"
-                            vm.connectionMode == ConnectionMode.HOME_LAN -> "Find & wake (Direct AP only)"
-                            else -> "Find & wake Polaris…"
-                        }
-                    )
-                }
+                    outlined = true,
+                )
             }
             if (onFindWifi != null) {
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Connection,
+                    label = "Open system Wi-Fi…",
+                    contentDescription = "Open system Wi-Fi settings",
                     onClick = onFindWifi,
                     enabled = vm.connectionMode == ConnectionMode.DIRECT_AP,
-                ) {
-                    Text("Open system Wi-Fi…")
-                }
+                    outlined = true,
+                )
             }
             HorizontalDivider()
             EndpointHealthSection(vm)
@@ -505,10 +526,13 @@ fun ConnectionPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh link",
+                    contentDescription = "Refresh Astro control-link telemetry",
                     enabled = FeatureFlags.isEnabled("astroWebUiLinkStatus"),
                     onClick = vm::refreshAstroWebUiLink,
-                ) { Text("Refresh link") }
+                )
                 when (val link = vm.astroWebUiLink) {
                     AstroWebUiLinkUiState.Idle -> Text("State not checked.", style = MaterialTheme.typography.labelSmall)
                     AstroWebUiLinkUiState.Loading -> Text("Reading control-link telemetry…", style = MaterialTheme.typography.labelSmall)
@@ -559,10 +583,13 @@ fun ConnectionPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh keep-Wi-Fi",
+                    contentDescription = "Refresh Astro keep-Wi-Fi state",
                     enabled = FeatureFlags.isEnabled("astroWebUiKeepWifiStatus"),
                     onClick = vm::refreshAstroWebUiKeepWifi,
-                ) { Text("Refresh keep-Wi-Fi") }
+                )
                 when (val keepWifi = vm.astroWebUiKeepWifi) {
                     AstroWebUiKeepWifiUiState.Idle -> Text(
                         "State not checked.",
@@ -644,10 +671,13 @@ fun ConnectionPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh Wi-Fi",
+                    contentDescription = "Refresh Astro Wi-Fi state",
                     enabled = FeatureFlags.isEnabled("astroWebUiWifiStatus"),
                     onClick = vm::refreshAstroWebUiWifi,
-                ) { Text("Refresh Wi-Fi") }
+                )
                 when (val wifi = vm.astroWebUiWifi) {
                     AstroWebUiWifiUiState.Idle -> Text(
                         "State not checked.",
@@ -987,10 +1017,13 @@ fun MissionDashboardPane(
             HorizontalDivider()
             Text("Resident Astro WebUI", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh status",
+                    contentDescription = "Refresh resident Astro WebUI status",
                     enabled = FeatureFlags.isEnabled("astroWebUiStatus"),
                     onClick = vm::refreshAstroWebUiStatus,
-                ) { Text("Refresh status") }
+                )
             }
             when (val state = vm.astroWebUiStatus) {
                 AstroWebUiStatusState.Idle -> Text("Status not checked.", style = MaterialTheme.typography.labelSmall)
@@ -1044,10 +1077,13 @@ fun MissionDashboardPane(
             HorizontalDivider()
             Text("Resident solve state", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh solve",
+                    contentDescription = "Refresh resident Astro solve state",
                     enabled = FeatureFlags.isEnabled("astroWebUiSolveStatus"),
                     onClick = vm::refreshAstroWebUiSolve,
-                ) { Text("Refresh solve") }
+                )
             }
             when (val state = vm.astroWebUiSolve) {
                 AstroWebUiSolveUiState.Idle -> Text(
@@ -1191,7 +1227,10 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    label = "Read phone compass",
+                    contentDescription = "Read the phone compass for heading rehearsal",
                     enabled = compassHeadingSource?.supported == true,
                     onClick = {
                         compassError = null
@@ -1200,11 +1239,16 @@ fun MissionDashboardPane(
                             onUnavailable = { compassError = it },
                         )
                     },
-                ) { Text("Read phone compass") }
-                OutlinedButton(
+                    outlined = true,
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Use reading",
+                    contentDescription = "Copy the phone compass reading into the heading field",
                     enabled = phoneCompassHeading != null,
                     onClick = { compassHeading = phoneCompassHeading?.let { "%.2f".format(it) } ?: compassHeading },
-                ) { Text("Use reading") }
+                    outlined = true,
+                )
                 phoneCompassHeading?.let { Text("%.1f°".format(it), style = MaterialTheme.typography.labelSmall) }
             }
             compassError?.let {
@@ -1274,14 +1318,21 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh focal",
+                    contentDescription = "Refresh Astro focal-length state",
                     enabled = FeatureFlags.isEnabled("astroWebUiFocalStatus"),
                     onClick = vm::refreshAstroWebUiFocal,
-                ) { Text("Refresh focal") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Settings,
+                    label = "Use auto",
+                    contentDescription = "Use the Astro automatic focal-length source",
                     enabled = FeatureFlags.isEnabled("astroWebUiFocalWrite"),
                     onClick = { vm.setAstroWebUiFocalOverride(null) },
-                ) { Text("Use auto") }
+                    outlined = true,
+                )
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1295,10 +1346,13 @@ fun MissionDashboardPane(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Set override",
+                    contentDescription = "Set the Astro manual focal-length override",
                     enabled = FeatureFlags.isEnabled("astroWebUiFocalWrite") && focalOverrideMm != null,
                     onClick = { focalOverrideMm?.let(vm::setAstroWebUiFocalOverride) },
-                ) { Text("Set override") }
+                )
             }
             when (val focal = vm.astroWebUiFocal) {
                 AstroWebUiFocalUiState.Idle -> Text(
@@ -1769,10 +1823,13 @@ fun MissionDashboardPane(
             HorizontalDivider()
             Text("Observing site", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh site",
+                    contentDescription = "Refresh the resident Astro observing site",
                     enabled = FeatureFlags.isEnabled("astroWebUiSite"),
                     onClick = vm::refreshAstroWebUiSite,
-                ) { Text("Refresh site") }
+                )
                 when (val state = vm.astroWebUiSite) {
                     AstroWebUiSiteState.Idle -> Text("Site not checked.", style = MaterialTheme.typography.labelSmall)
                     AstroWebUiSiteState.Loading -> Text("Reading saved site…", style = MaterialTheme.typography.labelSmall)
@@ -1788,12 +1845,15 @@ fun MissionDashboardPane(
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Save,
+                    label = "Save site to Astro WebUI",
+                    contentDescription = "Save the observing site to Astro WebUI",
                     enabled = FeatureFlags.isEnabled("astroWebUiSiteWrite") &&
                         vm.mount.connected &&
                         vm.observerLocationReady,
                     onClick = vm::saveAstroWebUiSite,
-                ) { Text("Save site to Astro WebUI") }
+                )
                 when (val state = vm.astroWebUiSiteWrite) {
                     AstroWebUiSiteWriteState.Idle -> Text(
                         "Resident-site saving is disabled until mutation and recovery are qualified.",
@@ -1820,10 +1880,13 @@ fun MissionDashboardPane(
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh programme",
+                    contentDescription = "Refresh resident Astro programme status",
                     enabled = FeatureFlags.isEnabled("astroWebUiProgrammeStatus"),
                     onClick = vm::refreshAstroWebUiProgramme,
-                ) { Text("Refresh programme") }
+                )
                 when (val state = vm.astroWebUiProgramme) {
                     AstroWebUiProgrammeState.Idle -> Text("Programme not checked.", style = MaterialTheme.typography.labelSmall)
                     AstroWebUiProgrammeState.Loading -> Text("Reading programme…", style = MaterialTheme.typography.labelSmall)
@@ -1868,12 +1931,15 @@ fun MissionDashboardPane(
                                                 singleLine = true,
                                                 modifier = Modifier.weight(1f),
                                             )
-                                            OutlinedButton(
+                                            ResponsiveActionButton(
+                                                graphic = OpenPolarisGraphic.Apply,
+                                                label = "Set interval",
+                                                contentDescription = "Set the resident panorama interval",
                                                 enabled = intervalSeconds != null && intervalSeconds in 0..3_600,
                                                 onClick = {
                                                     intervalSeconds?.let(vm::setAstroWebUiPanoramaInterval)
                                                 },
-                                            ) { Text("Set interval") }
+                                            )
                                         }
                                         Text(
                                             "Source /api/prog/pano/interval update; status polling remains authoritative.",
@@ -2543,7 +2609,12 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
             OutlinedTextField(value = grailNodeMinutes, onValueChange = { grailNodeMinutes = it; armed = false }, label = { Text("Second curve node (minutes)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = grailNodeEv, onValueChange = { grailNodeEv = it; armed = false }, label = { Text("Second curve node (EV)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { vm.refreshAstroWebUiGrailStatus() }) { Text("Refresh ramp status") }
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh ramp status",
+                    contentDescription = "Refresh Holy Grail ramp status",
+                    onClick = { vm.refreshAstroWebUiGrailStatus() },
+                )
                 OutlinedButton(onClick = { vm.disableAstroWebUiGrail() }) { Text("Disable ramp") }
             }
             Button(

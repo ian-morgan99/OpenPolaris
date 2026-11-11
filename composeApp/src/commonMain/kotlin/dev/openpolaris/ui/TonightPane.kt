@@ -11,7 +11,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -174,16 +173,21 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                             value = "Alt ${c.altitudeDeg.format2()}°  Az ${c.azimuthDeg.format2()}°" +
                                 (c.magnitudeApprox?.let { "  mag ${"%.1f".format(it)}" } ?: ""),
                         )
-                        TextButton(onClick = {
-                            vm.slewToObject(
-                                dev.openpolaris.core.astro.AstroObject(
-                                    designation = c.designation,
-                                    name = c.name,
-                                    type = dev.openpolaris.core.astro.ObjectType.COMET,
-                                    raDeg = c.raDeg, decDeg = c.decDeg,
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.Slew,
+                            label = "Slew",
+                            contentDescription = "Slew to comet ${c.designation}",
+                            onClick = {
+                                vm.slewToObject(
+                                    dev.openpolaris.core.astro.AstroObject(
+                                        designation = c.designation,
+                                        name = c.name,
+                                        type = dev.openpolaris.core.astro.ObjectType.COMET,
+                                        raDeg = c.raDeg, decDeg = c.decDeg,
+                                    )
                                 )
-                            )
-                        }) { Text("Slew") }
+                            },
+                        )
                     }
                 }
             }
@@ -202,19 +206,24 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                                 (t.magnitude?.let { "  mag ${"%.1f".format(it)}" } ?: "") +
                                 (if (t.constellation.isNullOrEmpty()) "" else "  in ${t.constellation}"),
                         )
-                        TextButton(onClick = {
-                            val obj = vm.tonightCatalog.objects.firstOrNull { it.designation == t.designation }
-                            if (obj != null) vm.slewToObject(obj) else {
-                                vm.slewToObject(
-                                    dev.openpolaris.core.astro.AstroObject(
-                                        designation = t.designation,
-                                        name = t.name ?: "",
-                                        type = t.type,
-                                        raDeg = t.raDeg, decDeg = t.decDeg,
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.Slew,
+                            label = "Slew",
+                            contentDescription = "Slew to ${t.designation}",
+                            onClick = {
+                                val obj = vm.tonightCatalog.objects.firstOrNull { it.designation == t.designation }
+                                if (obj != null) vm.slewToObject(obj) else {
+                                    vm.slewToObject(
+                                        dev.openpolaris.core.astro.AstroObject(
+                                            designation = t.designation,
+                                            name = t.name ?: "",
+                                            type = t.type,
+                                            raDeg = t.raDeg, decDeg = t.decDeg,
+                                        )
                                     )
-                                )
-                            }
-                        }) { Text("Slew") }
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -243,7 +252,12 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         value = "${o.type.name.lowercase().replace('_', ' ')}  " +
                             "RA ${AstroMath.formatRaHours(o.raDeg)}  Dec ${AstroMath.formatDecDMS(o.decDeg)}",
                     )
-                    TextButton(onClick = { vm.slewToObject(o) }) { Text("Slew") }
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Slew,
+                        label = "Slew",
+                        contentDescription = "Slew to ${o.designation}",
+                        onClick = { vm.slewToObject(o) },
+                    )
                 }
             }
         }
@@ -298,7 +312,12 @@ private fun PlanetRow(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        TextButton(onClick = onSlew) { Text("Slew") }
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Slew,
+            label = "Slew",
+            contentDescription = "Slew to ${planet.name}",
+            onClick = onSlew,
+        )
     }
     Text(
         "RA ${AstroMath.formatRaHours(raDeg)}  Dec ${AstroMath.formatDecDMS(decDeg)}",

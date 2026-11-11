@@ -30,6 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   graphics.** Explicit descriptions preserve their meaning; reboot, shutdown
   and WiFi connect/disconnect remain textual safety actions.
 
+- **Connection, Tonight and Astro helper actions now stay compact on phones.**
+  Connect/wake/bridge, support-bundle save, Astro status/solve/site/programme
+  refresh, local compass helpers, focal/site helpers, panorama interval and
+  catalogue Slew actions use small graphics with explicit descriptions; PC
+  retains labels and motion/capture/destructive actions retain visible safety
+  text.
+
 ## [0.1.19] - 2026-10-09
 ### Fixed
 - **A failed wake no longer reports success.** `bluetoothctl connect` exits

@@ -186,4 +186,34 @@ class MobileCompactControlsContractTest {
         assertTrue("Text(\"Reboot mount\")" in panes)
         assertTrue("Text(\"Shutdown mount\")" in panes)
     }
+
+    @Test
+    fun connectionTonightAndAstroHelpersUseCompactGraphics() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val tonight = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/TonightPane.kt")
+        val flags = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FeatureFlagsPane.kt")
+
+        assertTrue("contentDescription = \"Connect to mount\"" in panes)
+        assertTrue("contentDescription = \"Wake mount over Bluetooth\"" in panes)
+        assertTrue("contentDescription = \"Find and wake a Polaris mount\"" in panes)
+        assertTrue("contentDescription = \"Save support bundle\"" in panes)
+        assertTrue("contentDescription = \"Refresh resident Astro WebUI status\"" in panes)
+        assertTrue("contentDescription = \"Refresh resident Astro solve state\"" in panes)
+        assertTrue("contentDescription = \"Save the observing site to Astro WebUI\"" in panes)
+        assertTrue("contentDescription = \"Set the resident panorama interval\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Connection" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Refresh" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Save" in panes)
+
+        assertTrue("ResponsiveActionButton" in tonight)
+        assertTrue("contentDescription = \"Slew to comet \${c.designation}\"" in tonight)
+        assertTrue("contentDescription = \"Slew to \${t.designation}\"" in tonight)
+        assertTrue("contentDescription = \"Slew to \${o.designation}\"" in tonight)
+        assertTrue("contentDescription = \"Slew to \${planet.name}\"" in tonight)
+
+        assertTrue("contentDescription = \"Reset all feature flags\"" in flags)
+        assertTrue("graphic = OpenPolarisGraphic.Refresh" in flags)
+        assertFalse("OutlinedButton(onClick = { FeatureFlags.reset() })" in flags)
+    }
+
 }

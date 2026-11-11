@@ -216,4 +216,22 @@ class MobileCompactControlsContractTest {
         assertFalse("OutlinedButton(onClick = { FeatureFlags.reset() })" in flags)
     }
 
+
+    @Test
+    fun astroComposerHelpersUseCompactGraphicsWithSafetyTextPreserved() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("contentDescription = \"Set the solar window to now plus 30 minutes\"" in panes)
+        assertTrue("contentDescription = \"Capture the current live pose as a PLC key\"" in panes)
+        assertTrue("contentDescription = \"Clear all PLC keyframes\"" in panes)
+        assertTrue("contentDescription = \"Capture the current pose as a path-lapse waypoint\"" in panes)
+        assertTrue("contentDescription = \"Clear all path-lapse waypoints\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Clock" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Camera" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Cancel" in panes)
+        assertTrue("this may move/fire" in panes)
+        assertFalse("OutlinedButton(onClick = { vm.clearAstroWebUiPlcKeys() })" in panes)
+        assertFalse("OutlinedButton(onClick = { vm.clearAstroWebUiPathWaypoints() })" in panes)
+    }
+
 }

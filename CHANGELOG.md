@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retains labels and motion/capture/destructive actions retain visible safety
   text.
 
+- **Solar, PLC and path-lapse helper controls now use compact phone graphics.**
+  Local solar-window fill, live-pose/waypoint capture and list clearing keep
+  explicit accessible descriptions; PC retains labels, while preview/start
+  actions keep their visible safety wording.
+
 ## [0.1.19] - 2026-10-09
 ### Fixed
 - **A failed wake no longer reports success.** `bluetoothctl connect` exits

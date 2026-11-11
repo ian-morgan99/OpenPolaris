@@ -1664,3 +1664,18 @@ No endpoint, motion, capture, programme, file, feature-gate or destructive
 command semantics changed. This is source/package UX evidence; installed-phone
 rendering, live Astro WebUI, camera, Bluetooth and physical qualification
 remain open.
+
+
+### WBS-01.3/06.1/09.1 — Compact Astro composer helpers
+
+The phone Astro composer now uses small graphics for the local solar-window
+Now + 30 min helper, PLC live-pose capture and clear-key actions, and
+path-lapse waypoint capture and clear actions. Each remains a 48 dp target with
+an explicit content description; desktop keeps the labelled controls. Preview,
+confirmed starts, motion/capture warnings and destructive actions remain
+text-led.
+
+No Astro WebUI route, programme validation, motion ownership, shutter
+lifecycle or feature gate changed. This is source/package UX evidence; live
+Astro WebUI, camera, mount, Bluetooth, installed-phone rendering and physical
+qualification remain open.

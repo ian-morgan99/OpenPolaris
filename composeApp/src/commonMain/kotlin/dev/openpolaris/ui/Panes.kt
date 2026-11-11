@@ -2380,14 +2380,18 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             onClick = { sunset = true; armed = false },
             label = { Text("Sunset") },
         )
-        OutlinedButton(
+        ResponsiveActionButton(
+            graphic = OpenPolarisGraphic.Clock,
+            label = "Now + 30 min",
+            contentDescription = "Set the solar window to now plus 30 minutes",
             onClick = {
                 val now = SystemMillis.now() / 1000L
                 start = now.toString()
                 end = (now + 1800L).toString()
                 armed = false
             },
-        ) { Text("Now + 30 min") }
+            outlined = true,
+        )
     }
     OutlinedTextField(
         value = interval,
@@ -2545,13 +2549,22 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Capture live pose",
+                    contentDescription = "Capture the current live pose as a PLC key",
                     enabled = plcKeyTime.toDoubleOrNull()?.let { it >= 0.0 } == true,
                     onClick = {
                         plcKeyTime.toDoubleOrNull()?.let { vm.addAstroWebUiPlcKey(AstroWebUiPlcKeyRequest(it)) }
                     },
-                ) { Text("Capture live pose") }
-                OutlinedButton(onClick = { vm.clearAstroWebUiPlcKeys() }) { Text("Clear keys") }
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Clear keys",
+                    contentDescription = "Clear all PLC keyframes",
+                    onClick = { vm.clearAstroWebUiPlcKeys() },
+                    outlined = true,
+                )
             }
             OutlinedTextField(value = plcInterval, onValueChange = { plcInterval = it; armed = false }, label = { Text("Photo interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = plcShots, onValueChange = { plcShots = it; armed = false }, label = { Text("Photo count (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -2578,11 +2591,20 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
         "Path-lapse" -> {
             OutlinedTextField(value = pathFrames, onValueChange = { pathFrames = it }, label = { Text("Frames on next leg (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Capture waypoint",
+                    contentDescription = "Capture the current pose as a path-lapse waypoint",
                     enabled = pathFrames.toIntOrNull()?.let { it == -1 || it > 0 } == true,
                     onClick = { pathFrames.toIntOrNull()?.let { vm.addAstroWebUiPathWaypoint(AstroWebUiPathWaypointRequest(it)) } },
-                ) { Text("Capture waypoint") }
-                OutlinedButton(onClick = { vm.clearAstroWebUiPathWaypoints() }) { Text("Clear waypoints") }
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Clear waypoints",
+                    contentDescription = "Clear all path-lapse waypoints",
+                    onClick = { vm.clearAstroWebUiPathWaypoints() },
+                    outlined = true,
+                )
             }
             OutlinedTextField(value = pathInterval, onValueChange = { pathInterval = it; armed = false }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Button(

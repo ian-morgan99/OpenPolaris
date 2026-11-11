@@ -1403,3 +1403,14 @@ remain open.
   263/264 frames, matching state echoes, post-write timeout uncertainty and
   pre-connect rejection; full shared/Compose JVM suites passed. No camera,
   stream, Bluetooth, mount or physical qualification was performed.
+
+- WBS-00/01/02/04/07/09/10 ACTIVE (current parity package refresh, 2026-11-11):
+  refreshed the Astro WebUI parity document against published main commit
+  0e1a25e. The package section now records the current compact phone
+  graphics/action dimensions, local preview histogram/focus-peaking and
+  fullscreen implementation, typed Home-LAN failure classes, and the signed
+  rolling APK checksum
+  83067db3f81fc309883eae2ebc2ed2779a24305a0ae6bdeddf3846776f889bcf.
+  These remain source/package evidence; installed-phone rendering, resident
+  Astro WebUI operation, camera, Bluetooth, SLOW and physical qualification
+  remain open.

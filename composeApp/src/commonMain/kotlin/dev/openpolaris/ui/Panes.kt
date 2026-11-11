@@ -2210,25 +2210,35 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
 
     when (kind) {
         AstroWebUiProgrammeStartResult.Kind.LAPSE -> {
-            CompactOutlinedTextField(value = lapseInterval, onValueChange = { setField(it) { lapseInterval = it } }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = lapseShots, onValueChange = { setField(it) { lapseShots = it } }, label = { Text("Shots (-1 for unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = lapseBulb, onValueChange = { setField(it) { lapseBulb = it } }, label = { Text("Bulb seconds") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = lapseFps, onValueChange = { setField(it) { lapseFps = it } }, label = { Text("Playback FPS") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            AstroCompactFieldPair(
+                first = { AstroProgrammeField(lapseInterval, { setField(it) { lapseInterval = it } }, "Interval (seconds)", "Interval s") },
+                second = { AstroProgrammeField(lapseShots, { setField(it) { lapseShots = it } }, "Shots (-1 for unlimited)", "Shots") },
+            )
+            AstroCompactFieldPair(
+                first = { AstroProgrammeField(lapseBulb, { setField(it) { lapseBulb = it } }, "Bulb seconds", "Bulb s") },
+                second = { AstroProgrammeField(lapseFps, { setField(it) { lapseFps = it } }, "Playback FPS", "FPS") },
+            )
         }
         AstroWebUiProgrammeStartResult.Kind.PANORAMA -> {
-            CompactOutlinedTextField(value = panoColumns, onValueChange = { setField(it) { panoColumns = it } }, label = { Text("Columns") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoRows, onValueChange = { setField(it) { panoRows = it } }, label = { Text("Rows") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoHStep, onValueChange = { setField(it) { panoHStep = it } }, label = { Text("Horizontal step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoVStep, onValueChange = { setField(it) { panoVStep = it } }, label = { Text("Vertical step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoStartDirection, onValueChange = { setField(it) { panoStartDirection = it } }, label = { Text("Start direction (0-4)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoPerSpot, onValueChange = { setField(it) { panoPerSpot = it } }, label = { Text("Frames per position") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            CompactOutlinedTextField(value = panoInterval, onValueChange = { setField(it) { panoInterval = it } }, label = { Text("Position interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            AstroCompactFieldPair(
+                first = { AstroProgrammeField(panoColumns, { setField(it) { panoColumns = it } }, "Columns", "Cols") },
+                second = { AstroProgrammeField(panoRows, { setField(it) { panoRows = it } }, "Rows", "Rows") },
+            )
+            AstroCompactFieldPair(
+                first = { AstroProgrammeField(panoHStep, { setField(it) { panoHStep = it } }, "Horizontal step (degrees)", "H step deg") },
+                second = { AstroProgrammeField(panoVStep, { setField(it) { panoVStep = it } }, "Vertical step (degrees)", "V step deg") },
+            )
+            AstroCompactFieldPair(
+                first = { AstroProgrammeField(panoStartDirection, { setField(it) { panoStartDirection = it } }, "Start direction (0-4)", "Start dir") },
+                second = { AstroProgrammeField(panoPerSpot, { setField(it) { panoPerSpot = it } }, "Frames per position", "Frames/spot") },
+            )
+            AstroProgrammeField(panoInterval, { setField(it) { panoInterval = it } }, "Position interval (seconds)", "Interval s")
         }
         AstroWebUiProgrammeStartResult.Kind.HDR -> {
-            CompactOutlinedTextField(value = hdrSpread, onValueChange = { setField(it) { hdrSpread = it } }, label = { Text("Shutter spread (steps)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            AstroProgrammeField(hdrSpread, { setField(it) { hdrSpread = it } }, "Shutter spread (steps)", "Spread")
         }
         AstroWebUiProgrammeStartResult.Kind.FOCUS -> {
-            CompactOutlinedTextField(value = focusShots, onValueChange = { setField(it) { focusShots = it } }, label = { Text("Focus shots") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            AstroProgrammeField(focusShots, { setField(it) { focusShots = it } }, "Focus shots", "Shots")
         }
     }
 
@@ -2343,6 +2353,44 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
             color = MaterialTheme.colorScheme.error,
         )
     }
+}
+
+@Composable
+private fun AstroCompactFieldPair(
+    first: @Composable () -> Unit,
+    second: (@Composable () -> Unit)? = null,
+) {
+    if (LocalOpenPolarisCompact.current && second != null) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(Modifier.weight(1f)) { first() }
+            Box(Modifier.weight(1f)) { second() }
+        }
+    } else {
+        first()
+        second?.invoke()
+    }
+}
+
+@Composable
+private fun AstroProgrammeField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    fullLabel: String,
+    compactLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    CompactOutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(if (LocalOpenPolarisCompact.current) compactLabel else fullLabel) },
+        singleLine = true,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = fullLabel },
+    )
 }
 
 @Composable

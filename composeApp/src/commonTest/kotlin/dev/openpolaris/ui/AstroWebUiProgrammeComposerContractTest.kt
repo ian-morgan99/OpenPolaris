@@ -31,6 +31,10 @@ class AstroWebUiProgrammeComposerContractTest {
         assertTrue("validateAstroWebUiFocus" in source)
         assertTrue("startAstroWebUiFocus" in source)
         assertTrue("Returned frame:" in source)
+        assertTrue("AstroCompactFieldPair" in source)
+        assertTrue("Box(Modifier.weight(1f))" in source)
+        assertTrue("H step deg" in source)
+        assertTrue("contentDescription = fullLabel" in source)
     }
 
     @Test

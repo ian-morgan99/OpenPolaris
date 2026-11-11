@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Astro programme forms now use compact phone field rows.** Lapse and
+  panorama parameters pair into two-column phone rows with short labels while
+  desktop keeps the full-width fields and full labels. The complete field name
+  remains in semantics, so the smaller visual label does not hide meaning from
+  accessibility or keyboard users; programme preview/start safety and write
+  gates are unchanged.
 - **Fifth compact phone density pass reduces the remaining visual scale.** Compact line graphics are now 6 dp, graphic actions use an 18 dp footprint, selector tiles use 16 dp, compact switches use a 24x16 dp visual, single-line fields cap at 40 dp and the primary destination row is 18 dp. The mission readiness next-action and overflow menu now use graphic-first mobile affordances; desktop labels and accessibility descriptions remain intact.
 - **Compact navigation no longer inherits Material text-button chrome.** The
   phone destination row, unavailable-feature close action and callout close

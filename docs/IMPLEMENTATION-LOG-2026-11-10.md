@@ -1862,3 +1862,21 @@ semantic description.
 This changes visual density only. No route, command, capture, motion owner,
 Bluetooth or feature gate changed. Focused source-contract tests passed; an
 installed-phone render and live hardware qualification remain open.
+
+### WBS-01.3/06.3/09.1  Compact Astro programme parameter rows
+
+The Astro WebUI lapse and panorama composers now pair related numeric fields
+on compact phones: interval/shots, bulb/FPS, columns/rows, horizontal/vertical
+step and start direction/frames per position. Compact labels are intentionally
+short, while each field keeps its complete label in semantics. HDR, focus and
+single remainder fields retain a readable full-width layout. Desktop keeps the
+existing full-width fields and labels. Preview-before-start, arm confirmation,
+feature gates and resident programme status authority are unchanged.
+
+Focused verification passed:
+
+  ./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AstroWebUiProgrammeComposerContractTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+
+This is source/package UX evidence only. No installed-phone screenshot, live
+Astro WebUI, camera, mount, Bluetooth or physical programme qualification was
+performed.

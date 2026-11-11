@@ -1453,3 +1453,12 @@ remain open.
 
 - **2026-11-11 - WBS-01.3/09.1 ACTIVE (fifth compact phone density pass):** reduced the remaining compact visual scale to 6 dp line graphics, 18 dp graphic-action footprints, 16 dp selector tiles, a 24x16 dp switch visual, 40 dp single-line fields and an 18 dp primary destination row. Mission readiness next-action and overflow-menu choices now have graphic-first compact affordances; desktop labels and full semantic descriptions remain. This is source/package evidence only; installed-phone rendering and live hardware qualification remain open.
 - **2026-11-11 - verification:** focused MobileCompactControlsContractTest and MobileResponsiveLayoutContractTest passed. Full Compose/JVM, Android compilation and desktop packaging are still required before publication.
+- **2026-11-11 - WBS-01.3/06.3/09.1 ACTIVE (Astro programme form density):** lapse and panorama
+  parameter fields now pair into compact two-column phone rows with concise
+  labels; full field names remain in semantics and desktop retains the
+  full-width labelled layout. Preview-before-start, arming, feature gates and
+  resident programme status authority are unchanged. Installed-phone rendering
+  and live Astro WebUI/camera/mount qualification remain open.
+- **2026-11-11 - verification:** focused AstroWebUiProgrammeComposerContractTest
+  and MobileCompactControlsContractTest passed. Full cross-platform packaging
+  remains required before publication.

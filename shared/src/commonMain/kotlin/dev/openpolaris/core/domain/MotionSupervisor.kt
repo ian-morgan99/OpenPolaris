@@ -104,6 +104,22 @@ class MotionSupervisor(
         }
 
     /**
+     * Releases an owner only after an external, positively observed stop.
+     *
+     * This is intentionally separate from [stop]: it never calls the motion
+     * transport. It is for resident systems such as Astro WebUI whose own
+     * cancel endpoint and status readback have already proved that the run is
+     * idle. A caller must not use it as a shortcut for an unverified stop.
+     */
+    suspend fun releaseAfterExternalStopConfirmation(lease: MotionLease): MotionStopResult =
+        lock.withLock {
+            val current = (mutableState.value as? MotionState.Owned)?.lease
+            if (current != lease) return@withLock MotionStopResult.Rejected
+            mutableState.value = MotionState.Idle
+            MotionStopResult.Stopped
+        }
+
+    /**
      * Explicitly clears a fault after the caller has re-established the mount
      * session and made any required physical recovery. This is not automatic.
      */

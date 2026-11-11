@@ -40,6 +40,20 @@ class MotionSupervisorTest {
     }
 
     @Test
+    fun external_stop_confirmation_releases_without_sending_a_second_transport_stop() = runTest {
+        val transport = FakeStopTransport()
+        val supervisor = MotionSupervisor(transport)
+        val lease = assertIs<MotionAcquireResult.Granted>(supervisor.acquire(MotionOwner.PROGRAMME)).lease
+
+        assertEquals(
+            MotionStopResult.Stopped,
+            supervisor.releaseAfterExternalStopConfirmation(lease),
+        )
+        assertEquals(emptyList(), transport.stops)
+        assertEquals(MotionState.Idle, supervisor.state.value)
+    }
+
+    @Test
     fun wrong_lease_cannot_stop_or_release_motion() = runTest {
         val transport = FakeStopTransport()
         val supervisor = MotionSupervisor(transport)

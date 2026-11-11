@@ -908,6 +908,7 @@ class AppViewModel(
                             }
                         }
                     }
+                    MotionOwner.PROGRAMME -> stopAstroWebUiProgramme(reason)
                     else -> MotionStopResult.Unknown(
                         "no live stop adapter for " + owner.name,
                     )
@@ -1973,6 +1974,25 @@ class AppViewModel(
         fastJogJob = null
         if (activeFastJogLease != null) {
             runBlocking { fastJogController.release(activeFastJogLease) }
+        }
+        // A resident Astro programme owns the same shared motion boundary as
+        // SLOW/GoTo. Cancel local request/poll jobs before the synchronous
+        // cancel-plus-readback stop so no late callback can resurrect it.
+        astroWebUiProgrammeJob?.cancel()
+        astroWebUiProgrammePollJob?.cancel()
+        astroWebUiProgrammeControlJob?.cancel()
+        astroWebUiProgrammeStartJob?.cancel()
+        val activeAstroProgrammeLease = astroWebUiProgrammeMotionLease
+        if (activeAstroProgrammeLease != null) {
+            val result = runBlocking {
+                motionSupervisor.stop(activeAstroProgrammeLease, MotionStopReason.DISCONNECT)
+            }
+            if (result is MotionStopResult.Unknown) {
+                statusMessage = "Astro programme stop outcome unknown: " + result.reason
+            }
+            astroWebUiProgrammeMotionLease = null
+            astroWebUiProgrammeStartPending = false
+            astroWebUiProgrammeObservedRunning = false
         }
         sessionTearingDown = true
         saveMarkerJob?.cancel()
@@ -3408,6 +3428,27 @@ class AppViewModel(
                                 alignmentJob = null
                                 slewInProgress = false
                                 statusMessage = "Emergency stop sent"
+                            }
+                        }
+                        MotionOwner.PROGRAMME -> {
+                            // Stop the request/poll jobs before the direct
+                            // cancel/readback boundary to prevent a late
+                            // accepted response from racing STOP ALL.
+                            astroWebUiProgrammeJob?.cancel()
+                            astroWebUiProgrammePollJob?.cancel()
+                            astroWebUiProgrammeControlJob?.cancel()
+                            astroWebUiProgrammeStartJob?.cancel()
+                            when (val result = motionSupervisor.emergencyStop()) {
+                                MotionStopResult.Stopped -> {
+                                    astroWebUiProgrammeMotionLease = null
+                                    astroWebUiProgrammeStartPending = false
+                                    astroWebUiProgrammeObservedRunning = false
+                                    statusMessage = "Emergency stop sent"
+                                }
+                                MotionStopResult.Rejected -> statusMessage = "Emergency stop rejected"
+                                is MotionStopResult.Unknown -> {
+                                    statusMessage = "Emergency stop outcome unknown: " + result.reason
+                                }
                             }
                         }
                         else -> reportEmergencyStop(motionSupervisor.emergencyStop())
@@ -5247,6 +5288,12 @@ class AppViewModel(
     private var astroWebUiAstroCaptureJob: Job? = null
     private var astroWebUiSunJob: Job? = null
     private var astroWebUiMotionProgrammeJob: Job? = null
+    /** Shared owner held while a resident Astro programme is known or pending. */
+    private var astroWebUiProgrammeMotionLease: MotionLease? = null
+    /** A positive start acknowledgement is not yet reflected by /api/prog. */
+    private var astroWebUiProgrammeStartPending = false
+    /** At least one /api/prog read has positively observed the resident run. */
+    private var astroWebUiProgrammeObservedRunning = false
     private val astroWebUiStatusReadMutex = Mutex()
     private val astroWebUiGuideReadMutex = Mutex()
     private val astroWebUiAutofocusReadMutex = Mutex()
@@ -6390,6 +6437,104 @@ class AppViewModel(
         }
     }
 
+    /**
+     * Stop a resident programme for the shared emergency/disconnect boundary.
+     * The HTTP cancel acknowledgement is not enough; the owner settles only
+     * after a fresh /api/prog read positively reports kind=none.
+     */
+    private suspend fun stopAstroWebUiProgramme(reason: MotionStopReason): MotionStopResult {
+        val ownerSession = session ?: return MotionStopResult.Unknown(
+            "mount session unavailable for Astro programme stop ($reason)",
+        )
+        if (!ownsSession(ownerSession)) {
+            return MotionStopResult.Unknown("Astro programme session is no longer current")
+        }
+        val cancel = try {
+            astroWebUiProgrammeControlClient.cancel(host, previewPort)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            return MotionStopResult.Unknown(
+                "Astro programme cancel failed: " +
+                    (error.message ?: error::class.simpleName ?: "unknown error"),
+            )
+        }
+        if (cancel is AstroWebUiProgrammeControlResult.Failure) {
+            return MotionStopResult.Unknown("Astro programme cancel rejected: ${cancel.reason}")
+        }
+        val readback = try {
+            astroWebUiProgrammeClient.read(host, previewPort)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            return MotionStopResult.Unknown(
+                "Astro programme stop readback failed: " +
+                    (error.message ?: error::class.simpleName ?: "unknown error"),
+            )
+        }
+        if (!ownsSession(ownerSession)) {
+            return MotionStopResult.Unknown("Astro programme session changed during stop")
+        }
+        return when (readback) {
+            is AstroWebUiProgrammeResult.Success -> if (readback.programme.kind == "none") {
+                MotionStopResult.Stopped
+            } else {
+                MotionStopResult.Unknown(
+                    "Astro programme still reports ${readback.programme.kind} after cancel",
+                )
+            }
+            is AstroWebUiProgrammeResult.Failure -> MotionStopResult.Unknown(
+                "Astro programme stop readback failed: ${readback.reason}",
+            )
+        }
+    }
+
+    /** Acquire the shared owner before dispatching a resident programme start. */
+    private suspend fun acquireAstroWebUiProgrammeOwner(startPending: Boolean): Boolean {
+        astroWebUiProgrammeMotionLease?.let {
+            if (startPending &&
+                (astroWebUiProgrammeStartPending || astroWebUiProgrammeObservedRunning)
+            ) {
+                statusMessage = "Astro WebUI programme is already active"
+                return false
+            }
+            if (startPending) astroWebUiProgrammeStartPending = true
+            return true
+        }
+        return when (val acquired = motionSupervisor.acquire(MotionOwner.PROGRAMME)) {
+            is MotionAcquireResult.Granted -> {
+                astroWebUiProgrammeMotionLease = acquired.lease
+                astroWebUiProgrammeStartPending = startPending
+                true
+            }
+            is MotionAcquireResult.Busy -> {
+                statusMessage = "Astro programme blocked by " +
+                    acquired.active.owner.name.lowercase().replace('_', ' ')
+                false
+            }
+            is MotionAcquireResult.Blocked -> {
+                statusMessage = "Astro programme blocked: ${acquired.reason}"
+                false
+            }
+        }
+    }
+
+    /** Release only after /api/prog or the owning stop path proves idle. */
+    private suspend fun releaseAstroWebUiProgrammeOwnerAfterIdle() {
+        val lease = astroWebUiProgrammeMotionLease ?: return
+        when (motionSupervisor.releaseAfterExternalStopConfirmation(lease)) {
+            MotionStopResult.Stopped -> {
+                astroWebUiProgrammeMotionLease = null
+                astroWebUiProgrammeStartPending = false
+                astroWebUiProgrammeObservedRunning = false
+            }
+            MotionStopResult.Rejected -> {
+                statusMessage = "Astro programme owner release was rejected"
+            }
+            is MotionStopResult.Unknown -> Unit
+        }
+    }
+
     private suspend fun readAstroWebUiProgramme(announce: Boolean): Boolean =
         astroWebUiProgrammeReadMutex.withLock {
             if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
@@ -6406,15 +6551,25 @@ class AppViewModel(
             if (!ownsSession(ownerSession)) return@withLock false
             when (result) {
                 is AstroWebUiProgrammeResult.Success -> {
+                    val running = result.programme.kind != "none"
                     astroWebUiProgramme = AstroWebUiProgrammeState.Ready(result.programme)
+                    if (running) {
+                        if (astroWebUiProgrammeMotionLease == null) {
+                            acquireAstroWebUiProgrammeOwner(startPending = false)
+                        }
+                        astroWebUiProgrammeObservedRunning = true
+                        astroWebUiProgrammeStartPending = false
+                    } else if (!astroWebUiProgrammeStartPending && astroWebUiProgrammeObservedRunning) {
+                        releaseAstroWebUiProgrammeOwnerAfterIdle()
+                    }
                     if (announce) {
-                        statusMessage = if (result.programme.kind == "none") {
+                        statusMessage = if (!running) {
                             "Astro WebUI has no programme running"
                         } else {
                             "Astro WebUI programme: " + result.programme.kind
                         }
                     }
-                    result.programme.kind != "none"
+                    running
                 }
                 is AstroWebUiProgrammeResult.Failure -> {
                     astroWebUiProgramme = AstroWebUiProgrammeState.Failed(result.reason)
@@ -6481,7 +6636,7 @@ class AppViewModel(
     }
 
     fun startAstroWebUiLapse(parameters: AstroWebUiLapseParameters) {
-        runAstroWebUiProgrammeStart("timelapse start") { client ->
+        runAstroWebUiProgrammeStart("timelapse start", claimsMotion = true) { client ->
             client.startLapse(host, previewPort, parameters)
         }
     }
@@ -6546,7 +6701,7 @@ class AppViewModel(
     }
 
     fun startAstroWebUiPanorama(parameters: AstroWebUiPanoramaParameters) {
-        runAstroWebUiProgrammeStart("panorama start") { client ->
+        runAstroWebUiProgrammeStart("panorama start", claimsMotion = true) { client ->
             client.startPanorama(host, previewPort, parameters)
         }
     }
@@ -6558,7 +6713,7 @@ class AppViewModel(
     }
 
     fun startAstroWebUiHdr(parameters: AstroWebUiHdrParameters) {
-        runAstroWebUiProgrammeStart("HDR start") { client ->
+        runAstroWebUiProgrammeStart("HDR start", claimsMotion = true) { client ->
             client.startHdr(host, previewPort, parameters)
         }
     }
@@ -6576,7 +6731,7 @@ class AppViewModel(
     }
 
     fun startAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
-        runAstroWebUiProgrammeStart("focus start") { client ->
+        runAstroWebUiProgrammeStart("focus start", claimsMotion = true) { client ->
             client.startFocus(host, previewPort, parameters)
         }
     }
@@ -6597,7 +6752,7 @@ class AppViewModel(
         }
 
     fun startAstroWebUiPlc(parameters: AstroWebUiPlcParameters) =
-        runAstroWebUiMotionProgramme("PLC start") { client ->
+        runAstroWebUiMotionProgramme("PLC start", claimsMotion = true) { client ->
             client.startPlc(host, previewPort, parameters)
         }
 
@@ -6617,7 +6772,7 @@ class AppViewModel(
         }
 
     fun startAstroWebUiPathLapse(parameters: AstroWebUiPathLapseParameters) =
-        runAstroWebUiMotionProgramme("path-lapse start") { client ->
+        runAstroWebUiMotionProgramme("path-lapse start", claimsMotion = true) { client ->
             client.startPathLapse(host, previewPort, parameters)
         }
 
@@ -6643,6 +6798,7 @@ class AppViewModel(
 
     private fun runAstroWebUiMotionProgramme(
         action: String,
+        claimsMotion: Boolean = false,
         request: suspend (AstroWebUiMotionProgrammeClient) -> AstroWebUiMotionProgrammeResult,
     ) {
         if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
@@ -6665,33 +6821,54 @@ class AppViewModel(
             return
         }
         astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Loading(action)
-        astroWebUiMotionProgrammeJob = scope.launch {
+        astroWebUiMotionProgrammeJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             if (!ownsSession(ownerSession)) return@launch
+            if (claimsMotion && !acquireAstroWebUiProgrammeOwner(startPending = true)) {
+                astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(
+                    "Astro WebUI $action was blocked by another motion owner",
+                )
+                return@launch
+            }
+            var outcomeUnknown = false
             val result = try {
                 request(astroWebUiMotionProgrammeClient)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
+                outcomeUnknown = true
                 AstroWebUiMotionProgrammeResult.Failure(
-                    error.message ?: "Astro WebUI $action failed",
+                    "Astro WebUI $action outcome unknown; reconnect before retry: " +
+                        (error.message ?: error::class.simpleName ?: "unknown error"),
                 )
             }
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
-                is AstroWebUiMotionProgrammeResult.Count ->
+                is AstroWebUiMotionProgrammeResult.Count -> {
+                    if (claimsMotion) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Count(action, result.count)
-                is AstroWebUiMotionProgrammeResult.Preview ->
+                }
+                is AstroWebUiMotionProgrammeResult.Preview -> {
+                    if (claimsMotion) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Preview(action, result.frame, result.count, result.inferred)
+                }
                 AstroWebUiMotionProgrammeResult.Accepted -> {
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Accepted(action)
+                    statusMessage = "Astro WebUI $action accepted; confirming through programme status"
                     readAstroWebUiProgramme(announce = false)
                 }
-                is AstroWebUiMotionProgrammeResult.Disabled ->
+                is AstroWebUiMotionProgrammeResult.Disabled -> {
+                    if (claimsMotion) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Disabled(result.enabled)
-                is AstroWebUiMotionProgrammeResult.Status ->
+                }
+                is AstroWebUiMotionProgrammeResult.Status -> {
+                    if (claimsMotion) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Status(result.enabled, result.brightness)
-                is AstroWebUiMotionProgrammeResult.Failure ->
+                }
+                is AstroWebUiMotionProgrammeResult.Failure -> {
+                    if (claimsMotion && !outcomeUnknown) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(result.reason)
+                    statusMessage = result.reason
+                }
             }
             if (result !is AstroWebUiMotionProgrammeResult.Failure) {
                 statusMessage = "Astro WebUI $action completed at the HTTP/protocol layer; physical completion remains status-gated"
@@ -6737,20 +6914,30 @@ class AppViewModel(
             return
         }
         astroWebUiSunState = AstroWebUiSunState.Loading
-        astroWebUiSunJob = scope.launch {
+        astroWebUiSunJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             if (!ownsSession(ownerSession)) return@launch
+            if (confirm && !acquireAstroWebUiProgrammeOwner(startPending = true)) {
+                astroWebUiSunState = AstroWebUiSunState.Failed(
+                    "Astro WebUI $action was blocked by another motion owner",
+                )
+                return@launch
+            }
+            var outcomeUnknown = false
             val result = try {
                 request(astroWebUiSunProgrammeClient)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
+                outcomeUnknown = true
                 AstroWebUiSunResult.Failure(
-                    error.message ?: "Astro WebUI solar programme failed",
+                    "Astro WebUI $action outcome unknown; reconnect before retry: " +
+                        (error.message ?: error::class.simpleName ?: "unknown error"),
                 )
             }
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiSunResult.Preview -> {
+                    if (confirm) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiSunState = AstroWebUiSunState.Preview(result.frame)
                     statusMessage = "Astro WebUI solar programme preview ready; no run was started"
                 }
@@ -6760,6 +6947,7 @@ class AppViewModel(
                     readAstroWebUiProgramme(announce = false)
                 }
                 is AstroWebUiSunResult.Failure -> {
+                    if (confirm && !outcomeUnknown) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiSunState = AstroWebUiSunState.Failed(result.reason)
                     statusMessage = result.reason
                 }
@@ -6769,6 +6957,7 @@ class AppViewModel(
 
     private fun runAstroWebUiProgrammeStart(
         action: String,
+        claimsMotion: Boolean = false,
         request: suspend (AstroWebUiProgrammeStartClient) -> AstroWebUiProgrammeStartResult,
     ) {
         if (blockCaptureDuringSlowMotion()) return
@@ -6792,12 +6981,30 @@ class AppViewModel(
             return
         }
         astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Loading
-        astroWebUiProgrammeStartJob = scope.launch {
+        astroWebUiProgrammeStartJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             if (!ownsSession(ownerSession)) return@launch
-            val result = request(astroWebUiProgrammeStartClient)
+            if (claimsMotion && !acquireAstroWebUiProgrammeOwner(startPending = true)) {
+                astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
+                    "Astro WebUI $action was blocked by another motion owner",
+                )
+                return@launch
+            }
+            var outcomeUnknown = false
+            val result = try {
+                request(astroWebUiProgrammeStartClient)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                outcomeUnknown = true
+                AstroWebUiProgrammeStartResult.Failure(
+                    "Astro WebUI $action outcome unknown; reconnect before retry: " +
+                        (error.message ?: error::class.simpleName ?: "unknown error"),
+                )
+            }
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 is AstroWebUiProgrammeStartResult.Preview -> {
+                    if (claimsMotion) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Preview(result)
                     statusMessage = "Astro WebUI $action is ready; no programme was started"
                 }
@@ -6807,6 +7014,7 @@ class AppViewModel(
                     readAstroWebUiProgramme(announce = false)
                 }
                 is AstroWebUiProgrammeStartResult.Failure -> {
+                    if (claimsMotion && !outcomeUnknown) releaseAstroWebUiProgrammeOwnerAfterIdle()
                     astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(result.reason)
                     statusMessage = result.reason
                 }
@@ -6837,6 +7045,9 @@ class AppViewModel(
             if (!ownsSession(ownerSession)) return@launch
             when (result) {
                 AstroWebUiProgrammeControlResult.Accepted -> {
+                    if (action == "cancel") {
+                        astroWebUiProgrammeStartPending = false
+                    }
                     statusMessage = "Astro WebUI " + action + " request accepted; confirming by status poll"
                     readAstroWebUiProgramme(announce = false)
                 }

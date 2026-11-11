@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Resident Astro WebUI programmes now participate in shared motion ownership.**
+  Enabled timelapse, panorama, HDR, focus, solar, PLC and path-lapse starts
+  reserve `MotionOwner.PROGRAMME` before dispatch. SLOW, GoTo, fast jog,
+  alignment and fine-rate owners cannot start concurrently. Cancel, STOP ALL
+  and disconnect settle the owner only after the cancel acknowledgement and a
+  fresh `/api/prog` `kind=none` readback; ambiguous transport outcomes remain
+  faulted and do not silently release motion. No live SLOW transport or new
+  Astro write gate was enabled.
 - **Connection health is now summary-first on compact phones.** The phone
   surface keeps the endpoint, route, control/preview health, failure class and
   primary connection actions visible, while host/port detail, failure guidance,

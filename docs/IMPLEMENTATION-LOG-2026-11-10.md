@@ -5,6 +5,35 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-03.1/03.6/06.1 — Shared Astro resident-programme motion ownership
+
+Enabled Astro WebUI resident starts now acquire the shared `PROGRAMME` motion
+owner before any HTTP write. This covers the standard timelapse, panorama, HDR
+and focus starts, the solar programme, and the extended PLC/path-lapse starts;
+preview, validation and configuration-only routes remain non-owning. A
+positive `/api/prog` running readback converts a pending acknowledgement into
+an observed resident run. SLOW, GoTo, fast jog, alignment and fine-rate
+controllers therefore contend through one arbiter rather than racing a
+resident programme.
+
+Cancel, emergency STOP ALL and disconnect use a cancel acknowledgement followed
+by a fresh `/api/prog` readback and release the shared owner only on
+`kind=none`. HTTP exceptions and non-idle readbacks remain unknown/faulted; a
+positive start acknowledgement is not treated as a safe rejection. Focused
+MotionSupervisor and Astro programme tests cover external stop confirmation,
+second-start blocking and disconnect ordering.
+
+Focused verification:
+
+```text
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.MotionSupervisorTest --console=plain --no-daemon
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeStartTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiProgrammeTest --tests dev.openpolaris.ui.AppViewModelAstroWebUiMotionProgrammesTest --console=plain --no-daemon
+```
+
+This is simulator/package evidence only. Exact Astro WebUI write-route,
+firmware, camera, named-head, physical stop and live SLOW qualification remain
+open, and the default live SLOW transport gate is unchanged.
+
 ### WBS-01.3/02.1/09.1 — Summary-first mobile connection health
 
 Compact phones keep connection mode, host/port, primary connect/wake/demo/

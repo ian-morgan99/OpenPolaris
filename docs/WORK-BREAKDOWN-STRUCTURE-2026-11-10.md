@@ -177,6 +177,20 @@
 - Define owner, preemption, stop priority and `OutcomeUnknown` states.
 - Exit: simulator proves only one owner drives at a time; emergency stop wins over queued work.
 
+### WBS-03.1 - Typed motion arbitration - P0 - ACTIVE (SLOW and Astro programme owners wired)
+
+- **2026-11-11 - WBS-03.1/03.6/06.1 progress:** enabled Astro WebUI
+  resident starts now reserve `MotionOwner.PROGRAMME` before dispatch for
+  timelapse, panorama, HDR, focus, solar, PLC and path-lapse routes. SLOW,
+  GoTo, fast jog, alignment and fine-rate ownership therefore contend through
+  the same supervisor. Preview/validation/configuration routes remain
+  non-owning. Cancel, emergency STOP ALL and disconnect require cancel plus a
+  fresh `/api/prog kind=none` readback before releasing the owner; unknown
+  outcomes remain faulted. The tests prove external stop confirmation,
+  second-start blocking and disconnect ordering. This is simulator/package
+  evidence only; named-head, exact write-route, firmware and physical stop
+  qualification remain open.
+
 ### WBS-03.1 - Typed motion arbitration - P0 - ACTIVE (SLOW owner wired)
 
 - **2026-11-10 - WBS-03.1 progress:** SlowMotionController now accepts the

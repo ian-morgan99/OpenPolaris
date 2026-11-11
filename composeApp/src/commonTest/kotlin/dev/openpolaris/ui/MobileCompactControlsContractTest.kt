@@ -70,4 +70,27 @@ class MobileCompactControlsContractTest {
         assertTrue("Review the last capture in Gallery" in panes)
     }
 
+    @Test
+    fun statusAndSlowMotionActionsUseCompactGraphicsWithoutLosingDesktopLabels() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("internal fun ResponsiveActionButton" in graphics)
+        assertTrue("OpenPolarisGraphic.Apply" in graphics)
+        assertTrue("OpenPolarisGraphic.Cancel" in graphics)
+        assertTrue("graphic = OpenPolarisGraphic.Guide" in shell)
+        assertTrue("graphic = OpenPolarisGraphic.Preview" in shell)
+        assertTrue("graphic = OpenPolarisGraphic.Tonight" in shell)
+        assertTrue("graphic = OpenPolarisGraphic.Stop" in shell)
+        assertTrue("contentDescription = \"STOP ALL motion\"" in shell)
+        assertTrue("graphic = OpenPolarisGraphic.Refresh" in panes)
+        assertTrue("\"Show keyboard shortcuts\"" in panes)
+        assertTrue("fine-correction-unavailable" in panes)
+        assertTrue("contentDescription = \"Prepare synthetic plate solve evidence for the fine correction demo\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Cancel" in panes)
+        assertTrue("Text(label)" in graphics)
+    }
+
 }

@@ -1554,3 +1554,18 @@ unchanged.
 MobileCompactControlsContractTest covers the new call sites and labels. This
 is source/package UX evidence only; live Astro WebUI, camera, Bluetooth and
 physical shutter qualification remain open.
+
+
+### WBS-01.3/03.6/09.1 — Compact status and SLOW actions
+
+A shared ResponsiveActionButton now chooses labelled text buttons on wide
+layouts and compact 20 dp graphics with explicit content descriptions on
+phones. The status strip applies it to Details, Gallery, dim/bright, More/Less
+and the always-available STOP ALL motion action. The SLOW surface applies it
+to recovery, keyboard guidance, Demo synthetic-solve preparation, and the
+Demo fine-rate Apply/Cancel boundary; unavailable live fine correction is
+displayed as compact explanatory text on phones.
+
+No motion ownership, dead-man, qualification, transport or capture semantics
+were changed. This is source/package UX evidence only; physical SLOW and
+hardware qualification remain open.

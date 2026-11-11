@@ -1108,3 +1108,19 @@ The current implementation slice must not send a new motor frame, alter firmware
   full shared/Compose JVM tests and Android compilation remain required before
   push. No live Astro WebUI, camera, Bluetooth or physical shutter operation
   was exercised.
+
+
+- **2026-11-11 - WBS-01.3/03.6/09.1 ACTIVE (compact status and SLOW actions):**
+  added a reusable responsive action boundary that keeps full labelled
+  Button/OutlinedButton controls on PC while showing 20 dp graphics inside
+  48 dp phone targets. The compact status strip now uses graphics for mission
+  details, Gallery, dim/bright, More/Less and STOP ALL. The SLOW surface uses
+  compact recovery, keyboard-help, fine-rate preparation and apply/cancel
+  graphics; the unavailable live fine-rate notice is informational text on
+  phones rather than a large disabled action. Dead-man, owner, qualification,
+  capture and no-wire boundaries are unchanged.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest,
+  MotionSafetyChromeContractTest, SlowMotionPaneSafetyContractTest, the full
+  shared/Compose JVM suite, Android compilation and desktop packaging are
+  required for this increment. No live mount, Bluetooth, camera, Astro WebUI
+  or physical SLOW operation was exercised.

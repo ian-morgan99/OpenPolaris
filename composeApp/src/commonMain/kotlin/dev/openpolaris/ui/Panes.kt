@@ -2738,13 +2738,15 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.testTag("motion-owner-state"),
             )
             if (motionState is dev.openpolaris.core.domain.MotionState.Faulted && vm.slowMotionFaulted) {
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Recover after confirming stopped",
+                    contentDescription = "Recover slow motion after confirming the mount is stopped",
                     onClick = vm::recoverSlowMotionAfterReconnect,
                     enabled = vm.mount.connected,
                     modifier = Modifier.fillMaxWidth().testTag("slow-motion-recover"),
-                ) {
-                    Text("Recover after confirming stopped")
-                }
+                    outlined = true,
+                )
             }
             if (!liveTransportQualified) {
                 Text(
@@ -2879,12 +2881,14 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedButton(
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Guide,
+                label = if (showShortcuts) "Hide shortcuts" else "Keyboard shortcuts",
+                contentDescription = if (showShortcuts) "Hide keyboard shortcuts" else "Show keyboard shortcuts",
                 onClick = { showShortcuts = !showShortcuts },
                 modifier = Modifier.testTag("slow-motion-shortcuts"),
-            ) {
-                Text(if (showShortcuts) "Hide shortcuts" else "Keyboard shortcuts")
-            }
+                outlined = true,
+            )
             if (showShortcuts) {
                 Text(
                     "Keyboard: Tab to a direction, hold Enter or Space to move, and release the key to stop. Focus leaving a direction also stops it. Tab to STOP ALL for the emergency boundary. These shortcuts exercise the same owner as touch; they never create a second repeat loop.",
@@ -2970,6 +2974,13 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     selectedAxis = slowAxis(selectedAxis),
                     modifier = Modifier.fillMaxWidth(),
                 )
+            } else if (LocalOpenPolarisCompact.current) {
+                Text(
+                    "Fine correction — unavailable until tracking and rate transport are qualified",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("fine-correction-unavailable"),
+                )
             } else {
                 OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
                     Text("Fine correction — unavailable until tracking and rate transport are qualified")
@@ -3041,13 +3052,15 @@ private fun DemoFineRateCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedButton(
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Preview,
+                label = "Prepare synthetic solve for demo",
+                contentDescription = "Prepare synthetic plate solve evidence for the fine correction demo",
                 onClick = vm::prepareDemoFineRate,
                 enabled = !vm.fineRateDemoEvidenceArmed && !active,
                 modifier = Modifier.fillMaxWidth().testTag("fine-rate-demo-prepare"),
-            ) {
-                Text("Prepare synthetic solve for demo")
-            }
+                outlined = true,
+            )
             Text(
                 "Draft targets · range −1.0 to +1.0°/s · apply sends one complete request",
                 style = MaterialTheme.typography.labelSmall,
@@ -3101,7 +3114,10 @@ private fun DemoFineRateCard(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Apply,
+                    label = "Apply targets",
+                    contentDescription = "Apply the complete M1 M2 M3 fine correction targets",
                     onClick = {
                         vm.demoFineRateApplyTargets(
                             m1Pan = m1Pan ?: Double.NaN,
@@ -3111,10 +3127,11 @@ private fun DemoFineRateCard(
                     },
                     enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready && draftValid,
                     modifier = Modifier.weight(1f).testTag("fine-rate-demo-apply"),
-                ) {
-                    Text("Apply targets")
-                }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Cancel,
+                    label = "Cancel draft",
+                    contentDescription = "Cancel the fine correction draft and reset all targets",
                     onClick = {
                         m1PanDraft = "0.0"
                         m2TiltDraft = "0.0"
@@ -3122,9 +3139,8 @@ private fun DemoFineRateCard(
                     },
                     enabled = !active,
                     modifier = Modifier.weight(1f).testTag("fine-rate-demo-cancel"),
-                ) {
-                    Text("Cancel draft")
-                }
+                    outlined = true,
+                )
             }
             Row(
                 Modifier.fillMaxWidth(),

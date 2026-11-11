@@ -2,8 +2,11 @@ package dev.openpolaris.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -40,6 +43,8 @@ internal enum class OpenPolarisGraphic {
     Right,
     DirectionA,
     DirectionB,
+    Apply,
+    Cancel,
     Stop,
 }
 
@@ -64,6 +69,48 @@ internal fun CompactGraphicButton(
             .semantics { this.contentDescription = contentDescription },
     ) {
         OpenPolarisGraphicIcon(graphic)
+    }
+}
+
+@Composable
+internal fun ResponsiveActionButton(
+    graphic: OpenPolarisGraphic,
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    outlined: Boolean = false,
+) {
+    if (LocalOpenPolarisCompact.current) {
+        CompactGraphicButton(
+            graphic = graphic,
+            contentDescription = contentDescription,
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+        )
+    } else {
+        val accessibleModifier = modifier.semantics {
+            this.contentDescription = contentDescription
+        }
+        if (outlined) {
+            OutlinedButton(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = accessibleModifier,
+            ) {
+                Text(label)
+            }
+        } else {
+            Button(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = accessibleModifier,
+            ) {
+                Text(label)
+            }
+        }
     }
 }
 
@@ -213,6 +260,14 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
         OpenPolarisGraphic.Right -> arrowGraphic(color, Offset(1f, 0f), stroke)
         OpenPolarisGraphic.DirectionA -> directionGraphic(color, Offset(-1f, 0f), stroke)
         OpenPolarisGraphic.DirectionB -> directionGraphic(color, Offset(1f, 0f), stroke)
+        OpenPolarisGraphic.Apply -> {
+            drawStyledLine(color, Offset(c.x - r, c.y), Offset(c.x - r * 0.25f, c.y + r * 0.7f), stroke)
+            drawStyledLine(color, Offset(c.x - r * 0.25f, c.y + r * 0.7f), Offset(c.x + r, c.y - r), stroke)
+        }
+        OpenPolarisGraphic.Cancel -> {
+            drawStyledLine(color, Offset(c.x - r * 0.75f, c.y - r * 0.75f), Offset(c.x + r * 0.75f, c.y + r * 0.75f), stroke)
+            drawStyledLine(color, Offset(c.x + r * 0.75f, c.y - r * 0.75f), Offset(c.x - r * 0.75f, c.y + r * 0.75f), stroke)
+        }
         OpenPolarisGraphic.Stop -> {
             drawCircle(color, r * 0.95f, c, style = thin)
             drawRoundRect(

@@ -807,29 +807,43 @@ private fun StatusStrip(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         onOpenDetails?.let { open ->
-                            TextButton(
+                            ResponsiveActionButton(
+                                graphic = OpenPolarisGraphic.Guide,
+                                label = "Details",
+                                contentDescription = "Open mission details",
                                 onClick = open,
                                 modifier = Modifier.testTag("mission-details"),
-                            ) { Text("Details") }
+                                outlined = true,
+                            )
                         }
                         onOpenGallery?.let { open ->
-                            TextButton(
+                            ResponsiveActionButton(
+                                graphic = OpenPolarisGraphic.Preview,
+                                label = "Gallery",
+                                contentDescription = "Open Gallery",
                                 onClick = open,
                                 modifier = Modifier.testTag("open-gallery"),
-                            ) { Text("Gallery") }
+                                outlined = true,
+                            )
                         }
                         onToggleDim?.let { toggle ->
-                            TextButton(
+                            ResponsiveActionButton(
+                                graphic = OpenPolarisGraphic.Tonight,
+                                label = if (dimMode) "Bright" else "Dim",
+                                contentDescription = if (dimMode) "Set screen to bright mode" else "Set screen to dim mode",
                                 onClick = toggle,
                                 modifier = Modifier.testTag("night-dim-toggle"),
-                            ) { Text(if (dimMode) "Bright" else "Dim") }
+                                outlined = true,
+                            )
                         }
-                        TextButton(
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.More,
+                            label = if (expanded) "Less" else "More",
+                            contentDescription = if (expanded) "Show less mission details" else "Show more mission details",
                             onClick = { expanded = !expanded },
                             modifier = Modifier.testTag("status-details-toggle"),
-                        ) {
-                            Text(if (expanded) "Less" else "More")
-                        }
+                            outlined = true,
+                        )
                     }
                 }
             } else {
@@ -894,10 +908,14 @@ private fun StatusStrip(
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(
+                        ResponsiveActionButton(
+                            graphic = OpenPolarisGraphic.Stop,
+                            label = "STOP ALL",
+                            contentDescription = "STOP ALL motion",
                             onClick = vm::emergencyStopMotion,
                             modifier = Modifier.testTag("emergency-stop"),
-                        ) { Text("STOP ALL") }
+                            outlined = true,
+                        )
                     }
                     is MotionState.Faulted -> Text(
                         "Motion stop fault: " + motion.reason,

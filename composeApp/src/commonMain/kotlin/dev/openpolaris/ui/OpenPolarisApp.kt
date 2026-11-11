@@ -486,13 +486,13 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Compact phone navigation: text-only, one 48 dp touch row.
+ * Compact phone navigation: graphic-only, one 40 dp touch row.
  *
  * Material3 NavigationBar reserves a large icon slot above every label. That
  * is useful on a tablet, but wastes most of a phone's vertical workspace when
- * the labels already identify the destinations. The row keeps the accessible
- * 48 dp touch target while removing the oversized glyphs and reducing the
- * visual bar to one line.
+ * the labels already identify the destinations. The row uses the same small
+ * line graphics as the action controls; full names remain in semantics and
+ * the More menu so icon-only controls do not become ambiguous.
  */
 @Composable
 private fun CompactDestinationBar(
@@ -504,7 +504,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(48.dp)
+            .height(40.dp)
             .testTag("primary-navigation"),
     ) {
         Row(

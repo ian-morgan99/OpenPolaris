@@ -63,7 +63,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 40.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 36.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -79,7 +79,7 @@ internal fun CompactFilterChip(
         onClick = onClick,
         enabled = enabled,
         label = label,
-        modifier = modifier.height(if (LocalOpenPolarisCompact.current) 30.dp else 32.dp),
+        modifier = modifier.height(if (LocalOpenPolarisCompact.current) 28.dp else 32.dp),
     )
 }
 
@@ -161,7 +161,7 @@ internal fun OpenPolarisGraphicIcon(
     tint: Color? = null,
 ) {
     val color = tint ?: LocalContentColor.current
-    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 16.dp else 20.dp)) {
+    Canvas(modifier.size(if (LocalOpenPolarisCompact.current) 14.dp else 20.dp)) {
         drawOpenPolarisGraphic(graphic, color)
     }
 }

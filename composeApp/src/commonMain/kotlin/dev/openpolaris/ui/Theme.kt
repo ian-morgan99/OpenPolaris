@@ -2,6 +2,7 @@ package dev.openpolaris.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -122,7 +123,14 @@ fun OpenPolarisTheme(
     // Night mode is mandatory by design; isSystemInDarkTheme() kept for future
     // optional day theme. Suppress unused warning via explicit reference.
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
-    CompositionLocalProvider(LocalOpenPolarisCompact provides compact) {
+    CompositionLocalProvider(
+        LocalOpenPolarisCompact provides compact,
+        // The compact shell deliberately uses a 36 dp interaction footprint.
+        // It is still larger than the visible 14 dp line graphics, but avoids
+        // Material3's default 48 dp expansion making every phone row feel
+        // like a tablet control. Desktop keeps the normal 48 dp target.
+        LocalMinimumInteractiveComponentSize provides if (compact) 36.dp else 48.dp,
+    ) {
         MaterialTheme(
             colorScheme = if (dim) DimNightColors else NightColors,
             typography = if (compact) CompactNightTypography else NightTypography,

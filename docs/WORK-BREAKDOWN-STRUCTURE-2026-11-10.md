@@ -1260,3 +1260,17 @@ remain open.
   graphic rail and labelled actions; accessibility descriptions remain on
   icon-only controls. Installed-phone rendering and live hardware qualification
   remain open.
+
+
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (third-pass mobile control density):**
+  reduced phone icon actions from 16 dp/40 dp to 14 dp/36 dp, reduced selector
+  chips from 30 dp to 28 dp, and reduced the primary destination row to 40 dp.
+  Material3's compact interaction-size local now prevents its default 48 dp
+  expansion from reintroducing tablet-scale spacing across raw controls. Desktop
+  keeps the 20 dp graphics, 48 dp rail and labelled actions; icon-only phone
+  controls retain full content descriptions and the More menu retains names.
+
+No route, command, feature gate, motion owner, shutter lifecycle or evidence
+contract changed. This is source/package UX evidence; live Astro WebUI,
+camera, mount, Bluetooth, installed-phone rendering and physical qualification
+remain open.

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Second compact pass reduces the mobile control scale again.** Phone actions now use 14 dp line graphics in a 36 dp footprint, selectors use a 28 dp chip boundary, and the primary destination row is 40 dp high. Material3's phone interaction-size expansion is bounded to the same compact scale; desktop remains 48 dp with full labels and icon-only controls retain explicit accessibility descriptions.
 - **Preview now has an explicit fullscreen surface.** The live frame can expand into a bounded, dismissible black presentation surface on phone and desktop; frame age and an accessible exit action remain visible, while the preview transport, overlays and camera state are unchanged.
 - **Phone controls are now genuinely compact.** Icon actions render a 16 dp
   line graphic in a 40 dp phone control footprint (48 dp is retained on the

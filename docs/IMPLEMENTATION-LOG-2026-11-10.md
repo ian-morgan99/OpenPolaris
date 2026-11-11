@@ -1754,3 +1754,19 @@ The Preview pane now offers a fullscreen presentation surface on both phone and 
 ```
 
 Installed-phone rendering and live preview qualification remain open.
+
+
+### WBS-01.3/09.1 — Third-pass mobile control density
+
+The first compact graphic pass still felt oversized on a phone. The compact
+shell now uses 14 dp line graphics, 36 dp icon-action footprints, 28 dp state
+chips and a 40 dp primary destination row. `LocalMinimumInteractiveComponentSize`
+is scoped to the compact shell so raw Material3 controls do not silently add
+48 dp expansion back into phone rows; desktop remains 48 dp with full labels.
+Content descriptions and More-menu names remain the semantic fallback for
+icon-only controls.
+
+No route, command, feature gate, motion owner, shutter lifecycle or evidence
+contract changed. This is source/package UX evidence only; installed-phone
+rendering and live Astro WebUI, camera, Bluetooth, mount and physical
+qualification remain open.

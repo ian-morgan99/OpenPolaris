@@ -1764,3 +1764,13 @@ Verification: UserPreferencesStoreTest, AppViewModelConnectionModeTest and
 ConnectionModeContractTest passed; full shared/Compose JVM tests, Android
 compilation, desktop packaging and a real Home Wi-Fi/Direct AP matrix remain
 required.
+
+### 2026-11-11 - WBS-03.3/03.6 SLOW invalid replacement recovery
+
+A delayed stale SLOW draft is now rejected before field validation, preventing
+an invalid older UI event from faulting or replacing a newer active target.
+An invalid newer replacement preserves the last acknowledged request in the
+recovery state and requires explicit STOP before another apply. Tests cover both
+the stale-invalid and newer-invalid cases, including the no-second-apply and
+stop-recovery invariants. No live SLOW transport or physical motor operation
+was performed; the capability record and default live gate remain unchanged.

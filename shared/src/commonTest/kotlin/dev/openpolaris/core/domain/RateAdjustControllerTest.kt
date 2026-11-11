@@ -130,6 +130,20 @@ class RateAdjustControllerTest {
     }
 
     @Test
+    fun `delayed stale invalid request cannot fault or replace the active target`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 2))
+
+        val result = controller.apply(request(version = 1).copy(m1Pan = 2.0))
+
+        assertEquals(RateCommandResult.Rejected("request version is stale"), result)
+        assertEquals(listOf(request(version = 2)), transport.applied)
+        assertEquals(RateAdjustState.Active(request(version = 2)), controller.state.value)
+    }
+
+    @Test
     fun `unknown result requires explicit stop before a newer request`() = runTest {
         val transport = FakeTransport().also {
             it.nextApply = RateCommandResult.Unknown("acknowledgement lost")
@@ -179,6 +193,32 @@ class RateAdjustControllerTest {
         assertIs<RateCommandResult.Rejected>(result)
         assertTrue(transport.applied.isEmpty())
         assertIs<RateAdjustState.Faulted>(controller.state.value)
+    }
+
+    @Test
+    fun `invalid newer replacement preserves the last possible physical target`() = runTest {
+        val transport = FakeTransport()
+        val controller = SafeRateAdjustController(transport)
+        ready(controller)
+        controller.apply(request(version = 1))
+
+        val invalid = request(version = 2).copy(m1Pan = 2.0)
+        val result = controller.apply(invalid)
+
+        assertEquals(RateCommandResult.Rejected("M1_PAN target 2.0 is outside the qualified range"), result)
+        assertEquals(listOf(request(version = 1)), transport.applied)
+        assertEquals(
+            RateAdjustState.Faulted(
+                reason = "M1_PAN target 2.0 is outside the qualified range",
+                request = request(version = 1),
+            ),
+            controller.state.value,
+        )
+        assertIs<RateCommandResult.Rejected>(controller.apply(request(version = 3)))
+        assertEquals(listOf(request(version = 1)), transport.applied)
+
+        assertEquals(RateCommandResult.Accepted(), controller.stopCorrection())
+        assertEquals(1, transport.stops)
     }
 
     @Test

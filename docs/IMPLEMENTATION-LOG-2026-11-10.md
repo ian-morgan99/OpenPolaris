@@ -2281,3 +2281,23 @@ Focused verification passed:
 
 This is source/package UX evidence only. Installed-phone rendering and live
 mount, camera, Bluetooth, Astro WebUI and physical qualification remain open.
+
+### WBS-03.3/03.6 - SLOW invalid replacement recovery
+
+`SafeRateAdjustController` now orders its safety checks so an older request is
+rejected as stale before field validation. A delayed invalid draft therefore
+cannot fault or replace a newer active target. For a genuinely newer invalid
+replacement, the controller retains the last request whose physical outcome is
+still possible and requires an explicit stop before another apply; it never
+reports the unsent invalid draft as the active physical target.
+
+Focused verification:
+
+```
+./gradlew :shared:jvmTest --tests dev.openpolaris.core.domain.RateAdjustControllerTest --console=plain --no-daemon
+```
+
+The full shared/Compose JVM, Android compilation and desktop packaging matrix
+also passed. This is source and simulator evidence only. The exact live SLOW
+transport, firmware identity, acknowledgement, watchdog, physical stop and
+installed-hardware qualification remain open.

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **SLOW replacement validation now preserves the last possible target.**
+  Delayed stale drafts are rejected before field validation, so an invalid
+  older UI event cannot fault a newer active correction. An invalid newer
+  replacement records the last acknowledged request and requires explicit STOP
+  recovery; the unsent invalid draft is never presented as the physical target.
+  The qualified transport gate and desktop/mobile SLOW surfaces are unchanged.
 - **Compact phone Settings now separates Health and Flags.** The evidence
   report and feature-gate list no longer stack into one long mobile surface;
   each gets its own graphic-selected tab, and the Day-to-day flag group starts

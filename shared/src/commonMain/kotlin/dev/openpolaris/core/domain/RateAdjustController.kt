@@ -215,13 +215,14 @@ class SafeRateAdjustController(
             }
             return@withLock RateCommandResult.Rejected(gate)
         }
-        val validation = cap!!.validate(request)
-        if (validation != null) return@withLock reject(validation, request, current != null)
         if (request.version <= lastVersion) {
             // A delayed UI event must not replace or fault a newer active
-            // request. The currently applied target remains authoritative.
+            // request. The currently applied target remains authoritative,
+            // even if the delayed draft is now invalid in another way.
             return@withLock RateCommandResult.Rejected("request version is stale")
         }
+        val validation = cap!!.validate(request)
+        if (validation != null) return@withLock reject(validation, request, current)
         if (stopRequired) {
             return@withLock RateCommandResult.Rejected("an explicit stop or reconnect is required before retrying")
         }
@@ -321,9 +322,17 @@ class SafeRateAdjustController(
         RateCommandResult.Unknown(reason)
     }
 
-    private fun reject(reason: String, request: RateAdjustRequest, active: Boolean): RateCommandResult {
-        stopRequired = active
-        mutableState.value = RateAdjustState.Faulted(reason, request)
+    private fun reject(
+        reason: String,
+        attempted: RateAdjustRequest,
+        current: RateAdjustRequest?,
+    ): RateCommandResult {
+        // An invalid replacement was never sent. Preserve the last request
+        // whose physical outcome is still possible, rather than displaying an
+        // unsent draft as the active target. A first invalid request has no
+        // physical target and therefore remains recoverable without a stop.
+        stopRequired = current != null
+        mutableState.value = RateAdjustState.Faulted(reason, current ?: attempted)
         return RateCommandResult.Rejected(reason)
     }
 

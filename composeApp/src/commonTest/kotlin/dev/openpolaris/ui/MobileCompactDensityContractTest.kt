@@ -54,4 +54,17 @@ class MobileCompactDensityContractTest {
         assertTrue("typography = if (compact) CompactNightTypography else NightTypography" in theme)
         assertFalse("LocalOpenPolarisCompact provides true" in theme)
     }
+
+    @Test
+    fun compactPhoneCalloutsUseAFullViewportSingleScrollShell() {
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+
+        assertTrue("if (LocalOpenPolarisCompact.current)" in shell)
+        assertTrue("DialogProperties(usePlatformDefaultWidth = false)" in shell)
+        assertTrue("testTag(\"compact-callout\")" in shell)
+        assertTrue("height(28.dp)" in shell)
+        assertTrue("contentDescription = \"Close \$title\"" in shell)
+        assertTrue("text = scrollableBody" in shell)
+    }
+
 }

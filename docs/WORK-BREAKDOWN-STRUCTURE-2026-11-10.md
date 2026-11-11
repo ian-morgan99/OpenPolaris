@@ -1703,3 +1703,17 @@ publication and unknown-outcome evidence stays visible and recoverable.
 
 Verification: focused MobileCompactControlsContractTest passed. Full
 cross-platform packaging and installed-phone rendering remain required.
+
+### 2026-11-11 - WBS-01.3/09.1 compact overflow callout shell
+
+Compact phones now render advanced overflow panes in a near-full-screen Dialog
+surface with a small graphic close control and one bounded body scroll. This
+reclaims the default AlertDialog title/action/inset chrome that was consuming
+short phone viewports while preserving the single-scroll invariant that avoids
+same-axis nested-scroll crashes. Desktop and tablet retain the labelled
+AlertDialog path and all pane controls, gates and evidence semantics are
+unchanged.
+
+Verification: compact density and callout single-scroll contract tests are
+required, followed by full shared/Compose JVM tests, Android compilation,
+desktop packaging and installed-phone rendering.

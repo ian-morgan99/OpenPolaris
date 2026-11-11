@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone callouts now use a near-full-screen shell.** Advanced
+  Connection, Motion, Camera, Preview, Guide, Settings and other overflow
+  panes keep one bounded scroll region but reclaim the default dialog title,
+  action and inset chrome on phones. A small graphic close control remains
+  accessible; desktop and tablet keep the existing labelled dialog behavior.
+
 - **Compact phone capture timeline is now summary-first.** Gallery shows the
   four most recent lifecycle entries by default and exposes the remaining
   bounded evidence through a small Details graphic. Desktop keeps eight entries;

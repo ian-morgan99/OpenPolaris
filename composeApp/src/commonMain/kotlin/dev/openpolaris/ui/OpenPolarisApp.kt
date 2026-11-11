@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.openpolaris.core.domain.BatteryAwareness
 import dev.openpolaris.core.domain.BatterySeverity
 import dev.openpolaris.core.domain.Connection
@@ -1151,33 +1153,77 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            ResponsiveTextActionButton(
-                graphic = OpenPolarisGraphic.Back,
-                label = "Close",
-                contentDescription = "Close $title",
-                onClick = onDismiss,
-            )
-        },
-        title = { Text(title) },
-        // The single, bounded vertical scroller for ALL callouts. The
-        // `fillMaxHeight()` is what stops the v0.1.5
-        // "Vertically scrollable component was measured with an
-        // infinity maximum height constraints" crash: the AlertDialog
-        // constrains the `text` slot to the viewport, and fillMaxHeight()
-        // makes the inner Column consume exactly that bounded height,
-        // giving `verticalScroll` a finite extent to scroll within.
-        // Owned here (not in any individual pane) so every pane —
-        // GotoPane, CameraPane, FirmwarePane, FeatureFlagsPane, etc. —
-        // can be arbitrarily tall without its own scroll modifier.
-        // This is the sole Modifier.verticalScroll in the commonMain
-        // UI tree, enforced by CalloutDialogNoScrollWrapperTest.
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxHeight()) {
-                content()
+    val scrollableBody: @Composable () -> Unit = {
+        // The single, bounded vertical scroller for ALL callouts. On a
+        // compact phone it lives inside a near-full-screen surface so the
+        // default AlertDialog title, button and inset chrome do not consume
+        // most of the already-short viewport. Desktop/tablet keeps the
+        // AlertDialog text slot. Both hosts provide a bounded height before
+        // the body becomes scrollable.
+        //
+        // Owned here (not in any individual pane) so every pane — GotoPane,
+        // CameraPane, FirmwarePane, FeatureFlagsPane, etc. — can be
+        // arbitrarily tall without its own scroll modifier. This is the sole
+        // Modifier.verticalScroll in the commonMain UI tree, enforced by
+        // CalloutDialogNoScrollWrapperTest.
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxHeight()) {
+            content()
+        }
+    }
+    if (LocalOpenPolarisCompact.current) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp)
+                    .testTag("compact-callout"),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                tonalElevation = 6.dp,
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(28.dp)
+                            .padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        CompactGraphicButton(
+                            graphic = OpenPolarisGraphic.Cancel,
+                            contentDescription = "Close $title",
+                            onClick = onDismiss,
+                        )
+                    }
+                    HorizontalDivider()
+                    Box(Modifier.weight(1f).fillMaxWidth().padding(4.dp)) {
+                        scrollableBody()
+                    }
+                }
             }
-        },
-    )
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                ResponsiveTextActionButton(
+                    graphic = OpenPolarisGraphic.Back,
+                    label = "Close",
+                    contentDescription = "Close $title",
+                    onClick = onDismiss,
+                )
+            },
+            title = { Text(title) },
+            text = scrollableBody,
+        )
+    }
 }

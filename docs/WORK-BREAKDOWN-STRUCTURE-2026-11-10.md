@@ -90,6 +90,12 @@
   This is source/package evidence only; installed-phone rendering remains open.
 - **2026-11-11 - WBS-01.3/09.1 ACTIVE (destructive action density):** reboot, shutdown and SD-format confirmation triggers now route through the compact graphic action boundary. Their confirmation dialogs retain explicit safety copy; phones receive compact graphics with semantic descriptions and desktop retains text labels. This is source/package evidence only; installed-phone rendering remains open.
 - **2026-11-11 - WBS-01.3/09.1 ACTIVE (micro-control density):** the compact phone shell now uses a 20 dp action footprint, 18 dp graphic-backed selectors, a 30x20 dp custom switch, 20 dp primary navigation, tighter shell/card spacing and a 44 dp cap for single-line fields without supporting copy. Named alignment results use a compact ellipsised text fallback because the star identity remains meaningful; graphics remain the default where text is not needed. Desktop labels and full semantic descriptions are unchanged. This is source/package evidence only; installed-phone rendering remains open.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (compact navigation chrome):** the
+  phone destination row and non-destructive close actions now use small line
+  graphics instead of Material text-button chrome. Tab/button roles, selection
+  state and full accessibility descriptions remain explicit; desktop
+  navigation and labels are unchanged. Installed-phone rendering remains
+  open.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

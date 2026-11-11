@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Compact navigation no longer inherits Material text-button chrome.** The
+  phone destination row, unavailable-feature close action and callout close
+  action now use small graphics with tab/button semantics and full
+  accessibility names; desktop labels and action behaviour are unchanged.
 - **SLOW session evidence now resets at each new lease.** Scheduler history is cleared so the first point of a fresh session is emitted even when it matches the prior rung, and command/ack telemetry cannot present a previous session's positive acknowledgement as current.
 - **Rolling releases now publish atomically from one verified generation.** Android and Windows jobs stage artifacts named with the source SHA; a final publish job verifies the required APK/EXE/ZIP set, emits a source-and-hash manifest, moves `latest` only after both builds pass, removes stale assets and verifies the published tag/manifest.
 - **Phone micro-density pass removes the remaining control chrome.** Compact action footprints are now 20 dp, graphic-backed selectors are 18 dp, switches use a 30x20 dp custom track, the primary navigation row is 20 dp, and single-line fields cap at 44 dp when they have no supporting copy. Alignment-star results use compact ellipsised text rows because the name remains important; full accessibility descriptions and desktop labels are preserved.

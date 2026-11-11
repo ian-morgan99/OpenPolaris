@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -318,9 +317,12 @@ fun OpenPolarisApp(
                         )
                     },
                     confirmButton = {
-                        TextButton(onClick = { unavailableFeature = null }) {
-                            Text("Close")
-                        }
+                        ResponsiveTextActionButton(
+                            graphic = OpenPolarisGraphic.Back,
+                            label = "Close",
+                            contentDescription = "Close unavailable feature dialog",
+                            onClick = { unavailableFeature = null },
+                        )
                     },
                 )
             }
@@ -523,24 +525,16 @@ private fun CompactDestinationBar(
                         .testTag("destination-" + destination.name.lowercase()),
                 )
             }
-            TextButton(
+            CompactGraphicTabButton(
+                graphic = OpenPolarisGraphic.More,
+                contentDescription = "More destinations",
+                selected = expanded,
                 onClick = { expanded = true },
-                contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .testTag("destination-more")
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = "More destinations"
-                        stateDescription = if (expanded) "Expanded" else "Collapsed"
-                        role = Role.Tab
-                    },
-            ) {
-                OpenPolarisGraphicIcon(
-                    OpenPolarisGraphic.More,
-                    tint = if (expanded) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                )
-            }
+                    .testTag("destination-more"),
+            )
         }
         DropdownMenu(
             expanded = expanded,
@@ -569,20 +563,13 @@ private fun CompactDestinationItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TextButton(
+    CompactGraphicTabButton(
+        graphic = destination.graphic(),
+        contentDescription = destination.label,
+        selected = selected,
         onClick = onClick,
-        contentPadding = PaddingValues(0.dp),
-        modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = destination.label
-            stateDescription = if (selected) "Selected" else "Not selected"
-            role = Role.Tab
-        },
-    ) {
-        OpenPolarisGraphicIcon(
-            graphic = destination.graphic(),
-            tint = if (selected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-        )
-    }
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -1067,7 +1054,14 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
 private fun CalloutDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = {
+            ResponsiveTextActionButton(
+                graphic = OpenPolarisGraphic.Back,
+                label = "Close",
+                contentDescription = "Close $title",
+                onClick = onDismiss,
+            )
+        },
         title = { Text(title) },
         // The single, bounded vertical scroller for ALL callouts. The
         // `fillMaxHeight()` is what stops the v0.1.5

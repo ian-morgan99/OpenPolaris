@@ -418,4 +418,17 @@ class MobileCompactControlsContractTest {
         assertFalse("OutlinedButton(onClick = { vm.connectWifiSsid(\"\") })" in fullPanes)
         assertFalse("OutlinedButton(onClick = vm::disconnectWifi)" in fullPanes)
     }
+
+    @Test
+    fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
+        val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
+        val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")
+            .lines().map { it.substringBefore("//") }.joinToString("\n")
+        val navigation = Regex("""private fun CompactDestinationBar[\s\S]*?private fun PrimaryDestinationRail""")
+            .find(noComments)?.value ?: error("Cannot locate compact destination bar")
+        assertTrue("CompactGraphicTabButton(" in navigation)
+        assertFalse("TextButton(" in navigation, "phone destination tabs must not inherit Material TextButton chrome")
+        assertTrue("ResponsiveTextActionButton(" in noComments)
+        assertTrue("graphic = OpenPolarisGraphic.Back" in noComments)
+    }
 }

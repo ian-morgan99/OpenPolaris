@@ -225,6 +225,36 @@ internal fun CompactSwitch(
 }
 
 /**
+ * Graphic-only tab used by the compact destination bar. Material3's
+ * TextButton still carries button-specific layout semantics even when its
+ * content is only an icon; this keeps the tab role and selected state while
+ * leaving the parent bar in control of the 20 dp row height.
+ */
+@Composable
+internal fun CompactGraphicTabButton(
+    graphic: OpenPolarisGraphic,
+    contentDescription: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clickable(role = Role.Tab, onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+                stateDescription = if (selected) "Selected" else "Not selected"
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        OpenPolarisGraphicIcon(
+            graphic = graphic,
+            tint = if (selected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+        )
+    }
+}
+
+/**
  * Keeps the phone control footprint small while retaining a semantic action.
  * The full action name remains in [contentDescription] because the symbol
  * alone is not sufficient for TalkBack, keyboard navigation or desktop use.

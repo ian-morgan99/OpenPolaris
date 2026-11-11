@@ -1569,3 +1569,16 @@ displayed as compact explanatory text on phones.
 No motion ownership, dead-man, qualification, transport or capture semantics
 were changed. This is source/package UX evidence only; physical SLOW and
 hardware qualification remain open.
+
+
+### WBS-01.3/03.6/09.1 — Phone action sizing boundary
+
+ResponsiveActionButton now accepts a desktop-only layout modifier. Compact
+phones receive only the base test/semantics modifier, so full-width recovery
+and synthetic-solve actions plus weighted fine-rate Apply/Cancel actions cannot
+expand the 48 dp graphic target. Wide layouts retain their existing full-width
+and weighted labelled controls.
+
+No motion ownership, dead-man, qualification, transport or capture semantics
+were changed. This remains source/package UX evidence; installed-phone render
+and physical SLOW qualification are still required.

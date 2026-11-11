@@ -77,6 +77,8 @@ class MobileCompactControlsContractTest {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
 
         assertTrue("internal fun ResponsiveActionButton" in graphics)
+        assertTrue("wideModifier: Modifier = Modifier" in graphics)
+        assertTrue("modifier.then(wideModifier)" in graphics)
         assertTrue("OpenPolarisGraphic.Apply" in graphics)
         assertTrue("OpenPolarisGraphic.Cancel" in graphics)
         assertTrue("graphic = OpenPolarisGraphic.Guide" in shell)
@@ -90,6 +92,10 @@ class MobileCompactControlsContractTest {
         assertTrue("contentDescription = \"Prepare synthetic plate solve evidence for the fine correction demo\"" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Cancel" in panes)
+        assertTrue("wideModifier = Modifier.fillMaxWidth()" in panes)
+        assertTrue("wideModifier = Modifier.weight(1f)" in panes)
+        assertFalse("modifier = Modifier.fillMaxWidth().testTag(\"slow-motion-recover\")" in panes)
+        assertFalse("modifier = Modifier.weight(1f).testTag(\"fine-rate-demo-apply\")" in panes)
         assertTrue("Text(label)" in graphics)
     }
 

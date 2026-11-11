@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Phone action icons no longer inherit desktop width modifiers.** Compact
+  ResponsiveActionButton controls now keep their 48 dp graphic hit target even
+  when the desktop layout uses full-width recovery/prepare actions or weighted
+  Apply/Cancel controls. Desktop labels and layout are unchanged.
+
 ## [0.1.19] - 2026-10-09
 ### Fixed
 - **A failed wake no longer reports success.** `bluetoothctl connect` exits

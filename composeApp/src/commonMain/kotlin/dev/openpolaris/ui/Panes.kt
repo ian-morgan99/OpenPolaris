@@ -2744,7 +2744,8 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     contentDescription = "Recover slow motion after confirming the mount is stopped",
                     onClick = vm::recoverSlowMotionAfterReconnect,
                     enabled = vm.mount.connected,
-                    modifier = Modifier.fillMaxWidth().testTag("slow-motion-recover"),
+                    modifier = Modifier.testTag("slow-motion-recover"),
+                    wideModifier = Modifier.fillMaxWidth(),
                     outlined = true,
                 )
             }
@@ -3058,7 +3059,8 @@ private fun DemoFineRateCard(
                 contentDescription = "Prepare synthetic plate solve evidence for the fine correction demo",
                 onClick = vm::prepareDemoFineRate,
                 enabled = !vm.fineRateDemoEvidenceArmed && !active,
-                modifier = Modifier.fillMaxWidth().testTag("fine-rate-demo-prepare"),
+                modifier = Modifier.testTag("fine-rate-demo-prepare"),
+                wideModifier = Modifier.fillMaxWidth(),
                 outlined = true,
             )
             Text(
@@ -3126,7 +3128,8 @@ private fun DemoFineRateCard(
                         )
                     },
                     enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready && draftValid,
-                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-apply"),
+                    modifier = Modifier.testTag("fine-rate-demo-apply"),
+                    wideModifier = Modifier.weight(1f),
                 )
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Cancel,
@@ -3138,7 +3141,8 @@ private fun DemoFineRateCard(
                         m3RotationDraft = "0.0"
                     },
                     enabled = !active,
-                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-cancel"),
+                    modifier = Modifier.testTag("fine-rate-demo-cancel"),
+                    wideModifier = Modifier.weight(1f),
                     outlined = true,
                 )
             }

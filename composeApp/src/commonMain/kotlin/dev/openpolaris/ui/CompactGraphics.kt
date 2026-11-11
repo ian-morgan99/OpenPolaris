@@ -79,6 +79,7 @@ internal fun ResponsiveActionButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    wideModifier: Modifier = Modifier,
     enabled: Boolean = true,
     outlined: Boolean = false,
 ) {
@@ -91,7 +92,7 @@ internal fun ResponsiveActionButton(
             modifier = modifier,
         )
     } else {
-        val accessibleModifier = modifier.semantics {
+        val accessibleModifier = modifier.then(wideModifier).semantics {
             this.contentDescription = contentDescription
         }
         if (outlined) {

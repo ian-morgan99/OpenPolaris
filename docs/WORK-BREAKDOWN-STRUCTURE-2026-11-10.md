@@ -1124,3 +1124,17 @@ The current implementation slice must not send a new motor frame, alter firmware
   shared/Compose JVM suite, Android compilation and desktop packaging are
   required for this increment. No live mount, Bluetooth, camera, Astro WebUI
   or physical SLOW operation was exercised.
+
+
+- **2026-11-11 - WBS-01.3/03.6/09.1 ACTIVE (phone action sizing boundary):**
+  separated desktop-only full-width and weighted modifiers from the compact
+  graphic action modifier. Slow-motion recovery, synthetic-solve preparation
+  and fine-rate Apply/Cancel controls now remain 48 dp icon actions on phones,
+  while retaining their full labelled desktop layout. This closes a source
+  sizing leak where a desktop modifier could make a compact graphic button
+  occupy the whole phone row.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest adds the
+  modifier-isolation regression; focused and full shared/Compose JVM tests,
+  Android compilation and desktop packaging are required. No installed-phone
+  render, live mount, Bluetooth, camera, Astro WebUI or physical SLOW
+  operation was exercised.

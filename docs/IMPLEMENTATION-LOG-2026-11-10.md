@@ -2183,3 +2183,18 @@ confirmation semantics are unchanged.
 
 Focused MobileCompactControlsContractTest passed. This is source/package UX
 evidence only; installed-phone rendering remains open.
+
+
+### WBS-01.3/08.2/09.1 - Compact Evidence Centre summary
+
+The phone Evidence Centre now opens with route, mount, camera and capture
+health rather than the full build, capability and capture-evidence report.
+A small graphic-backed Details action restores the build identity, separate
+control/preview health, capability gates, recent capture timeline and endpoint
+diagnostics. Support-bundle export remains in the initial surface. Desktop
+retains the expanded report and all observed-state, capture-lifecycle and
+redaction semantics are unchanged.
+
+Focused source-contract verification passed. This is source/package evidence
+only; no installed-phone rendering, live capture, Bluetooth, mount or physical
+qualification was performed.

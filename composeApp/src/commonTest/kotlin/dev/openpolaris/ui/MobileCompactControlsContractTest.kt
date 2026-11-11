@@ -558,6 +558,19 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactEvidenceKeepsCoreHealthAndCollapsesVerboseDetails() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in panes)
+        assertTrue("var showEvidenceDetails by remember(compactLayout)" in panes)
+        assertTrue("testTag(\"evidence-details-toggle\")" in panes)
+        assertTrue("Show evidence and support details" in panes)
+        assertTrue("Hide evidence and support details" in panes)
+        assertTrue("if (!compactLayout || showEvidenceDetails)" in panes)
+        assertTrue("Save support bundle" in panes)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

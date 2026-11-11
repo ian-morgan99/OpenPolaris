@@ -151,6 +151,8 @@ fun EvidenceCentrePane(
     modifier: Modifier = Modifier,
     versionLabel: String? = null,
 ) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    var showEvidenceDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val endpoint = vm.endpointHealth
     val captureSummary = when (val phase = vm.capturePhase) {
         AppViewModel.CapturePhase.Idle -> "Idle"
@@ -170,89 +172,112 @@ fun EvidenceCentrePane(
     val routeSummary = endpoint.profile?.let { profile ->
         "${profile.label} ${profile.address.host}:${profile.address.controlPort} / preview ${profile.address.previewPort}"
     } ?: "No endpoint selected"
+    val compactCaptureSummary = captureSummary.substringBefore(":")
 
     Card(modifier.padding(openPolarisCardOuterPadding())) {
         Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp),
         ) {
             Text("Evidence and health", style = MaterialTheme.typography.titleMedium)
-            Text(
+            CompactDescription(
                 "Read-only support view. Values are observed in this session; unknown is not success.",
-                style = MaterialTheme.typography.bodySmall,
             )
-            HorizontalDivider()
-            Text("Build and route", style = MaterialTheme.typography.titleSmall)
-            EvidenceRow("App build", versionLabel ?: "Host build identity not supplied")
-            EvidenceRow("Endpoint", routeSummary)
-            EvidenceRow("Route phase", endpoint.phase.name)
-            EvidenceRow("Control service", endpoint.control.name)
-            EvidenceRow("Preview service", endpoint.preview.name)
-            endpoint.lastFailure?.let { EvidenceRow("Last failure", it) }
-
-            HorizontalDivider()
-            Text("Device and mission state", style = MaterialTheme.typography.titleSmall)
-            EvidenceRow("Mount", if (vm.mount.connected) "Connected" else "Disconnected")
-            EvidenceRow("Firmware", vm.firmwareVersion ?: vm.deviceInfo?.software ?: "Not observed")
-            EvidenceRow("Hardware", vm.deviceInfo?.hardware ?: "Not observed")
-            EvidenceRow("Serial", vm.serialNumber ?: "Not observed")
-            EvidenceRow("Camera", cameraSummary)
-            EvidenceRow("SD storage", vm.sdStatus?.let { status ->
-                if (status.present) {
-                    "${status.freeMb ?: "?"} MB free / ${status.totalMb ?: "?"} MB"
-                } else {
-                    "Not present"
-                }
-            } ?: "Not checked")
-            EvidenceRow("Capture", captureSummary)
-
-            HorizontalDivider()
-            Text("Capability gates", style = MaterialTheme.typography.titleSmall)
-            EvidenceRow(
-                "Slow motion",
-                if (vm.demoMode) {
-                    "Simulator-only trace available; live transport remains gated"
-                } else {
-                    "Blocked pending exact firmware route and physical stop evidence"
-                },
-            )
-            EvidenceRow(
-                "Preview",
-                if (endpoint.previewReady) "Hardware stream reachable" else "Unknown or unavailable",
-            )
-            EvidenceRow(
-                "Alignment",
-                if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) {
-                    "Identity recorded in this session"
-                } else {
-                    "Not recorded"
-                },
-            )
-
-            HorizontalDivider()
-            Text("Recent capture evidence", style = MaterialTheme.typography.titleSmall)
-            if (vm.captureTimeline.isEmpty()) {
-                Text(
-                    "No correlated capture lifecycle has been recorded.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            } else {
-                vm.captureTimeline.takeLast(6).forEach { entry ->
-                    EvidenceRow(entry.stage.label, entry.detail)
-                }
-            }
-            vm.lastCapturePublication?.let { publication ->
+            if (compactLayout) {
                 EvidenceRow(
-                    "Published file",
-                    "${publication.path} (${publication.sizeBytes ?: "size unknown"} bytes)",
+                    "Route",
+                    "${endpoint.phase.name} / C ${endpoint.control.name} / P ${endpoint.preview.name}",
                 )
+                EvidenceRow("Mount", if (vm.mount.connected) "Connected" else "Disconnected")
+                EvidenceRow("Camera", cameraSummary)
+                EvidenceRow("Capture", compactCaptureSummary)
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showEvidenceDetails) "Hide details" else "Details",
+                    contentDescription = if (showEvidenceDetails) {
+                        "Hide evidence and support details"
+                    } else {
+                        "Show evidence and support details"
+                    },
+                    onClick = { showEvidenceDetails = !showEvidenceDetails },
+                    modifier = Modifier.testTag("evidence-details-toggle"),
+                    outlined = true,
+                )
+            }
+
+            if (!compactLayout || showEvidenceDetails) {
+                HorizontalDivider()
+                Text("Build and route", style = MaterialTheme.typography.titleSmall)
+                EvidenceRow("App build", versionLabel ?: "Host build identity not supplied")
+                EvidenceRow("Endpoint", routeSummary)
+                EvidenceRow("Route phase", endpoint.phase.name)
+                EvidenceRow("Control service", endpoint.control.name)
+                EvidenceRow("Preview service", endpoint.preview.name)
+                endpoint.lastFailure?.let { EvidenceRow("Last failure", it) }
+
+                HorizontalDivider()
+                Text("Device and mission state", style = MaterialTheme.typography.titleSmall)
+                EvidenceRow("Mount", if (vm.mount.connected) "Connected" else "Disconnected")
+                EvidenceRow("Firmware", vm.firmwareVersion ?: vm.deviceInfo?.software ?: "Not observed")
+                EvidenceRow("Hardware", vm.deviceInfo?.hardware ?: "Not observed")
+                EvidenceRow("Serial", vm.serialNumber ?: "Not observed")
+                EvidenceRow("Camera", cameraSummary)
+                EvidenceRow("SD storage", vm.sdStatus?.let { status ->
+                    if (status.present) {
+                        "${status.freeMb ?: "?"} MB free / ${status.totalMb ?: "?"} MB"
+                    } else {
+                        "Not present"
+                    }
+                } ?: "Not checked")
+                EvidenceRow("Capture", captureSummary)
+
+                HorizontalDivider()
+                Text("Capability gates", style = MaterialTheme.typography.titleSmall)
+                EvidenceRow(
+                    "Slow motion",
+                    if (vm.demoMode) {
+                        "Simulator-only trace available; live transport remains gated"
+                    } else {
+                        "Blocked pending exact firmware route and physical stop evidence"
+                    },
+                )
+                EvidenceRow(
+                    "Preview",
+                    if (endpoint.previewReady) "Hardware stream reachable" else "Unknown or unavailable",
+                )
+                EvidenceRow(
+                    "Alignment",
+                    if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) {
+                        "Identity recorded in this session"
+                    } else {
+                        "Not recorded"
+                    },
+                )
+
+                HorizontalDivider()
+                Text("Recent capture evidence", style = MaterialTheme.typography.titleSmall)
+                if (vm.captureTimeline.isEmpty()) {
+                    Text(
+                        "No correlated capture lifecycle has been recorded.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    vm.captureTimeline.takeLast(6).forEach { entry ->
+                        EvidenceRow(entry.stage.label, entry.detail)
+                    }
+                }
+                vm.lastCapturePublication?.let { publication ->
+                    EvidenceRow(
+                        "Published file",
+                        "${publication.path} (${publication.sizeBytes ?: "size unknown"} bytes)",
+                    )
+                }
             }
 
             HorizontalDivider()
             Text("Support bundle", style = MaterialTheme.typography.titleSmall)
-            Text(
+            CompactDescription(
                 "Save a bounded snapshot of observed health and capture evidence. Hostnames, credentials, raw frames and camera bytes are omitted.",
-                style = MaterialTheme.typography.bodySmall,
             )
             ResponsiveActionButton(
                 graphic = OpenPolarisGraphic.Save,

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact Evidence Centre is now summary-first on phones.** Route, mount,
+  camera and capture health stay visible with a graphic-backed Details action;
+  build identity, capability gates, capture timeline and endpoint diagnostics
+  remain recoverable without forcing a long initial scroll. Support-bundle save
+  remains directly reachable, and desktop keeps the full evidence surface.
 - **Compact Settings is now summary-first on phones.** Feature-flag descriptions
   and advanced flag rows are collapsed by default; the visible rows retain
   label, safety classification, ON/OFF state and the compact switch. A small

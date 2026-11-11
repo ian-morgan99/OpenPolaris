@@ -5407,6 +5407,7 @@ fun AutoLevelTiltStatus(tilt: dev.openpolaris.core.domain.AutoLevelController.Ti
  */
 @Composable
 fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
+    val compactLayout = LocalOpenPolarisCompact.current
     val status = vm.firmwareStatus
     val featureEnabled = remember { dev.openpolaris.core.config.FeatureFlags.isEnabled("firmwareUpload") }
     val bytesTotal = (status as? dev.openpolaris.core.domain.FirmwareUpdateController.Status.Uploading)?.bytesTotal
@@ -5431,9 +5432,12 @@ fun FirmwarePane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
-            Text("Firmware update", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Step $step of 3",
+                "Firmware update",
+                style = if (compactLayout) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                if (compactLayout) "Step $step/3" else "Step $step of 3",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -5503,6 +5507,7 @@ private fun FirmwareStep1(
     vm: AppViewModel,
     featureEnabled: Boolean,
 ) {
+    val compactLayout = LocalOpenPolarisCompact.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Phase 1a banner (docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #1).
         // The WIRE envelope below is reconstructed from the Benro Connect
@@ -5510,22 +5515,38 @@ private fun FirmwareStep1(
         // A bad FwPkt.zip bricks the gimbal until you re-flash over USB.
         // Always verify the bundle with `crcInfo` in the Benro Connect
         // app before pressing Upload.
-        Text(
-            "EXPERIMENTAL — a bad image bricks the gimbal until you re-flash over USB. " +
-                "Verify the bundle's CRC in the Benro Connect app before uploading. " +
-                "Use the SSH_PIPE delivery (default) unless you have a reason not to.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-
-        if (!featureEnabled) {
+        if (compactLayout) {
             Text(
-                "Firmware upload is disabled. Open the 'Settings' callout and turn " +
-                    "on the 'firmwareUpload' flag to use this pane. Firmware install is " +
-                    "destructive — a bad image bricks the mount until you re-flash over USB.",
+                "EXPERIMENTAL: verify CRC before upload; a bad image can brick the mount.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+        } else {
+            Text(
+                "EXPERIMENTAL — a bad image bricks the gimbal until you re-flash over USB. " +
+                    "Verify the bundle's CRC in the Benro Connect app before uploading. " +
+                    "Use the SSH_PIPE delivery (default) unless you have a reason not to.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        if (!featureEnabled) {
+            if (compactLayout) {
+                Text(
+                    "Upload disabled: enable firmwareUpload in Settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                Text(
+                    "Firmware upload is disabled. Open the 'Settings' callout and turn " +
+                        "on the 'firmwareUpload' flag to use this pane. Firmware install is " +
+                        "destructive — a bad image bricks the mount until you re-flash over USB.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         // ---- Picked file summary ---------------------------------------
@@ -5580,6 +5601,7 @@ private fun FirmwareStep1(
 // Step 2 — delivery mode, expected MD5, SSH host, reboot-after toggle.
 @Composable
 private fun FirmwareStep2(vm: AppViewModel) {
+    val compactLayout = LocalOpenPolarisCompact.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ---- Options ---------------------------------------------------
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -5589,7 +5611,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
                 enabled = !vm.firmwareBusy,
             )
             Text(
-                "  Reboot mount after install",
+                if (compactLayout) "Reboot after install" else "  Reboot mount after install",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -5606,8 +5628,12 @@ private fun FirmwareStep2(vm: AppViewModel) {
             onValueChange = { vm.firmwareExpectedMd5 = it.trim() },
             enabled = !vm.firmwareBusy,
             singleLine = true,
-            label = { Text("Expected MD5 (from Benro console — optional)") },
-            placeholder = { Text("32-char hex, e.g. d41d8cd98f00b204e9800998ecf8427e") },
+            label = { Text(if (compactLayout) "Expected MD5 (optional)" else "Expected MD5 (from Benro console — optional)") },
+            placeholder = if (!compactLayout) {
+                { Text("32-char hex, e.g. d41d8cd98f00b204e9800998ecf8427e") }
+            } else {
+                null
+            },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -5622,7 +5648,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
         // Benro Connect capture. See FirmwareUpdateController KDoc
         // for the trust profile of each.
         Column {
-            Text("Delivery mode", style = MaterialTheme.typography.labelLarge)
+            Text(if (compactLayout) "Delivery" else "Delivery mode", style = MaterialTheme.typography.labelLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactRadioButton(
                     selected = vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE,
@@ -5630,7 +5656,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
                     enabled = !vm.firmwareBusy,
                     contentDescription = "Use verified SSH pipe firmware delivery",
                 )
-                Text("SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
+                Text(if (compactLayout) "SSH pipe (verified)" else "SSH pipe (verified) — scp FwPkt.zip, then reboot", style = MaterialTheme.typography.bodyMedium)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactRadioButton(
@@ -5639,7 +5665,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
                     enabled = false,
                     contentDescription = "Wire firmware delivery unavailable",
                 )
-                Text("Wire envelope unavailable — chunk framing is unproven", style = MaterialTheme.typography.bodyMedium)
+                Text(if (compactLayout) "Wire unavailable" else "Wire envelope unavailable — chunk framing is unproven", style = MaterialTheme.typography.bodyMedium)
             }
             if (vm.firmwareDeliveryMode == DeliveryMode.WIRE) {
                 Text(
@@ -5656,13 +5682,13 @@ private fun FirmwareStep2(vm: AppViewModel) {
         // ---- SSH host (only meaningful for SSH_PIPE) -----------------
         if (vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("SSH host:", style = MaterialTheme.typography.bodyMedium)
+                Text(if (compactLayout) "Host:" else "SSH host:", style = MaterialTheme.typography.bodyMedium)
                 CompactOutlinedTextField(
                     value = vm.firmwareSshHost,
                     onValueChange = { vm.firmwareSshHost = it },
                     enabled = !vm.firmwareBusy,
                     singleLine = true,
-                    modifier = Modifier.width(180.dp),
+                    modifier = Modifier.width(if (compactLayout) 140.dp else 180.dp),
                 )
             }
         }

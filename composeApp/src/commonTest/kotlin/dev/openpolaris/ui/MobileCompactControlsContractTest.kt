@@ -623,6 +623,20 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactFirmwareKeepsSafetyAndShortensWorkflowCopy() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in panes)
+        assertTrue("EXPERIMENTAL: verify CRC before upload; a bad image can brick the mount." in panes)
+        assertTrue("Upload disabled: enable firmwareUpload in Settings." in panes)
+        assertTrue("Expected MD5 (optional)" in panes)
+        assertTrue("if (compactLayout) \"SSH pipe (verified)\"" in panes)
+        assertTrue("if (compactLayout) \"Wire unavailable\"" in panes)
+        assertTrue("Modifier.width(if (compactLayout) 140.dp else 180.dp)" in panes)
+        assertTrue("destructive" in panes)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

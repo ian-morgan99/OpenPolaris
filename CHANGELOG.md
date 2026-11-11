@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone firmware workflow copy is shorter without hiding safety.**
+  The destructive CRC/bricking warning, feature-gate state, selected bundle,
+  hash field and upload/progress actions remain visible; step labels, delivery
+  descriptions, the MD5 placeholder and SSH host field are shorter on phones.
+  Desktop keeps the fuller explanatory copy and all firmware gates are unchanged.
+
 - **Compact phone preview is now summary-first.** The live frame, age,
   no-camera/stream state, fullscreen and overlay toggles stay visible, while
   static local-aid explanation and endpoint details are behind a small

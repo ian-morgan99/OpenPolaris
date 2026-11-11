@@ -1654,7 +1654,7 @@ Verification is required before publication: focused mobile contracts, full
 Compose/JVM tests, Android compilation and desktop packaging. Installed-phone
 rendering and hardware qualification remain open.
 
-### 2026-11-11  WBS-01.3/04.2/09.1 compact Preview summary-first surface
+### 2026-11-11 - WBS-01.3/04.2/09.1 compact Preview summary-first surface
 
 The compact phone Preview pane now keeps the live frame, frame age, stream/camera
 state, fullscreen action and local overlay toggles in the first surface. Static
@@ -1668,3 +1668,17 @@ Verification: focused MobileCompactControlsContractTest passed. Full shared
 and Compose JVM suites, Android compilation and desktop packaging remain
 required before publication of this slice. Installed-phone rendering and live
 camera/stream qualification remain open.
+
+### 2026-11-11 - WBS-01.3/08.1/09.1 compact Firmware workflow copy
+
+The compact phone firmware workflow keeps the destructive CRC/bricking warning,
+feature-gate state, selected bundle identity, hash field, verified delivery
+choice and upload/progress actions visible while shortening step labels,
+delivery descriptions, the MD5 placeholder and SSH host field. Desktop retains
+the fuller explanatory copy. No firmware gate, checksum, delivery mode,
+progress or destructive-operation semantics changed.
+
+Verification: focused MobileCompactControlsContractTest passed. Full shared and
+Compose JVM suites, Android compilation and desktop packaging remain required
+before publication of this slice. Firmware upload remains feature-gated and
+hardware qualification is not implied.

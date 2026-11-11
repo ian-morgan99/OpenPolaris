@@ -1794,3 +1794,17 @@ capture boundaries, typed WebUI readback coverage, compact mobile/desktop shell
 state, signed APK provenance, ranked gaps and the exact package verification
 commands. The refresh does not claim live firmware, camera, Bluetooth, SLOW or
 installed-phone behavior.
+
+
+### WBS-03.5 — Versioned SLOW evidence manifest
+
+Added SlowMotionCapabilityManifest as a strict, bounded source/package
+qualification seam. It requires the exact schema and capability id, named
+firmware/gimbal/source-app identities, an evidence bundle id and SHA-256 shape,
+plus all route, sign, envelope, acknowledgement, watchdog, stop, disconnect
+recovery and limit gates. Unknown fields and malformed or oversized input fail
+closed. The parser is not a runtime permission source and leaves the immutable
+release capability record unqualified.
+
+Focused verification is recorded by SlowMotionCapabilityManifestTest; no
+physical SLOW command or capability record was promoted.

@@ -1280,3 +1280,6 @@ remain open.
 
 
 - **2026-11-11 - WBS-00/01/02/03/04/05/07/09/10 ACTIVE (parity provenance refresh):** refreshed `docs/ASTRO-WEBUI-OPENPOLARIS-PARITY-2026-11-09.md` from the published `main` commit `52c42b4`. The matrix now has a current package-status section, exact endpoint/motion/capture/Astro/mobile entry points, a ranked gap table and the package test commands. Source, simulator, package and physical evidence classes remain separate; no live SLOW, camera, Bluetooth or installed-phone claim was added.
+
+
+- 2026-11-11 - WBS-03.5 ACTIVE (versioned SLOW evidence manifest): added a bounded, strict schema-1 manifest parser for exact firmware/gimbal/source-app identity, evidence-bundle provenance and every SLOW safety gate. Unknown fields, missing fields, invalid digests, control characters and oversized manifests fail closed. Decoding never changes SlowMotionCapabilities.current; the release record remains immutable and unqualified until controlled evidence is promoted.

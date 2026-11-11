@@ -47,6 +47,21 @@ sealed interface SlowMotionActionResult {
     data class Unknown(val reason: String) : SlowMotionActionResult
 }
 
+/**
+ * Bounded, monotonic telemetry for the last scheduler point.
+ *
+ * The timestamp is the controller clock supplied to [SlowMotionController.tick],
+ * not wall-clock time. [lastPositiveAcknowledgementAtMs] is only advanced by
+ * an explicit [SlowMotionTransportResult.Accepted] result; an unknown or
+ * rejected result never looks like a successful movement acknowledgement.
+ */
+data class SlowMotionTelemetry(
+    val lastCommand: SlowScheduleCommand? = null,
+    val lastCommandAtMs: Long? = null,
+    val lastPositiveAcknowledgementAtMs: Long? = null,
+    val lastOutcome: SlowMotionTransportResult? = null,
+)
+
 sealed interface SlowMotionState {
     data object Idle : SlowMotionState
     data class Armed(val lease: SlowMotionLease) : SlowMotionState
@@ -81,6 +96,9 @@ class SlowMotionController(
     private val lock = Mutex()
     private val mutableState = MutableStateFlow<SlowMotionState>(SlowMotionState.Idle)
     val state: StateFlow<SlowMotionState> = mutableState.asStateFlow()
+    private val mutableTelemetry = MutableStateFlow(SlowMotionTelemetry())
+    /** Last attempted point and explicit positive acknowledgement evidence. */
+    val telemetry: StateFlow<SlowMotionTelemetry> = mutableTelemetry.asStateFlow()
     private var nextToken = 1L
 
     suspend fun acquire(): SlowMotionAcquireResult = lock.withLock {
@@ -157,17 +175,40 @@ class SlowMotionController(
         val commands = scheduler.tick(nowMs)
         if (commands.isEmpty()) return@withLock SlowMotionActionResult.NotDue
         for (command in commands) {
+            // An initial idle-axis STOP without a retained point is a logical
+            // no-op. Do not present it as a positive wire acknowledgement.
+            val logicalNoOp = command.kind == SlowScheduleKind.STOP && command.point == null
+            if (!logicalNoOp) {
+                mutableTelemetry.value = mutableTelemetry.value.copy(
+                    lastCommand = command,
+                    lastCommandAtMs = nowMs,
+                    lastOutcome = null,
+                )
+            }
             when (val result = runCatching { transport.apply(command) }.getOrElse {
                 SlowMotionTransportResult.Unknown(
                     "slow-motion command failed: ${it.message ?: it::class.simpleName ?: "unknown error"}",
                 )
             }) {
-                SlowMotionTransportResult.Accepted -> Unit
+                SlowMotionTransportResult.Accepted -> {
+                    if (!logicalNoOp) {
+                        mutableTelemetry.value = mutableTelemetry.value.copy(
+                            lastOutcome = result,
+                            lastPositiveAcknowledgementAtMs = nowMs,
+                        )
+                    }
+                }
                 is SlowMotionTransportResult.Rejected -> {
+                    if (!logicalNoOp) {
+                        mutableTelemetry.value = mutableTelemetry.value.copy(lastOutcome = result)
+                    }
                     mutableState.value = SlowMotionState.Faulted(result.reason, lease)
                     return@withLock SlowMotionActionResult.Rejected
                 }
                 is SlowMotionTransportResult.Unknown -> {
+                    if (!logicalNoOp) {
+                        mutableTelemetry.value = mutableTelemetry.value.copy(lastOutcome = result)
+                    }
                     mutableState.value = SlowMotionState.Faulted(result.reason, lease)
                     return@withLock SlowMotionActionResult.Unknown(result.reason)
                 }

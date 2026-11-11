@@ -54,6 +54,18 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun slowMotionSurfaceExposesCommandAgeAndPositiveAcknowledgementEvidence() {
+        val vm = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/AppViewModel.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+        val controller = source("shared/src/commonMain/kotlin/dev/openpolaris/core/domain/SlowMotionController.kt")
+
+        assertTrue("slowMotionTelemetry" in vm)
+        assertTrue("lastPositiveAcknowledgementAtMs" in controller)
+        assertTrue("slow-motion-acknowledgement" in panes)
+        assertTrue("Do not retry; recover explicitly." in panes)
+    }
+
+    @Test
     fun compactCameraAndFineRateActionsRetainAccessibleLabels() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")

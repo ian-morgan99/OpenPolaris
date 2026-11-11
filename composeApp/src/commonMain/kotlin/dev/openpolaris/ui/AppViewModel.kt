@@ -195,6 +195,7 @@ import dev.openpolaris.core.domain.SlowMotionDemoSnapshot
 import dev.openpolaris.core.domain.SlowMotionLease
 import dev.openpolaris.core.domain.SlowMotionPlanner
 import dev.openpolaris.core.domain.SlowMotionTarget
+import dev.openpolaris.core.domain.SlowMotionTelemetry
 import dev.openpolaris.core.domain.SlowMotionTransport
 import dev.openpolaris.core.domain.SlowMotionTransportResult
 import dev.openpolaris.core.domain.SlowScheduleCommand
@@ -862,6 +863,10 @@ class AppViewModel(
     /** True only when an exact positive-acknowledgement sender is installed. */
     val slowMotionTransportInstalled: Boolean
         get() = slowMotionFrameSender != null
+
+    /** Monotonic SLOW point/ack evidence shared by Demo and the qualified seam. */
+    val slowMotionTelemetry: StateFlow<SlowMotionTelemetry>
+        get() = demoSlowMotion.telemetry
 
     val fastJogState: StateFlow<FastJogState>
         get() = fastJogController.state

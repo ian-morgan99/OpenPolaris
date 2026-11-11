@@ -2868,9 +2868,17 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
     val controlsEnabled = (liveControlsEnabled || demoControlsEnabled) &&
         motionState !is dev.openpolaris.core.domain.MotionState.Faulted
     val lastSolve by vm.lastSolveResult.collectAsState()
+    val slowTelemetry by vm.slowMotionTelemetry.collectAsState()
     var nowMs by remember { mutableStateOf(SystemMillis.now()) }
-    LaunchedEffect(lastSolve?.timestampMs) {
-        if (lastSolve == null) {
+    LaunchedEffect(
+        lastSolve?.timestampMs,
+        slowTelemetry.lastCommandAtMs,
+        slowTelemetry.lastPositiveAcknowledgementAtMs,
+    ) {
+        if (lastSolve == null &&
+            slowTelemetry.lastCommandAtMs == null &&
+            slowTelemetry.lastPositiveAcknowledgementAtMs == null
+        ) {
             nowMs = SystemMillis.now()
         } else {
             while (true) {
@@ -2885,6 +2893,23 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             "Motion owner: " + state.lease.owner.name.lowercase().replace('_', ' ')
         is dev.openpolaris.core.domain.MotionState.Faulted ->
             "Motion owner blocked: " + state.reason
+    }
+    fun telemetryAge(timestampMs: Long): String {
+        val ageMs = (nowMs - timestampMs).coerceAtLeast(0L)
+        return if (ageMs < 1_000L) "under 1 s" else "${ageMs / 1_000L} s"
+    }
+    val slowAcknowledgementText = when (val outcome = slowTelemetry.lastOutcome) {
+        dev.openpolaris.core.domain.SlowMotionTransportResult.Accepted ->
+            "Last SLOW point accepted ${telemetryAge(slowTelemetry.lastCommandAtMs ?: nowMs)} ago; positive acknowledgement ${slowTelemetry.lastPositiveAcknowledgementAtMs?.let(::telemetryAge)?.let { "$it ago" } ?: "not recorded"}."
+        is dev.openpolaris.core.domain.SlowMotionTransportResult.Rejected ->
+            "Last SLOW point rejected: ${outcome.reason}. No positive acknowledgement."
+        is dev.openpolaris.core.domain.SlowMotionTransportResult.Unknown ->
+            "Last SLOW point outcome unknown: ${outcome.reason}. Do not retry; recover explicitly."
+        null -> if (slowTelemetry.lastCommandAtMs == null) {
+            "SLOW telemetry: no command acknowledgement observed in this session."
+        } else {
+            "SLOW telemetry: awaiting acknowledgement for the last point."
+        }
     }
     var selectedAxis by remember { mutableStateOf("M1 · Pan / yaw") }
     var selectedLevel by remember { mutableStateOf(1) }
@@ -2953,6 +2978,16 @@ fun SlowMotionPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 modifier = Modifier.testTag("motion-owner-state"),
+            )
+            Text(
+                slowAcknowledgementText,
+                style = MaterialTheme.typography.labelSmall,
+                color = when (slowTelemetry.lastOutcome) {
+                    is dev.openpolaris.core.domain.SlowMotionTransportResult.Rejected,
+                    is dev.openpolaris.core.domain.SlowMotionTransportResult.Unknown -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.testTag("slow-motion-acknowledgement"),
             )
             if (motionState is dev.openpolaris.core.domain.MotionState.Faulted && vm.slowMotionFaulted) {
                 ResponsiveActionButton(

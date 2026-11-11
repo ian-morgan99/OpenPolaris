@@ -4,6 +4,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SlowMotionControllerTest {
@@ -49,6 +50,34 @@ class SlowMotionControllerTest {
         assertEquals(first, second.lease)
         assertEquals(SlowMotionActionResult.Started, controller.start(first, targets(), 0L))
         assertIs<SlowMotionState.Holding>(controller.state.value)
+    }
+
+    @Test
+    fun telemetryRecordsTheLastCommandAndItsPositiveAcknowledgement() = runTest {
+        val (controller, lease, _) = ready()
+
+        assertEquals(SlowMotionActionResult.Applied(3), controller.tick(lease, 75L))
+        val telemetry = controller.telemetry.value
+        assertTrue(telemetry.lastCommand != null)
+        assertEquals(75L, telemetry.lastCommandAtMs)
+        assertEquals(75L, telemetry.lastPositiveAcknowledgementAtMs)
+        assertEquals(SlowMotionTransportResult.Accepted, telemetry.lastOutcome)
+    }
+
+    @Test
+    fun telemetryKeepsAnUnknownOutcomeDistinctFromTheLastPositiveAcknowledgement() = runTest {
+        val transport = FakeTransport().also {
+            it.nextApply = SlowMotionTransportResult.Unknown("ack lost")
+        }
+        val controller = SlowMotionController(transport)
+        val lease = assertIs<SlowMotionAcquireResult.Granted>(controller.acquire()).lease
+        assertEquals(SlowMotionActionResult.Started, controller.start(lease, targets(), 0L))
+
+        assertIs<SlowMotionActionResult.Unknown>(controller.tick(lease, 75L))
+        val telemetry = controller.telemetry.value
+        assertEquals(75L, telemetry.lastCommandAtMs)
+        assertNull(telemetry.lastPositiveAcknowledgementAtMs)
+        assertEquals(SlowMotionTransportResult.Unknown("ack lost"), telemetry.lastOutcome)
     }
 
     @Test

@@ -1219,3 +1219,14 @@ The current implementation slice must not send a new motor frame, alter firmware
   Android compilation and desktop packaging are required. No live Astro
   WebUI, camera, mount, Bluetooth or physical motion/capture operation was
   exercised.
+
+- **2026-11-11 - WBS-01.3/05.1/09.1 ACTIVE (compact Astro readback
+  actions):** applied the responsive graphic boundary to travel-limit,
+  guiding, autofocus and run-state refreshes plus resident mount-position
+  readback. Phone controls keep 48 dp targets and explicit descriptions; PC
+  keeps labels. Safety state, resident writes and motion/capture actions remain
+  textual where that context is needed.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No live Astro
+  WebUI, camera, mount, Bluetooth or physical motion/capture operation was
+  exercised.

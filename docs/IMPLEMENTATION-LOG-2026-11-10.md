@@ -1679,3 +1679,17 @@ No Astro WebUI route, programme validation, motion ownership, shutter
 lifecycle or feature gate changed. This is source/package UX evidence; live
 Astro WebUI, camera, mount, Bluetooth, installed-phone rendering and physical
 qualification remain open.
+
+
+### WBS-01.3/05.1/09.1 — Compact Astro readback actions
+
+The phone Astro status surface now uses small graphics for travel-limit,
+guiding, autofocus and run-state refreshes plus resident mount-position
+readback. Each remains a 48 dp target with an explicit content description;
+desktop keeps the labelled controls. Released-limit warnings, blocked mount
+readback, resident writes and motion/capture actions remain text-led.
+
+No Astro WebUI route, validation, feature gate, motion ownership or capture
+lifecycle changed. This is source/package UX evidence; live Astro WebUI,
+camera, mount, Bluetooth, installed-phone rendering and physical qualification
+remain open.

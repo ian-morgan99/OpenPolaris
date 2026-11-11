@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   explicit accessible descriptions; PC retains labels, while preview/start
   actions keep their visible safety wording.
 
+- **Astro readback actions now use compact phone graphics.** Travel-limit,
+  guiding, autofocus and run-state refreshes plus resident mount-position
+  readback retain explicit descriptions; safety state and motion/capture
+  actions remain visibly textual.
+
 ## [0.1.19] - 2026-10-09
 ### Fixed
 - **A failed wake no longer reports success.** `bluetoothctl connect` exits

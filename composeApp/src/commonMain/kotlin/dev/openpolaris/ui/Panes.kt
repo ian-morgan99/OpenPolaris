@@ -1408,10 +1408,13 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh limits",
+                    contentDescription = "Refresh Astro travel-limit state",
                     enabled = FeatureFlags.isEnabled("astroWebUiLimitsStatus"),
                     onClick = vm::refreshAstroWebUiLimits,
-                ) { Text("Refresh limits") }
+                )
                 when (val limits = vm.astroWebUiLimits) {
                     AstroWebUiLimitsUiState.Idle -> Text(
                         "Travel-limit state not checked.",
@@ -1463,10 +1466,13 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh guiding",
+                    contentDescription = "Refresh resident Astro guiding state",
                     enabled = FeatureFlags.isEnabled("astroWebUiGuideStatus"),
                     onClick = vm::refreshAstroWebUiGuide,
-                ) { Text("Refresh guiding") }
+                )
                 when (val guide = vm.astroWebUiGuide) {
                     AstroWebUiGuideUiState.Idle -> Text("Guide state not checked.", style = MaterialTheme.typography.labelSmall)
                     AstroWebUiGuideUiState.Loading -> Text("Reading guide state…", style = MaterialTheme.typography.labelSmall)
@@ -1528,10 +1534,13 @@ fun MissionDashboardPane(
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh autofocus",
+                    contentDescription = "Refresh resident Astro autofocus state",
                     enabled = FeatureFlags.isEnabled("astroWebUiAutofocusStatus"),
                     onClick = vm::refreshAstroWebUiAutofocus,
-                ) { Text("Refresh autofocus") }
+                )
                 val autofocusRunning = (vm.astroWebUiAutofocus as? AstroWebUiAutofocusUiState.Ready)
                     ?.state?.status == "running"
                 Button(
@@ -1633,14 +1642,21 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh run state",
+                    contentDescription = "Refresh Astro run state",
                     enabled = FeatureFlags.isEnabled("astroWebUiRunState"),
                     onClick = vm::refreshAstroWebUiRunState,
-                ) { Text("Refresh run state") }
-                OutlinedButton(
+                )
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Slew,
+                    label = "Read mount position",
+                    contentDescription = "Read the resident Astro mount position",
                     enabled = FeatureFlags.isEnabled("astroWebUiRunState"),
                     onClick = vm::readAstroWebUiMountPosition,
-                ) { Text("Read mount position") }
+                    outlined = true,
+                )
             }
             when (val state = vm.astroWebUiRunState) {
                 AstroWebUiRunStateUiState.Idle -> Text(

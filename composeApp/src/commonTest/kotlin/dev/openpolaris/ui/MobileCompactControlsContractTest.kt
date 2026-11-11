@@ -234,4 +234,20 @@ class MobileCompactControlsContractTest {
         assertFalse("OutlinedButton(onClick = { vm.clearAstroWebUiPathWaypoints() })" in panes)
     }
 
+    @Test
+    fun astroReadbackActionsUseCompactGraphicsWithoutHidingSafetyState() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("contentDescription = \"Refresh Astro travel-limit state\"" in panes)
+        assertTrue("contentDescription = \"Refresh resident Astro guiding state\"" in panes)
+        assertTrue("contentDescription = \"Refresh resident Astro autofocus state\"" in panes)
+        assertTrue("contentDescription = \"Refresh Astro run state\"" in panes)
+        assertTrue("contentDescription = \"Read the resident Astro mount position\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Slew" in panes)
+        assertTrue("RELEASED — physical clearance must be watched" in panes)
+        assertTrue("Mount position read was blocked by the resident WebUI safety check." in panes)
+        assertFalse("Button(\n                    enabled = FeatureFlags.isEnabled(\"astroWebUiLimitsStatus\"),\n                    onClick = vm::refreshAstroWebUiLimits" in panes)
+        assertFalse("Button(\n                    enabled = FeatureFlags.isEnabled(\"astroWebUiRunState\"),\n                    onClick = vm::refreshAstroWebUiRunState" in panes)
+    }
+
 }

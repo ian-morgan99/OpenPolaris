@@ -114,4 +114,21 @@ class MobileCompactDensityContractTest {
         assertTrue("contentDescription = \"Start Astro WebUI Bulb exposure\"" in panes)
     }
 
+    @Test
+    fun compactAstroAdvancedViewShowsOneTaskSurfaceAtATime() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("private enum class CompactAstroSection" in panes)
+        assertTrue("testTag(\"astro-compact-section-row\")" in panes)
+        assertTrue("CompactAstroSection.STATUS" in panes)
+        assertTrue("CompactAstroSection.TARGET" in panes)
+        assertTrue("CompactAstroSection.MOTION" in panes)
+        assertTrue("CompactAstroSection.PROGRAMMES" in panes)
+        assertTrue("CompactAstroSection.PREPARE" in panes)
+        assertTrue("if (!compactLayout || compactAstroSection == CompactAstroSection.STATUS)" in panes)
+        assertTrue("if (!compactLayout || compactAstroSection == CompactAstroSection.TARGET)" in panes)
+        assertTrue("if (!compactLayout || compactAstroSection == CompactAstroSection.MOTION)" in panes)
+        assertTrue("if (!compactLayout || compactAstroSection == CompactAstroSection.PROGRAMMES)" in panes)
+        assertTrue("compactAstroSection == CompactAstroSection.PREPARE" in panes)
+    }
 }

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Compact Astro mission controls now use task-sized phone surfaces.** When
+  advanced controls are opened, Status, Target, Motion, Runs and Prepare are
+  selected through small graphic chips and only the active family is rendered.
+  Desktop continues to show the complete expanded Astro workspace, with no
+  control, gate or evidence semantics removed.
 
 ### Changed
 - **Capture completion now waits for the camera's terminal idle edge.**

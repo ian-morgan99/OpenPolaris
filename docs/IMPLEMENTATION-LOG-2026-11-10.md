@@ -2342,3 +2342,21 @@ The full shared/Compose JVM, Android compilation and desktop packaging matrix
 also passed. This is source, simulator and package evidence only. Installed
 phone rendering, live camera/file publication, resident Astro WebUI operation,
 Bluetooth, mount and physical qualification remain open.
+
+### 2026-11-11 - Compact Astro task surfaces
+
+Added `CompactAstroSection` to the shared Mission dashboard. On compact
+phones, opening the advanced Astro surface now presents small graphic-backed
+Status, Target, Motion, Runs and Prepare selectors and composes only the active
+family. This keeps the source-aligned Astro WebUI controls discoverable without
+turning the phone view into one very long scroll; wide layouts remain fully
+expanded and the underlying gates, polling and ownership contracts are untouched.
+
+Verification:
+
+```
+./gradlew :composeApp:compileKotlinJvm --console=plain --no-daemon
+```
+
+The compact contract is source/package evidence; installed-phone rendering and
+live Astro, camera and mount qualification remain open.

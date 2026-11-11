@@ -1059,6 +1059,14 @@ private fun BluetoothWakeEvidenceSection(vm: AppViewModel) {
     }
 }
 
+private enum class CompactAstroSection {
+    STATUS,
+    TARGET,
+    MOTION,
+    PROGRAMMES,
+    PREPARE,
+}
+
 /**
  * Full Mission readiness sheet opened from the always-visible status strip.
  * It is deliberately read-only: each row explains the evidence currently
@@ -1129,6 +1137,9 @@ fun MissionDashboardPane(
     var phoneCompassHeading by remember { mutableStateOf<Double?>(null) }
     var compassError by remember { mutableStateOf<String?>(null) }
     val compactLayout = LocalOpenPolarisCompact.current
+    var compactAstroSection by remember(compactLayout) {
+        mutableStateOf(CompactAstroSection.STATUS)
+    }
     var showAdvancedAstro by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val focalOverrideMm = focalOverride.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..100_000.0 }
     val gotoRequest = runCatching {
@@ -1205,6 +1216,51 @@ fun MissionDashboardPane(
                 )
             }
             if (!compactLayout || showAdvancedAstro) {
+            if (compactLayout) {
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .testTag("astro-compact-section-row"),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    CompactFilterChip(
+                        selected = compactAstroSection == CompactAstroSection.STATUS,
+                        onClick = { compactAstroSection = CompactAstroSection.STATUS },
+                        label = { Text("Status") },
+                        graphic = OpenPolarisGraphic.Connection,
+                        contentDescription = "Show Astro status and solve controls",
+                    )
+                    CompactFilterChip(
+                        selected = compactAstroSection == CompactAstroSection.TARGET,
+                        onClick = { compactAstroSection = CompactAstroSection.TARGET },
+                        label = { Text("Target") },
+                        graphic = OpenPolarisGraphic.Slew,
+                        contentDescription = "Show Astro target and focal controls",
+                    )
+                    CompactFilterChip(
+                        selected = compactAstroSection == CompactAstroSection.MOTION,
+                        onClick = { compactAstroSection = CompactAstroSection.MOTION },
+                        label = { Text("Motion") },
+                        graphic = OpenPolarisGraphic.Fine,
+                        contentDescription = "Show Astro motion and tracking controls",
+                    )
+                    CompactFilterChip(
+                        selected = compactAstroSection == CompactAstroSection.PROGRAMMES,
+                        onClick = { compactAstroSection = CompactAstroSection.PROGRAMMES },
+                        label = { Text("Runs") },
+                        graphic = OpenPolarisGraphic.Clock,
+                        contentDescription = "Show Astro programme controls",
+                    )
+                    CompactFilterChip(
+                        selected = compactAstroSection == CompactAstroSection.PREPARE,
+                        onClick = { compactAstroSection = CompactAstroSection.PREPARE },
+                        label = { Text("Prep") },
+                        graphic = OpenPolarisGraphic.Helpers,
+                        contentDescription = "Show Astro preparation checks",
+                    )
+                }
+            }
+            if (!compactLayout || compactAstroSection == CompactAstroSection.STATUS) {
             HorizontalDivider()
             Text("Resident Astro WebUI", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1377,6 +1433,8 @@ fun MissionDashboardPane(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
+            }
+            if (!compactLayout || compactAstroSection == CompactAstroSection.TARGET) {
             HorizontalDivider()
             Text("Astro target and alignment", style = MaterialTheme.typography.titleMedium)
             CompactDescription(
@@ -1611,6 +1669,8 @@ fun MissionDashboardPane(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            }
+            if (!compactLayout || compactAstroSection == CompactAstroSection.MOTION) {
             HorizontalDivider()
             Text("Travel limits", style = MaterialTheme.typography.titleMedium)
             Text(
@@ -2020,6 +2080,8 @@ fun MissionDashboardPane(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            }
+            if (!compactLayout || compactAstroSection == CompactAstroSection.PROGRAMMES) {
             HorizontalDivider()
             Text("Astro mission", style = MaterialTheme.typography.titleMedium)
             AstroMissionFlow.evaluate(
@@ -2235,7 +2297,8 @@ fun MissionDashboardPane(
             HorizontalDivider()
             AstroWebUiExtendedProgrammeComposer(vm)
             }
-            if (!compactLayout || showAdvancedAstro) {
+            }
+            if (!compactLayout || (showAdvancedAstro && compactAstroSection == CompactAstroSection.PREPARE)) {
             HorizontalDivider()
             Text("Prepare checklist", style = MaterialTheme.typography.titleMedium)
             Text(

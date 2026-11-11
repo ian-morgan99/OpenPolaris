@@ -1827,3 +1827,15 @@ the pending state and disables both video actions while in flight.
 
 Verification is source/simulator/package evidence only. Named-camera 263
 recording/file behavior and installed-phone rendering remain required.
+
+### 2026-11-11 - WBS-01.3/05.1/09.1 compact Astro task surfaces
+
+The compact phone Mission/Astro advanced view now uses a small graphic-backed
+selector for Status, Target, Motion, Runs and Prepare. Only the selected task
+family is composed, so the Astro WebUI parity surface no longer becomes one
+long mobile scroll after the user opens More controls. Desktop continues to
+render all advanced families together; no gate, action or evidence semantics
+changed.
+
+Verification: Compose JVM compilation and the compact density contract passed.
+Installed-phone rendering and live Astro WebUI, mount and camera qualification

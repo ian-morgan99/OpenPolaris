@@ -1733,3 +1733,18 @@ Verification: MobileCompactDensityContractTest and Compose JVM compilation
 passed for the source/package slice. Full shared/Compose JVM tests, Android
 compilation, desktop packaging and installed-phone rendering remain required;
 no live mount or physical SLOW operation was exercised.
+
+### 2026-11-11 - WBS-01.3/04.3/09.1 compact Camera command deck
+
+Compact phones now enter a capture-first Camera deck before the detailed
+settings surface. Attachment state, release mode, normal capture, native
+Bulb/stop, optional Astro WebUI M/B controls, latest publication and Gallery
+review remain visible in one compact card. Settings, timeline, intervalometer,
+programmes and longer readback/qualification copy remain one Details action
+away. Existing NORMAL/BULB ownership, accepted-command gates, lifecycle/file
+evidence and outcome-unknown quarantine are unchanged.
+
+Verification: MobileCompactDensityContractTest and Compose JVM compilation
+passed for the source/package slice. Full shared/Compose JVM tests, Android
+compilation, desktop packaging and installed-phone rendering remain required;
+no live camera capture was exercised.

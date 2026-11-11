@@ -78,4 +78,16 @@ class MobileCompactDensityContractTest {
         assertTrue("onShowDetails = { showMotionDetails = true }" in panes)
     }
 
+    @Test
+    fun compactCameraUsesACaptureFirstDeckBeforeDetails() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("if (compactLayout && !showCameraDetails)" in panes)
+        assertTrue("CompactCameraDeck(" in panes)
+        assertTrue("testTag(\"camera-compact-deck\")" in panes)
+        assertTrue("onShowDetails = { showCameraDetails = true }" in panes)
+        assertTrue("contentDescription = \"Stop Bulb capture\"" in panes)
+        assertTrue("contentDescription = \"Start Astro WebUI Bulb exposure\"" in panes)
+    }
+
 }

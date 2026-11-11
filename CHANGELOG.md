@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone Camera is now capture-first.** Phones keep camera
+  attachment, release mode, normal capture, native/Astro M/B controls, Bulb
+  stop, latest publication and Gallery review in one short command deck.
+  Camera settings, timeline, intervalometer, programmes and longer diagnostic
+  copy remain behind Details; existing capture-kind, acknowledgement,
+  lifecycle/file evidence and no-blind-retry safety gates are unchanged.
+
 - **Compact phone SLOW is now a short command deck.** Phones show the
   live qualification/acknowledgement summary, axis and speed graphics, hold
   directions and STOP ALL first. Detailed telemetry, qualification evidence,

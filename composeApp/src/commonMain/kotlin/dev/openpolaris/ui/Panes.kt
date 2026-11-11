@@ -4408,6 +4408,260 @@ private fun CameraActionButton(
 }
 
 @Composable
+private fun CompactCameraDeck(
+    vm: AppViewModel,
+    modifier: Modifier,
+    attachmentSummary: String,
+    attachmentReady: Boolean,
+    releaseMode: CameraReleaseMode,
+    qualificationEnabled: Boolean,
+    bulbSecondsText: String,
+    onBulbSecondsChange: (String) -> Unit,
+    phase: AppViewModel.CapturePhase,
+    captureLocked: Boolean,
+    onOpenGallery: (() -> Unit)?,
+    onShowDetails: () -> Unit,
+) {
+    val astroCaptureEnabled = FeatureFlags.isEnabled("astroWebUiCapture")
+    val astroActive = vm.astroWebUiCaptureActive || vm.astroWebUiCaptureDispatching
+    val phaseLabel = when (phase) {
+        AppViewModel.CapturePhase.Idle -> "Ready"
+        AppViewModel.CapturePhase.Requested -> "Sent"
+        AppViewModel.CapturePhase.Busy -> "Busy"
+        AppViewModel.CapturePhase.Completed -> "Done"
+        is AppViewModel.CapturePhase.Failed -> "Failed"
+        is AppViewModel.CapturePhase.OutcomeUnknown -> "Unknown"
+    }
+    val modeLabel = when (releaseMode) {
+        CameraReleaseMode.MANUAL -> "M"
+        CameraReleaseMode.BULB -> "B"
+        CameraReleaseMode.OTHER -> "Timed"
+        CameraReleaseMode.UNKNOWN -> "?"
+    }
+    Card(
+        modifier = modifier
+            .padding(openPolarisCardOuterPadding())
+            .testTag("camera-compact-deck"),
+    ) {
+        Column(
+            Modifier.padding(openPolarisCardInnerPadding()),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("CAM", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    attachmentSummary,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh camera status",
+                    contentDescription = "Refresh camera attachment status",
+                    onClick = vm::refreshCameraAttachment,
+                    enabled = true,
+                    modifier = Modifier.testTag("camera-refresh-attachment"),
+                    outlined = true,
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Mode $modeLabel",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Capture",
+                    contentDescription = "Capture photo",
+                    onClick = vm::capture,
+                    enabled = !captureLocked && attachmentReady,
+                    modifier = Modifier.testTag("camera-capture"),
+                )
+                Text(
+                    phaseLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when (phase) {
+                        is AppViewModel.CapturePhase.Failed,
+                        is AppViewModel.CapturePhase.OutcomeUnknown -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.testTag("camera-capture-phase"),
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh",
+                    contentDescription = "Refresh camera state",
+                    onClick = vm::refreshCamera,
+                    enabled = true,
+                    modifier = Modifier.testTag("camera-refresh"),
+                    outlined = true,
+                )
+            }
+            when (phase) {
+                is AppViewModel.CapturePhase.Failed -> Text(
+                    "Failed: ${phase.reason}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                is AppViewModel.CapturePhase.OutcomeUnknown -> Text(
+                    "Outcome unknown — do not retry; inspect the camera/card and reconnect.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("capture-outcome-unknown"),
+                )
+                else -> Unit
+            }
+            if (!qualificationEnabled && !vm.demoMode) {
+                Text(
+                    "Camera settings locked",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CompactOutlinedTextField(
+                    value = bulbSecondsText,
+                    onValueChange = onBulbSecondsChange,
+                    label = { Text("s") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(58.dp),
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Bulb capture",
+                    contentDescription = "Start Bulb capture for ${bulbSecondsText.ifBlank { "unknown" }} seconds",
+                    onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
+                    enabled = !captureLocked && attachmentReady && releaseMode == CameraReleaseMode.BULB,
+                    modifier = Modifier.testTag("camera-bulb-capture"),
+                )
+                if (vm.nativeBulbCaptureActive) {
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Stop,
+                        label = "Stop Bulb",
+                        contentDescription = "Stop Bulb capture",
+                        onClick = vm::stopBulb,
+                        enabled = true,
+                        modifier = Modifier.testTag("camera-bulb-stop"),
+                        outlined = true,
+                    )
+                }
+            }
+            if (attachmentReady && releaseMode != CameraReleaseMode.BULB) {
+                Text(
+                    "Bulb unavailable · verified mode is ${releaseMode.label}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (astroCaptureEnabled) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Astro", style = MaterialTheme.typography.labelMedium)
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Camera,
+                        label = "Astro M",
+                        contentDescription = "Capture Astro WebUI manual exposure",
+                        onClick = { vm.captureAstroWebUi(CameraReleaseMode.MANUAL) },
+                        enabled = !astroActive && !captureLocked && attachmentReady &&
+                            releaseMode == CameraReleaseMode.MANUAL,
+                        modifier = Modifier.testTag("camera-astro-m"),
+                    )
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Camera,
+                        label = "Astro B",
+                        contentDescription = "Start Astro WebUI Bulb exposure",
+                        onClick = {
+                            vm.captureAstroWebUi(
+                                CameraReleaseMode.BULB,
+                                bulbSecondsText.toIntOrNull() ?: 0,
+                            )
+                        },
+                        enabled = !astroActive && !captureLocked && attachmentReady &&
+                            releaseMode == CameraReleaseMode.BULB,
+                        modifier = Modifier.testTag("camera-astro-b"),
+                        outlined = true,
+                    )
+                    if (vm.astroWebUiBulbActive && !vm.astroWebUiBulbStopQueued) {
+                        CameraActionButton(
+                            graphic = OpenPolarisGraphic.Stop,
+                            label = "Stop Astro B",
+                            contentDescription = "Stop Astro WebUI Bulb exposure",
+                            onClick = vm::stopAstroWebUiBulb,
+                            enabled = true,
+                            modifier = Modifier.testTag("camera-astro-b-stop"),
+                            outlined = true,
+                        )
+                    }
+                }
+                vm.astroWebUiCaptureStatus?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            vm.lastCapturePublication?.let { publication ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        publication.path.substringAfterLast('/'),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    onOpenGallery?.let { open ->
+                        CameraActionButton(
+                            graphic = OpenPolarisGraphic.Preview,
+                            label = "Review in Gallery",
+                            contentDescription = "Review the last capture in Gallery",
+                            onClick = open,
+                            enabled = true,
+                            modifier = Modifier.testTag("review-capture-gallery"),
+                            outlined = true,
+                        )
+                    }
+                }
+            }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.More,
+                label = "Camera details",
+                contentDescription = "Show camera settings, capture timeline and programme controls",
+                onClick = onShowDetails,
+                modifier = Modifier.testTag("camera-details-toggle"),
+                outlined = true,
+            )
+        }
+    }
+}
+
+@Composable
 fun CameraPane(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
@@ -4422,6 +4676,37 @@ fun CameraPane(
     var showCameraDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val shutterLabel = c.shutterIndex?.let { c.shutterOptions.getOrNull(it)?.trim() }
     val releaseMode = CameraReleaseMode.fromOption(shutterLabel)
+    val phase = vm.capturePhase
+    val inFlight = phase is AppViewModel.CapturePhase.Requested ||
+        phase is AppViewModel.CapturePhase.Busy
+    val captureOutcomeUnknown = phase is AppViewModel.CapturePhase.OutcomeUnknown
+    val captureLocked = inFlight || captureOutcomeUnknown
+    val attachmentSummary = when {
+        attachment == null -> "Unknown"
+        !attachment.isAttached -> "No camera · state " + (attachment.state ?: "?")
+        else -> listOfNotNull(attachment.manufacturer, attachment.model)
+            .joinToString(" ")
+            .ifBlank { "Camera ready" }
+    }
+    if (compactLayout && !showCameraDetails) {
+        CompactCameraDeck(
+            vm = vm,
+            modifier = modifier,
+            attachmentSummary = attachmentSummary,
+            attachmentReady = attachment?.isAttached == true,
+            releaseMode = releaseMode,
+            qualificationEnabled = qualificationEnabled,
+            bulbSecondsText = bulbSecondsText,
+            onBulbSecondsChange = { value ->
+                if (value.all(Char::isDigit)) bulbSecondsText = value
+            },
+            phase = phase,
+            captureLocked = captureLocked,
+            onOpenGallery = onOpenGallery,
+            onShowDetails = { showCameraDetails = true },
+        )
+        return
+    }
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
         Column(Modifier.padding(openPolarisCardInnerPadding()), verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing())) {
             Text("Camera", style = MaterialTheme.typography.titleMedium)
@@ -4577,11 +4862,6 @@ fun CameraPane(
             // as busy and only completes when the camera returns to idle, so
             // the user sees one pending/busy period followed by an accurate
             // result instead of a false "failed" flash.
-            val phase = vm.capturePhase
-            val inFlight = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
-                phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
-            val captureOutcomeUnknown = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown
-            val captureLocked = inFlight || captureOutcomeUnknown
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 CameraActionButton(
                     graphic = OpenPolarisGraphic.Camera,

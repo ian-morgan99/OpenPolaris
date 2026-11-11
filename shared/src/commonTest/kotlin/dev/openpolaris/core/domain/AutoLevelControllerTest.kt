@@ -475,8 +475,13 @@ class AutoLevelControllerTest {
     // (AutoLevelController.kt) is the source of truth.
 
     /** A sample source that suspends forever until cancelled. */
-    private class HangingSampleSource {
-        suspend fun next(): AutoLevelController.Tilt? = kotlinx.coroutines.suspendCancellableCoroutine { /* never resume */ }
+    private class HangingSampleSource(
+        private val entered: CompletableDeferred<Unit>? = null,
+    ) {
+        suspend fun next(): AutoLevelController.Tilt? {
+            entered?.complete(Unit)
+            return kotlinx.coroutines.suspendCancellableCoroutine { /* never resume */ }
+        }
     }
 
     /**
@@ -706,12 +711,14 @@ class AutoLevelControllerTest {
         val mountScope = CoroutineScope(Dispatchers.Default + Job())
         val s = MountSession({ conn }, readerScope = mountScope)
         s.connect()
-        val ctrl = AutoLevelController(s, sampleSource = { HangingSampleSource().next() })
 
         // Wrap runAndAwait in a child scope so we can count its coroutines
         // via the parent Job's children.
         val parent = Job()
         val childScope = CoroutineScope(Dispatchers.Default + parent)
+        val sourceEntered = CompletableDeferred<Unit>()
+        val source = HangingSampleSource(sourceEntered)
+        val ctrl = AutoLevelController(s, sampleSource = { source.next() })
         val outcome = CompletableDeferred<Unit>()
         val runner = childScope.launch {
             try {
@@ -723,6 +730,11 @@ class AutoLevelControllerTest {
                 fail("runAndAwait threw non-cancellation throwable: $e")
             }
         }
+
+        // Wait for the source's explicit entry barrier rather than relying
+        // on Job.isActive alone; a newly launched coroutine is active before
+        // it has reached runAndAwait, which made the old test race in CI.
+        sourceEntered.await()
         waitForSuspend(runner, outcome)
 
         val childrenBeforeCancel = parent.children.toList()

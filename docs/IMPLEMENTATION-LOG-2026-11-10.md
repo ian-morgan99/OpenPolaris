@@ -1522,3 +1522,21 @@ merged asset verification and desktop packaging passed. Android debug APK
 SHA-256: `abbb71080c4deff5f9c8c8e14d54ba4a9fcdb9305e84ec4327f32306a5c93149`.
 This is simulator/package evidence; no live camera, mount or hardware latency
 measurement was performed.
+
+### WBS-04.1/04.4/09.1 — Compact camera action graphics
+
+The compact phone Camera workspace now uses the shared small-graphic control
+pattern for photo capture, camera refresh, Bulb capture/stop, focus near/far,
+video start/stop and the plus/minus camera setting steppers. Each icon remains
+inside a 48 dp hit target with a full action description for TalkBack, keyboard
+and desktop accessibility. The desktop layout keeps the labelled Button or
+OutlinedButton treatment, so the density change is limited to the compact
+phone shell. Fine-rate Demo A/B/STOP controls use the same graphic and retain a
+visible rate legend.
+
+The underlying capture safety contract is unchanged: in-flight and unknown
+outcomes still disable release actions, Bulb remains mode-gated, and focus/
+video remain qualification-gated. `MobileCompactControlsContractTest`, the
+focused SLOW/capture contracts, the full shared/Compose JVM suites and Android
+Debug Kotlin compilation passed. No installed-phone render, named-camera
+lifecycle or physical hardware qualification was claimed.

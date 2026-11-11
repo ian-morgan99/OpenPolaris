@@ -177,6 +177,15 @@
 - Render dynamic options, readback age, write verification and model/firmware qualification.
 - Unsupported fields explain why rather than displaying broken controls.
 
+- **2026-11-11 - WBS-04.1/04.4/09.1 ACTIVE (compact camera actions):** the
+  phone-density Camera surface now presents capture, refresh, Bulb, focus,
+  video and camera-setting stepper actions as 20 dp line graphics inside
+  accessible 48 dp targets. Desktop keeps the labelled text-button treatment;
+  capture outcome locking, Bulb mode gating, focus/video qualification and
+  readback semantics are unchanged. Contract, full JVM and Android compilation
+  checks passed; installed-phone rendering and named-camera qualification remain
+  open.
+
 ### WBS-04.2 — Preview workspace — P1
 
 - Separate control port health from 8080 MJPEG health.

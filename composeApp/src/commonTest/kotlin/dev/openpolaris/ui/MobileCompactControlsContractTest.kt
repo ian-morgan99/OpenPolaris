@@ -37,4 +37,29 @@ class MobileCompactControlsContractTest {
         assertTrue("contentDescription = \"STOP ALL motion\"" in panes)
         assertFalse("Text(\"More\"" in shell)
     }
+
+    @Test
+    fun compactCameraAndFineRateActionsRetainAccessibleLabels() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("OpenPolarisGraphic.Refresh" in graphics)
+        assertTrue("OpenPolarisGraphic.Plus" in graphics)
+        assertTrue("OpenPolarisGraphic.Minus" in graphics)
+        assertTrue("private fun CameraActionButton" in panes)
+        assertTrue("if (LocalOpenPolarisCompact.current)" in panes)
+        assertTrue("contentDescription = \"Capture photo\"" in panes)
+        assertTrue("contentDescription = \"Refresh camera state\"" in panes)
+        assertTrue("contentDescription = \"Start Bulb capture" in panes)
+        assertTrue("contentDescription = \"Stop Bulb capture\"" in panes)
+        assertTrue("contentDescription = \"Move focus nearer\"" in panes)
+        assertTrue("contentDescription = \"Move focus farther\"" in panes)
+        assertTrue("contentDescription = \"Start video recording\"" in panes)
+        assertTrue("contentDescription = \"Stop video recording\"" in panes)
+        assertTrue("Fine step: A +0.1°/s" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionA" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.DirectionB" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Stop" in panes)
+    }
+
 }

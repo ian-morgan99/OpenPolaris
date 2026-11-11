@@ -3128,30 +3128,36 @@ private fun DemoFineRateCard(
             }
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    contentDescription = "Apply fine correction in direction A at positive 0.1 degrees per second",
                     onClick = { vm.demoFineRateApply(selectedAxis, 1) },
                     enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready,
-                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-a"),
-                ) {
-                    Text("A · +0.1°/s")
-                }
-                Button(
+                    modifier = Modifier.testTag("fine-rate-demo-a"),
+                )
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    contentDescription = "Apply fine correction in direction B at negative 0.1 degrees per second",
                     onClick = { vm.demoFineRateApply(selectedAxis, -1) },
                     enabled = state is dev.openpolaris.core.domain.RateAdjustState.Ready,
-                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-b"),
-                ) {
-                    Text("B · -0.1°/s")
-                }
-                OutlinedButton(
+                    modifier = Modifier.testTag("fine-rate-demo-b"),
+                )
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    contentDescription = "Stop fine correction",
                     onClick = vm::demoFineRateStop,
                     enabled = stopRequired,
-                    modifier = Modifier.weight(1f).testTag("fine-rate-demo-stop"),
-                ) {
-                    Text("STOP")
-                }
+                    modifier = Modifier.testTag("fine-rate-demo-stop"),
+                )
             }
+            Text(
+                "Fine step: A +0.1°/s · B −0.1°/s · STOP",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -3462,6 +3468,35 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
  * GET/SET pairs into `CommandTable` and the post-connect burst.
  */
 @Composable
+private fun CameraActionButton(
+    graphic: OpenPolarisGraphic,
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    outlined: Boolean = false,
+) {
+    if (LocalOpenPolarisCompact.current) {
+        CompactGraphicButton(
+            graphic = graphic,
+            contentDescription = contentDescription,
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+        )
+    } else if (outlined) {
+        OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier) {
+            Text(label)
+        }
+    } else {
+        Button(onClick = onClick, enabled = enabled, modifier = modifier) {
+            Text(label)
+        }
+    }
+}
+
+@Composable
 fun CameraPane(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
@@ -3604,7 +3639,14 @@ fun CameraPane(
             val captureOutcomeUnknown = phase is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown
             val captureLocked = inFlight || captureOutcomeUnknown
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = vm::capture, enabled = !captureLocked && attachment?.isAttached == true) { Text("Capture") }
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Capture",
+                    contentDescription = "Capture photo",
+                    onClick = vm::capture,
+                    enabled = !captureLocked && attachment?.isAttached == true,
+                    modifier = Modifier.testTag("camera-capture"),
+                )
                 when (phase) {
                     is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ->
                         Text("Sent…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
@@ -3618,7 +3660,15 @@ fun CameraPane(
                         Text("Unknown", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
                     else -> {}
                 }
-                OutlinedButton(onClick = vm::refreshCamera) { Text("Refresh") }
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh",
+                    contentDescription = "Refresh camera state",
+                    onClick = vm::refreshCamera,
+                    enabled = true,
+                    modifier = Modifier.testTag("camera-refresh"),
+                    outlined = true,
+                )
             }
             if (phase is dev.openpolaris.ui.AppViewModel.CapturePhase.OutcomeUnknown) {
                 Text(
@@ -3656,12 +3706,14 @@ fun CameraPane(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(150.dp),
                 )
-                Button(
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Bulb capture",
+                    contentDescription = "Start Bulb capture for ${bulbSecondsText.ifBlank { "unknown" }} seconds",
                     onClick = { vm.captureBulb(bulbSecondsText.toIntOrNull() ?: 0) },
                     enabled = !captureLocked && attachment?.isAttached == true && releaseMode == CameraReleaseMode.BULB,
-                ) {
-                    Text("Bulb capture")
-                }
+                    modifier = Modifier.testTag("camera-bulb-capture"),
+                )
                 if (attachment?.isAttached == true && releaseMode != CameraReleaseMode.BULB) {
                     Text(
                         "Bulb capture requires a verified B / Bulb shutter readback.",
@@ -3670,7 +3722,15 @@ fun CameraPane(
                     )
                 }
                 if (bulbInFlight) {
-                    OutlinedButton(onClick = vm::stopBulb) { Text("Stop Bulb") }
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Stop,
+                        label = "Stop Bulb",
+                        contentDescription = "Stop Bulb capture",
+                        onClick = vm::stopBulb,
+                        enabled = true,
+                        modifier = Modifier.testTag("camera-bulb-stop"),
+                        outlined = true,
+                    )
                 }
             }
             HorizontalDivider()
@@ -3728,22 +3788,48 @@ fun CameraPane(
                 (FeatureFlags.isEnabled("cameraFocusControl") || vm.demoMode) &&
                 attachment?.isAttached == true
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { vm.adjustFocusNear() }, enabled = focusEnabled) { Text("Focus near") }
-                OutlinedButton(onClick = { vm.adjustFocusFar() }, enabled = focusEnabled) { Text("Focus far") }
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.DirectionA,
+                    label = "Focus near",
+                    contentDescription = "Move focus nearer",
+                    onClick = vm::adjustFocusNear,
+                    enabled = focusEnabled,
+                    modifier = Modifier.testTag("camera-focus-near"),
+                    outlined = true,
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.DirectionB,
+                    label = "Focus far",
+                    contentDescription = "Move focus farther",
+                    onClick = vm::adjustFocusFar,
+                    enabled = focusEnabled,
+                    modifier = Modifier.testTag("camera-focus-far"),
+                    outlined = true,
+                )
                 vm.focusStatus?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
             }
             val videoEnabled = (qualificationArmed || vm.demoMode) &&
                 (FeatureFlags.isEnabled("cameraVideo") || vm.demoMode) &&
                 attachment?.isAttached == true
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Camera,
+                    label = "Start video",
+                    contentDescription = "Start video recording",
                     onClick = { vm.setVideoRecording(true) },
                     enabled = videoEnabled && vm.videoRecording != true,
-                ) { Text("Start video") }
-                OutlinedButton(
+                    modifier = Modifier.testTag("camera-video-start"),
+                    outlined = true,
+                )
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Stop,
+                    label = "Stop video",
+                    contentDescription = "Stop video recording",
                     onClick = { vm.setVideoRecording(false) },
                     enabled = videoEnabled && vm.videoRecording == true,
-                ) { Text("Stop video") }
+                    modifier = Modifier.testTag("camera-video-stop"),
+                    outlined = true,
+                )
                 Text(
                     when (vm.videoRecording) {
                         true -> "Recording"
@@ -4111,24 +4197,47 @@ private fun StepperRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OutlinedButton(
-                onClick = {
-                    candidate = (candidate - 1).coerceAtLeast(0)
-                    onChange(candidate)
-                },
-                enabled = enabled && value != null && options.isNotEmpty() && candidate > 0,
-                modifier = Modifier.weight(1f).semantics { contentDescription = "Decrease $label" },
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            ) { Text("−", style = MaterialTheme.typography.labelLarge) }
-            OutlinedButton(
-                onClick = {
-                    candidate += 1
-                    onChange(candidate)
-                },
-                enabled = enabled && value != null && options.isNotEmpty() && candidate < options.lastIndex,
-                modifier = Modifier.weight(1f).semantics { contentDescription = "Increase $label" },
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            ) { Text("+", style = MaterialTheme.typography.labelLarge) }
+            if (LocalOpenPolarisCompact.current) {
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.Minus,
+                    contentDescription = "Decrease $label",
+                    onClick = {
+                        candidate = (candidate - 1).coerceAtLeast(0)
+                        onChange(candidate)
+                    },
+                    enabled = enabled && value != null && options.isNotEmpty() && candidate > 0,
+                    modifier = Modifier.testTag("camera-stepper-${label.lowercase().replace(" ", "-")}-decrease"),
+                )
+                CompactGraphicButton(
+                    graphic = OpenPolarisGraphic.Plus,
+                    contentDescription = "Increase $label",
+                    onClick = {
+                        candidate += 1
+                        onChange(candidate)
+                    },
+                    enabled = enabled && value != null && options.isNotEmpty() && candidate < options.lastIndex,
+                    modifier = Modifier.testTag("camera-stepper-${label.lowercase().replace(" ", "-")}-increase"),
+                )
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        candidate = (candidate - 1).coerceAtLeast(0)
+                        onChange(candidate)
+                    },
+                    enabled = enabled && value != null && options.isNotEmpty() && candidate > 0,
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "Decrease $label" },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) { Text("−", style = MaterialTheme.typography.labelLarge) }
+                OutlinedButton(
+                    onClick = {
+                        candidate += 1
+                        onChange(candidate)
+                    },
+                    enabled = enabled && value != null && options.isNotEmpty() && candidate < options.lastIndex,
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "Increase $label" },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) { Text("+", style = MaterialTheme.typography.labelLarge) }
+            }
         }
     }
 }

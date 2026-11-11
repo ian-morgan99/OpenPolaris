@@ -23,6 +23,9 @@ internal enum class OpenPolarisGraphic {
     Connection,
     Slew,
     Camera,
+    Refresh,
+    Plus,
+    Minus,
     Preview,
     More,
     Tonight,
@@ -123,6 +126,25 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
             drawCircle(color, r * 0.62f, c + Offset(0f, 1f), style = stroke)
             drawStyledLine(color, Offset(5f, 5f), Offset(7f, 2.5f), stroke)
             drawStyledLine(color, Offset(7f, 2.5f), Offset(11f, 2.5f), stroke)
+        }
+        OpenPolarisGraphic.Refresh -> {
+            drawArc(
+                color = color,
+                startAngle = 35f,
+                sweepAngle = 285f,
+                useCenter = false,
+                topLeft = c - Offset(r, r),
+                size = Size(r * 2f, r * 2f),
+                style = stroke,
+            )
+            arrowHead(Offset(c.x + r * 0.82f, c.y - r * 0.55f), Offset(0.7f, -0.7f), color, thin)
+        }
+        OpenPolarisGraphic.Plus -> {
+            drawStyledLine(color, Offset(c.x - r * 0.75f, c.y), Offset(c.x + r * 0.75f, c.y), stroke)
+            drawStyledLine(color, Offset(c.x, c.y - r * 0.75f), Offset(c.x, c.y + r * 0.75f), stroke)
+        }
+        OpenPolarisGraphic.Minus -> {
+            drawStyledLine(color, Offset(c.x - r * 0.75f, c.y), Offset(c.x + r * 0.75f, c.y), stroke)
         }
         OpenPolarisGraphic.Preview -> {
             drawStyledRoundRect(color, Offset(1.5f, 3f), Size(size.width - 3f, size.height - 6f), 2.dp.toPx(), 2.dp.toPx(), stroke)

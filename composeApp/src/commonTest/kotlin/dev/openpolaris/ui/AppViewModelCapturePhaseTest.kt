@@ -29,6 +29,8 @@ class AppViewModelCapturePhaseTest {
         var cameraFrame: String? = "1&286&2&manufacturer:Pentax;model:K-3 III;state:1;storage:128;photoFormat:1;#"
         var photoRecordStartFrame: String? = null
         var photoRecordStopFrame: String? = null
+        var shutterFrame: String? = null
+        var respondToShutter: Boolean = true
         var shutterIndex: Int = 0
 
         override suspend fun connect(host: String, port: Int, timeoutMs: Int) = Unit
@@ -38,7 +40,11 @@ class AppViewModelCapturePhaseTest {
             val response = when {
                 wire.startsWith("1&284&") -> "1&284&2&mode:0;#"
                 wire.startsWith("1&286&") -> cameraFrame
-                wire.startsWith("1&268&") -> "1&268&2&V:" + shutterIndex + ";R:M,B;RD:1;#"
+                wire.startsWith("1&268&") -> if (respondToShutter) {
+                    shutterFrame ?: "1&268&2&V:" + shutterIndex + ";R:M,B;RD:1;#"
+                } else {
+                    null
+                }
                 wire.startsWith("1&264&2&state:1;") -> photoRecordStartFrame
                 wire.startsWith("1&264&2&state:0;") -> photoRecordStopFrame
                 wire.startsWith("1&820&") -> "1&820&2&needed:0;#"
@@ -151,6 +157,65 @@ class AppViewModelCapturePhaseTest {
             assertTrue(vm.statusMessage.contains("status not verified"))
         } finally { vm.disconnect(); vm.preview.shutdown() }
     }
+
+    @Test
+    fun capturePreflightRefusesCameraReadinessErrorWithoutSending264() =
+        runTest(UnconfinedTestDispatcher()) {
+            val conn = FakeConnection().apply {
+                shutterFrame = "1&268&2&ret:-2110;RD:0;V:;R:;#"
+            }
+            val vm = vm(this, conn)
+            try {
+                connect(this, vm)
+                vm.capture()
+                advanceTimeBy(100)
+                runCurrent()
+
+                assertEquals(0, conn.count(264), "-2110 readiness failure must block the shutter")
+                assertIs<AppViewModel.CapturePhase.Failed>(vm.capturePhase)
+                assertTrue(vm.statusMessage.contains("-2110"), vm.statusMessage)
+                assertTrue(vm.statusMessage.contains("reconnect"), vm.statusMessage)
+            } finally {
+                vm.disconnect()
+                vm.preview.shutdown()
+            }
+        }
+
+    @Test
+    fun cameraReadinessTimeoutRequiresReconnectBeforeSuccessfulRecoveryCapture() =
+        runTest(UnconfinedTestDispatcher()) {
+            val failedConnection = FakeConnection().apply { respondToShutter = false }
+            val failedVm = vm(this, failedConnection)
+            connect(this, failedVm)
+            failedVm.capture()
+            advanceTimeBy(5_000)
+            runCurrent()
+
+            assertEquals(0, failedConnection.count(264))
+            assertIs<AppViewModel.CapturePhase.Failed>(failedVm.capturePhase)
+            assertTrue(failedVm.statusMessage.contains("timed_out"), failedVm.statusMessage)
+            failedVm.disconnect()
+            failedVm.preview.shutdown()
+
+            val recoveredConnection = FakeConnection().apply {
+                photoRecordStartFrame = "1&264&2&state:1;bulb:0;c:-1;#"
+            }
+            val recoveredVm = vm(this, recoveredConnection)
+            try {
+                connect(this, recoveredVm)
+                recoveredVm.capture()
+                runCurrent()
+                recoveredVm.testOnCaptureFrame(frame("264@state:4;bulb:0;c:-1;#"))
+                recoveredVm.testOnCaptureFrame(
+                    frame("773@type:1;path:/app/sd/recovered/SP_0100.jpg;size:42;#"),
+                )
+                assertIs<AppViewModel.CapturePhase.Completed>(recoveredVm.capturePhase)
+                assertEquals("/app/sd/recovered/SP_0100.jpg", recoveredVm.lastCapturePublication?.path)
+            } finally {
+                recoveredVm.disconnect()
+                recoveredVm.preview.shutdown()
+            }
+        }
 
     @Test
     fun capturePreflightRechecksCameraBeforeSendingTheShutter() = runTest(UnconfinedTestDispatcher()) {

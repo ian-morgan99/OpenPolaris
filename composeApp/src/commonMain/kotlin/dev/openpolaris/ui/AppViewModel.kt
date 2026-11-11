@@ -4643,7 +4643,9 @@ class AppViewModel(
             shutter.options.isEmpty() ||
             shutterIndex !in shutter.options.indices
         ) {
-            return "camera shutter readback unavailable (${shutter.status.name.lowercase()})"
+            val raw = shutter.raw.trim().ifBlank { shutter.detail ?: "no raw response" }
+                .take(256)
+            return "camera shutter readback unavailable (${shutter.status.name.lowercase()}; raw=$raw); reconnect required"
         }
 
         camera = camera.copy(

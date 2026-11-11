@@ -1311,3 +1311,14 @@ remain open.
   full shared/Compose JVM, Android compilation and desktop packaging remain
   required before publishing this slice. No live camera or mount operation was
   exercised.
+
+
+- **2026-11-11 - WBS-04.3/02.2 ACTIVE (capture preflight issue #100):**
+  preserved bounded raw shutter-readback failures in the capture admission
+  message and added deterministic -2110, readiness-timeout, no-264 and
+  reconnect-recovery coverage. The existing correlated lifecycle/file gate and
+  no-automatic-retry outcome remain authoritative. No second camera/session
+  owner is opened; named K-1 II/K-3 III hardware verification remains WBS-11.
+- **2026-11-11 - verification:** focused capture-phase tests, full shared and
+  Compose JVM suites, Android Kotlin compilation and desktop packaging passed.
+  No live camera, mount or physical capture was exercised.

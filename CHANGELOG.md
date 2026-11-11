@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Capture admission now preserves raw camera readiness failures.** A fresh
+  shutter INFO preflight refuses -2110, timeout and partial-readback states
+  before any 264 shutter write, while the user-visible failure retains the
+  bounded raw response. Deterministic coverage also proves reconnect recovery
+  can complete a later capture; live K-1 II/K-3 III qualification remains
+  open.
 - **Camera readback issue #101 now has deterministic regression coverage.**
   A 2.5-second shutter INFO reply is accepted within the camera-specific
   4-second budget; empty WB and missing EV responses retain last-good values

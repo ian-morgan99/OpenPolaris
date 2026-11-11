@@ -165,6 +165,22 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun singleLinePhoneFieldsUseTheCompactSizingBoundary() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        assertTrue("internal fun CompactOutlinedTextField(" in graphics)
+        assertTrue("heightIn(max = 48.dp)" in graphics)
+        assertTrue("supportingText == null" in graphics)
+        for (path in listOf(
+            "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",
+            "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt",
+            "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/TonightPane.kt",
+            "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/ReconnectDialog.kt",
+        )) {
+            assertFalse(Regex("""(?m)^\s+OutlinedTextField\(""").containsMatchIn(source(path)), "$path must use CompactOutlinedTextField")
+        }
+    }
+
+    @Test
     fun fileListPagingAndMutationActionsUseCompactGraphics() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")

@@ -11,7 +11,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -119,7 +118,7 @@ fun ReconnectDialog(vm: AppViewModel) {
                     append(".")
                 })
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = draftHost,
                     onValueChange = { vm.updateDraftHost(it) },
                     label = { Text("Mount address") },
@@ -137,7 +136,7 @@ fun ReconnectDialog(vm: AppViewModel) {
                 // and the Reconnect button below is disabled when the
                 // value is unparseable, so the user can never trigger
                 // a connect() with a port of 0 or -1.
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = draftPort,
                     onValueChange = { vm.updateDraftPort(it) },
                     label = { Text("Port") },

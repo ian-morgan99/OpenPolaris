@@ -9,7 +9,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,7 +76,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // -- Observer location -----------------------------------------
             SectionCard("Observer") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.latDeg,
                         onValueChange = vm::updateLat,
                         label = { Text("Latitude °") },
@@ -85,7 +84,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.lngEastDeg,
                         onValueChange = vm::updateLng,
                         label = { Text("Longitude °E") },
@@ -231,7 +230,7 @@ fun TonightPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // -- Catalog search ---------------------------------------------
             SectionCard("Find in catalog") {
                 var q by remember { mutableStateOf("") }
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = q,
                     onValueChange = { q = it },
                     label = { Text("Name or designation (M, NGC, …)") },

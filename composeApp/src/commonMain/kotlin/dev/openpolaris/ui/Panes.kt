@@ -24,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.RadioButton
@@ -371,7 +370,7 @@ fun ConnectionPane(
             // form; the app name is already in the launcher icon, not the
             // content area. The status line beneath the form acts as the
             // surface label.
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = vm.host,
                 onValueChange = vm::updateHost,
                 label = { Text(if (vm.connectionMode == ConnectionMode.HOME_LAN) "Station host/IP" else "Mount host") },
@@ -386,7 +385,7 @@ fun ConnectionPane(
             // user types a non-numeric value we silently fall back to
             // the default 9090 (the previous valid value), which
             // avoids ever setting [port] to 0 or -1.
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = vm.port.toString(),
                 onValueChange = { v -> vm.updatePort(v.toIntOrNull() ?: 9090) },
                 label = { Text("Port") },
@@ -447,7 +446,7 @@ fun ConnectionPane(
             // so the user can set + retry. Having the field here too
             // means a user who already knows the gimbal needs a password
             // can pre-set it before the first connect.
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = vm.password.orEmpty(),
                 onValueChange = { v -> vm.setConnectionPassword(v.ifEmpty { null }) },
                 label = { Text("Connection password (optional)") },
@@ -756,7 +755,7 @@ fun PasswordDialog(
                         "Enter the connection password Benro Polaris uses for " +
                         "this firmware, then tap Connect to retry."
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
                     label = { Text("Password") },
@@ -1206,21 +1205,21 @@ fun MissionDashboardPane(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = gotoRa,
                     onValueChange = { gotoRa = it },
                     label = { Text("RA degrees 0–360") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = gotoDec,
                     onValueChange = { gotoDec = it },
                     label = { Text("Dec degrees −90–90") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = gotoName,
                     onValueChange = { gotoName = it.take(64) },
                     label = { Text("Target name") },
@@ -1287,7 +1286,7 @@ fun MissionDashboardPane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = compassHeading,
                     onValueChange = { compassHeading = it },
                     label = { Text("Compass degrees 0–360") },
@@ -1371,7 +1370,7 @@ fun MissionDashboardPane(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = focalOverride,
                     onValueChange = { focalOverride = it },
                     label = { Text("Manual focal mm") },
@@ -1598,28 +1597,28 @@ fun MissionDashboardPane(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = autofocusSteps,
                     onValueChange = { autofocusSteps = it },
                     label = { Text("Steps 3–40") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = autofocusAdjustment,
                     onValueChange = { autofocusAdjustment = it },
                     label = { Text("Adjustment 1–10") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = autofocusSettle,
                     onValueChange = { autofocusSettle = it },
                     label = { Text("Settle seconds") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = autofocusBacklash,
                     onValueChange = { autofocusBacklash = it },
                     label = { Text("Backlash 0–20") },
@@ -1985,7 +1984,7 @@ fun MissionDashboardPane(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         ) {
-                                            OutlinedTextField(
+                                            CompactOutlinedTextField(
                                                 value = panoramaInterval,
                                                 onValueChange = { panoramaInterval = it },
                                                 label = { Text("Live interval (seconds)") },
@@ -2168,25 +2167,25 @@ private fun AstroWebUiProgrammeComposer(vm: AppViewModel) {
 
     when (kind) {
         AstroWebUiProgrammeStartResult.Kind.LAPSE -> {
-            OutlinedTextField(value = lapseInterval, onValueChange = { setField(it) { lapseInterval = it } }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = lapseShots, onValueChange = { setField(it) { lapseShots = it } }, label = { Text("Shots (-1 for unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = lapseBulb, onValueChange = { setField(it) { lapseBulb = it } }, label = { Text("Bulb seconds") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = lapseFps, onValueChange = { setField(it) { lapseFps = it } }, label = { Text("Playback FPS") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = lapseInterval, onValueChange = { setField(it) { lapseInterval = it } }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = lapseShots, onValueChange = { setField(it) { lapseShots = it } }, label = { Text("Shots (-1 for unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = lapseBulb, onValueChange = { setField(it) { lapseBulb = it } }, label = { Text("Bulb seconds") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = lapseFps, onValueChange = { setField(it) { lapseFps = it } }, label = { Text("Playback FPS") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         }
         AstroWebUiProgrammeStartResult.Kind.PANORAMA -> {
-            OutlinedTextField(value = panoColumns, onValueChange = { setField(it) { panoColumns = it } }, label = { Text("Columns") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoRows, onValueChange = { setField(it) { panoRows = it } }, label = { Text("Rows") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoHStep, onValueChange = { setField(it) { panoHStep = it } }, label = { Text("Horizontal step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoVStep, onValueChange = { setField(it) { panoVStep = it } }, label = { Text("Vertical step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoStartDirection, onValueChange = { setField(it) { panoStartDirection = it } }, label = { Text("Start direction (0-4)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoPerSpot, onValueChange = { setField(it) { panoPerSpot = it } }, label = { Text("Frames per position") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = panoInterval, onValueChange = { setField(it) { panoInterval = it } }, label = { Text("Position interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoColumns, onValueChange = { setField(it) { panoColumns = it } }, label = { Text("Columns") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoRows, onValueChange = { setField(it) { panoRows = it } }, label = { Text("Rows") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoHStep, onValueChange = { setField(it) { panoHStep = it } }, label = { Text("Horizontal step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoVStep, onValueChange = { setField(it) { panoVStep = it } }, label = { Text("Vertical step (degrees)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoStartDirection, onValueChange = { setField(it) { panoStartDirection = it } }, label = { Text("Start direction (0-4)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoPerSpot, onValueChange = { setField(it) { panoPerSpot = it } }, label = { Text("Frames per position") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = panoInterval, onValueChange = { setField(it) { panoInterval = it } }, label = { Text("Position interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         }
         AstroWebUiProgrammeStartResult.Kind.HDR -> {
-            OutlinedTextField(value = hdrSpread, onValueChange = { setField(it) { hdrSpread = it } }, label = { Text("Shutter spread (steps)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = hdrSpread, onValueChange = { setField(it) { hdrSpread = it } }, label = { Text("Shutter spread (steps)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         }
         AstroWebUiProgrammeStartResult.Kind.FOCUS -> {
-            OutlinedTextField(value = focusShots, onValueChange = { setField(it) { focusShots = it } }, label = { Text("Focus shots") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = focusShots, onValueChange = { setField(it) { focusShots = it } }, label = { Text("Focus shots") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         }
     }
 
@@ -2341,21 +2340,21 @@ private fun AstroWebUiAstroCaptureComposer(vm: AppViewModel) {
         return
     }
 
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = interval,
         onValueChange = { interval = it; armed = false },
         label = { Text("Interval (seconds)") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = shots,
         onValueChange = { shots = it; armed = false },
         label = { Text("Shots (blank = unlimited)") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = bulb,
         onValueChange = { bulb = it; armed = false },
         label = { Text("Bulb seconds (0 = camera default)") },
@@ -2460,21 +2459,21 @@ private fun AstroWebUiSunComposer(vm: AppViewModel) {
             outlined = true,
         )
     }
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = interval,
         onValueChange = { interval = it; armed = false },
         label = { Text("Interval (seconds)") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = start,
         onValueChange = { start = it; armed = false },
         label = { Text("Start Unix time") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = end,
         onValueChange = { end = it; armed = false },
         label = { Text("End Unix time") },
@@ -2610,7 +2609,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
 
     when (kind) {
         "PLC" -> {
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = plcKeyTime,
                 onValueChange = { plcKeyTime = it },
                 label = { Text("Next keyframe time (seconds)") },
@@ -2635,8 +2634,8 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     outlined = true,
                 )
             }
-            OutlinedTextField(value = plcInterval, onValueChange = { plcInterval = it; armed = false }, label = { Text("Photo interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = plcShots, onValueChange = { plcShots = it; armed = false }, label = { Text("Photo count (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = plcInterval, onValueChange = { plcInterval = it; armed = false }, label = { Text("Photo interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = plcShots, onValueChange = { plcShots = it; armed = false }, label = { Text("Photo count (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactSwitch(checked = plcHold, onCheckedChange = { plcHold = it; armed = false })
                 Text("Hold final pose", style = MaterialTheme.typography.bodySmall)
@@ -2662,7 +2661,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
             )
         }
         "Path-lapse" -> {
-            OutlinedTextField(value = pathFrames, onValueChange = { pathFrames = it }, label = { Text("Frames on next leg (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = pathFrames, onValueChange = { pathFrames = it }, label = { Text("Frames on next leg (-1 unlimited)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Camera,
@@ -2679,7 +2678,7 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                     outlined = true,
                 )
             }
-            OutlinedTextField(value = pathInterval, onValueChange = { pathInterval = it; armed = false }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = pathInterval, onValueChange = { pathInterval = it; armed = false }, label = { Text("Interval (seconds)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             val pathActionLabel = if (previewMatches && armed) "Run path-lapse - this may move/fire" else "Preview path-lapse"
             ResponsiveActionButton(
                 graphic = if (previewMatches && armed) OpenPolarisGraphic.Camera else OpenPolarisGraphic.Preview,
@@ -2705,8 +2704,8 @@ private fun AstroWebUiExtendedProgrammeComposer(vm: AppViewModel) {
                 CompactSwitch(checked = grailEnabled, onCheckedChange = { grailEnabled = it; armed = false })
                 Text("Enable Holy Grail ramp", style = MaterialTheme.typography.bodySmall)
             }
-            OutlinedTextField(value = grailNodeMinutes, onValueChange = { grailNodeMinutes = it; armed = false }, label = { Text("Second curve node (minutes)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = grailNodeEv, onValueChange = { grailNodeEv = it; armed = false }, label = { Text("Second curve node (EV)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = grailNodeMinutes, onValueChange = { grailNodeMinutes = it; armed = false }, label = { Text("Second curve node (minutes)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            CompactOutlinedTextField(value = grailNodeEv, onValueChange = { grailNodeEv = it; armed = false }, label = { Text("Second curve node (EV)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ResponsiveActionButton(
                     graphic = OpenPolarisGraphic.Refresh,
@@ -3263,7 +3262,7 @@ private fun DemoFineRateCard(
                     .testTag("fine-rate-demo-target-row"),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = m1PanDraft,
                     onValueChange = { m1PanDraft = it },
                     label = { Text("M1 °/s") },
@@ -3275,7 +3274,7 @@ private fun DemoFineRateCard(
                     ),
                     modifier = Modifier.width(92.dp).testTag("fine-rate-demo-m1"),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = m2TiltDraft,
                     onValueChange = { m2TiltDraft = it },
                     label = { Text("M2 °/s") },
@@ -3287,7 +3286,7 @@ private fun DemoFineRateCard(
                     ),
                     modifier = Modifier.width(92.dp).testTag("fine-rate-demo-m2"),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = m3RotationDraft,
                     onValueChange = { m3RotationDraft = it },
                     label = { Text("M3 °/s") },
@@ -3522,14 +3521,14 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             // text when the column is too narrow for the label string
             // (#47). See .copilot/agent-state/.../v0111-ui-audit/21_slew_pane.png.
             Text("Observer location", style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = vm.latDeg,
                 onValueChange = vm::updateLat,
                 label = { Text("Lat ° (N+)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = vm.lngEastDeg,
                 onValueChange = vm::updateLng,
                 label = { Text("Lng ° (E+)") },
@@ -3556,14 +3555,14 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
 
             if (vm.raDecMode) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.gotoRa,
                         onValueChange = vm::updateRa,
                         label = { Text("RA (HH MM SS)") },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.gotoDec,
                         onValueChange = vm::updateDec,
                         label = { Text("Dec (±DD MM SS)") },
@@ -3573,14 +3572,14 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.gotoAz,
                         onValueChange = { vm.gotoAz = it },
                         label = { Text("Azimuth °") },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedTextField(
+                    CompactOutlinedTextField(
                         value = vm.gotoAlt,
                         onValueChange = { vm.gotoAlt = it },
                         label = { Text("Altitude °") },
@@ -3651,7 +3650,7 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 "Center a bright star with the jog controls, then record it. 2–3 stars spread across the sky give the best pointing model.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = alignmentQuery,
                 onValueChange = { alignmentQuery = it },
                 label = { Text("Find a named alignment star") },
@@ -3986,7 +3985,7 @@ fun CameraPane(
                     phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Requested ||
                         phase is dev.openpolaris.ui.AppViewModel.CapturePhase.Busy
                     )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = bulbSecondsText,
                     onValueChange = { if (it.all(Char::isDigit)) bulbSecondsText = it },
                     label = { Text("Bulb seconds") },
@@ -4404,7 +4403,7 @@ private fun IntervalometerSection(vm: AppViewModel) {
     HorizontalDivider()
     Text("Capture sequence", style = MaterialTheme.typography.titleSmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = shotCountText,
             onValueChange = { shotCountText = it },
             label = { Text("Shots") },
@@ -4413,7 +4412,7 @@ private fun IntervalometerSection(vm: AppViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.weight(1f),
         )
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = intervalSecText,
             onValueChange = { intervalSecText = it },
             label = { Text("Interval (s)") },
@@ -4422,7 +4421,7 @@ private fun IntervalometerSection(vm: AppViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.weight(1f),
         )
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = preDelaySecText,
             onValueChange = { preDelaySecText = it },
             label = { Text("Pre-delay (s)") },
@@ -5104,7 +5103,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
         // expected to verify the hash before pressing Upload. Leaving
         // the field blank disables the check (the controller's
         // expectedMd5=null branch is exercised in the null test).
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = vm.firmwareExpectedMd5,
             onValueChange = { vm.firmwareExpectedMd5 = it.trim() },
             enabled = !vm.firmwareBusy,
@@ -5158,7 +5157,7 @@ private fun FirmwareStep2(vm: AppViewModel) {
         if (vm.firmwareDeliveryMode == DeliveryMode.SSH_PIPE) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("SSH host:", style = MaterialTheme.typography.bodyMedium)
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = vm.firmwareSshHost,
                     onValueChange = { vm.firmwareSshHost = it },
                     enabled = !vm.firmwareBusy,

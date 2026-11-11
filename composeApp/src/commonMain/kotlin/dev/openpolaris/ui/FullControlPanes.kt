@@ -16,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -109,7 +108,7 @@ private fun SettlingRow(vm: AppViewModel) {
     var draft by remember(vm.settlingTime) { mutableStateOf(vm.settlingTime?.toString() ?: "") }
     Text("Settling (s)", style = MaterialTheme.typography.bodyMedium)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = draft,
             onValueChange = { draft = it.filter { c -> c.isDigit() }.take(5) },
             singleLine = true,
@@ -262,7 +261,7 @@ private fun TimeRow(vm: AppViewModel) {
     var draft by remember { mutableStateOf((System.currentTimeMillis() / 1000L).toString()) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Epoch s", modifier = Modifier.width(110.dp))
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = draft,
             onValueChange = { draft = it.filter { c -> c.isDigit() }.take(12) },
             singleLine = true,
@@ -291,7 +290,7 @@ private fun TzRow(vm: AppViewModel) {
     var draft by remember { mutableStateOf("0") }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Timezone", modifier = Modifier.width(110.dp))
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = draft,
             onValueChange = { draft = it.filter { c -> c == '-' || c.isDigit() }.take(4) },
             singleLine = true,
@@ -313,7 +312,7 @@ private fun LangRow(vm: AppViewModel) {
     var draft by remember { mutableStateOf("0") }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Language", modifier = Modifier.width(110.dp))
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = draft,
             onValueChange = { draft = it.filter { c -> c.isDigit() }.take(3) },
             singleLine = true,

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Single-line phone fields now use a compact sizing boundary.** All shared outlined fields route through a phone-only 48 dp cap when they have no supporting copy; desktop keeps Material3's standard field size, and fields with help/error text remain uncapped to avoid clipping.
 - **Media and coordinate selectors now collapse to small labelled graphics on phones.** Astro WebUI gallery categories, SD-file categories and GoTo coordinate-mode selectors retain full desktop labels and explicit accessibility descriptions, while compact layouts avoid oversized text-button chrome.
 - **Video and photo record-status timeouts now preserve delivery uncertainty.** For source-aligned 263/264 subtype-2 commands, a timeout or protocol error after frame dispatch reports sent=true but accepted=false; only pre-send rejection reports sent=false. This prevents an operator or recovery path from retrying a possibly active camera transition as if nothing was sent.
 - **Preview control now distinguishes a transport write attempt from acknowledgement.** A post-write timeout or disconnect for the Astro WebUI-aligned 291/292 command remains delivery-unknown and cannot be retried as if unsent; a pre-send not-connected rejection remains explicitly unsent. The exact subtype and state/ret contract is unchanged.

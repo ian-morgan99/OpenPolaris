@@ -73,6 +73,13 @@
   description; text remains visible wherever it is needed to distinguish
   dynamic results such as alignment-star candidates. This is source/package
   evidence only; installed-phone rendering remains open.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (form-control density):** shared
+  outlined text fields now pass through a compact phone wrapper with a 48 dp
+  maximum for single-line fields without supporting copy. Desktop retains the
+  standard Material3 field footprint; fields with supporting/error text remain
+  uncapped so recovery and validation messages cannot be clipped. Contract
+  coverage verifies the wrapper boundary and migration of the shared panes.
+  This is source/package evidence only; installed-phone rendering remains open.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

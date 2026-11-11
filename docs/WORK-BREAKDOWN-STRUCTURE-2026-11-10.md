@@ -1533,3 +1533,16 @@ remain open.
 - **2026-11-11 - verification:** MobileCompactControlsContractTest passed.
   Full JVM, Android compilation and desktop packaging are required before
   publication of this slice.
+
+- **2026-11-11 - WBS-01.3/04.1/09.1 ACTIVE (summary-first mobile camera):**
+  compact phones keep camera identity/attachment, release mode, qualification
+  state, primary capture, native Bulb and Astro WebUI M/B controls visible.
+  Readback prose, auxiliary values, setting steppers,
+  intervalometer/programme preview and focus/video controls move behind a
+  graphic-backed Camera details disclosure; desktop remains expanded. Capture
+  lifecycle, explicit B stop, unknown-outcome no-retry guidance, qualification
+  gates and gallery review remain unchanged. Installed-phone rendering and
+  hardware qualification remain open.
+- **2026-11-11 - verification:** MobileCompactControlsContractTest passed for
+  the camera disclosure boundary. Full JVM, Android compilation and desktop
+  packaging are required before publication of this slice.

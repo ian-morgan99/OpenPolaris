@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Camera is now summary-first on compact phones.** Camera identity,
+  attachment state, release mode, qualification state, primary capture, native
+  Bulb and Astro WebUI M/B controls remain visible; readback, setting steppers,
+  intervalometer/programme preview and focus/video controls are reachable behind
+  a small Camera details disclosure. Desktop remains expanded and capture,
+  unknown-outcome and safety semantics are unchanged.
 - **Compact phone gallery and SD-file lists are now summary-first.** Phone
   layouts show a bounded first set of media/file rows and expose the remaining
   rows through a small graphic-backed disclosure; desktop keeps the full

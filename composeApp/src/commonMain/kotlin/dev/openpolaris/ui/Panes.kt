@@ -4104,8 +4104,10 @@ fun CameraPane(
     val c = vm.camera
     val attachment = vm.cameraAttachment
     val qualificationEnabled = dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")
+    val compactLayout = LocalOpenPolarisCompact.current
     var qualificationArmed by remember { mutableStateOf(false) }
     var bulbSecondsText by remember { mutableStateOf("5") }
+    var showCameraDetails by remember(compactLayout) { mutableStateOf(!compactLayout) }
     val shutterLabel = c.shutterIndex?.let { c.shutterOptions.getOrNull(it)?.trim() }
     val releaseMode = CameraReleaseMode.fromOption(shutterLabel)
     Card(modifier = modifier.padding(openPolarisCardOuterPadding())) {
@@ -4142,41 +4144,43 @@ fun CameraPane(
                 modifier = Modifier.testTag("camera-refresh-attachment"),
                 outlined = true,
             )
-            Text(
-                "Parameter readback: ${vm.cameraReadbackAgeText}. Dynamic options load only after an explicit qualified refresh.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                "Auxiliary source readback: ${vm.cameraAuxiliaryReadbackAgeText}. These values are read-only evidence; writes remain separately gated.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            CameraActionButton(
-                graphic = OpenPolarisGraphic.Refresh,
-                label = "Read auxiliary camera state",
-                contentDescription = "Read auxiliary camera state",
-                onClick = vm::refreshCameraAuxiliary,
-                enabled = vm.demoMode || attachment?.isAttached == true,
-                modifier = Modifier.testTag("camera-auxiliary-readback"),
-                outlined = true,
-            )
-            val auxiliary = vm.cameraAuxiliaryReadback
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (!compactLayout || showCameraDetails) {
                 Text(
-                    "Image format: " + cameraParamReadbackText(auxiliary.imageFormat),
-                    style = MaterialTheme.typography.labelSmall,
+                    "Parameter readback: ${vm.cameraReadbackAgeText}. Dynamic options load only after an explicit qualified refresh.",
+                    style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
-                    "Control mode: " + cameraParamReadbackText(auxiliary.controlMode),
-                    style = MaterialTheme.typography.labelSmall,
+                    "Auxiliary source readback: ${vm.cameraAuxiliaryReadbackAgeText}. These values are read-only evidence; writes remain separately gated.",
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                Text(
-                    "Exposure time: " + cameraParamReadbackText(auxiliary.exposureTime),
-                    style = MaterialTheme.typography.labelSmall,
+                CameraActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Read auxiliary camera state",
+                    contentDescription = "Read auxiliary camera state",
+                    onClick = vm::refreshCameraAuxiliary,
+                    enabled = vm.demoMode || attachment?.isAttached == true,
+                    modifier = Modifier.testTag("camera-auxiliary-readback"),
+                    outlined = true,
                 )
-                Text(
-                    "Interval type: " + cameraParamReadbackText(auxiliary.intervalType),
-                    style = MaterialTheme.typography.labelSmall,
-                )
+                val auxiliary = vm.cameraAuxiliaryReadback
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "Image format: " + cameraParamReadbackText(auxiliary.imageFormat),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "Control mode: " + cameraParamReadbackText(auxiliary.controlMode),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "Exposure time: " + cameraParamReadbackText(auxiliary.exposureTime),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "Interval type: " + cameraParamReadbackText(auxiliary.intervalType),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
             Text(
                 "Release mode: ${releaseMode.label}${shutterLabel?.let { " ($it)" } ?: ""}",
@@ -4192,6 +4196,20 @@ fun CameraPane(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+            if (compactLayout) {
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.More,
+                    label = if (showCameraDetails) "Hide details" else "Camera details",
+                    contentDescription = if (showCameraDetails) {
+                        "Hide camera settings and advanced controls"
+                    } else {
+                        "Show camera settings and advanced controls"
+                    },
+                    onClick = { showCameraDetails = !showCameraDetails },
+                    modifier = Modifier.testTag("camera-details-toggle"),
+                    outlined = true,
+                )
+            }
             if (attachment == null) {
                 Text(
                     "Camera controls and capture are disabled until camera status is verified. Refresh the camera status before trying again.",
@@ -4215,30 +4233,32 @@ fun CameraPane(
                     modifier = Modifier.testTag("camera-arm-settings"),
                 )
             }
-            // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
-            // phone in landscape. Was a single 10-row Column that clipped
-            // half its controls below the callout dialog fold (#45).
-            val cameraWriteEnabled = (qualificationArmed || vm.demoMode) && attachment?.isAttached == true
-            val steppers: List<@Composable () -> Unit> = listOf(
-                { StepperRow("ISO", c.isoIndex, c.isoOptions, vm.cameraReadbackStatuses["ISO"], cameraWriteEnabled, vm::setIso) },
-                { StepperRow("WB", c.wbIndex, c.wbOptions, vm.cameraReadbackStatuses["WB"], cameraWriteEnabled, vm::setWb) },
-                { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, vm.cameraReadbackStatuses["Aperture"], cameraWriteEnabled, vm::setFNum) },
-                { StepperRow("EV", c.evIndex, c.evOptions, vm.cameraReadbackStatuses["EV"], cameraWriteEnabled, vm::setEv) },
-                { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, vm.cameraReadbackStatuses["Shutter"], cameraWriteEnabled, vm::setShutter) },
-            )
-            val midpoint = (steppers.size + 1) / 2
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    steppers.take(midpoint).forEach { it() }
+            if (!compactLayout || showCameraDetails) {
+                // v0.1.8: 2-column grid of steppers so the pane fits a 320 dp
+                // phone in landscape. Was a single 10-row Column that clipped
+                // half its controls below the callout dialog fold (#45).
+                val cameraWriteEnabled = (qualificationArmed || vm.demoMode) && attachment?.isAttached == true
+                val steppers: List<@Composable () -> Unit> = listOf(
+                    { StepperRow("ISO", c.isoIndex, c.isoOptions, vm.cameraReadbackStatuses["ISO"], cameraWriteEnabled, vm::setIso) },
+                    { StepperRow("WB", c.wbIndex, c.wbOptions, vm.cameraReadbackStatuses["WB"], cameraWriteEnabled, vm::setWb) },
+                    { StepperRow("Aperture", c.fNumIndex, c.fNumOptions, vm.cameraReadbackStatuses["Aperture"], cameraWriteEnabled, vm::setFNum) },
+                    { StepperRow("EV", c.evIndex, c.evOptions, vm.cameraReadbackStatuses["EV"], cameraWriteEnabled, vm::setEv) },
+                    { StepperRow("Shutter", c.shutterIndex, c.shutterOptions, vm.cameraReadbackStatuses["Shutter"], cameraWriteEnabled, vm::setShutter) },
+                )
+                val midpoint = (steppers.size + 1) / 2
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        steppers.take(midpoint).forEach { it() }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        steppers.drop(midpoint).forEach { it() }
+                    }
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    steppers.drop(midpoint).forEach { it() }
-                }
+                Text(
+                    "Not mapped for setting yet: focus, image size, image format, colour, capture mode. Workflow commands are inventoried but remain locked until their payload contracts are evidenced.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-            Text(
-                "Not mapped for setting yet: focus, image size, image format, colour, capture mode. Workflow commands are inventoried but remain locked until their payload contracts are evidenced.",
-                style = MaterialTheme.typography.bodySmall,
-            )
             // #60: drive the button off the capture *phase* machine, not just
             // the raw 266 poll value. The K-3 III reports transient negative
             // states (e.g. -1005) mid-capture; the phase machine treats those
@@ -4404,79 +4424,83 @@ fun CameraPane(
             // fires one shutter per shot at the planned interval; each shot is
             // confirmed by the capture-event observer correlating the 264
             // lifecycle + 773 file events. Progress mirrors vm.sequenceState.
-            IntervalometerSection(vm)
-            ObservationProgrammePreviewSection(vm)
+            if (!compactLayout || showCameraDetails) {
+                IntervalometerSection(vm)
+                ObservationProgrammePreviewSection(vm)
+            }
 
-            HorizontalDivider()
-            Text("Focus and video", style = MaterialTheme.typography.titleSmall)
-            Text(
-                if (vm.demoMode)
-                    "Demo focus/video controls exercise the source-aligned acknowledgements locally. Live controls remain disabled until direction, lifecycle and recovery are qualified for the attached camera."
-                else
-                    "These controls are visible so the workflow is discoverable. Their source-derived wire paths remain disabled until direction, lifecycle and recovery are qualified for the attached camera.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            val focusEnabled = (qualificationArmed || vm.demoMode) &&
-                (FeatureFlags.isEnabled("cameraFocusControl") || vm.demoMode) &&
-                attachment?.isAttached == true
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CameraActionButton(
-                    graphic = OpenPolarisGraphic.DirectionA,
-                    label = "Focus near",
-                    contentDescription = "Move focus nearer",
-                    onClick = vm::adjustFocusNear,
-                    enabled = focusEnabled,
-                    modifier = Modifier.testTag("camera-focus-near"),
-                    outlined = true,
-                )
-                CameraActionButton(
-                    graphic = OpenPolarisGraphic.DirectionB,
-                    label = "Focus far",
-                    contentDescription = "Move focus farther",
-                    onClick = vm::adjustFocusFar,
-                    enabled = focusEnabled,
-                    modifier = Modifier.testTag("camera-focus-far"),
-                    outlined = true,
-                )
-                vm.focusStatus?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
-            }
-            val videoEnabled = (qualificationArmed || vm.demoMode) &&
-                (FeatureFlags.isEnabled("cameraVideo") || vm.demoMode) &&
-                attachment?.isAttached == true
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                CameraActionButton(
-                    graphic = OpenPolarisGraphic.Camera,
-                    label = "Start video",
-                    contentDescription = "Start video recording",
-                    onClick = { vm.setVideoRecording(true) },
-                    enabled = videoEnabled && vm.videoRecording != true,
-                    modifier = Modifier.testTag("camera-video-start"),
-                    outlined = true,
-                )
-                CameraActionButton(
-                    graphic = OpenPolarisGraphic.Stop,
-                    label = "Stop video",
-                    contentDescription = "Stop video recording",
-                    onClick = { vm.setVideoRecording(false) },
-                    enabled = videoEnabled && vm.videoRecording == true,
-                    modifier = Modifier.testTag("camera-video-stop"),
-                    outlined = true,
-                )
+            if (!compactLayout || showCameraDetails) {
+                HorizontalDivider()
+                Text("Focus and video", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    when (vm.videoRecording) {
-                        true -> "Recording"
-                        false -> "Stopped"
-                        null -> "Video state unknown"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
+                    if (vm.demoMode)
+                        "Demo focus/video controls exercise the source-aligned acknowledgements locally. Live controls remain disabled until direction, lifecycle and recovery are qualified for the attached camera."
+                    else
+                        "These controls are visible so the workflow is discoverable. Their source-derived wire paths remain disabled until direction, lifecycle and recovery are qualified for the attached camera.",
+                    style = MaterialTheme.typography.bodySmall,
                 )
-            }
-            if ((!FeatureFlags.isEnabled("cameraFocusControl") || !FeatureFlags.isEnabled("cameraVideo")) && !vm.demoMode) {
-                Text(
-                    "Enablement is intentionally unavailable in this build until the named-camera qualification record is complete.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                val focusEnabled = (qualificationArmed || vm.demoMode) &&
+                    (FeatureFlags.isEnabled("cameraFocusControl") || vm.demoMode) &&
+                    attachment?.isAttached == true
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.DirectionA,
+                        label = "Focus near",
+                        contentDescription = "Move focus nearer",
+                        onClick = vm::adjustFocusNear,
+                        enabled = focusEnabled,
+                        modifier = Modifier.testTag("camera-focus-near"),
+                        outlined = true,
+                    )
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.DirectionB,
+                        label = "Focus far",
+                        contentDescription = "Move focus farther",
+                        onClick = vm::adjustFocusFar,
+                        enabled = focusEnabled,
+                        modifier = Modifier.testTag("camera-focus-far"),
+                        outlined = true,
+                    )
+                    vm.focusStatus?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+                }
+                val videoEnabled = (qualificationArmed || vm.demoMode) &&
+                    (FeatureFlags.isEnabled("cameraVideo") || vm.demoMode) &&
+                    attachment?.isAttached == true
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Camera,
+                        label = "Start video",
+                        contentDescription = "Start video recording",
+                        onClick = { vm.setVideoRecording(true) },
+                        enabled = videoEnabled && vm.videoRecording != true,
+                        modifier = Modifier.testTag("camera-video-start"),
+                        outlined = true,
+                    )
+                    CameraActionButton(
+                        graphic = OpenPolarisGraphic.Stop,
+                        label = "Stop video",
+                        contentDescription = "Stop video recording",
+                        onClick = { vm.setVideoRecording(false) },
+                        enabled = videoEnabled && vm.videoRecording == true,
+                        modifier = Modifier.testTag("camera-video-stop"),
+                        outlined = true,
+                    )
+                    Text(
+                        when (vm.videoRecording) {
+                            true -> "Recording"
+                            false -> "Stopped"
+                            null -> "Video state unknown"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                if ((!FeatureFlags.isEnabled("cameraFocusControl") || !FeatureFlags.isEnabled("cameraVideo")) && !vm.demoMode) {
+                    Text(
+                        "Enablement is intentionally unavailable in this build until the named-camera qualification record is complete.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

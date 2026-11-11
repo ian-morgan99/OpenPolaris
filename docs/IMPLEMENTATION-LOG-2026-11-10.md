@@ -5,6 +5,25 @@ committed. It does not promote source or simulator evidence to hardware support.
 
 ## Completed slices
 
+### WBS-01.3/04.1/09.1 — Summary-first mobile camera
+
+Compact phones keep camera identity/attachment, release mode, qualification
+state, primary capture, native Bulb and Astro WebUI M/B controls visible. The
+readback prose, auxiliary values, setting steppers, intervalometer/programme
+preview and focus/video controls are reachable through a small Camera details
+disclosure; desktop remains expanded. Capture lifecycle, explicit B stop,
+unknown-outcome no-retry guidance, qualification gates and gallery review are
+unchanged.
+
+Focused verification:
+
+```text
+./gradlew :composeApp:jvmTest --tests dev.openpolaris.ui.MobileCompactControlsContractTest --console=plain --no-daemon
+```
+
+This is source/package evidence only. Installed-phone rendering, resident Astro
+WebUI, camera, Bluetooth, mount and physical qualification remain open.
+
 ### WBS-01.3/07.1/09.1 — Summary-first mobile media lists
 
 Compact phones now render a bounded first six rows for the Astro WebUI gallery

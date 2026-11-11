@@ -417,7 +417,12 @@ private fun RebootRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Reboot", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
         if (FeatureFlags.isEnabled("allowReboot")) {
-            Button(onClick = { dialog = true }) { Text("Reboot mount") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Refresh,
+                label = "Reboot mount",
+                contentDescription = "Open the reboot mount confirmation",
+                onClick = { dialog = true },
+            )
         } else {
             // Read-only: destructive action gated off. The user can still see
             // what the action is — they just can't fire it from the app.
@@ -451,7 +456,12 @@ private fun ShutdownRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Shutdown", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
         if (FeatureFlags.isEnabled("allowShutdown")) {
-            Button(onClick = { dialog = true }) { Text("Shutdown mount") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Stop,
+                label = "Shutdown mount",
+                contentDescription = "Open the shutdown mount confirmation",
+                onClick = { dialog = true },
+            )
         } else {
             // Read-only: the head does not power itself back on, so this is
             // destructive enough that it stays behind a flag.
@@ -899,7 +909,12 @@ private fun FormatRow(vm: AppViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("SD format", modifier = Modifier.width(110.dp), fontWeight = FontWeight.Bold)
         if (FeatureFlags.isEnabled("fileManagerFormat")) {
-            Button(onClick = { dialog = true }) { Text("Format SD card") }
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Delete,
+                label = "Format SD card",
+                contentDescription = "Open the format SD card confirmation",
+                onClick = { dialog = true },
+            )
         } else {
             // Read-only: SD format is destructive — every photo on the card
             // is gone forever. Stays behind a config flag.

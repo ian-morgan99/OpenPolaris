@@ -199,6 +199,22 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun destructiveSystemTriggersUseCompactGraphicsWithExplicitSafetyDescriptions() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("contentDescription = \"Open the reboot mount confirmation\"" in panes)
+        assertTrue("contentDescription = \"Open the shutdown mount confirmation\"" in panes)
+        assertTrue("contentDescription = \"Open the format SD card confirmation\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Refresh" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Stop" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Delete" in panes)
+        assertFalse("Button(onClick = { dialog = true })" in panes)
+        assertTrue("Text(\"Reboot\")" in panes)
+        assertTrue("Text(\"Shutdown\")" in panes)
+        assertTrue("Text(\"Format\")" in panes)
+    }
+
+    @Test
     fun helperPaneActionsUseCompactGraphicsWithAccessibleDescriptions() {
         val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
 
@@ -227,8 +243,8 @@ class MobileCompactControlsContractTest {
         assertTrue("contentDescription = \"Scan mount WiFi bands\"" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Clock" in panes)
         assertTrue("graphic = OpenPolarisGraphic.Apply" in panes)
-        assertTrue("Text(\"Reboot mount\")" in panes)
-        assertTrue("Text(\"Shutdown mount\")" in panes)
+        assertTrue("label = \"Reboot mount\"" in panes)
+        assertTrue("label = \"Shutdown mount\"" in panes)
     }
 
     @Test

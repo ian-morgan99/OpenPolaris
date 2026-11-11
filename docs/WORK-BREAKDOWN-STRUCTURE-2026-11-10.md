@@ -80,6 +80,7 @@
   uncapped so recovery and validation messages cannot be clipped. Contract
   coverage verifies the wrapper boundary and migration of the shared panes.
   This is source/package evidence only; installed-phone rendering remains open.
+- **2026-11-11 - WBS-01.3/09.1 ACTIVE (destructive action density):** reboot, shutdown and SD-format confirmation triggers now route through the compact graphic action boundary. Their confirmation dialogs retain explicit safety copy; phones receive compact graphics with semantic descriptions and desktop retains text labels. This is source/package evidence only; installed-phone rendering remains open.
 - Exit: screenshot/semantics tests at phone, tablet and desktop widths; no clipped primary actions.
 
 ## WBS-02 — Connection, session and health

@@ -698,10 +698,14 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                         },
                     ) { Text(label) }
                 }
-                OutlinedButton(
+                ResponsiveActionButton(
+                    graphic = OpenPolarisGraphic.Refresh,
+                    label = "Refresh",
+                    contentDescription = "Refresh SD card file list",
                     enabled = fileManagerEnabled,
                     onClick = vm::refreshFileList,
-                ) { Text("Refresh") }
+                    outlined = true,
+                )
             }
             val fileList = vm.fileList
             val files = fileList?.files.orEmpty()
@@ -725,20 +729,28 @@ fun FilesPane(vm: AppViewModel, modifier: Modifier = Modifier) {
             } ?: false
             if (fileList != null && (vm.fileListPage > 0 || canNextPage)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Left,
+                        label = "Previous",
+                        contentDescription = "Previous file page",
                         enabled = fileManagerEnabled && vm.fileListPage > 0,
                         onClick = {
                             vm.setFilePage(vm.fileListPage - 1)
                             vm.refreshFileList()
                         },
-                    ) { Text("Previous") }
-                    OutlinedButton(
+                        outlined = true,
+                    )
+                    ResponsiveActionButton(
+                        graphic = OpenPolarisGraphic.Right,
+                        label = "Next",
+                        contentDescription = "Next file page",
                         enabled = fileManagerEnabled && canNextPage,
                         onClick = {
                             vm.setFilePage(vm.fileListPage + 1)
                             vm.refreshFileList()
                         },
-                    ) { Text("Next") }
+                        outlined = true,
+                    )
                 }
             }
             HorizontalDivider()
@@ -770,12 +782,19 @@ private fun FileRow(vm: AppViewModel, file: dev.openpolaris.core.domain.FileEntr
         )
         if (file.prot != 0) Text("🔒", style = MaterialTheme.typography.bodySmall)
         if (FeatureFlags.isEnabled("fileManagerMutate")) {
-            OutlinedButton(
+            ResponsiveActionButton(
+                graphic = if (file.prot == 0) OpenPolarisGraphic.Protect else OpenPolarisGraphic.Unprotect,
+                label = if (file.prot == 0) "Protect" else "Unprotect",
+                contentDescription = if (file.prot == 0) "Protect file ${file.name}" else "Unprotect file ${file.name}",
                 onClick = { vm.protectFile(file.id, if (file.prot == 0) 1 else 0) },
-            ) { Text(if (file.prot == 0) "Protect" else "Unprotect") }
-            Button(
+                outlined = true,
+            )
+            ResponsiveActionButton(
+                graphic = OpenPolarisGraphic.Delete,
+                label = "Delete",
+                contentDescription = "Delete file ${file.name}",
                 onClick = { vm.deleteFile(file.id) },
-            ) { Text("Delete") }
+            )
         } else {
             // Read-only: file delete/protect is destructive enough that we
             // never expose it without an explicit config flip.

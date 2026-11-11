@@ -32,6 +32,9 @@ internal enum class OpenPolarisGraphic {
     Preview,
     Save,
     Share,
+    Protect,
+    Unprotect,
+    Delete,
     More,
     Tonight,
     Helpers,
@@ -215,6 +218,39 @@ private fun DrawScope.drawOpenPolarisGraphic(graphic: OpenPolarisGraphic, color:
             drawCircle(color, 2.dp.toPx(), top, style = stroke)
             drawCircle(color, 2.dp.toPx(), left, style = stroke)
             drawCircle(color, 2.dp.toPx(), right, style = stroke)
+        }
+        OpenPolarisGraphic.Protect -> {
+            drawArc(
+                color = color,
+                startAngle = 180f,
+                sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(c.x - r * 0.52f, c.y - r * 1.05f),
+                size = Size(r * 1.04f, r * 1.25f),
+                style = stroke,
+            )
+            drawStyledRoundRect(color, Offset(c.x - r * 0.8f, c.y - r * 0.1f), Size(r * 1.6f, r * 1.25f), 1.5.dp.toPx(), 1.5.dp.toPx(), stroke)
+            drawCircle(color, 1.2.dp.toPx(), Offset(c.x, c.y + r * 0.4f))
+        }
+        OpenPolarisGraphic.Unprotect -> {
+            drawArc(
+                color = color,
+                startAngle = 215f,
+                sweepAngle = 125f,
+                useCenter = false,
+                topLeft = Offset(c.x - r * 0.52f, c.y - r * 1.05f),
+                size = Size(r * 1.04f, r * 1.25f),
+                style = stroke,
+            )
+            drawStyledRoundRect(color, Offset(c.x - r * 0.8f, c.y - r * 0.1f), Size(r * 1.6f, r * 1.25f), 1.5.dp.toPx(), 1.5.dp.toPx(), stroke)
+            drawCircle(color, 1.2.dp.toPx(), Offset(c.x, c.y + r * 0.4f))
+        }
+        OpenPolarisGraphic.Delete -> {
+            drawStyledRoundRect(color, Offset(c.x - r * 0.68f, c.y - r * 0.45f), Size(r * 1.36f, r * 1.5f), 1.dp.toPx(), 1.dp.toPx(), stroke)
+            drawStyledLine(color, Offset(c.x - r * 0.9f, c.y - r * 0.7f), Offset(c.x + r * 0.9f, c.y - r * 0.7f), stroke)
+            drawStyledLine(color, Offset(c.x - r * 0.35f, c.y - r * 0.92f), Offset(c.x + r * 0.35f, c.y - r * 0.92f), stroke)
+            drawStyledLine(color, Offset(c.x - r * 0.28f, c.y - r * 0.1f), Offset(c.x - r * 0.28f, c.y + r * 0.72f), thin)
+            drawStyledLine(color, Offset(c.x + r * 0.28f, c.y - r * 0.1f), Offset(c.x + r * 0.28f, c.y + r * 0.72f), thin)
         }
         OpenPolarisGraphic.More -> {
             drawCircle(color, 1.7.dp.toPx(), Offset(4f, c.y))

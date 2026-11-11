@@ -1610,3 +1610,17 @@ No media request, export destination, capture lifecycle or evidence gate
 changed. This is source/package UX evidence; live Astro WebUI, camera,
 Bluetooth, installed-phone rendering and physical export qualification remain
 open.
+
+### WBS-01.3/07.1/09.1 — Compact SD file navigation
+
+The phone SD-card file pane now uses small graphics for file-list refresh,
+previous/next paging and configured protect/unprotect/delete actions. Each
+retains a 48 dp target and explicit accessible description; desktop keeps the
+existing labelled controls. Category filters, file metadata and the destructive
+format action remain textual so the user's selection and safety context is
+visible.
+
+No file-list payload, mutation gate, SD-format confirmation or other file
+lifecycle behavior changed. This is source/package UX evidence; live camera,
+SD card, mount, Bluetooth, installed-phone rendering and physical mutation
+qualification remain open.

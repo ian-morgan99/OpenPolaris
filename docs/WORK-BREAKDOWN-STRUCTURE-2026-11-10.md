@@ -1163,3 +1163,13 @@ The current implementation slice must not send a new motor frame, alter firmware
   Android compilation and desktop packaging are required. No live Astro
   WebUI, camera, Bluetooth or physical media/export qualification was
   exercised.
+
+- **2026-11-11 - WBS-01.3/07.1/09.1 ACTIVE (compact SD file navigation):**
+  applied the responsive graphic boundary to file-list refresh, previous/next
+  paging and configured protect/unprotect/delete actions. The phone surface
+  keeps 48 dp targets and explicit descriptions; PC keeps the full labels.
+  Category names, file metadata and destructive SD formatting remain textual
+  where the text is the safety or selection context.
+- **2026-11-11 - verification:** source-contract and Compose/JVM tests,
+  Android compilation and desktop packaging are required. No live camera, SD
+  card, mount, Bluetooth or physical file mutation was exercised.

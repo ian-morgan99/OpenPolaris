@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refresh, thumbnail/full-file reads, and Save copy/Share use small graphics
   with explicit accessible descriptions on compact layouts; PC keeps the
   labelled actions and the media/export lifecycle is unchanged.
+- **SD file navigation and configured file actions now use compact graphics on
+  phones.** Refresh, paging, protect/unprotect and delete retain explicit
+  accessible descriptions; PC keeps the labelled controls, while destructive
+  format remains deliberately textual.
 
 ## [0.1.19] - 2026-10-09
 ### Fixed

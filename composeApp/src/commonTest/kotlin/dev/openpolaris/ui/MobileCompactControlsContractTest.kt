@@ -135,4 +135,22 @@ class MobileCompactControlsContractTest {
         assertTrue("graphic = OpenPolarisGraphic.Share" in panes)
         assertTrue("Text(\"All (\${allItems.size})\")" in panes)
     }
+
+    @Test
+    fun fileListPagingAndMutationActionsUseCompactGraphics() {
+        val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/FullControlPanes.kt")
+
+        assertTrue("OpenPolarisGraphic.Protect" in graphics)
+        assertTrue("OpenPolarisGraphic.Unprotect" in graphics)
+        assertTrue("OpenPolarisGraphic.Delete" in graphics)
+        assertTrue("contentDescription = \"Refresh SD card file list\"" in panes)
+        assertTrue("contentDescription = \"Previous file page\"" in panes)
+        assertTrue("contentDescription = \"Next file page\"" in panes)
+        assertTrue("contentDescription = if (file.prot == 0) \"Protect file \${file.name}\"" in panes)
+        assertTrue("contentDescription = \"Delete file \${file.name}\"" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Left" in panes)
+        assertTrue("graphic = OpenPolarisGraphic.Right" in panes)
+        assertTrue("Format SD card" in panes)
+    }
 }

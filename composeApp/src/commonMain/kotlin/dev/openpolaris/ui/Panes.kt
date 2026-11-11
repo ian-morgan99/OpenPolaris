@@ -5508,7 +5508,7 @@ private fun FirmwareStep1(
     featureEnabled: Boolean,
 ) {
     val compactLayout = LocalOpenPolarisCompact.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp)) {
         // Phase 1a banner (docs/FIRMWARE-UPLOAD-AUDIT-2026-09-01.md §6 #1).
         // The WIRE envelope below is reconstructed from the Benro Connect
         // decompile and has not been observed in a live traffic capture.
@@ -5602,7 +5602,7 @@ private fun FirmwareStep1(
 @Composable
 private fun FirmwareStep2(vm: AppViewModel) {
     val compactLayout = LocalOpenPolarisCompact.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp)) {
         // ---- Options ---------------------------------------------------
         Row(verticalAlignment = Alignment.CenterVertically) {
             CompactSwitch(
@@ -5705,7 +5705,8 @@ private fun FirmwareStep3(
     progress: Float?,
     status: dev.openpolaris.core.domain.FirmwareUpdateController.Status?,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val compactLayout = LocalOpenPolarisCompact.current
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp)) {
         ResponsiveTextActionButton(
             graphic = OpenPolarisGraphic.Apply,
             label = if (vm.firmwareBusy) "Uploading..." else "Upload",

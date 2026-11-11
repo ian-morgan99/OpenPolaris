@@ -637,6 +637,15 @@ class MobileCompactControlsContractTest {
     }
 
     @Test
+    fun compactFirmwareStepsUseTighterVerticalRhythm() {
+        val panes = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt")
+
+        assertTrue("Arrangement.spacedBy(if (compactLayout) 4.dp else 8.dp)" in panes)
+        assertTrue("private fun FirmwareStep3" in panes)
+        assertTrue("val compactLayout = LocalOpenPolarisCompact.current" in panes)
+    }
+
+    @Test
     fun compactNavigationAndCalloutActionsAvoidMaterialTextButtonChrome() {
         val shell = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
         val noComments = Regex("""/\*[\s\S]*?\*/""").replace(shell, "")

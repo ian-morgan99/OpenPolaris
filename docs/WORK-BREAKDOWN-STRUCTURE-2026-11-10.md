@@ -1682,3 +1682,13 @@ Verification: focused MobileCompactControlsContractTest passed. Full shared and
 Compose JVM suites, Android compilation and desktop packaging remain required
 before publication of this slice. Firmware upload remains feature-gated and
 hardware qualification is not implied.
+
+### 2026-11-11 - WBS-01.3/08.1/09.1 compact Firmware step rhythm
+
+The three compact phone firmware steps now use a 4 dp internal vertical rhythm
+instead of the desktop 8 dp spacing. This removes avoidable scroll without
+removing the destructive warning, selected bundle identity, checksum controls,
+upload progress or recovery copy. Desktop spacing remains unchanged.
+
+Verification: focused MobileCompactControlsContractTest passed. The full
+cross-platform matrix remains required before publication.

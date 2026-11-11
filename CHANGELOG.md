@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Compact phone firmware steps use tighter vertical rhythm.** The three
+  paged firmware steps reduce internal spacing on phones to remove avoidable
+  scrolling while retaining warnings, checksum controls, upload progress and
+  recovery copy. Desktop spacing is unchanged.
+
 - **Compact phone firmware workflow copy is shorter without hiding safety.**
   The destructive CRC/bricking warning, feature-gate state, selected bundle,
   hash field and upload/progress actions remain visible; step labels, delivery

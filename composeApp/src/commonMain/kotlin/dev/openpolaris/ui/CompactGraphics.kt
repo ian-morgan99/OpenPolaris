@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -37,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /** Small, dependency-free symbols for controls that must remain compact on a phone. */
@@ -82,7 +84,7 @@ internal enum class OpenPolarisGraphic {
 
 /** The phone action footprint; the desktop rail retains the roomier target. */
 @Composable
-internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 24.dp else 48.dp
+internal fun compactActionTargetSize() = if (LocalOpenPolarisCompact.current) 20.dp else 48.dp
 
 /** Small selector used where a state choice is not safely icon-only. */
 @Composable
@@ -99,8 +101,8 @@ internal fun CompactFilterChip(
     if (LocalOpenPolarisCompact.current) {
         Box(
             modifier = modifier
-                .size(if (LocalOpenPolarisCompact.current) 20.dp else 32.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .size(if (LocalOpenPolarisCompact.current) 18.dp else 32.dp)
+                .clip(RoundedCornerShape(5.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
                     else Color.Transparent,
@@ -109,7 +111,7 @@ internal fun CompactFilterChip(
                     width = 1.dp,
                     color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(5.dp),
                 )
                 .clickable(
                     enabled = enabled,
@@ -139,7 +141,7 @@ internal fun CompactFilterChip(
             enabled = enabled,
             label = label,
             modifier = modifier
-                .height(if (LocalOpenPolarisCompact.current) 20.dp else 32.dp)
+                .height(32.dp)
                 .semantics(mergeDescendants = true) {
                     contentDescription?.let { this.contentDescription = it }
                     stateDescription = if (selected) "On" else "Off"
@@ -193,13 +195,13 @@ internal fun CompactSwitch(
     }
     Canvas(
         modifier = interactionModifier
-            .size(width = 36.dp, height = 24.dp)
+            .size(width = 30.dp, height = 20.dp)
             .semantics {
                 stateDescription = if (checked) "On" else "Off"
             },
     ) {
-        val trackWidth = 26.dp.toPx()
-        val trackHeight = 14.dp.toPx()
+        val trackWidth = 22.dp.toPx()
+        val trackHeight = 12.dp.toPx()
         val trackLeft = (size.width - trackWidth) / 2f
         val trackTop = (size.height - trackHeight) / 2f
         drawRoundRect(
@@ -208,7 +210,7 @@ internal fun CompactSwitch(
             size = Size(trackWidth, trackHeight),
             cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
         )
-        val thumbRadius = 5.dp.toPx()
+        val thumbRadius = 4.dp.toPx()
         val thumbX = if (checked) {
             trackLeft + trackWidth - thumbRadius
         } else {
@@ -330,6 +332,38 @@ internal fun ResponsiveTextActionButton(
 }
 
 /**
+ * Text remains the right affordance for disambiguated results such as named
+ * alignment stars. On phones it is still rendered as a short, ellipsised
+ * row instead of inheriting Material3's large text-button footprint.
+ */
+@Composable
+internal fun CompactTextButton(
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        contentPadding = PaddingValues(horizontal = if (LocalOpenPolarisCompact.current) 4.dp else 8.dp, vertical = 0.dp),
+        modifier = modifier
+            .heightIn(max = if (LocalOpenPolarisCompact.current) 28.dp else 48.dp)
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+            },
+    ) {
+        Text(
+            label,
+            style = if (LocalOpenPolarisCompact.current) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
  * Keeps single-line phone fields from inheriting Material3's 56 dp default
  * height. Supporting text is deliberately excluded from the compact cap so
  * error/help copy cannot be clipped; desktop retains the stock field size.
@@ -353,7 +387,7 @@ internal fun CompactOutlinedTextField(
     minLines: Int = 1,
 ) {
     val compactModifier = if (LocalOpenPolarisCompact.current && singleLine && supportingText == null) {
-        modifier.heightIn(max = 48.dp)
+        modifier.heightIn(max = 44.dp)
     } else {
         modifier
     }

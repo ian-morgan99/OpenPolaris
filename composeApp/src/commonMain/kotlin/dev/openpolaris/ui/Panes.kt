@@ -3850,12 +3850,12 @@ fun GotoPane(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Text("Selected: ${selected.designation} — centre it, then Record star", style = MaterialTheme.typography.labelMedium)
             }
             alignmentCandidates.forEach { star ->
-                TextButton(
+                CompactTextButton(
+                    label = "${star.designation}  ${star.name} · RA ${AstroMath.formatRaHours(star.raDeg)} · Dec ${AstroMath.formatDecDMS(star.decDeg)}",
+                    contentDescription = "Select alignment star ${star.designation} ${star.name}",
                     onClick = { vm.selectAlignmentStar(star.designation, star.raDeg, star.decDeg) },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("${star.designation}  ${star.name} · RA ${AstroMath.formatRaHours(star.raDeg)} · Dec ${AstroMath.formatDecDMS(star.decDeg)}")
-                }
+                )
             }
             solved?.let { result ->
                 ResponsiveActionButton(

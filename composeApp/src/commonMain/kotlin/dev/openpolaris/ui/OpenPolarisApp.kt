@@ -280,7 +280,7 @@ fun OpenPolarisApp(
                     CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.fillMaxSize().padding(1.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     StatusStrip(
                         vm,
                         Modifier.fillMaxWidth(),
@@ -413,7 +413,7 @@ private fun InlineDestinationWorkspace(
 ) {
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp),
+        verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 8.dp),
     ) {
         item {
             when (destination) {
@@ -486,7 +486,7 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Compact phone navigation: graphic-only, one 32 dp touch row.
+ * Compact phone navigation: graphic-only, one 20 dp visual row.
  *
  * Material3 NavigationBar reserves a large icon slot above every label. That
  * is useful on a tablet, but wastes most of a phone's vertical workspace when
@@ -504,7 +504,7 @@ private fun CompactDestinationBar(
     var expanded by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(24.dp)
+            .height(20.dp)
             .testTag("primary-navigation"),
     ) {
         Row(
@@ -525,7 +525,7 @@ private fun CompactDestinationBar(
             }
             TextButton(
                 onClick = { expanded = true },
-                contentPadding = PaddingValues(horizontal = 2.dp),
+                contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -571,7 +571,7 @@ private fun CompactDestinationItem(
 ) {
     TextButton(
         onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 2.dp),
+        contentPadding = PaddingValues(0.dp),
         modifier = modifier.semantics(mergeDescendants = true) {
             contentDescription = destination.label
             stateDescription = if (selected) "Selected" else "Not selected"

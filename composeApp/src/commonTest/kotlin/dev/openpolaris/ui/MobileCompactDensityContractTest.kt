@@ -33,7 +33,7 @@ class MobileCompactDensityContractTest {
         assertTrue("openPolarisCardOuterPadding()" in panes)
         assertTrue("openPolarisCardInnerPadding()" in panes)
         assertTrue("openPolarisSectionSpacing()" in panes)
-        assertTrue("Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp)" in shell)
+        assertTrue("Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 3.dp else 8.dp)" in shell)
     }
 
     @Test

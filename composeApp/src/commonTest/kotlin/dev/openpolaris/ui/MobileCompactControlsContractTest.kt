@@ -25,11 +25,13 @@ class MobileCompactControlsContractTest {
 
         assertTrue("8.dp else 20.dp" in graphics, "phone graphics must be visibly smaller than desktop graphics")
         assertTrue("compactActionTargetSize" in graphics)
-        assertTrue("24.dp else 48.dp" in graphics, "phone action targets must use the compact footprint")
-        assertTrue("20.dp else 32.dp" in graphics, "phone selector chips must use the compact footprint")
+        assertTrue("20.dp else 48.dp" in graphics, "phone action targets must use the micro footprint")
+        assertTrue("18.dp else 32.dp" in graphics, "phone selector chips must use the micro footprint")
         assertTrue("LocalMinimumInteractiveComponentSize" in theme)
-        assertTrue("if (compact) 24.dp else 48.dp" in theme)
+        assertTrue("if (compact) 20.dp else 48.dp" in theme)
         assertTrue("CompactFilterChip" in graphics, "text selectors must use the compact chip boundary")
+        assertTrue("CompactTextButton" in graphics, "long text fallbacks must use the compact text boundary")
+        assertTrue("CompactTextButton(" in panes, "alignment results must use the compact text fallback")
         assertTrue("graphic: OpenPolarisGraphic? = null" in graphics, "compact chips must support graphic-only phone rendering")
         assertTrue("contentDescription: String? = null" in graphics, "graphic-only chips must retain accessible names")
         assertTrue("compactLabel: String? = null" in graphics, "text selectors need a small phone label when no symbol exists")
@@ -186,7 +188,7 @@ class MobileCompactControlsContractTest {
     fun singleLinePhoneFieldsUseTheCompactSizingBoundary() {
         val graphics = source("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/CompactGraphics.kt")
         assertTrue("internal fun CompactOutlinedTextField(" in graphics)
-        assertTrue("heightIn(max = 48.dp)" in graphics)
+        assertTrue("heightIn(max = 44.dp)" in graphics)
         assertTrue("supportingText == null" in graphics)
         for (path in listOf(
             "composeApp/src/commonMain/kotlin/dev/openpolaris/ui/Panes.kt",

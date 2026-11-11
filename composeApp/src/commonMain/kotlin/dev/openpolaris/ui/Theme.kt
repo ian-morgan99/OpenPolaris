@@ -105,13 +105,13 @@ val LocalOpenPolarisCompact = staticCompositionLocalOf { false }
 
 /** Shared spacing tokens used by primary panes on phones and larger screens. */
 @Composable
-fun openPolarisCardOuterPadding() = if (LocalOpenPolarisCompact.current) 2.dp else 8.dp
+fun openPolarisCardOuterPadding() = if (LocalOpenPolarisCompact.current) 1.dp else 8.dp
 
 @Composable
-fun openPolarisCardInnerPadding() = if (LocalOpenPolarisCompact.current) 6.dp else 16.dp
+fun openPolarisCardInnerPadding() = if (LocalOpenPolarisCompact.current) 4.dp else 16.dp
 
 @Composable
-fun openPolarisSectionSpacing() = if (LocalOpenPolarisCompact.current) 4.dp else 8.dp
+fun openPolarisSectionSpacing() = if (LocalOpenPolarisCompact.current) 3.dp else 8.dp
 
 /** Night theme wrapper; dim mode reduces red/amber luminance for field use. */
 @Composable
@@ -125,11 +125,10 @@ fun OpenPolarisTheme(
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
     CompositionLocalProvider(
         LocalOpenPolarisCompact provides compact,
-        // The compact shell deliberately uses a 24 dp visual interaction footprint.
-        // It is still larger than the visible 8 dp line graphics, but avoids
-        // Material3's default 48 dp expansion making every phone row feel
-        // like a tablet control. Desktop keeps the normal 48 dp target.
-        LocalMinimumInteractiveComponentSize provides if (compact) 24.dp else 48.dp,
+        // The compact shell uses a 20 dp control footprint and 8 dp line graphics.
+        // Action semantics and full content descriptions remain attached to
+        // every control; desktop keeps the normal 48 dp Material target.
+        LocalMinimumInteractiveComponentSize provides if (compact) 20.dp else 48.dp,
     ) {
         MaterialTheme(
             colorScheme = if (dim) DimNightColors else NightColors,

@@ -10,7 +10,6 @@ import androidx.compose.ui.window.rememberWindowState
 import dev.openpolaris.core.domain.JvmConnection
 import dev.openpolaris.core.net.BridgeOrchestrator
 import dev.openpolaris.core.session.SessionStore
-import dev.openpolaris.core.session.UserPreferencesStore
 import dev.openpolaris.core.session.path.defaultSessionPath
 
 /**
@@ -49,9 +48,6 @@ fun main() = application {
             windowSizeClass = calculateWindowSizeClass(),
             connectionFactory = { JvmConnection() },
             sessionStore = SessionStore(defaultSessionPath()),
-            preferenceStore = UserPreferencesStore(
-                defaultSessionPath().replace("session.json", "preferences.json"),
-            ),
             connectWifi = { progress ->
                 bridge.bridgeToMount(
                     profile = POLARIS_WIFI_PROFILE,

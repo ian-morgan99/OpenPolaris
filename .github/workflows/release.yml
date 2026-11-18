@@ -39,50 +39,6 @@ permissions:
   contents: write
 
 jobs:
-  linux-desktop:
-    name: Build verified Linux desktop release
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    needs: [windows]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-
-      - name: Run shared and desktop UI regression tests
-        run: ./gradlew :shared:jvmTest :composeApp:jvmTest --rerun-tasks --console=plain
-
-      - name: Build and verify Linux desktop app image
-        run: |
-          ./gradlew :desktopApp:createDistributable --console=plain
-          ./gradlew :desktopApp:verifyDesktopAppImage --console=plain
-
-      - name: Archive app image and generate checksums
-        run: |
-          set -euo pipefail
-          APP_IMAGE=desktopApp/build/compose/binaries/main/app/OpenPolaris
-          tar -czf OpenPolaris-linux-x64.tar.gz -C "$(dirname "$APP_IMAGE")" OpenPolaris
-          sha256sum OpenPolaris-linux-x64.tar.gz > OpenPolaris-linux-x64.tar.gz.sha256
-          printf 'source_commit=%s\n' "$GITHUB_SHA" > OpenPolaris-build-provenance.txt
-          cat OpenPolaris-linux-x64.tar.gz.sha256 >> OpenPolaris-build-provenance.txt
-
-      - name: Publish Linux desktop assets
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            OpenPolaris-linux-x64.tar.gz
-            OpenPolaris-linux-x64.tar.gz.sha256
-            OpenPolaris-build-provenance.txt
-          fail_on_unmatched_files: true
-
   build:
     name: Build signed Android APK
     runs-on: ubuntu-24.04
@@ -137,15 +93,8 @@ jobs:
           test -f "${APK}" || { echo "::error::APK not found at ${APK}"; exit 1; }
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "${APK}"
           sha256sum "${APK}" > apk-sha256.txt
-          # apksigner labels the signer digest differently depending on the
-          # signing scheme: v1 (JAR) uses "Signer #1 certificate SHA-256
-          # digest", while v2-only APKs use "V2 Signer: certificate SHA-256
-          # digest" (note the colon after "V2 Signer"). The release APK is
-          # v2-only, so matching the v1 label alone yields an empty file and
-          # `test -s` fails a perfectly well-signed build. Match the common
-          # substring instead. Regression of b299670, reverted by 8dfa1d7.
           "${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner" verify --print-certs "${APK}" \
-            | awk -F': *' '/certificate SHA-256 digest/ {print $NF; exit}' > apk-signer-sha256.txt
+            | awk -F': *' '/Signer #1 certificate SHA-256 digest/ {print $2}' | head -1 > apk-signer-sha256.txt
           test -s apk-sha256.txt
           test -s apk-signer-sha256.txt
 
@@ -192,9 +141,6 @@ jobs:
       # OpenPolaris.exe) via jpackage. No WiX required for this step.
       - name: Build Windows app-image
         run: .\gradlew.bat :desktopApp:createDistributable --console=plain
-
-      - name: Verify Windows app image source identity
-        run: .\gradlew.bat :desktopApp:verifyDesktopAppImage --console=plain
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y

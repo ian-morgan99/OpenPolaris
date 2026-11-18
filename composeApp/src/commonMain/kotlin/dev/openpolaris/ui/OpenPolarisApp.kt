@@ -1,6 +1,5 @@
 package dev.openpolaris.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -10,11 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -29,8 +26,6 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,31 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.openpolaris.core.domain.BatteryAwareness
-import dev.openpolaris.core.domain.BatterySeverity
 import dev.openpolaris.core.domain.Connection
-import dev.openpolaris.core.domain.EndpointService
-import dev.openpolaris.core.domain.MissionReadiness
-import dev.openpolaris.core.domain.MissionReadinessInput
-import dev.openpolaris.core.domain.MotionState
 import dev.openpolaris.core.domain.TrackingRate
 import dev.openpolaris.core.domain.format2
-import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.session.SessionStore
-import dev.openpolaris.core.session.UserPreferences
-import dev.openpolaris.core.session.UserPreferencesStore
 import dev.openpolaris.core.session.path.defaultSessionPath
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Root app surface, modelled on the original Benro Connect layout: a fixed
@@ -91,19 +68,15 @@ fun OpenPolarisApp(
     viewModel: AppViewModel? = null,
     sessionStore: SessionStore? = null,
     /**
-     * Optional durable preferences store. Desktop injects a file-backed store;
-     * mobile hosts can inject an app-sandbox path. Null keeps the UI session-only.
-     */
-    preferenceStore: UserPreferencesStore? = null,
-    /**
      * Desktop-only: bridge the segregated Wi-Fi interface to the gimbal.
      * Receives a `progress: (String) -> Unit` callback the bridge calls
-     * from its IO dispatcher and returns true only after route and Polaris
-     * service identity are verified. The lambda itself is invoked from the
-     * click-launched coroutine. A false-returning default keeps Android from
-     * claiming a desktop bridge is ready. Mirrors [AppViewModel].
+     * from its IO dispatcher; the lambda itself is invoked synchronously
+     * from the click handler so it can launch the long-running bridge
+     * coroutine. Defaults to a no-op so the Android build (which has no
+     * bridge implementation) constructs the VM without it. Mirrors the
+     * constructor parameter on [AppViewModel].
      */
-    connectWifi: (suspend (suspend (String) -> Unit) -> Boolean)? = null,
+    connectWifi: (suspend (suspend (String) -> Unit) -> Unit)? = null,
     /**
      * Optional BT-only wake pulse. When supplied, the Connection pane
      * shows a "Wake" button that calls [AppViewModel.wake]. Independent
@@ -145,98 +118,20 @@ fun OpenPolarisApp(
      * doesn't inject one (e.g. desktop).
      */
     versionLabel: String? = null,
-    /** Optional mobile compass input; desktop leaves this null and uses manual heading. */
-    compassHeadingSource: CompassHeadingSource? = null,
 ) {
     val scope = rememberCoroutineScope()
-    var dialog by remember { mutableStateOf<Callout?>(null) }
-    var unavailableFeature by remember { mutableStateOf<String?>(null) }
-    var activeDestination by remember { mutableStateOf(AppDestination.MISSION) }
-    var preferences by remember { mutableStateOf(UserPreferences()) }
-    var dimMode by remember { mutableStateOf(false) }
-
-    fun persistPreferences(updated: UserPreferences) {
-        preferences = updated
-        preferenceStore?.let { store ->
-            scope.launch(Dispatchers.IO) {
-                store.write(updated)
-            }
-        }
-    }
-
     val vm: AppViewModel = viewModel
-        ?: remember {
-            AppViewModel(
-                scope = scope,
-                connectionFactory = connectionFactory,
-                connectWifi = connectWifi ?: { false },
-                wakeProbe = wakeProbe ?: {},
-                teardownBridge = teardownBridge ?: {},
-                sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
-            )
-        }
-
-    LaunchedEffect(preferenceStore, vm) {
-        vm.setConnectionModePersistence { mode ->
-            persistPreferences(preferences.copy(connectionMode = mode))
-        }
-        vm.setObserverLocationPersistence { latitude, longitude ->
-            persistPreferences(
-                preferences.copy(
-                    observerLatitudeDeg = latitude,
-                    observerLongitudeDeg = longitude,
-                ),
-            )
-        }
-        if (preferenceStore != null) {
-            val loaded = withContext(Dispatchers.IO) { preferenceStore.read() }
-            if (loaded != null) {
-                preferences = loaded
-                dimMode = loaded.dimMode
-                vm.restoreConnectionMode(loaded.connectionMode)
-                vm.restoreObserverLocation(
-                    loaded.observerLatitudeDeg,
-                    loaded.observerLongitudeDeg,
-                )
-            }
-        }
-    }
-
-    fun setDimMode(value: Boolean) {
-        dimMode = value
-        persistPreferences(preferences.copy(dimMode = value))
-    }
-
-    fun openDestination(destination: AppDestination) {
-        activeDestination = destination
-        dialog = null
-    }
-
-    fun openAdvanced(callout: Callout) {
-        if (callout == Callout.VR) {
-            if (onLaunchVr == null) {
-                unavailableFeature = "3D view"
-            } else {
-                onLaunchVr.invoke()
-            }
-        } else {
-            dialog = callout
-        }
-    }
-
-    fun openMissionAction(actionId: String) {
-        when (actionId) {
-            "connection", "mount" -> openAdvanced(Callout.Connection)
-            "camera", "capture", "prepare", "focus" -> openDestination(AppDestination.CAMERA)
-            "preview" -> openAdvanced(Callout.Preview)
-            "alignment", "tracking", "motion", "target" -> openDestination(AppDestination.CONTROL)
-            "guide" -> openAdvanced(Callout.Helpers)
-            "storage" -> openDestination(AppDestination.GALLERY)
-        }
-    }
-
+        ?: AppViewModel(
+            scope = scope,
+            connectionFactory = connectionFactory,
+            connectWifi = connectWifi ?: {},
+            wakeProbe = wakeProbe ?: {},
+            teardownBridge = teardownBridge ?: {},
+            sessionStore = sessionStore ?: SessionStore(defaultSessionPath()),
+        )
+    var dialog by remember { mutableStateOf<Callout?>(null) }
     // v0.1.8: also factor in heightSizeClass. A phone in landscape has a
-    // Compact *height* (typically 360 dp) which can't host a full 9-item
+    // Compact *height* (typically 360 dp) which can't host a full 10-item
     // rail without the items being shrunk to glyph-sized labels — exactly
     // the "icons oversized" / "text not readable" complaint from #45/#46.
     // Treat any landscape-short viewport as a phone-portrait layout so the
@@ -245,84 +140,33 @@ fun OpenPolarisApp(
     val heightCompact = windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact
     val wide = !widthCompact && !heightCompact
 
-    OpenPolarisTheme(dim = dimMode, compact = !wide) {
+    OpenPolarisTheme(compact = !wide) {
         Surface(Modifier.fillMaxSize()) {
             if (wide) {
                 Row(
                     Modifier.fillMaxSize().padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    PrimaryDestinationRail(
-                        selected = activeDestination,
-                        onSelect = ::openDestination,
-                        modifier = Modifier.fillMaxHeight(),
-                    )
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusStrip(
-                            vm,
-                            Modifier.fillMaxWidth(),
-                            compact = false,
-                            onOpenDetails = { openDestination(AppDestination.MISSION) },
-                            onOpenGallery = { openDestination(AppDestination.GALLERY) },
-                            onOpenMissionAction = ::openMissionAction,
-                            dimMode = dimMode,
-                            onToggleDim = { setDimMode(!dimMode) },
-                        )
-                        InlineDestinationWorkspace(
-                            vm = vm,
-                            destination = activeDestination,
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                            onMissionAction = ::openMissionAction,
-                            onOpenGallery = { openDestination(AppDestination.GALLERY) },
-                            compassHeadingSource = compassHeadingSource,
-                        )
+                        StatusStrip(vm, Modifier.fillMaxWidth())
+                        PositionReadout(vm, Modifier.fillMaxWidth())
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            JogPane(vm, Modifier.width(260.dp))
+                        }
                     }
-                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { openAdvanced(it) }
+                    CalloutRail(vertical = true, Modifier.fillMaxHeight(), onLaunchVr) { dialog = it }
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    StatusStrip(
-                        vm,
-                        Modifier.fillMaxWidth(),
-                        compact = true,
-                        onOpenDetails = { openDestination(AppDestination.MISSION) },
-                        onOpenGallery = { openDestination(AppDestination.GALLERY) },
-                        onOpenMissionAction = ::openMissionAction,
-                        dimMode = dimMode,
-                        onToggleDim = { setDimMode(!dimMode) },
-                    )
-                    InlineDestinationWorkspace(
-                        vm = vm,
-                        destination = activeDestination,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        onMissionAction = ::openMissionAction,
-                        onOpenGallery = { openDestination(AppDestination.GALLERY) },
-                        compassHeadingSource = compassHeadingSource,
-                    )
-                    CompactDestinationBar(
-                        selected = activeDestination,
-                        onSelect = ::openDestination,
-                        onAdvancedSelect = ::openAdvanced,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    StatusStrip(vm, Modifier.fillMaxWidth())
+                    PositionReadout(vm, Modifier.fillMaxWidth())
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        // Wider dial on Medium-height viewports so the jog
+                        // pad keeps the buttons at a tappable size.
+                        JogPane(vm, Modifier.width(if (heightCompact) 220.dp else 300.dp))
+                    }
+                    CalloutRail(vertical = false, Modifier.fillMaxWidth(), onLaunchVr) { dialog = it }
                 }
-            }
-
-            unavailableFeature?.let { feature ->
-                AlertDialog(
-                    onDismissRequest = { unavailableFeature = null },
-                    title = { Text("$feature unavailable") },
-                    text = {
-                        Text(
-                            "This build has no host for $feature. Choose a supported Android VR host or continue with the standard mobile/PC workspace.",
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { unavailableFeature = null }) {
-                            Text("Close")
-                        }
-                    },
-                )
             }
 
             when (dialog) {
@@ -337,20 +181,11 @@ fun OpenPolarisApp(
                         onBridgeDown = if (teardownBridge != null) ({ vm.teardownBridge() }) else null,
                     )
                 }
-                Callout.Slew -> CalloutDialog("Slew & Motion", { dialog = null }) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GotoPane(vm, Modifier.fillMaxWidth())
-                        SlowMotionPane(vm, Modifier.fillMaxWidth())
-                    }
-                }
+                Callout.Slew -> CalloutDialog("Slew & Align", { dialog = null }) { GotoPane(vm, Modifier.fillMaxWidth()) }
+                Callout.Tonight -> CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Camera -> CalloutDialog("Camera", { dialog = null }) { CameraPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Preview -> CalloutDialog("Preview", { dialog = null }) { PreviewPane(vm, Modifier.fillMaxWidth()) }
                 Callout.Helpers -> CalloutDialog("Astro helpers", { dialog = null }) { HelpersPane(vm, Modifier.fillMaxWidth()) }
-                Callout.Tonight -> if (FeatureFlags.isEnabled("catalog")) {
-                    CalloutDialog("Tonight", { dialog = null }) { TonightPane(vm, Modifier.fillMaxWidth()) }
-                } else {
-                    dialog = null
-                }
                 Callout.Firmware -> CalloutDialog("Firmware update", { dialog = null }) { FirmwarePane(vm, Modifier.fillMaxWidth()) }
                 // VR is launched in two stages: the rail click handler
                 // (CalloutRail.handle, below) calls `onLaunchVr?.invoke()`
@@ -365,15 +200,7 @@ fun OpenPolarisApp(
                 Callout.VR -> { dialog = null }
                 Callout.Readme -> CalloutDialog("Guide", { dialog = null }) { UserManualPane(Modifier.fillMaxWidth()) }
                 Callout.Settings -> CalloutDialog("Settings", { dialog = null }) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        EvidenceCentrePane(
-                            vm,
-                            Modifier.fillMaxWidth(),
-                            versionLabel = versionLabel,
-                        )
-                        HorizontalDivider()
-                        FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
-                    }
+                    FeatureFlagsPaneContent(Modifier.fillMaxWidth(), versionLabel = versionLabel)
                 }
                 null -> {}
             }
@@ -397,74 +224,31 @@ fun OpenPolarisApp(
     }
 }
 
-/**
- * Inline primary workspace used by the responsive shell. It is intentionally
- * one LazyColumn with one item: the individual panes do not own a competing
- * vertical scroll, and the same destination state is used on phone and PC.
- */
-@Composable
-private fun InlineDestinationWorkspace(
-    vm: AppViewModel,
-    destination: AppDestination,
-    modifier: Modifier = Modifier,
-    onMissionAction: (String) -> Unit,
-    onOpenGallery: () -> Unit,
-    compassHeadingSource: CompassHeadingSource?,
-) {
-    LazyColumn(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 8.dp),
-    ) {
-        item {
-            when (destination) {
-                AppDestination.MISSION,
-                AppDestination.ASTRO,
-                -> MissionDashboardPane(
-                    vm = vm,
-                    modifier = Modifier.fillMaxWidth(),
-                    title = if (destination == AppDestination.ASTRO) "Astro mission" else "Mission readiness",
-                    onAction = onMissionAction,
-                    compassHeadingSource = compassHeadingSource,
-                )
-                AppDestination.CONTROL -> Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    PositionReadout(vm, Modifier.fillMaxWidth())
-                    JogPane(vm, Modifier.fillMaxWidth())
-                    SlowMotionPane(vm, Modifier.fillMaxWidth())
-                }
-                AppDestination.CAMERA -> CameraPane(
-                    vm = vm,
-                    modifier = Modifier.fillMaxWidth(),
-                    onOpenGallery = onOpenGallery,
-                )
-                AppDestination.GALLERY -> GalleryPane(vm, Modifier.fillMaxWidth())
-            }
-        }
-    }
-}
-
 // Each callout's rail label. Full words instead of cryptic acronyms so
 // a first-time user can read the rail without hovering for tooltips.
 // The 4 most-used entries form the "Operate" group on phones; the
-// remaining 6 live in the "More" overflow menu so the visible rail
+// remaining 5 live in the "More" overflow menu so the visible rail
 // always fits a 320 dp wide phone in portrait AND landscape.
-private enum class Callout(val glyph: String) {
-    Connection("Wi-Fi"),
-    Slew("Slew"),
-    Camera("Camera"),
-    Preview("Preview"),
-    Helpers("Helpers"),
-    Tonight("Tonight"),
-    Firmware("Firmware"),
-    VR("3D view"),
-    Readme("Guide"),
-    Settings("Settings"),
+private enum class Callout(
+    val glyph: String,
+    val graphic: OpenPolarisGraphic,
+    val accessibilityLabel: String,
+) {
+    Connection("Wi-Fi", OpenPolarisGraphic.Connection, "Connection"),
+    Slew("Slew", OpenPolarisGraphic.Slew, "Slew and motion"),
+    Tonight("Tonight", OpenPolarisGraphic.Tonight, "Tonight"),
+    Camera("Camera", OpenPolarisGraphic.Camera, "Camera"),
+    Preview("Preview", OpenPolarisGraphic.Preview, "Preview"),
+    Helpers("Helpers", OpenPolarisGraphic.Helpers, "Astro helpers"),
+    Firmware("Firmware", OpenPolarisGraphic.Firmware, "Firmware"),
+    VR("3D view", OpenPolarisGraphic.View3d, "3D view"),
+    Readme("Guide", OpenPolarisGraphic.Guide, "Guide"),
+    Settings("Settings", OpenPolarisGraphic.Settings, "Settings"),
 }
 
 // Operate group: 4 items shown in the always-visible rail. The
-// remaining 6 items (Helpers, Tonight, Firmware, VR, Readme, Settings) live in
-// the "More" overflow menu.
+// remaining 6 items (Tonight, Helpers, Firmware, VR, Readme, Settings)
+// live in the "More" overflow menu.
 private val OperateItems: List<Callout> = listOf(
     Callout.Connection,
     Callout.Slew,
@@ -473,8 +257,8 @@ private val OperateItems: List<Callout> = listOf(
 )
 
 private val MoreItems: List<Callout> = listOf(
-    Callout.Helpers,
     Callout.Tonight,
+    Callout.Helpers,
     Callout.Firmware,
     Callout.VR,
     Callout.Readme,
@@ -482,155 +266,11 @@ private val MoreItems: List<Callout> = listOf(
 )
 
 /**
- * Compact phone navigation: text-only, one 48 dp touch row.
- *
- * Material3 NavigationBar reserves a large icon slot above every label. That
- * is useful on a tablet, but wastes most of a phone's vertical workspace when
- * the labels already identify the destinations. The row keeps the accessible
- * 48 dp touch target while removing the oversized glyphs and reducing the
- * visual bar to one line.
+ * Phone layout: an Operate row (4 items) + a "More…" button that
+ * drops down the remaining 6 items. Replaces the v0.1.7 9-item
+ * horizontal rail which clipped icons to glyph-sized labels at 320
+ * dp / 568 dp widths.
  */
-@Composable
-private fun CompactDestinationBar(
-    selected: AppDestination,
-    onSelect: (AppDestination) -> Unit,
-    onAdvancedSelect: (Callout) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(
-        modifier
-            .height(48.dp)
-            .testTag("primary-navigation"),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            primaryAppDestinations.forEach { destination ->
-                CompactDestinationItem(
-                    label = destination.label,
-                    selected = selected == destination,
-                    onClick = { onSelect(destination) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .testTag("destination-" + destination.name.lowercase()),
-                )
-            }
-            TextButton(
-                onClick = { expanded = true },
-                contentPadding = PaddingValues(horizontal = 2.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .testTag("destination-more")
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = "More destinations"
-                        stateDescription = if (expanded) "Expanded" else "Collapsed"
-                        role = Role.Tab
-                    },
-            ) {
-                Text(
-                    "More",
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    fontWeight = if (expanded) FontWeight.Bold else FontWeight.Normal,
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.align(Alignment.TopEnd),
-        ) {
-            AdvancedItems.forEachIndexed { i, callout ->
-                if (i > 0) HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(callout.glyph) },
-                    modifier = Modifier.testTag("destination-more-" + callout.name.lowercase()),
-                    onClick = {
-                        expanded = false
-                        onAdvancedSelect(callout)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CompactDestinationItem(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 2.dp),
-        modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = label
-            stateDescription = if (selected) "Selected" else "Not selected"
-            role = Role.Tab
-        },
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-        )
-    }
-}
-
-@Composable
-private fun PrimaryDestinationRail(
-    selected: AppDestination,
-    onSelect: (AppDestination) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier.width(92.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        primaryAppDestinations.forEach { destination ->
-            DestinationButton(
-                destination = destination,
-                selected = selected == destination,
-                onClick = { onSelect(destination) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun DestinationButton(
-    destination: AppDestination,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier.testTag("destination-" + destination.name.lowercase()),
-    ) {
-        Text(
-            destination.label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-        )
-    }
-}
-
-private val AdvancedItems: List<Callout> = listOf(
-    Callout.Connection,
-    Callout.Preview,
-) + MoreItems
-
 @Composable
 private fun CalloutRail(
     vertical: Boolean,
@@ -648,7 +288,7 @@ private fun CalloutRail(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AdvancedItems.forEach { c -> CalloutButton(c, handle) }
+            (OperateItems + MoreItems).forEach { c -> CalloutButton(c, handle) }
         }
     } else {
         // Phone layout: 4-item Operate row + "More…" overflow button.
@@ -667,16 +307,20 @@ private fun CalloutRail(
 private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { expanded = true }) {
-            Text("More\u2026", style = MaterialTheme.typography.labelMedium)
-        }
+        CompactGraphicButton(
+            graphic = OpenPolarisGraphic.More,
+            contentDescription = "More controls",
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("callout-more"),
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            AdvancedItems.forEachIndexed { i, c ->
+            MoreItems.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
-        DropdownMenuItem(
+                DropdownMenuItem(
+                    leadingIcon = { OpenPolarisGraphicIcon(c.graphic) },
                     text = { Text(c.glyph) },
                     modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
                     onClick = {
@@ -691,237 +335,45 @@ private fun MoreMenuButton(onSelect: (Callout) -> Unit) {
 
 @Composable
 private fun CalloutButton(c: Callout, onSelect: (Callout) -> Unit) {
-    TextButton(
+    CompactGraphicButton(
+        graphic = c.graphic,
+        contentDescription = c.accessibilityLabel,
         onClick = { onSelect(c) },
         modifier = Modifier.testTag("callout-${c.name.lowercase()}"),
-    ) {
-        Text(c.glyph, style = MaterialTheme.typography.labelMedium)
-    }
+    )
 }
 
 /** Compact always-visible status line. */
 @Composable
-private fun StatusStrip(
-    vm: AppViewModel,
-    modifier: Modifier = Modifier,
-    onOpenDetails: (() -> Unit)? = null,
-    onOpenGallery: (() -> Unit)? = null,
-    onOpenMissionAction: ((String) -> Unit)? = null,
-    dimMode: Boolean = false,
-    onToggleDim: (() -> Unit)? = null,
-    compact: Boolean = false,
-) {
-    var expanded by remember { mutableStateOf(false) }
+private fun StatusStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
     val s = vm.mount
-    val endpoint = vm.endpointHealth
-    val motionState by vm.motionState.collectAsState()
-    val activeMotionOwner = (motionState as? MotionState.Owned)?.lease?.owner
-    val captureInProgress = vm.capturePhase is AppViewModel.CapturePhase.Requested ||
-        vm.capturePhase is AppViewModel.CapturePhase.Busy
-    val readiness = MissionReadiness.evaluate(
-        MissionReadinessInput(
-            control = endpoint.control,
-            mountConnected = s.connected,
-            cameraAttached = vm.cameraAttachment?.isAttached,
-            preview = endpoint.preview,
-            storageReady = vm.sdStatus?.present,
-            alignmentReady = if (vm.alignmentStars > 0 || vm.lastSolveResult.value != null) true else false,
-            tracking = s.tracking,
-            captureInProgress = captureInProgress,
-            activeMotionOwner = activeMotionOwner,
-            motionFault = (motionState as? MotionState.Faulted)?.reason,
-        ),
-    )
-    val next = readiness.firstOrNull { it.level != dev.openpolaris.core.domain.ReadinessLevel.READY }
     Card(modifier) {
-        Column(
+        Row(
             Modifier.padding(
-                horizontal = if (compact) 8.dp else 12.dp,
-                vertical = if (compact) 4.dp else 8.dp,
+                horizontal = if (LocalOpenPolarisCompact.current) 8.dp else 12.dp,
+                vertical = if (LocalOpenPolarisCompact.current) 4.dp else 8.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (compact) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            vm.statusMessage,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
-                        Text(
-                            battery.compactLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = when (battery.severity) {
-                                BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
-                                BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
-                                else -> MaterialTheme.colorScheme.onSurface
-                            },
-                            modifier = Modifier
-                                .testTag("battery-status")
-                                .semantics {
-                                    contentDescription = battery.contentDescription
-                                    stateDescription = battery.severity.label
-                                },
-                        )
-                        Text(
-                            buildString {
-                                if (s.tracking == true) append("TRK")
-                                if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+            Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            Text(
+                buildString {
+                    // Mount operating mode from the 284 push (PANORAMA /
+                    // TIMELAPSE / ASTRO). Shown only when known so the
+                    // strip stays compact before the first status poll.
+                    if (s.mode != dev.openpolaris.core.domain.MountMode.UNKNOWN) {
+                        append(s.mode.name.lowercase().replaceFirstChar { it.uppercase() })
+                        append("  ")
                     }
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .testTag("status-actions"),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        onOpenDetails?.let { open ->
-                            TextButton(
-                                onClick = open,
-                                modifier = Modifier.testTag("mission-details"),
-                            ) { Text("Details") }
-                        }
-                        onOpenGallery?.let { open ->
-                            TextButton(
-                                onClick = open,
-                                modifier = Modifier.testTag("open-gallery"),
-                            ) { Text("Gallery") }
-                        }
-                        onToggleDim?.let { toggle ->
-                            TextButton(
-                                onClick = toggle,
-                                modifier = Modifier.testTag("night-dim-toggle"),
-                            ) { Text(if (dimMode) "Bright" else "Dim") }
-                        }
-                        TextButton(
-                            onClick = { expanded = !expanded },
-                            modifier = Modifier.testTag("status-details-toggle"),
-                        ) {
-                            Text(if (expanded) "Less" else "More")
-                        }
-                    }
-                }
-            } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(vm.statusMessage, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                    onOpenDetails?.let { open ->
-                        TextButton(
-                            onClick = open,
-                            modifier = Modifier.testTag("mission-details"),
-                        ) { Text("Details") }
-                    }
-                    onOpenGallery?.let { open ->
-                        TextButton(
-                            onClick = open,
-                            modifier = Modifier.testTag("open-gallery"),
-                        ) { Text("Gallery") }
-                    }
-                    onToggleDim?.let { toggle ->
-                        TextButton(
-                            onClick = toggle,
-                            modifier = Modifier.testTag("night-dim-toggle"),
-                        ) { Text(if (dimMode) "Bright" else "Dim") }
-                    }
-                    val battery = BatteryAwareness.from(s.batteryPercent, s.charging)
-                    Text(
-                        battery.compactLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when (battery.severity) {
-                            BatterySeverity.CRITICAL -> MaterialTheme.colorScheme.error
-                            BatterySeverity.LOW -> MaterialTheme.colorScheme.secondary
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
-                        modifier = Modifier
-                            .testTag("battery-status")
-                            .semantics {
-                                contentDescription = battery.contentDescription
-                                stateDescription = battery.severity.label
-                            },
-                    )
-                    Text(
-                        buildString {
-                            if (s.tracking == true) append("TRK")
-                            if (s.halfSpeed) append(if (s.tracking == true) "  ½×" else "½×")
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-            if (!compact || expanded) {
-                when (val motion = motionState) {
-                    MotionState.Idle -> Unit
-                    is MotionState.Owned -> Row(
-                        modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "Motion active: " + motion.lease.owner.name.lowercase().replace('_', ' '),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = vm::emergencyStopMotion,
-                            modifier = Modifier.testTag("emergency-stop"),
-                        ) { Text("STOP ALL") }
-                    }
-                    is MotionState.Faulted -> Text(
-                        "Motion stop fault: " + motion.reason,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.fillMaxWidth().testTag("motion-safety-chrome"),
-                    )
-                }
-                HorizontalDivider()
-                if (next == null) {
-                    Text(
-                        "Mission ready — no blocked or unknown prerequisites",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.testTag("mission-readiness-summary"),
-                    )
-                } else {
-                    Text(
-                        "Next: ${next.label} — ${next.summary}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (next.level == dev.openpolaris.core.domain.ReadinessLevel.BLOCKED) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.testTag("mission-readiness-summary"),
-                    )
-                    next.actionLabel?.let { action ->
-                        onOpenMissionAction?.let { open ->
-                            TextButton(
-                                onClick = { open(next.id) },
-                                modifier = Modifier.testTag("mission-next-action"),
-                            ) {
-                                Text("Next: $action")
-                            }
-                        } ?: Text(
-                            "Action: $action",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
+                    append(s.batteryPercent?.toString() ?: "—")
+                    append("%")
+                    if (s.charging) append("+")
+                    if (s.tracking == true) append("  TRK")
+                    if (s.halfSpeed) append("  ½×")
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
@@ -932,8 +384,8 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
     val p = vm.position
     Card(modifier) {
         Column(
-            Modifier.padding(openPolarisCardInnerPadding()),
-            verticalArrangement = Arrangement.spacedBy(openPolarisSectionSpacing()),
+            Modifier.padding(if (LocalOpenPolarisCompact.current) 8.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (LocalOpenPolarisCompact.current) 4.dp else 6.dp),
         ) {
             Text(
                 "Az ${p?.yaw?.toDouble()?.format2() ?: "—"}°   Alt ${p?.pitch?.toDouble()?.format2() ?: "—"}°",
@@ -945,18 +397,6 @@ private fun PositionReadout(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }, label = { Text("Track") })
                 FilterChip(selected = vm.mount.halfSpeed, onClick = { vm.toggleHalfSpeed(!vm.mount.halfSpeed) }, label = { Text("½ speed") })
                 FilterChip(selected = vm.mount.ahrsEnabled, onClick = { vm.enableAhrs(!vm.mount.ahrsEnabled) }, label = { Text("AHRS") })
-                FilterChip(
-                    selected = false,
-                    onClick = {},
-                    enabled = FeatureFlags.isEnabled("fineRateControl"),
-                    label = { Text("Fine correction") },
-                )
-            }
-            if (!FeatureFlags.isEnabled("fineRateControl")) {
-                Text(
-                    "Fine correction unavailable — the firmware rate and physical stop contract is not qualified.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
             }
 
             // Explicit tracking rate (code 531 `speed:` field). The Benro app

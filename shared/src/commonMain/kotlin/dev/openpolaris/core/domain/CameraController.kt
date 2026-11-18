@@ -17,23 +17,12 @@ import kotlinx.coroutines.delay
  */
 class CameraController(private val session: MountSession) {
 
-    /** Why a dynamic camera INFO field is or is not usable. */
-    enum class InfoStatus {
-        VALID,
-        EMPTY_OR_UNAVAILABLE,
-        TIMED_OUT,
-        PROTOCOL_ERROR,
-        STALE,
-    }
-
     data class Info(
         val code: Int,
         val raw: String,
         val index: Int?,
         val options: List<String> = emptyList(),
         val ready: Int? = null,
-        val status: InfoStatus = InfoStatus.VALID,
-        val detail: String? = null,
     )
 
     data class QualificationResult(
@@ -118,47 +107,17 @@ class CameraController(private val session: MountSession) {
     suspend fun setColor(index: Int) = session.send(Codes.CAM_SET_COLOR, "color:$index;")
     suspend fun queryShutter(): Int? = queryIndex(Codes.CAM_GET_SHUTTER, "shutter")
     suspend fun setShutter(index: Int) = session.send(Codes.CAM_SET_SHUTTER, "shutter:$index;")
-
-    /** Rebind the mount session before a mode-dependent camera transition. */
-    suspend fun rebindForModeTransition(): Boolean = session.rebind()
     suspend fun queryCaptureMode(): Int? = queryIndex(Codes.CAM_GET_CAPTURE_MODE, "captureMode")
     suspend fun setCaptureMode(index: Int) = session.send(Codes.CAM_SET_CAPTURE_MODE, "captureMode:$index;")
 
-    /**
-     * Read one dynamic INFO list with a camera-specific timeout. A timed-out
-     * code is quarantined by [MountSession] for the remainder of this session:
-     * the protocol has no request id, so applying a late same-code frame to a
-     * later refresh would be worse than requiring reconnect recovery.
-     */
     suspend fun queryBenroInfo(code: Int, key: String): Info =
-        when (
-            val result = session.request(
-                code = code,
-                timeoutMs = CAMERA_INFO_TIMEOUT_MS,
-                quarantineOnTimeout = true,
-            ) { it }
-        ) {
+        when (val result = session.request(code) { it }) {
             is MountSession.CmdResult.Ok -> {
                 val frame = result.value
                 parseBenroInfo(code, key, frame)
             }
-            is MountSession.CmdResult.Timeout -> Info(
-                code = code,
-                raw = "TIMEOUT",
-                index = null,
-                status = InfoStatus.TIMED_OUT,
-                detail = "no response within ${CAMERA_INFO_TIMEOUT_MS}ms",
-            )
-            is MountSession.CmdResult.ProtocolError -> {
-                val quarantined = result.message.contains("quarantined after a timeout")
-                Info(
-                    code = code,
-                    raw = "ERROR: ${result.message}",
-                    index = null,
-                    status = if (quarantined) InfoStatus.STALE else InfoStatus.PROTOCOL_ERROR,
-                    detail = result.message,
-                )
-            }
+            is MountSession.CmdResult.Timeout -> Info(code, "TIMEOUT", null)
+            is MountSession.CmdResult.ProtocolError -> Info(code, "ERROR: ${result.message}", null)
         }
 
     suspend fun qualifyBenroSetting(
@@ -599,49 +558,34 @@ class CameraController(private val session: MountSession) {
      *
      * The #120 symptom ("countdown, then a ~1 s shot") is therefore a firmware
      * misinterpretation of the 264 `bulb:` field as a pre-shot delay rather than the
-     * exposure duration. The Polaris firmware patch removes that redundant app-side
-     * delay, so the camera's Bulb timer remains the owner of shutter-open duration.
-     * This method deliberately does not write EX_TIME as a second, competing timer;
-     * it mirrors Benro Connect's wire contract and avoids racing or overwriting the
-     * selected Bulb duration.
+     * exposure duration. This method is a **workaround**: it additionally sets EX_TIME to
+     * `bulbSeconds * 1000` ms before the 264 trigger, hedging against firmware builds that
+     * read EX_TIME for the shutter-open duration. The EX_TIME set is best-effort (a failure
+     * must not block the capture — the 264 still carries the bulb seconds). This is
+     * speculative until hardware-verified; the durable fix is a firmware patch so the 264
+     * `bulb:` field is used as the exposure duration directly.
      */
     suspend fun captureBulb(
         bulbSeconds: Int,
         continuationCount: Int = -1,
     ): PhotoRecordResult {
-        if (bulbSeconds <= 0 || continuationCount < -1) return PhotoRecordResult(
+        if (bulbSeconds < 0 || continuationCount < -1) return PhotoRecordResult(
             code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
             sent = false,
             error = "Unsupported bulb capture bulb=$bulbSeconds c=$continuationCount",
             requestedState = "1",
         )
-
-        // Benro Connect's Bulb path assumes the camera is already in B and sends
-        // only 264/state:1.  Do not send the separate 299 exposure-time write here:
-        // it is a different control path, and on some firmware it can race the
-        // shutter transition or overwrite the camera's Bulb timer.
-        val shutter = queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
-        val shutterLabel = shutter.index?.let { shutter.options.getOrNull(it) }
-        if (CameraReleaseMode.fromOption(shutterLabel) != CameraReleaseMode.BULB) return PhotoRecordResult(
-            code = Codes.BenroCamera.SET_PHOTO_RECORD_STATUS,
-            sent = false,
-            error = "Camera is not in Bulb shutter mode (reported ${shutter.raw.ifBlank { "unknown" }})",
-            raw = shutter.raw,
-            requestedState = "1",
-        )
+        // Set the exposure duration (ms) first, matching Benro Connect's sequencing.
+        // Best-effort: a failed EX_TIME set must not block the capture — the 264 trigger
+        // still carries the bulb seconds, so the shot proceeds even if the firmware rejects
+        // the EX_TIME write (e.g. a model that does not implement cmd 299).
+        setExposureTime(bulbSeconds * 1000)
         return setPhotoRecordStatus(
             recording = true,
             bulbSeconds = bulbSeconds,
             continuationCount = continuationCount,
         )
     }
-
-    /** Stop an active Benro Bulb exposure using the matching 264 state-0 edge. */
-    suspend fun stopBulb(): PhotoRecordResult = setPhotoRecordStatus(
-        recording = false,
-        bulbSeconds = 0,
-        continuationCount = -1,
-    )
 
     private suspend fun sendBenroParamQuery(code: Int, key: String, subtype: Int): CameraParamResult {
         val reply = session.request(
@@ -694,6 +638,27 @@ class CameraController(private val session: MountSession) {
         Codes.CAM_CAPTURE_SUBTYPE,
     )
 
+    /**
+     * Trigger the camera's panoramic-capture workflow (code 271).
+     *
+     * UNVERIFIED payload contract: Benro Connect names this command
+     * `SP_PANORAMIC` and its firmware log labels it "Camera Panorama Msg"
+     * with a `step:` payload; the observed step value is 11 (see
+     * docs/evidence/2026-09-07/issue-62-audit/CAMERA-MAP-COMPARE.md). The
+     * stock app drives the panorama sequence from its own UI state, so the
+     * full step ladder (start / rotate / finish) is not yet evidenced — this
+     * sends only the start step and reports the raw reply. The mount's 284
+     * mode field (`mode:0` = PANORAMA) reflects whether the mount itself is
+     * in panorama operating mode, which is a separate concern from this
+     * camera-side trigger.
+     */
+    suspend fun sendPanorama(): String =
+        when (val reply = session.request(Codes.CAM_SET_IMG_SIZE, "step:11;") { it }) {
+            is MountSession.CmdResult.Ok -> reply.value.raw.orEmpty()
+            is MountSession.CmdResult.Timeout -> "TIMEOUT"
+            is MountSession.CmdResult.ProtocolError -> "ERROR: ${reply.message}"
+        }
+
     /** Query one parameter index by code. Returns null on timeout/absent key. */
     private suspend fun queryIndex(code: Int, key: String): Int? =
         when (val r = session.request(code) { f -> f.fields[key]?.trim()?.toIntOrNull() }) {
@@ -707,8 +672,6 @@ class CameraController(private val session: MountSession) {
         ?.toIntOrNull()
 
     private companion object {
-        /** K-1 II settings can answer after the old 2 s global request budget. */
-        const val CAMERA_INFO_TIMEOUT_MS = 4_000L
         val FOCUS_JOG_SPEEDS = setOf(0, 1, 2, 4, 5, 6)
         val MANUAL_FOCUS_ADJUSTMENTS = setOf(-4, -1, 1, 4)
         // Task-3 (docs/PROTOCOL.md §3.4.3): APK-observed values only.
@@ -726,28 +689,16 @@ internal fun parseBenroInfo(
     code: Int,
     key: String,
     frame: dev.openpolaris.core.protocol.ResponseParser.Frame,
-): CameraController.Info {
-    val raw = frame.raw.orEmpty()
-    val index = frame.int("V") ?: frame.int(key) ?: raw
-        .trim()
-        .removeSuffix(";")
-        .toIntOrNull()
-    val options = frame["R"].orEmpty()
+): CameraController.Info = CameraController.Info(
+    code = code,
+    raw = frame.raw.orEmpty(),
+    index = frame.int("V") ?: frame.int(key) ?: frame.raw
+        ?.trim()
+        ?.removeSuffix(";")
+        ?.toIntOrNull(),
+    options = frame["R"].orEmpty()
         .split(',')
         .map(String::trim)
-        .filter(String::isNotEmpty)
-    val status = when {
-        frame.int("ret")?.let { it < 0 } == true -> CameraController.InfoStatus.PROTOCOL_ERROR
-        index != null || options.isNotEmpty() -> CameraController.InfoStatus.VALID
-        else -> CameraController.InfoStatus.EMPTY_OR_UNAVAILABLE
-    }
-    return CameraController.Info(
-        code = code,
-        raw = raw,
-        index = index,
-        options = options,
-        ready = frame.int("RD"),
-        status = status,
-        detail = if (status == CameraController.InfoStatus.VALID) null else "response contained no usable value/options",
-    )
-}
+        .filter(String::isNotEmpty),
+    ready = frame.int("RD"),
+)

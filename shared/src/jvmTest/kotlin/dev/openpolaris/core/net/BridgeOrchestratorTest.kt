@@ -23,43 +23,15 @@ import kotlin.test.assertTrue
  * The bridge proceeds to the saved Wi-Fi profile when Bluetooth wake is
  * unavailable, but it reports that outcome rather than claiming the wake
  * pulse succeeded.
- *
- * Every orchestrator here is given an explicit [KnownBleAddressStore]. The
- * production default reads `~/.config/openpolaris/known-ble-address`, which on
- * a developer machine holds the real mount's address; leaving it unset would
- * make these tests depend on whether this machine has ever woken a mount.
  */
-/**
- * `bluetoothctl connect` reports a successful link only on stdout. Its exit
- * status is not a usable signal: an unreachable mount exits 0, and the normal
- * success path then aborts locally and exits non-zero. Fakes that want a wake
- * to succeed must return this.
- */
-private const val CONNECTED_YES_OUTPUT = "[CHG] Device 48:E7:DA:D4:B5:72 Connected: yes\n"
-
-/** True if a GATT connect was issued to [address], whatever timeout was used. */
-private fun woke(calls: List<List<String>>, address: String): Boolean =
-    calls.any { it.contains("connect") && it.contains(address) }
-
 class BridgeOrchestratorTest {
 
     private val serviceOk = PolarisServiceIdentityProbe { _, _ -> Result.success("ports 22+9090/284") }
-
-    /** A store with nothing recorded, so no address comes from persistence. */
-    private fun emptyStore(): KnownBleAddressStore = KnownBleAddressStore.inMemory()
-
-/** True if a GATT connect was issued to [address], whatever timeout was used. */
-    private fun FakeRunner.wakeCall(address: String): Boolean =
-        calls.any { it.contains("connect") && it.contains(address) }
 
     private class FakeRunner : ProcessRunner {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
             calls += argv
-            // A GATT connect only counts as delivered if stdout carried
-            // `Connected: yes`; the exit status proves nothing. Waking tests
-            // therefore need the marker, or wake() correctly reports failure.
-            if (argv.contains("connect")) return "[CHG] Device 48:E7:DA:D4:B5:72 Connected: yes\n"
             return ""
         }
     }
@@ -93,7 +65,7 @@ class BridgeOrchestratorTest {
         // Fake scanner returns no devices. The orchestrator reports it and
         // still lets saved-profile activation verify whether Wi-Fi is ready.
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceOk, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceOk)
 
         val messages = mutableListOf<String>()
         val ok = orch.bridgeToMount(
@@ -104,21 +76,17 @@ class BridgeOrchestratorTest {
 
         assertTrue(ok, "happy path should return true when link is up")
 
-        // The BlueZ cache is consulted before any scan, and an empty cache
-        // falls through to a scan; either way the bridge must still proceed to
-        // the saved profile rather than treating "not discovered" as terminal.
-        // That hard-fail (5638519) is what made the wake pulse unreachable.
+        // BT phase scans, finds nothing, and the orchestrator proceeds.
+        // Live 2026-09-10: a BlueZ abort can still wake the AP, so the
+        // message now says "did not confirm" rather than "failed".
         assertTrue(
-            fake.calls.any { it == listOf("bluetoothctl", "devices") },
-            "expected the BlueZ cache to be consulted first, got: " + fake.calls.toString(),
+            messages.any { it.contains("BT wake did not confirm") },
+            "expected explicit BT wake failure message, got: " + messages.toString(),
         )
+        // A bluetoothctl scan should have been issued.
         assertTrue(
             fake.calls.any { it.firstOrNull() == "bluetoothctl" && it.contains("scan") },
-            "expected a bluetoothctl scan fallback call, got: " + fake.calls.toString(),
-        )
-        assertFalse(
-            messages.any { it.contains("Link never came up") },
-            "an undiscoverable device must not be reported as a dead mount: " + messages.toString(),
+            "expected a bluetoothctl scan call, got: " + fake.calls.toString(),
         )
 
         // NM-up, link-up wait, policy route install all happened.
@@ -152,7 +120,7 @@ class BridgeOrchestratorTest {
         val wifi = StubbedWifiBridge(fake, linkUpResult = true)
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
         val serviceFail = PolarisServiceIdentityProbe { _, _ -> Result.failure(IllegalStateException("wrong service")) }
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceFail, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, serviceProbe = serviceFail)
         val messages = mutableListOf<String>()
 
         val ok = orch.bridgeToMount("polaris_test", "wlp8s0") { messages += it }
@@ -166,11 +134,11 @@ class BridgeOrchestratorTest {
     fun `wake tries configured known BLE address without scanning`() = runBlocking {
         val fake = FakeRunner()
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(bt = bt, knownBleAddress = "48:E7:DA:D4:B5:72", addressStore = emptyStore())
+        val orch = BridgeOrchestrator(bt = bt, knownBleAddress = "48:E7:DA:D4:B5:72")
 
         assertTrue(orch.wakeOnly())
         assertEquals(
-            listOf("bluetoothctl", "--timeout", "15", "connect", "48:E7:DA:D4:B5:72"),
+            listOf("bluetoothctl", "connect", "48:E7:DA:D4:B5:72"),
             fake.calls.first(),
         )
         assertFalse(fake.calls.any { "scan" in it })
@@ -184,7 +152,7 @@ class BridgeOrchestratorTest {
         // bounded poll window.
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val messages = mutableListOf<String>()
         val ok = orch.bridgeToMount(
@@ -225,7 +193,7 @@ class BridgeOrchestratorTest {
         }
         val wifi = StubbedWifiBridge(fake, linkUpResult = true)
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
         val messages = mutableListOf<String>()
 
         val ok = orch.bridgeToMount(
@@ -250,7 +218,7 @@ class BridgeOrchestratorTest {
         val fake = FakeRunner()
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val messages = mutableListOf<String>()
         orch.tearDown(
@@ -284,11 +252,7 @@ class BridgeOrchestratorTest {
         val calls = mutableListOf<List<String>>()
         override fun run(argv: List<String>): String {
             calls += argv
-            return when {
-                argv.contains("scan") -> "Device AA:BB:CC:DD:EE:FF polaris_d13e86\n"
-                argv.contains("connect") -> CONNECTED_YES_OUTPUT
-                else -> ""
-            }
+            return if (argv.contains("scan")) "Device AA:BB:CC:DD:EE:FF polaris_d13e86\n" else ""
         }
     }
 
@@ -297,7 +261,7 @@ class BridgeOrchestratorTest {
         val fake = ScanningRunner()
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         // Wake first: discover finds the device and the orchestrator records the
         // woken address so the retained GATT link can be released later.
@@ -336,7 +300,7 @@ class BridgeOrchestratorTest {
         val fake = FakeRunner()
         val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
         val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         // No wake happened this session, so teardown must not issue a disconnect.
         orch.tearDown(profile = "polaris_d13e86", ifname = "wlp8s0")
@@ -368,7 +332,7 @@ class BridgeOrchestratorTest {
         val runner = CancellingRunner()
         val wifi = StubbedWifiBridge(runner, linkUpResult = true)
         val bt = BluetoothProbe(runner = runner, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(wifi = wifi, bt = bt, addressStore = emptyStore(), wakeLinkTimeoutMs = 200, activationSliceMs = 50L)
+        val orch = BridgeOrchestrator(wifi = wifi, bt = bt)
 
         val result = runCatching {
             orch.bridgeToMount("polaris_d13e86", "wlp8s0")
@@ -384,7 +348,7 @@ class BridgeOrchestratorTest {
     fun `wakeOnly propagates cancellation instead of returning false`() = runBlocking {
         val runner = CancellingRunner()
         val bt = BluetoothProbe(runner = runner, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(bt = bt, addressStore = emptyStore())
+        val orch = BridgeOrchestrator(bt = bt)
 
         val result = runCatching {
             orch.wakeOnly()
@@ -393,163 +357,6 @@ class BridgeOrchestratorTest {
             result.exceptionOrNull() is CancellationException,
             "cancelling during BT wake must propagate CancellationException, got: " +
                 result.exceptionOrNull(),
-        )
-    }
-
-    // ---------------------------------------------------------------------
-    // The 2026-10-08 wake regression.
-    //
-    // 5638519 made "no device discovered" terminal, but the mount is not
-    // advertisable in either state we wake it from, so discovery can never
-    // succeed and the GATT pulse was never issued. These tests pin the
-    // corrected contract: an address from the BlueZ cache or the persisted
-    // store must produce a connect, and discovery must never gate it.
-    // ---------------------------------------------------------------------
-
-    /** Runner that answers `bluetoothctl devices` from the BlueZ cache only. */
-    private class CachedOnlyRunner(private val cache: String) : ProcessRunner {
-        val calls = mutableListOf<List<String>>()
-        override fun run(argv: List<String>): String {
-            calls += argv
-            return when {
-                argv == listOf("bluetoothctl", "devices") -> cache
-                argv.contains("connect") -> CONNECTED_YES_OUTPUT
-                else -> ""
-            }
-        }
-    }
-
-    @Test
-    fun `wake uses the BlueZ cache when a scan would find nothing`() = runBlocking {
-        // The real-world condition: cache populated, scan returns nothing
-        // because the mount is asleep. Wake must still be attempted.
-        val fake = CachedOnlyRunner("Device 48:E7:DA:D4:B5:72 polaris_d13e86\n")
-        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val store = KnownBleAddressStore.inMemory()
-        val orch = BridgeOrchestrator(bt = bt, addressStore = store)
-
-        assertTrue(orch.wakeOnly(), "a cached address must be enough to wake")
-        assertTrue(
-            woke(fake.calls, "48:E7:DA:D4:B5:72"),
-            "expected a GATT connect from the cached address, got: ${fake.calls}",
-        )
-        assertFalse(
-            fake.calls.any { "scan" in it },
-            "a cache hit must not fall through to a scan: ${fake.calls}",
-        )
-        // And the success is remembered so the next wake needs no cache at all.
-        assertEquals("48:E7:DA:D4:B5:72", store.read())
-    }
-
-    @Test
-    fun `wake prefers the persisted address over cache and scan`() = runBlocking {
-        val fake = CachedOnlyRunner("Device 99:99:99:99:99:99 polaris_other\n")
-        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(
-            bt = bt,
-            addressStore = KnownBleAddressStore.inMemory("48:E7:DA:D4:B5:72"),
-        )
-
-        assertTrue(orch.wakeOnly())
-        assertEquals(
-            listOf("bluetoothctl", "--timeout", "15", "connect", "48:E7:DA:D4:B5:72"),
-            fake.calls.first(),
-            "the last known-good address must win, and cost no subprocess to find",
-        )
-    }
-
-    @Test
-    fun `wake falls back to a scan only when nothing is known`() = runBlocking {
-        val fake = ScanningRunner() // answers `scan on` with AA:BB:CC:DD:EE:FF
-        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(bt = bt, addressStore = emptyStore())
-
-        assertTrue(orch.wakeOnly())
-        assertTrue(
-            fake.calls.any { "scan" in it },
-            "with no cached address a scan is the correct last resort",
-        )
-        assertTrue(
-            woke(fake.calls, "AA:BB:CC:DD:EE:FF"),
-            "a scanned address must still be woken, got: ${fake.calls}",
-        )
-    }
-
-    @Test
-    fun `bridge retries profile activation while a woken AP comes on the air`() = runBlocking {
-        // A sleeping mount cannot be activated on the first try: NetworkManager
-        // has no SSID to join yet. The first `nmcli connection up` fails, the
-        // AP appears, and the retry succeeds — all inside the wake budget.
-        val calls = mutableListOf<List<String>>()
-        var nmcliUpAttempts = 0
-        val runner = object : ProcessRunner {
-            override fun run(argv: List<String>): String {
-                calls += argv
-                if (argv == listOf("bluetoothctl", "devices")) {
-                    return "Device 48:E7:DA:D4:B5:72 polaris_d13e86\n"
-                }
-                if (argv.getOrNull(0) == "nmcli" && argv.getOrNull(2) == "up") {
-                    nmcliUpAttempts++
-                    if (nmcliUpAttempts < 3) throw BridgeException("nmcli", 7, "No network with this SSID")
-                }
-                if (argv.contains("connect")) return CONNECTED_YES_OUTPUT
-                return ""
-            }
-        }
-        val wifi = object : WifiBridge(runner, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables()) {
-            // Link appears only on the third activation attempt.
-            override fun awaitLinkUp(ifname: String, timeoutMs: Int): Boolean = nmcliUpAttempts >= 3
-            override fun verifyPolarisIdentity(ifname: String): Result<LinkIdentity> =
-                Result.success(LinkIdentity("polaris_test", "AA:BB:CC:DD:EE:FF", "192.168.0.1 dev $ifname"))
-        }
-        val bt = BluetoothProbe(runner = runner, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(
-            wifi = wifi,
-            bt = bt,
-            serviceProbe = serviceOk,
-            addressStore = emptyStore(),
-            wakeLinkTimeoutMs = 5_000,
-            activationSliceMs = 50L,
-        )
-
-        val messages = mutableListOf<String>()
-        val ok = orch.bridgeToMount("polaris_d13e86", "wlp8s0") { messages += it }
-
-        assertTrue(ok, "a transient activation failure during wake must be retried, got: $messages")
-        assertTrue(nmcliUpAttempts >= 3, "expected repeated activation attempts, got $nmcliUpAttempts")
-        assertTrue(messages.any { it.startsWith("Mount Wi-Fi ready") }, "expected ready message, got: $messages")
-    }
-
-    @Test
-    fun `bridge reports the dead-mount message only after the full wake budget`() = runBlocking {
-        // No interface, no link, activation always fine: the failure must come
-        // after the long post-wake budget, not after a fixed 15 s.
-        val fake = CachedOnlyRunner("Device 48:E7:DA:D4:B5:72 polaris_d13e86\n")
-        val wifi = WifiBridge(fake, gimbalCidr = "192.168.0.0/24", rtTables = InMemoryRtTables())
-        val bt = BluetoothProbe(runner = fake, wakeSettleMs = 0)
-        val orch = BridgeOrchestrator(
-            wifi = wifi,
-            bt = bt,
-            addressStore = emptyStore(),
-            wakeLinkTimeoutMs = 300,
-            activationSliceMs = 50L,
-        )
-
-        val messages = mutableListOf<String>()
-        val ok = orch.bridgeToMount("polaris_d13e86", "wlan9") { messages += it }
-
-        assertFalse(ok)
-        assertTrue(
-            messages.any { it.contains("Link never came up") },
-            "expected the link-failure message once the budget is exhausted, got: $messages",
-        )
-        val disconnect = fake.calls.filter {
-            it.firstOrNull() == "bluetoothctl" && it.getOrNull(1) == "disconnect"
-        }
-        assertEquals(
-            listOf(listOf("bluetoothctl", "disconnect", "48:E7:DA:D4:B5:72")),
-            disconnect,
-            "failed bridge validation must release the retained GATT link",
         )
     }
 }

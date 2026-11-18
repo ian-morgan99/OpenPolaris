@@ -1,6 +1,4 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import java.util.Properties
-import java.util.jar.JarFile
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -36,20 +34,15 @@ val generatedBuildInfoDirectory = layout.buildDirectory.dir("generated/build-inf
 val generateBuildInfo by tasks.registering {
     val outputDirectory = generatedBuildInfoDirectory.get().asFile
     val gitCommit = providers.exec {
-        commandLine("git", "rev-parse", "HEAD")
+        commandLine("git", "rev-parse", "--short=7", "HEAD")
     }.standardOutput.asText.map { it.trim() }
-    val gitDirty = providers.exec {
-        commandLine("git", "diff", "--quiet", "HEAD", "--")
-        isIgnoreExitValue = true
-    }.result.map { it.exitValue != 0 }
     inputs.property("version", appPackageVersion)
     inputs.property("gitCommit", gitCommit)
-    inputs.property("gitDirty", gitDirty)
     outputs.dir(outputDirectory)
     doLast {
         outputDirectory.mkdirs()
         outputDirectory.resolve("openpolaris-build.properties").writeText(
-            "version=$appPackageVersion\ncommit=${gitCommit.get()}\ndirty=${gitDirty.get()}\n",
+            "version=$appPackageVersion\ncommit=${gitCommit.get()}\n",
         )
     }
 }
@@ -57,60 +50,6 @@ val generateBuildInfo by tasks.registering {
 tasks.named<ProcessResources>("jvmProcessResources") {
     dependsOn(generateBuildInfo)
     from(generatedBuildInfoDirectory)
-}
-
-// Fail closed if a desktop app image was not built from the current, clean
-// checkout. The desktop launcher and local release script both call this task.
-tasks.register("verifyDesktopAppImage") {
-    val imageDir = layout.buildDirectory.dir("compose/binaries/main/app/$appPackageName")
-    inputs.dir(imageDir)
-    doLast {
-        val appDir = imageDir.get().asFile
-        // jpackage does not put the app jars in one place across platforms:
-        //   Linux   <image>/lib/app/*.jar
-        //   Windows <image>/app/*.jar
-        //   macOS   <image>/Contents/app/*.jar
-        // Hardcoding lib/app made this task pass on Linux and the local
-        // launcher while failing every Windows release job with "missing
-        // lib/app" since it was wired into that job (dda884c). Probe the
-        // per-platform locations instead.
-        val appJarDir = listOf("lib/app", "app", "Contents/app")
-            .map { appDir.resolve(it) }
-            .firstOrNull { dir -> dir.isDirectory && dir.listFiles()?.any { it.extension == "jar" } == true }
-            ?: throw GradleException(
-                "Desktop app image has no jar directory (tried lib/app, app, Contents/app) under: $appDir",
-            )
-        val jars = appJarDir.listFiles()!!.filter { it.extension == "jar" }
-        val buildInfoEntries = jars.mapNotNull { jar ->
-            val props = JarFile(jar).use { jf ->
-                jf.getEntry("openpolaris-build.properties")?.let { entry ->
-                    Properties().also { properties ->
-                        jf.getInputStream(entry).use { input -> properties.load(input) }
-                    }
-                }
-            }
-            props?.let { jar to it }
-        }
-        if (buildInfoEntries.size != 1) {
-            throw GradleException("Expected one embedded build-info resource, found ${buildInfoEntries.size}")
-        }
-        val (jar, props) = buildInfoEntries.single()
-        val expectedCommit = providers.exec { commandLine("git", "rev-parse", "HEAD") }
-            .standardOutput.asText.get().trim()
-        val dirty = providers.exec {
-            commandLine("git", "diff", "--quiet", "HEAD", "--")
-            isIgnoreExitValue = true
-        }.result.get().exitValue != 0
-        val packagedCommit = props.getProperty("commit")
-        val packagedDirty = props.getProperty("dirty")
-        if (dirty || packagedDirty != "false" || packagedCommit != expectedCommit) {
-            throw GradleException(
-                "Stale/unreleaseable desktop image: packaged commit=$packagedCommit dirty=$packagedDirty; " +
-                    "checkout commit=$expectedCommit dirty=$dirty. Rebuild from a clean checkout.",
-            )
-        }
-        logger.lifecycle("Desktop image verified: commit=$packagedCommit, clean source, jar=${jar.name}")
-    }
 }
 
 compose.desktop {

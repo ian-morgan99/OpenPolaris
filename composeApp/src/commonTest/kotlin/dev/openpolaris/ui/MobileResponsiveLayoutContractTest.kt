@@ -28,13 +28,13 @@ import kotlin.test.assertNotNull
 class MobileResponsiveLayoutContractTest {
 
     private fun sourceText(relativePath: String): String {
-        var directory: java.io.File? = java.io.File(".").canonicalFile
-        repeat(8) {
-            val candidate = directory?.let { java.io.File(it, relativePath) }
-            if (candidate?.isFile == true) return candidate.readText(Charsets.UTF_8)
-            directory = directory?.parentFile
-        }
-        error("Cannot read $relativePath - searched current directory and its parents")
+        val candidates = listOf(
+            java.io.File(relativePath),
+            java.io.File("/home/ian/Documents/VSCodeProjects/OpenPolaris/$relativePath"),
+        )
+        return candidates.firstOrNull { it.exists() }
+            ?.readText(Charsets.UTF_8)
+            ?: error("Cannot read $relativePath - test must run from the repo root or a known absolute path")
     }
 
     /** Strip block + line comments so regexes don't match docstring snippets. */
@@ -85,7 +85,7 @@ class MobileResponsiveLayoutContractTest {
         val operateRefs = Regex("""Callout\.\w+""").findAll(operateMatch!!.groupValues[1]).map { it.value }.toList()
         val moreRefs = Regex("""Callout\.\w+""").findAll(moreMatch!!.groupValues[1]).map { it.value }.toList()
         assertEquals(4, operateRefs.size, "OperateItems must be 4 entries. Found: $operateRefs")
-        assertEquals(6, moreRefs.size, "MoreItems must be 6 entries. Found: $moreRefs")
+        assertEquals(6, moreRefs.size, "MoreItems must be 6 entries (incl. Tonight). Found: $moreRefs")
         assertEquals(0, operateRefs.intersect(moreRefs.toSet()).size, "OperateItems and MoreItems must be disjoint")
         val total = (operateRefs + moreRefs).toSet()
         assertEquals(10, total.size, "OperateItems + MoreItems must cover all 10 Callout entries. Found: $total")
@@ -118,45 +118,7 @@ class MobileResponsiveLayoutContractTest {
         )
     }
 
-    @Test
-    fun phonePrimaryNavigationUsesCompactTextTargets() {
-        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
-        val noComments = stripComments(src)
-        assertTrue("CompactDestinationBar(" in noComments, "phone layout must use the compact destination bar")
-        assertTrue("CompactDestinationItem(" in noComments, "each primary destination needs a compact semantic target")
-        assertTrue("height(48.dp)" in noComments, "compact navigation must retain a safe 48 dp touch row")
-        assertTrue("PaddingValues(horizontal = 2.dp)" in noComments, "compact destinations must remove the oversized icon-slot padding")
-        assertFalse("NavigationBarItem(" in noComments, "phone navigation must not restore the oversized icon-and-label items")
-        assertTrue("testTag(\"primary-navigation\")" in noComments, "primary navigation needs a stable automation target")
-        assertTrue("testTag(\"destination-more\")" in noComments, "advanced actions must remain reachable through More")
-        assertTrue("role = Role.Tab" in noComments, "compact destinations must retain navigation semantics")
-    }
-
     // --- (3) Three tall panes redesigned ----------------------------
-
-    @Test
-    fun unavailableThreeDViewIsExplicitlyCommunicated() {
-        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
-        val noComments = stripComments(src)
-        assertTrue("var unavailableFeature by remember" in noComments)
-        assertTrue("onLaunchVr == null" in noComments)
-        assertTrue("unavailableFeature = \"3D view\"" in noComments)
-        assertTrue("\$feature unavailable" in noComments)
-        assertTrue("This build has no host for " + "\$feature" in noComments)
-        assertTrue("continue with the standard mobile/PC workspace" in noComments)
-    }
-
-    @Test
-    fun phoneStatusStripHasCompactExpandableDetails() {
-        val src = sourceText("composeApp/src/commonMain/kotlin/dev/openpolaris/ui/OpenPolarisApp.kt")
-        val noComments = stripComments(src)
-        assertTrue("compact: Boolean = false" in noComments)
-        assertTrue("compact = true" in noComments, "phone status strip must opt into compact mode")
-        assertTrue("status-details-toggle" in noComments, "phone status strip needs an explicit details toggle")
-        assertTrue("if (!compact || expanded)" in noComments, "secondary readiness and safety details must be collapsible")
-        assertTrue("horizontalScroll(rememberScrollState())" in noComments, "status actions must remain reachable on narrow phones")
-        assertTrue("TextOverflow.Ellipsis" in noComments, "long status text must not expand the phone card")
-    }
 
     @Test
     fun firmwarePaneIsPaginatedIntoThreeSteps() {

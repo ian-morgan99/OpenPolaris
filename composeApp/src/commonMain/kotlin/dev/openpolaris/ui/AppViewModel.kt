@@ -5,105 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.openpolaris.core.config.FeatureFlags
 import dev.openpolaris.core.domain.AlignmentController
-import dev.openpolaris.core.domain.AstroMediaExportController
-import dev.openpolaris.core.domain.AstroMediaExportDestination
-import dev.openpolaris.core.domain.AstroMediaExportSink
-import dev.openpolaris.core.domain.AstroMediaExportState
-import dev.openpolaris.core.domain.SupportBundleExportController
-import dev.openpolaris.core.domain.SupportBundleExportSink
-import dev.openpolaris.core.domain.SupportBundleExportState
-import dev.openpolaris.core.domain.SupportBundlePublication
-import dev.openpolaris.core.domain.SupportBundleSnapshot
-import dev.openpolaris.core.domain.SupportBundleTimelineEntry
-import dev.openpolaris.core.domain.AstroMediaFetchResult
-import dev.openpolaris.core.domain.AstroMediaItem
-import dev.openpolaris.core.domain.AstroMediaListResult
-import dev.openpolaris.core.domain.AstroMediaPreview
-import dev.openpolaris.core.domain.AstroMediaState
-import dev.openpolaris.core.domain.AstroMediaTransferKind
-import dev.openpolaris.core.domain.AstroWebUiCaptureClient
-import dev.openpolaris.core.domain.AstroWebUiCaptureResult
-import dev.openpolaris.core.domain.AstroWebUiAstroCaptureClient
-import dev.openpolaris.core.domain.AstroWebUiAstroCaptureParameters
-import dev.openpolaris.core.domain.AstroWebUiAstroCaptureResult
-import dev.openpolaris.core.domain.AstroWebUiAstroCaptureState
-import dev.openpolaris.core.domain.AstroWebUiMediaClient
-import dev.openpolaris.core.domain.AstroWebUiStatusClient
-import dev.openpolaris.core.domain.AstroWebUiStatusState
-import dev.openpolaris.core.domain.AstroWebUiStatusResult
-import dev.openpolaris.core.domain.AstroWebUiGuideClient
-import dev.openpolaris.core.domain.AstroWebUiGuideResult
-import dev.openpolaris.core.domain.AstroWebUiGuideUiState
-import dev.openpolaris.core.domain.AstroWebUiAutofocusClient
-import dev.openpolaris.core.domain.AstroWebUiAutofocusParameters
-import dev.openpolaris.core.domain.AstroWebUiAutofocusResult
-import dev.openpolaris.core.domain.AstroWebUiAutofocusUiState
-import dev.openpolaris.core.domain.AstroWebUiFocalClient
-import dev.openpolaris.core.domain.AstroWebUiFocalResult
-import dev.openpolaris.core.domain.AstroWebUiFocalUiState
-import dev.openpolaris.core.domain.AstroWebUiLimitsClient
-import dev.openpolaris.core.domain.AstroWebUiLimitsResult
-import dev.openpolaris.core.domain.AstroWebUiLimitsUiState
-import dev.openpolaris.core.domain.AstroWebUiKeepWifiClient
-import dev.openpolaris.core.domain.AstroWebUiKeepWifiResult
-import dev.openpolaris.core.domain.AstroWebUiKeepWifiUiState
-import dev.openpolaris.core.domain.AstroWebUiWifiClient
-import dev.openpolaris.core.domain.AstroWebUiWifiResult
-import dev.openpolaris.core.domain.AstroWebUiWifiUiState
-import dev.openpolaris.core.domain.AstroWebUiLinkClient
-import dev.openpolaris.core.domain.AstroWebUiLinkResult
-import dev.openpolaris.core.domain.AstroWebUiLinkUiState
-import dev.openpolaris.core.domain.AstroWebUiAlignRequest
-import dev.openpolaris.core.domain.AstroWebUiGotoRequest
-import dev.openpolaris.core.domain.AstroWebUiTargetClient
-import dev.openpolaris.core.domain.AstroWebUiTargetResult
-import dev.openpolaris.core.domain.AstroWebUiTargetUiState
-import dev.openpolaris.core.domain.AstroWebUiRunStateClient
-import dev.openpolaris.core.domain.AstroWebUiRunStateResult
-import dev.openpolaris.core.domain.AstroWebUiRunStateUiState
-import dev.openpolaris.core.domain.AstroWebUiSolveClient
-import dev.openpolaris.core.domain.AstroWebUiSolveResult
-import dev.openpolaris.core.domain.AstroWebUiSolveUiState
-import dev.openpolaris.core.domain.AstroWebUiSolveControlClient
-import dev.openpolaris.core.domain.AstroWebUiSolveControlResult
-import dev.openpolaris.core.domain.AstroWebUiSolveControlUiState
-import dev.openpolaris.core.domain.AstroWebUiSolveMode
-import dev.openpolaris.core.domain.AstroWebUiSolveRequest
-import dev.openpolaris.core.domain.AstroWebUiSessionControlClient
-import dev.openpolaris.core.domain.AstroWebUiSessionControlResult
-import dev.openpolaris.core.domain.AstroWebUiSessionControlState
-import dev.openpolaris.core.domain.AstroWebUiTrackRequest
-import dev.openpolaris.core.domain.AstroWebUiSiteClient
-import dev.openpolaris.core.domain.AstroWebUiSiteResult
-import dev.openpolaris.core.domain.AstroWebUiSiteState
-import dev.openpolaris.core.domain.AstroWebUiSiteControlClient
-import dev.openpolaris.core.domain.AstroWebUiSiteWriteRequest
-import dev.openpolaris.core.domain.AstroWebUiSiteWriteResult
-import dev.openpolaris.core.domain.AstroWebUiSiteWriteState
-import dev.openpolaris.core.domain.AstroWebUiSunProgrammeClient
-import dev.openpolaris.core.domain.AstroWebUiSunParameters
-import dev.openpolaris.core.domain.AstroWebUiSunResult
-import dev.openpolaris.core.domain.AstroWebUiSunState
-import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeClient
-import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeResult
-import dev.openpolaris.core.domain.AstroWebUiMotionProgrammeState
-import dev.openpolaris.core.domain.AstroWebUiPlcKeyRequest
-import dev.openpolaris.core.domain.AstroWebUiPlcParameters
-import dev.openpolaris.core.domain.AstroWebUiPathLapseParameters
-import dev.openpolaris.core.domain.AstroWebUiPathWaypointRequest
-import dev.openpolaris.core.domain.AstroWebUiGrailParameters
-import dev.openpolaris.core.domain.AstroWebUiProgrammeClient
-import dev.openpolaris.core.domain.AstroWebUiProgrammeControlClient
-import dev.openpolaris.core.domain.AstroWebUiProgrammeControlResult
-import dev.openpolaris.core.domain.AstroWebUiProgrammeResult
-import dev.openpolaris.core.domain.AstroWebUiProgrammeStartClient
-import dev.openpolaris.core.domain.AstroWebUiProgrammeStartResult
-import dev.openpolaris.core.domain.AstroWebUiProgrammeStartState
-import dev.openpolaris.core.domain.AstroWebUiLapseParameters
-import dev.openpolaris.core.domain.AstroWebUiPanoramaParameters
-import dev.openpolaris.core.domain.AstroWebUiHdrParameters
-import dev.openpolaris.core.domain.AstroWebUiFocusParameters
-import dev.openpolaris.core.domain.AstroWebUiProgrammeState
 import dev.openpolaris.core.domain.AuthConfig
 import dev.openpolaris.core.domain.AutoLevelController
 import dev.openpolaris.core.domain.MountSessionTiltSampleSource
@@ -119,26 +20,10 @@ import dev.openpolaris.core.domain.CameraInfo
 import dev.openpolaris.core.domain.CameraProfile
 import dev.openpolaris.core.domain.CameraProfileSource
 import dev.openpolaris.core.domain.Connection
-import dev.openpolaris.core.domain.ConnectionMode
-import dev.openpolaris.core.domain.BluetoothWakePhase
-import dev.openpolaris.core.domain.BluetoothWakeState
 import dev.openpolaris.core.domain.DeviceInfo
-import dev.openpolaris.core.domain.EndpointAddress
-import dev.openpolaris.core.domain.EndpointHealth
-import dev.openpolaris.core.domain.EndpointKind
-import dev.openpolaris.core.domain.EndpointPhase
-import dev.openpolaris.core.domain.EndpointProfile
-import dev.openpolaris.core.domain.EndpointService
 import dev.openpolaris.core.domain.ExAxisState
 import dev.openpolaris.core.domain.FileEntry
 import dev.openpolaris.core.domain.FileList
-import dev.openpolaris.core.domain.FastJogActionResult
-import dev.openpolaris.core.domain.FastJogAcquireResult
-import dev.openpolaris.core.domain.FastJogController
-import dev.openpolaris.core.domain.FastJogSendResult
-import dev.openpolaris.core.domain.FastJogState
-import dev.openpolaris.core.domain.FastJogTransport
-import dev.openpolaris.core.domain.FastJogLease
 import dev.openpolaris.core.domain.FirmwareUpdateController
 import dev.openpolaris.core.domain.DeliveryMode
 import dev.openpolaris.core.domain.FirmwareDelivery
@@ -152,7 +37,6 @@ import dev.openpolaris.core.session.PlatformFile
 import dev.openpolaris.core.domain.GoToController
 import dev.openpolaris.core.domain.HelpersController
 import dev.openpolaris.core.domain.CameraController
-import dev.openpolaris.core.domain.CaptureEvidenceGate
 import dev.openpolaris.core.domain.MarkerStateBus
 import dev.openpolaris.core.domain.MountMode
 import dev.openpolaris.core.domain.MountSession
@@ -163,67 +47,8 @@ import dev.openpolaris.core.domain.TaskList
 import dev.openpolaris.core.domain.Temperature
 import dev.openpolaris.core.domain.PreviewController
 import dev.openpolaris.core.domain.PreviewTransport
-import dev.openpolaris.core.domain.QualifiedSlowMotionTransport
-import dev.openpolaris.core.domain.SystemMillis
-import dev.openpolaris.core.domain.MotionOwner
-import dev.openpolaris.core.domain.MotionAcquireResult
-import dev.openpolaris.core.domain.MotionLease
-import dev.openpolaris.core.domain.MotionState
-import dev.openpolaris.core.domain.MotionStopReason
-import dev.openpolaris.core.domain.MotionStopResult
-import dev.openpolaris.core.domain.MotionStopTransport
-import dev.openpolaris.core.domain.MotionSupervisor
-import dev.openpolaris.core.domain.RateAxis
-import dev.openpolaris.core.domain.RateAdjustCapability
-import dev.openpolaris.core.domain.RateAdjustContext
-import dev.openpolaris.core.domain.RateAdjustRequest
-import dev.openpolaris.core.domain.RateAdjustState
-import dev.openpolaris.core.domain.RateAdjustTransport
-import dev.openpolaris.core.domain.RateAxisBounds
-import dev.openpolaris.core.domain.RateCapabilityIdentity
-import dev.openpolaris.core.domain.RateCommandResult
-import dev.openpolaris.core.domain.RateUnits
-import dev.openpolaris.core.domain.SafeRateAdjustController
-import dev.openpolaris.core.domain.SlowMotionActionResult
-import dev.openpolaris.core.domain.SlowMotionCapabilities
-import dev.openpolaris.core.domain.SlowMotionCapabilityRecord
-import dev.openpolaris.core.domain.SlowMotionAcquireResult
-import dev.openpolaris.core.domain.SlowMotionCalibration
-import dev.openpolaris.core.domain.SlowMotionController
-import dev.openpolaris.core.domain.SlowMotionDemoSnapshot
-import dev.openpolaris.core.domain.SlowMotionLease
-import dev.openpolaris.core.domain.SlowMotionPlanner
-import dev.openpolaris.core.domain.SlowMotionTarget
-import dev.openpolaris.core.domain.SlowMotionTransport
-import dev.openpolaris.core.domain.SlowMotionTransportResult
-import dev.openpolaris.core.domain.SlowScheduleCommand
 import dev.openpolaris.core.domain.TrackingController
 import dev.openpolaris.core.domain.TrackingRate
-import dev.openpolaris.core.domain.createAstroMediaExportSink
-import dev.openpolaris.core.domain.createSupportBundleExportSink
-import dev.openpolaris.core.domain.createAstroWebUiMediaClient
-import dev.openpolaris.core.domain.createAstroWebUiCaptureClient
-import dev.openpolaris.core.domain.createAstroWebUiAstroCaptureClient
-import dev.openpolaris.core.domain.createAstroWebUiStatusClient
-import dev.openpolaris.core.domain.createAstroWebUiGuideClient
-import dev.openpolaris.core.domain.createAstroWebUiAutofocusClient
-import dev.openpolaris.core.domain.createAstroWebUiFocalClient
-import dev.openpolaris.core.domain.createAstroWebUiLimitsClient
-import dev.openpolaris.core.domain.createAstroWebUiKeepWifiClient
-import dev.openpolaris.core.domain.createAstroWebUiWifiClient
-import dev.openpolaris.core.domain.createAstroWebUiLinkClient
-import dev.openpolaris.core.domain.createAstroWebUiTargetClient
-import dev.openpolaris.core.domain.createAstroWebUiRunStateClient
-import dev.openpolaris.core.domain.createAstroWebUiSolveClient
-import dev.openpolaris.core.domain.createAstroWebUiSolveControlClient
-import dev.openpolaris.core.domain.createAstroWebUiSessionControlClient
-import dev.openpolaris.core.domain.createAstroWebUiSiteClient
-import dev.openpolaris.core.domain.createAstroWebUiSiteControlClient
-import dev.openpolaris.core.domain.createAstroWebUiSunProgrammeClient
-import dev.openpolaris.core.domain.createAstroWebUiMotionProgrammeClient
-import dev.openpolaris.core.domain.createAstroWebUiProgrammeClient
-import dev.openpolaris.core.domain.createAstroWebUiProgrammeControlClient
-import dev.openpolaris.core.domain.createAstroWebUiProgrammeStartClient
 import dev.openpolaris.core.domain.createPreviewTransport
 import dev.openpolaris.core.domain.readResourceText
 import dev.openpolaris.core.protocol.CommandTable
@@ -241,7 +66,6 @@ import dev.openpolaris.core.solver.StarDetector
 import dev.openpolaris.core.solver.SyntheticTestCatalog
 import dev.openpolaris.core.util.Md5
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -255,42 +79,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-
-/**
- * Transport used only by the Demo SLOW owner. It records the exact logical
- * scheduler output but never serializes or sends a firmware frame.
- */
-private class DemoSlowMotionTransport : SlowMotionTransport {
-    private val events = mutableListOf<SlowScheduleCommand>()
-
-    override suspend fun apply(command: SlowScheduleCommand): SlowMotionTransportResult {
-        events += command
-        return SlowMotionTransportResult.Accepted
-    }
-
-    override suspend fun stop(reason: MotionStopReason): MotionStopResult =
-        MotionStopResult.Stopped
-
-    fun drainEvents(): List<SlowScheduleCommand> {
-        if (events.isEmpty()) return emptyList()
-        return events.toList().also { events.clear() }
-    }
-}
-
-/** Accepts logical fine-rate requests without any wire or host transport. */
-private class DemoFineRateTransport : RateAdjustTransport {
-    override suspend fun apply(request: RateAdjustRequest): RateCommandResult =
-        RateCommandResult.Accepted(request.version)
-
-    override suspend fun stop(): RateCommandResult = RateCommandResult.Accepted()
-}
 
 /**
  * UI-facing view model. Owns the MountSession lifecycle and exposes observable
@@ -305,30 +97,17 @@ private class DemoFineRateTransport : RateAdjustTransport {
  * once issue #6's `Context` wiring lands in 3c.4). Tests pass a temp-dir-backed
  * `SessionStore` so the real home directory is never touched.
  */
-private val DEMO_PREVIEW_PNG = byteArrayOf(
-    -119, 80, 78, 71, 13, 10, 26, 10,
-    0, 0, 0, 13, 73, 72, 68, 82,
-    0, 0, 0, 1, 0, 0, 0, 1,
-    8, 6, 0, 0, 0, 31, 21, -60,
-    -119, 0, 0, 0, 13, 73, 68, 65,
-    84, 120, -100, 99, 96, 96, 96, 0,
-    0, 0, 4, 0, 1, 11, -25, 2,
-    -99, 0, 0, 0, 0, 73, 69, 78,
-    68, -82, 66, 96, -126,
-)
-
 class AppViewModel(
     private val scope: CoroutineScope,
     private val connectionFactory: () -> Connection,
     /**
      * Bridge the segregated Wi-Fi interface to the gimbal. The lambda receives
      * a `progress: (String) -> Unit` callback; it is called from a background
-     * dispatcher and must be safe to invoke off the main thread. It returns
-     * true only after the route and Polaris service identity are verified. The
-     * default is a false-returning no-op so callers without a bridge (e.g. the
-     * Android build) cannot claim Wi-Fi readiness.
+     * dispatcher and must be safe to invoke off the main thread. The default
+     * is a no-op so callers that don't have a bridge implementation (e.g.
+     * the Android build) can construct the VM without it.
      */
-    private val connectWifi: suspend (suspend (String) -> Unit) -> Boolean = { false },
+    private val connectWifi: suspend (suspend (String) -> Unit) -> Unit = {},
     /**
      * BT-only wake pulse for the gimbal. Distinct from [connectWifi] (which
      * does wake → NM up → link → policy route in one shot). The lambda
@@ -371,35 +150,6 @@ class AppViewModel(
     // the platform default via PreviewController's own default.
     private val previewTransportFactory: ((ByteArray) -> Boolean, (Throwable) -> Unit) -> PreviewTransport = ::createPreviewTransport,
     private val previewIoDispatcher: CoroutineDispatcher? = null,
-    private val astroWebUiMediaClient: AstroWebUiMediaClient = createAstroWebUiMediaClient(),
-    private val astroWebUiCaptureClient: AstroWebUiCaptureClient = createAstroWebUiCaptureClient(),
-    private val astroWebUiAstroCaptureClient: AstroWebUiAstroCaptureClient = createAstroWebUiAstroCaptureClient(),
-    private val astroWebUiStatusClient: AstroWebUiStatusClient = createAstroWebUiStatusClient(),
-    private val astroWebUiGuideClient: AstroWebUiGuideClient = createAstroWebUiGuideClient(),
-    private val astroWebUiAutofocusClient: AstroWebUiAutofocusClient = createAstroWebUiAutofocusClient(),
-    private val astroWebUiFocalClient: AstroWebUiFocalClient = createAstroWebUiFocalClient(),
-    private val astroWebUiLimitsClient: AstroWebUiLimitsClient = createAstroWebUiLimitsClient(),
-    private val astroWebUiKeepWifiClient: AstroWebUiKeepWifiClient = createAstroWebUiKeepWifiClient(),
-    private val astroWebUiWifiClient: AstroWebUiWifiClient = createAstroWebUiWifiClient(),
-    private val astroWebUiLinkClient: AstroWebUiLinkClient = createAstroWebUiLinkClient(),
-    private val astroWebUiTargetClient: AstroWebUiTargetClient = createAstroWebUiTargetClient(),
-    private val astroWebUiSolveClient: AstroWebUiSolveClient = createAstroWebUiSolveClient(),
-    private val astroWebUiSolveControlClient: AstroWebUiSolveControlClient = createAstroWebUiSolveControlClient(),
-    private val astroWebUiRunStateClient: AstroWebUiRunStateClient = createAstroWebUiRunStateClient(),
-    private val astroWebUiSessionControlClient: AstroWebUiSessionControlClient = createAstroWebUiSessionControlClient(),
-    private val astroWebUiSiteClient: AstroWebUiSiteClient = createAstroWebUiSiteClient(),
-    private val astroWebUiSiteControlClient: AstroWebUiSiteControlClient = createAstroWebUiSiteControlClient(),
-    private val astroWebUiProgrammeClient: AstroWebUiProgrammeClient = createAstroWebUiProgrammeClient(),
-    private val astroWebUiProgrammeControlClient: AstroWebUiProgrammeControlClient = createAstroWebUiProgrammeControlClient(),
-    private val astroWebUiProgrammeStartClient: AstroWebUiProgrammeStartClient = createAstroWebUiProgrammeStartClient(),
-    private val astroWebUiSunProgrammeClient: AstroWebUiSunProgrammeClient = createAstroWebUiSunProgrammeClient(),
-    private val astroWebUiMotionProgrammeClient: AstroWebUiMotionProgrammeClient = createAstroWebUiMotionProgrammeClient(),
-    private val astroMediaExportSink: AstroMediaExportSink = createAstroMediaExportSink(),
-    private val supportBundleExportSink: SupportBundleExportSink = createSupportBundleExportSink(),
-    /** Evidence-backed SLOW allow-list; production defaults to the unqualified record. */
-    private val slowMotionCapabilityRecord: SlowMotionCapabilityRecord = SlowMotionCapabilities.current,
-    /** Clock seam for deterministic SLOW hold/release tests; production uses wall time. */
-    private val slowMotionNow: () -> Long = { SystemMillis.now() },
 ) {
     // 3d: default host is the Polaris AP (192.168.0.1) when the user's
     // phone is joined to the mount's WiFi network. The pre-3d default
@@ -413,29 +163,6 @@ class AppViewModel(
 
     var host by mutableStateOf("192.168.0.1")
         private set
-
-    /** Network intent shown in the Connection workspace and endpoint health. */
-    var connectionMode by mutableStateOf(ConnectionMode.DIRECT_AP)
-        private set
-    private var connectionModePersistence: ((ConnectionMode) -> Unit)? = null
-
-    fun setConnectionModePersistence(persistence: (ConnectionMode) -> Unit) {
-        connectionModePersistence = persistence
-    }
-
-    /** Restore presentation/routing intent without writing preferences again. */
-    fun restoreConnectionMode(mode: ConnectionMode) {
-        connectionMode = mode
-    }
-
-    fun selectConnectionMode(mode: ConnectionMode) {
-        if (connectionMode == mode) return
-        connectionMode = mode
-        connectionModePersistence?.invoke(mode)
-        if (session != null) {
-            statusMessage = "Connection mode changed to ${mode.name.lowercase().replace('_', ' ')}; reconnect to apply"
-        }
-    }
 
     // 3b.5-BUG: live (committed) port, read by MountSession() and the
     // persisted marker. Defaults to 9090 to match prior hard-coded
@@ -490,10 +217,6 @@ class AppViewModel(
     var statusMessage by mutableStateOf("Disconnected")
         private set
 
-    /** Typed evidence for the Bluetooth wake pulse; it is not Wi-Fi/control readiness. */
-    var bluetoothWakeState by mutableStateOf(BluetoothWakeState())
-        private set
-
     var demoMode by mutableStateOf(false)
         private set
 
@@ -521,9 +244,7 @@ class AppViewModel(
     var cameraInfo by mutableStateOf<CameraInfo?>(null)
         private set
 
-    /** 286 — camera-attachment info (manufacturer/model/state). Read once on
-     * connect and refreshed only on explicit user request to avoid a periodic
-     * second-client camera query while Benro Connect is active.
+    /** 286 — camera-attachment info (manufacturer/model/state). Polled every 5 s
      *  so the Camera pane can show "no camera detected" (state -5) instead of a
      *  wall of "unavailable" steppers, and the Preview pane can explain a dead
      *  MJPEG stream. Live-verified 2026-09-16: with no camera the firmware
@@ -570,37 +291,6 @@ class AppViewModel(
      * press is ignored (never auto-retried) so a possibly-successful release
      * can't be doubled.
      */
-    data class CapturePublication(
-        val path: String,
-        val type: Int?,
-        val sizeBytes: Long?,
-    )
-
-    enum class CaptureTimelineStage(val label: String) {
-        REQUESTED("Requested"),
-        ACTIVE("Camera active"),
-        PUBLISHED("File published"),
-        CONFIRMED("Confirmed"),
-        UNKNOWN("Outcome unknown"),
-        FAILED("Failed"),
-    }
-
-    data class CaptureTimelineEntry(
-        val stage: CaptureTimelineStage,
-        val detail: String,
-    )
-
-    enum class CaptureKind {
-        NORMAL,
-        BULB,
-    }
-
-    /** The owner of the current release, so native Bulb stop cannot cross into Astro WebUI. */
-    enum class CaptureSource {
-        NATIVE,
-        ASTRO_WEB_UI,
-    }
-
     sealed interface CapturePhase {
         data object Idle : CapturePhase
         data object Requested : CapturePhase
@@ -610,32 +300,8 @@ class AppViewModel(
         data class Failed(val reason: String) : CapturePhase
     }
 
-    /** The requested shutter kind is independent from lifecycle/busy state. */
-    var captureKind by mutableStateOf<CaptureKind?>(null)
-        private set
-
-    var captureSource by mutableStateOf<CaptureSource?>(null)
-        private set
-
-    /** Native Bulb only: Astro WebUI has a separate stop route and must not use 264/state:0 here. */
-    val nativeBulbCaptureActive: Boolean
-        get() = captureKind == CaptureKind.BULB && captureSource == CaptureSource.NATIVE
-
     var capturePhase by mutableStateOf<CapturePhase>(CapturePhase.Idle)
         private set
-
-    /** Last file publication confirmed by the correlated capture lifecycle. */
-    var lastCapturePublication by mutableStateOf<CapturePublication?>(null)
-        private set
-
-    /** Bounded, ordered evidence trail for the current/last capture workflow. */
-    var captureTimeline by mutableStateOf<List<CaptureTimelineEntry>>(emptyList())
-        private set
-
-    private val supportBundleExportController = SupportBundleExportController(supportBundleExportSink)
-    var supportBundleExportState by mutableStateOf<SupportBundleExportState>(SupportBundleExportState.Idle)
-        private set
-    private var supportBundleExportJob: Job? = null
 
     /**
      * Live status of the firmware-update flow (FirmwareUpdateController). Null
@@ -733,198 +399,6 @@ class AppViewModel(
 
     private var session: MountSession? = null
     private var controller: TrackingController? = null
-    // Demo-only SLOW owner. It uses the same exclusive lease, scheduler and
-    // dead-man renewal contract as the future live adapter, but its transport
-    // records logical commands only and never emits a firmware frame.
-    private val demoSlowMotionTransport = DemoSlowMotionTransport()
-    /**
-     * The firmware-bound adapter is present as a qualification-gated seam, but
-     * the current immutable capability record is unqualified. The selector
-     * below keeps Demo and a future qualified session on the same controller
-     * and owner lifecycle without allowing a feature flag to open the route.
-     */
-    private val qualifiedSlowMotionTransport = QualifiedSlowMotionTransport(
-        capability = slowMotionCapabilityRecord,
-    ) { frame ->
-        val activeSession = session
-        if (activeSession == null) {
-            SlowMotionTransportResult.Unknown("mount session unavailable for SLOW transport")
-        } else {
-            try {
-                activeSession.sendOnly(frame.code, frame.payload)
-                SlowMotionTransportResult.Accepted
-            } catch (error: Throwable) {
-                SlowMotionTransportResult.Unknown(
-                    "SLOW frame dispatch failed: " +
-                        (error.message ?: error::class.simpleName ?: "unknown error"),
-                )
-            }
-        }
-    }
-    private val slowMotionTransport = object : SlowMotionTransport {
-        override suspend fun apply(command: SlowScheduleCommand): SlowMotionTransportResult =
-            if (demoMode) demoSlowMotionTransport.apply(command)
-            else qualifiedSlowMotionTransport.apply(command)
-
-        override suspend fun stop(reason: MotionStopReason): MotionStopResult =
-            if (demoMode) demoSlowMotionTransport.stop(reason)
-            else qualifiedSlowMotionTransport.stop(reason)
-    }
-    /**
-     * Demo-only fine-rate transport. It accepts logical requests and never
-     * has access to a MountSession, so the rehearsal cannot emit a firmware
-     * frame accidentally.
-     */
-    private val demoFineRateTransport = DemoFineRateTransport()
-    private val demoFineRateIdentity = RateCapabilityIdentity(
-        firmwareId = "openpolaris-demo",
-        gimbalPayloadSha256 = "demo-only-no-payload",
-        profileId = "fine-rate-rehearsal-v1",
-    )
-    private val demoFineRateCapability = RateAdjustCapability(
-        identity = demoFineRateIdentity,
-        qualified = true,
-        units = RateUnits.DEGREES_PER_SECOND,
-        bounds = RateAxis.entries.associateWith { RateAxisBounds(-1.0, 1.0) },
-    )
-    /**
-     * Source-aligned duration jog transport. 513-516 use time:Nms for a
-     * bounded beat and state:0 on the same code for an explicit stop.
-     * sendOnly is used so a failed write becomes an unknown stop state rather
-     * than a silent successful command.
-     */
-    private val fastJogTransport = object : FastJogTransport {
-        override suspend fun send(code: Int, durationMs: Int): FastJogSendResult {
-            val activeSession = session ?: return FastJogSendResult.Rejected
-            return try {
-                activeSession.sendOnly(code, "time:" + durationMs + "ms;")
-                FastJogSendResult.Sent
-            } catch (error: Throwable) {
-                FastJogSendResult.Unknown(
-                    "fast jog dispatch failed: " + (error.message ?: error::class.simpleName ?: "unknown error"),
-                )
-            }
-        }
-
-        override suspend fun stop(code: Int, reason: MotionStopReason): MotionStopResult {
-            val activeSession = session ?: return MotionStopResult.Unknown(
-                "mount session unavailable for fast jog stop",
-            )
-            return try {
-                activeSession.sendOnly(code, "state:0;")
-                MotionStopResult.Stopped
-            } catch (error: Throwable) {
-                MotionStopResult.Unknown(
-                    "fast jog stop failed: " + (error.message ?: error::class.simpleName ?: "unknown error"),
-                )
-            }
-        }
-    }
-    // Keep ownership separate from the SLOW scheduler. The supervisor is the
-    // shared boundary that future fast-jog, GoTo and programme adapters must
-    // use; a SLOW hold cannot acquire while another owner is active.
-    /**
-     * Shared physical-motion ownership state for the responsive Motion pane.
-     * The state is observable even while the live transport gate is closed;
-     * it prevents Demo SLOW feedback from looking like an unowned motor path.
-     */
-    val motionState: StateFlow<MotionState>
-        get() = motionSupervisor.state
-
-    /** True only when the SLOW controller itself owns the faulted recovery state. */
-    val slowMotionFaulted: Boolean
-        get() = slowMotionStateIsFaulted()
-
-    private fun slowMotionStateIsFaulted(): Boolean =
-        demoSlowMotion.state.value is dev.openpolaris.core.domain.SlowMotionState.Faulted
-
-    /** The exact SLOW evidence record used by both the UI and runtime adapter. */
-    val slowMotionCapability: SlowMotionCapabilityRecord
-        get() = slowMotionCapabilityRecord
-
-    val fastJogState: StateFlow<FastJogState>
-        get() = fastJogController.state
-
-    private val motionSupervisor = MotionSupervisor(
-        stopTransport = object : MotionStopTransport {
-            override suspend fun stop(owner: MotionOwner, reason: MotionStopReason): MotionStopResult =
-                when (owner) {
-                    MotionOwner.SLOW_MOVE -> slowMotionTransport.stop(reason)
-                    MotionOwner.TRACKING_CORRECTION -> when (val result = demoFineRateTransport.stop()) {
-                        is RateCommandResult.Accepted -> MotionStopResult.Stopped
-                        is RateCommandResult.Rejected -> MotionStopResult.Rejected
-                        is RateCommandResult.Unknown -> MotionStopResult.Unknown(result.reason)
-                    }
-                    MotionOwner.FAST_JOG -> {
-                        val code = fastJogController.activeCode
-                        if (code == null) {
-                            MotionStopResult.Unknown("fast jog axis is not available for stop")
-                        } else {
-                            fastJogTransport.stop(code, reason)
-                        }
-                    }
-                    MotionOwner.ALIGNMENT -> MotionStopResult.Stopped
-                    MotionOwner.GOTO -> {
-                        val activeSession = session
-                        if (activeSession == null) {
-                            MotionStopResult.Unknown("mount session unavailable for GoTo stop")
-                        } else {
-                            try {
-                                GoToController(
-                                    activeSession,
-                                    controller ?: TrackingController(activeSession),
-                                ).cancelGoto()
-                                MotionStopResult.Stopped
-                            } catch (error: Throwable) {
-                                MotionStopResult.Unknown(
-                                    "GoTo stop failed: ${error.message ?: error::class.simpleName ?: "unknown error"}",
-                                )
-                            }
-                        }
-                    }
-                    else -> MotionStopResult.Unknown(
-                        "no live stop adapter for " + owner.name,
-                    )
-                }
-
-            override suspend fun stop(lease: MotionLease, reason: MotionStopReason): MotionStopResult =
-                if (lease.owner == MotionOwner.FAST_JOG) {
-                    val code = fastJogController.activeCode
-                    if (code == null) {
-                        MotionStopResult.Unknown("fast jog axis is not available for stop")
-                    } else {
-                        fastJogTransport.stop(code, reason)
-                    }
-                } else {
-                    stop(lease.owner, reason)
-                }
-        },
-    )
-    private val fastJogController: FastJogController = FastJogController(
-        transport = fastJogTransport,
-        motionSupervisor = motionSupervisor,
-    )
-    private var fastJogLease: FastJogLease? = null
-    private var fastJogJob: Job? = null
-    private val demoSlowMotion = SlowMotionController(
-        transport = slowMotionTransport,
-        planner = SlowMotionPlanner(SlowMotionCalibration.REFERENCE),
-        motionSupervisor = motionSupervisor,
-    )
-    private var demoSlowMotionLease: SlowMotionLease? = null
-    private var demoSlowMotionJob: Job? = null
-    private var demoSlowMotionStopJob: Job? = null
-    private val demoFineRate = SafeRateAdjustController(demoFineRateTransport)
-    private var demoFineRateLease: MotionLease? = null
-    private var demoFineRateJob: Job? = null
-    private var demoFineRateRehearsalEvidence by mutableStateOf(false)
-    private var demoFineRateVersion = 0L
-    val fineRateDemoState: StateFlow<RateAdjustState>
-        get() = demoFineRate.state
-    val fineRateDemoEvidenceArmed: Boolean
-        get() = demoFineRateRehearsalEvidence
-    var slowMotionDemoState by mutableStateOf(SlowMotionDemoSnapshot())
-        private set
     /**
      * Persistent multi-star alignment session (code 530). Owned by the VM so
      * the firmware receives a monotonically increasing `num` index across
@@ -933,8 +407,6 @@ class AppViewModel(
      * Created in [connect] / [connectDemo], cleared in [disconnect].
      */
     private var alignmentController: AlignmentController? = null
-    private var alignmentMotionLease: MotionLease? = null
-    private var alignmentJob: Job? = null
     private var autoLevelController: AutoLevelController? = null
     private val autoLevelJobs: MutableList<Job> = mutableListOf()
     // The 3 helper-state collectors (dither/settling/limits) launched by
@@ -948,32 +420,14 @@ class AppViewModel(
     private var captureEventJob: Job? = null
     // 286 camera-attachment poll (see [startCameraAttachmentPolling]).
     private var cameraAttachmentPollJob: Job? = null
-    // Dynamic INFO reads are session-owned so a late camera read cannot
-    // repopulate a replacement mount session after disconnect/reconnect.
-    private var cameraRefreshJob: Job? = null
-    // Explicit source-aligned task-3 camera reads are separate from the
-    // dynamic index registry so an unavailable auxiliary route cannot erase
-    // the primary exposure options.
-    private var cameraAuxiliaryRefreshJob: Job? = null
     // #60: bounded watchdog for an in-flight capture. Started by [capture],
     // cancelled when the capture-event observer correlates a lifecycle + file
     // event (shot done) or when the phase reaches a terminal state. If it
     // fires, the capture is reported as Failed("timeout") instead of hanging
     // on Busy.
     private var captureWatchdogJob: Job? = null
-    // User-triggered capture dispatch is session-owned. Without an explicit
-    // handle, a queued Compose action could repopulate Requested after
-    // disconnect has already cleared the capture evidence.
-    private var captureDispatchJob: Job? = null
-    private var bulbStopJob: Job? = null
-    private var astroWebUiCaptureJob: Job? = null
-    private var astroWebUiBulbStopJob: Job? = null
-    /** Shared lifecycle + publication correlation for single shots and programmes. */
-    private val captureEvidence = CaptureEvidenceGate()
-    private var pendingCapturePublication: CapturePublication? = null
-    private var programmeConfirmation: CompletableDeferred<CaptureEvidenceGate.Publication?>? = null
-    private var observationProgrammeActive = false
-    private var sessionTearingDown = false
+    private var captureSawLifecycle = false
+    private var captureSawFile = false
     // §6: true while an intervalometer sequence is driving captures. The
     // capture-event observer uses this to route a correlated completion into
     // [intervalometer].markShotDone() so the engine advances to the next shot
@@ -997,21 +451,6 @@ class AppViewModel(
     val previewState: StateFlow<PreviewController.State> get() = preview.state
     var previewFrame by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
         private set
-    // Derived locally from the same decoded frame that is rendered. This is
-    // presentation state only; it never implies camera focus or mount health.
-    var previewPixelAnalysis by mutableStateOf<PreviewPixelAnalysis?>(null)
-        private set
-    /** Wall-clock receipt of the currently displayed decoded preview frame. */
-    var previewFrameReceivedAtMs by mutableStateOf<Long?>(null)
-        private set
-    // Pixel reads can block on a GPU-backed bitmap, so analysis has its own
-    // cancellable job and never delays the control-socket owner.
-    private var previewAnalysisJob: Job? = null
-    // Preview has one owner (the active Preview workflow). Keep a single
-    // collector for that owner so reopening the pane cannot accumulate
-    // duplicate frame decoders or competing transport lifecycles.
-    private var previewFrameJob: Job? = null
-    private var previewRequested = false
 
     // 3c.3: session-pause UX surface. Non-null while the UI is expected to
     // render the "Reconnect to <host>?" AlertDialog. Populated by
@@ -1101,13 +540,6 @@ class AppViewModel(
     // can interrupt a hung `s.connect()`. Null between connects. Set by
     // [connect] immediately before launching.
     private var connectJob: Job? = null
-    // Bridge and BT wake operations are session-owned too. Keeping explicit
-    // handles prevents teardown/reconnect from leaving host work publishing
-    // into a new session after the old UI surface has gone away.
-    private var connectWifiJob: Job? = null
-    private var wakeJob: Job? = null
-    private var demoConnectJob: Job? = null
-    private var saveMarkerJob: Job? = null
 
     /**
      * Wall-clock provider for the marker-age calculation. Overridable from
@@ -1116,58 +548,6 @@ class AppViewModel(
      */
     internal var nowMs: () -> Long = { dev.openpolaris.core.domain.currentEpochMillis() }
 
-    /**
-     * Typed endpoint evidence consumed by the Mission summary and future
-     * connection workspace. Control and preview are updated independently;
-     * a successful control handshake never claims that the MJPEG stream is
-     * healthy.
-     */
-    var endpointHealth by mutableStateOf(EndpointHealth.disconnected())
-        private set
-
-    private fun endpointProfile(): EndpointProfile? = runCatching {
-        EndpointProfile(
-            id = if (demoMode) "demo" else "current-mount",
-            label = if (demoMode) "Demo mount" else "Current mount",
-            kind = when {
-                demoMode -> EndpointKind.DEMO
-                connectionMode == ConnectionMode.HOME_LAN -> EndpointKind.HOME_LAN
-                else -> EndpointKind.DIRECT_AP
-            },
-            address = EndpointAddress(host, controlPort = port, previewPort = previewPort),
-        )
-    }.getOrNull()
-
-    private fun setEndpointHealth(
-        phase: EndpointPhase,
-        control: EndpointService,
-        preview: EndpointService,
-        failure: String? = null,
-    ) {
-        endpointHealth = EndpointHealth(
-            profile = endpointProfile(),
-            phase = phase,
-            control = control,
-            preview = preview,
-            phaseSinceMs = nowMs().coerceAtLeast(0L),
-            lastFailure = failure,
-        )
-    }
-
-    private fun setPreviewHealth(service: EndpointService, failure: String? = null) {
-        val current = endpointHealth
-        if (current.profile == null) return
-        endpointHealth = current.copy(
-            phase = when {
-                failure != null -> EndpointPhase.DEGRADED
-                current.phase == EndpointPhase.FAILED -> EndpointPhase.FAILED
-                else -> current.phase
-            },
-            preview = service,
-            phaseSinceMs = nowMs().coerceAtLeast(0L),
-            lastFailure = failure ?: current.lastFailure,
-        )
-    }
 
     fun updateHost(h: String) { host = h }
 
@@ -1357,28 +737,13 @@ class AppViewModel(
             lastRollDeg = pos?.roll?.toDouble(),
             lastPitchDeg = pos?.pitch?.toDouble(),
         )
-        val markerSession = session
-        saveMarkerJob?.cancel()
-        saveMarkerJob = scope.launch {
-            try {
-                val result = withContext(ioDispatcher) { sessionStore.write(marker) }
-                if (saveMarkerJob === currentCoroutineContext()[Job] &&
-                    session === markerSession &&
-                    !sessionTearingDown &&
-                    result.isFailure
-                ) {
-                    // Best-effort: a failed write does not break the live
-                    // session, but the user should know the reconnect prompt
-                    // will not appear next launch.
-                    statusMessage = "Connected (could not save session: " +
-                        (result.exceptionOrNull()?.message ?: "unknown")
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } finally {
-                if (saveMarkerJob === currentCoroutineContext()[Job]) {
-                    saveMarkerJob = null
-                }
+        scope.launch {
+            val result = withContext(ioDispatcher) { sessionStore.write(marker) }
+            if (result.isFailure) {
+                // Best-effort: a failed write does not break the live
+                // session, but the user should know the reconnect prompt
+                // will not appear next launch.
+                statusMessage = "Connected (could not save session: ${result.exceptionOrNull()?.message ?: "unknown"})"
             }
         }
     }
@@ -1402,14 +767,7 @@ class AppViewModel(
         // always.)
         reconnectGeneration++
         disconnect()
-        stopDemoSlowMotionForDisconnect()
         demoMode = false
-        slowMotionDemoState = SlowMotionDemoSnapshot()
-        setEndpointHealth(
-            phase = EndpointPhase.CONTROL_CHECKING,
-            control = EndpointService.UNKNOWN,
-            preview = EndpointService.UNKNOWN,
-        )
         // 3b.5-BUG: was hard-coded 9090. Reads the live [port] field which
         // acceptReconnect() committed before calling connect() (in the
         // reconnect path) or which the user set via the UI before pressing
@@ -1436,7 +794,6 @@ class AppViewModel(
         controller = TrackingController(s)
         cameraController = CameraController(s)
         intervalometer = createIntervalometer()
-        observationExecutor = createObservationProgrammeExecutor()
         alignmentController = AlignmentController(s)
         wireHelpers(s)
         startAutoLevel(s)
@@ -1487,14 +844,9 @@ class AppViewModel(
                     .takeIf { it.startsWith("Could not save updated host:") }
                 if (s.connect()) {
                     statusMessage = "Connected"
-                    setEndpointHealth(
-                        phase = EndpointPhase.READY,
-                        control = EndpointService.REACHABLE,
-                        preview = EndpointService.UNKNOWN,
-                    )
                     // 3e E2: catch any throw from the post-connect bootstrap
                     // (saveMarker / startPolling / startCaptureEventObserver /
-                    // camera attachment poll) so a failing setup step surfaces
+                    // startPreview) so a single failing bootstrap step surfaces
                     // as a status message instead of killing the launched
                     // coroutine and leaving the UI in a half-connected state.
                     // Pre-fix the success branch was bare; an NPE in the
@@ -1507,8 +859,7 @@ class AppViewModel(
                         startPolling(s)
                         startCaptureEventObserver(s)
                         startCameraAttachmentPolling(s)
-                    } catch (e: CancellationException) {
-                        throw e
+                        startPreview()
                     } catch (e: Throwable) {
                         // Make sure the half-built session is torn down so a
                         // retry starts from a clean slate. The next connect()
@@ -1517,12 +868,6 @@ class AppViewModel(
                         // keep polling and streaming from a session whose
                         // bootstrap never finished.
                         disconnect()
-                        setEndpointHealth(
-                            phase = EndpointPhase.FAILED,
-                            control = EndpointService.REACHABLE,
-                            preview = EndpointService.UNKNOWN,
-                            failure = e.message ?: e::class.simpleName ?: "post-connect setup failed",
-                        )
                         statusMessage = "Connected, but post-connect setup failed: " +
                             "${e.message ?: e::class.simpleName}"
                     }
@@ -1534,19 +879,11 @@ class AppViewModel(
                     // the bare "Could not reach $host". Falls back to the
                     // original message if MountSession never set one.
                     val reason = s.state.value.lastErrorMessage
-                    setEndpointHealth(
-                        phase = EndpointPhase.FAILED,
-                        control = EndpointService.UNREACHABLE,
-                        preview = EndpointService.UNKNOWN,
-                        failure = reason ?: "control connection failed",
-                    )
                     val prefix = pendingSaveFailure?.let { saveMsg ->
                         "$saveMsg — and could not reach $host."
                     } ?: "Could not reach $host"
                     statusMessage = if (reason != null) "$prefix — $reason" else "$prefix. Try Demo mode."
                 }
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
                 // 3e E2: outer catch for anything the inner try did not cover
                 // (e.g. an uncaught throw inside the launching dispatcher, or
@@ -1564,14 +901,7 @@ class AppViewModel(
                 ) {
                     needsPassword = true
                 }
-                val failure = e.message ?: e::class.simpleName ?: "unknown connection failure"
-                setEndpointHealth(
-                    phase = EndpointPhase.FAILED,
-                    control = EndpointService.UNREACHABLE,
-                    preview = EndpointService.UNKNOWN,
-                    failure = failure,
-                )
-                statusMessage = "Connect failed: $failure"
+                statusMessage = "Connect failed: ${e.message ?: e::class.simpleName}"
             } finally {
                 _reconnecting.value = false
 
@@ -1590,66 +920,16 @@ class AppViewModel(
         // statusMessage stuck on the initial "Connecting…" line. Also
         // guard against double-tap so two overlapping launches do not
         // race to write the same status line.
-        if (_reconnecting.value || connectWifiJob?.isActive == true) return
-        // The full bridge bring-up includes its own wake pulse. If the user
-        // started the standalone Wake action first, hand status ownership to
-        // this operation instead of letting both host jobs publish progress.
-        val activeWake = wakeJob
-        if (activeWake?.isActive == true) {
-            activeWake.cancel()
-            wakeJob = null
-            _waking.value = false
-            bluetoothWakeState = BluetoothWakeState(
-                BluetoothWakePhase.CANCELLED,
-                "Standalone Bluetooth wake cancelled; the PC bridge now owns the attempt",
-            )
-        }
+        if (_reconnecting.value) return
         _reconnecting.value = true
-        bluetoothWakeState = BluetoothWakeState(
-            BluetoothWakePhase.REQUESTED,
-            "PC bridge may use the Bluetooth wake pulse before establishing Wi-Fi",
-        )
-        connectWifiJob = scope.launch {
+        scope.launch {
             try {
-                setEndpointHealth(
-                    phase = EndpointPhase.WAKING,
-                    control = endpointHealth.control,
-                    preview = endpointHealth.preview,
-                )
                 statusMessage = "Connecting to mount Wi-Fi…"
-                val routeReady = connectWifi { msg -> publishConnectionProgress(msg) }
-                if (routeReady) {
-                    setEndpointHealth(
-                        phase = EndpointPhase.WIFI_READY,
-                        control = EndpointService.UNKNOWN,
-                        preview = EndpointService.UNKNOWN,
-                    )
-                } else {
-                    val failure = "bridge did not verify the mount route"
-                    setEndpointHealth(
-                        phase = EndpointPhase.FAILED,
-                        control = EndpointService.UNREACHABLE,
-                        preview = EndpointService.UNKNOWN,
-                        failure = failure,
-                    )
-                    statusMessage = "Wi-Fi bridge failed: $failure"
-                }
-            } catch (e: CancellationException) {
-                throw e
+                connectWifi { msg -> statusMessage = msg }
             } catch (e: Throwable) {
-                val failure = e.message ?: e::class.simpleName ?: "Wi-Fi bridge failed"
-                setEndpointHealth(
-                    phase = EndpointPhase.FAILED,
-                    control = EndpointService.UNREACHABLE,
-                    preview = EndpointService.UNKNOWN,
-                    failure = failure,
-                )
-                statusMessage = "Wi-Fi bridge failed: $failure"
+                statusMessage = "Wi-Fi bridge failed: ${e.message ?: e::class.simpleName}"
             } finally {
-                if (connectWifiJob === currentCoroutineContext()[Job]) {
-                    connectWifiJob = null
-                    _reconnecting.value = false
-                }
+                _reconnecting.value = false
             }
         }
     }
@@ -1671,36 +951,10 @@ class AppViewModel(
             try {
                 statusMessage = "Tearing down mount Wi-Fi…"
                 teardown { msg -> statusMessage = msg }
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
                 statusMessage = "Wi-Fi bridge teardown failed: ${e.message ?: e::class.simpleName}"
             }
         }
-    }
-
-    private fun publishConnectionProgress(message: String) {
-        statusMessage = message
-        val lower = message.lowercase()
-        val current = bluetoothWakeState.phase
-        val phase = when {
-            lower.startsWith("woke ") ||
-                lower.contains("wake complete") ||
-                lower.contains("pulse opened") ||
-                lower.contains("pulse succeeded") -> BluetoothWakePhase.SUCCEEDED
-            lower.contains("bt wake failed") ||
-                lower.contains("wake failed") ||
-                (lower.contains("bluetooth") && lower.contains("fail")) -> BluetoothWakePhase.FAILED
-            lower.contains("gatt") ||
-                (lower.contains("bluetooth") && lower.contains("connect")) -> BluetoothWakePhase.CONNECTING
-            lower.contains("scan") && (
-                current == BluetoothWakePhase.REQUESTED ||
-                    current == BluetoothWakePhase.DISCOVERING
-                ) -> BluetoothWakePhase.DISCOVERING
-            lower.contains("bluetooth") && current == BluetoothWakePhase.IDLE -> BluetoothWakePhase.REQUESTED
-            else -> return
-        }
-        bluetoothWakeState = BluetoothWakeState(phase, message)
     }
 
     /**
@@ -1718,16 +972,7 @@ class AppViewModel(
     fun wake() {
         if (_waking.value) return
         _waking.value = true
-        bluetoothWakeState = BluetoothWakeState(
-            BluetoothWakePhase.REQUESTED,
-            "Bluetooth wake pulse requested",
-        )
-        setEndpointHealth(
-            phase = EndpointPhase.WAKING,
-            control = endpointHealth.control,
-            preview = endpointHealth.preview,
-        )
-        wakeJob = scope.launch {
+        scope.launch {
             // 8.0 wake-then-connect race (v2): a connect that *started* during
             // the wake must own the terminal status line, even if it finishes
             // and resets [_reconnecting] before the wake's terminal write
@@ -1762,13 +1007,13 @@ class AppViewModel(
                     if (!_reconnecting.value &&
                         reconnectGeneration == wakeStartGeneration
                     ) {
-                        publishConnectionProgress(msg)
+                        statusMessage = msg
                     }
                 }
                 if (!_reconnecting.value &&
                     reconnectGeneration == wakeStartGeneration
                 ) {
-                    publishConnectionProgress("Waking gimbal over Bluetooth…")
+                    statusMessage = "Waking gimbal over Bluetooth…"
                 }
                 wakeProbe(wakeProgress)
                 // 8.0 v2: in addition to the in-flight check, suppress the
@@ -1784,26 +1029,14 @@ class AppViewModel(
                     !statusMessage.startsWith("Woke ") &&
                     !statusMessage.startsWith("BT wake failed:")
                 ) {
-                    publishConnectionProgress("Wake complete — try Connect")
+                    statusMessage = "Wake complete — try Connect"
                 }
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
                 if (!_reconnecting.value && reconnectGeneration == wakeStartGeneration) {
-                    val failure = e.message ?: e::class.simpleName ?: "Bluetooth wake failed"
-                    setEndpointHealth(
-                        phase = EndpointPhase.FAILED,
-                        control = EndpointService.UNREACHABLE,
-                        preview = EndpointService.UNKNOWN,
-                        failure = failure,
-                    )
-                    publishConnectionProgress("BT wake failed: $failure")
+                    statusMessage = "Wake failed: ${e.message ?: e::class.simpleName}"
                 }
             } finally {
-                if (wakeJob === currentCoroutineContext()[Job]) {
-                    wakeJob = null
-                    _waking.value = false
-                }
+                _waking.value = false
             }
         }
     }
@@ -1818,7 +1051,7 @@ class AppViewModel(
      * owner of the status line.
      */
     fun notifyStatus(msg: String) {
-        publishConnectionProgress(msg)
+        statusMessage = msg
     }
 
     /**
@@ -1845,11 +1078,6 @@ class AppViewModel(
     fun connectDemo(startPolling: Boolean = true) {
         disconnect()
         demoMode = true
-        setEndpointHealth(
-            phase = EndpointPhase.CONTROL_CHECKING,
-            control = EndpointService.UNKNOWN,
-            preview = EndpointService.UNKNOWN,
-        )
         val sim = SimulatedMount()
         // Hold a reference so disconnect() can cancel the private reader
         // scope (otherwise the long-lived reader coroutine keeps the
@@ -1859,32 +1087,18 @@ class AppViewModel(
         controller = TrackingController(sim.session)
         cameraController = CameraController(sim.session)
         intervalometer = createIntervalometer()
-        observationExecutor = createObservationProgrammeExecutor()
         alignmentController = AlignmentController(sim.session)
         wireHelpers(sim.session)
 
         startAutoLevel(sim.session)
-        demoConnectJob = scope.launch {
+        scope.launch {
             try {
-                if (!sim.session.connect()) {
-                    throw IllegalStateException("simulated mount handshake failed")
-                }
-                demoFineRateRehearsalEvidence = false
-                demoFineRate.setCapability(demoFineRateCapability)
-                updateDemoFineRateContext()
+                sim.session.connect()
                 // SimulatedMount's connect() always returns true; treat as
                 // success for the marker-save path. (A future slice that
                 // simulates intermittent failure should gate this on the
                 // return value the same way `connect()` does.)
                 saveMarker()
-                startCaptureEventObserver(sim.session)
-                startCameraAttachmentPolling(sim.session)
-                refreshCamera()
-                setEndpointHealth(
-                    phase = EndpointPhase.READY,
-                    control = EndpointService.REACHABLE,
-                    preview = EndpointService.UNREACHABLE,
-                )
                 statusMessage = "Demo mode (simulated mount)"
                 if (startPolling) {
                     startPolling(sim.session)
@@ -1892,84 +1106,28 @@ class AppViewModel(
                 // No preview in demo mode: there is no MJPEG endpoint in the
                 // simulator. PreviewController stays Idle, which the pane
                 // renders as "Stream unavailable".
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
                 // 3e E2: demo mode should never really throw (the
                 // simulator is in-process) but if a future slice adds a
                 // simulated intermittent failure or a saveMarker() I/O
                 // regression sneaks in, surface the cause instead of
                 // silently leaving the user with no status feedback.
-                val failure = e.message ?: e::class.simpleName ?: "unknown demo failure"
-                setEndpointHealth(
-                    phase = EndpointPhase.FAILED,
-                    control = EndpointService.UNREACHABLE,
-                    preview = EndpointService.UNKNOWN,
-                    failure = failure,
-                )
-                statusMessage = "Demo mode failed: $failure"
-            } finally {
-                if (demoConnectJob === currentCoroutineContext()[Job]) {
-                    demoConnectJob = null
-                }
+                statusMessage = "Demo mode failed: ${e.message ?: e::class.simpleName}"
             }
+
         }
     }
 
     fun disconnect() {
-        // Host-side wake/bridge work belongs to the same session boundary as
-        // the control socket. Cancel it before clearing endpoint evidence so
-        // a suspended callback cannot publish stale progress into the next
-        // connection. The host orchestrator owns any lower-level cleanup.
-        val activeConnectWifiJob = connectWifiJob
-        activeConnectWifiJob?.cancel()
-        connectWifiJob = null
-        if (activeConnectWifiJob != null) {
-            _reconnecting.value = false
-        }
-        val wakeWasActive = wakeJob?.isActive == true || _waking.value
-        wakeJob?.cancel()
-        wakeJob = null
-        _waking.value = false
-        if (wakeWasActive) {
-            bluetoothWakeState = BluetoothWakeState(
-                BluetoothWakePhase.CANCELLED,
-                "Bluetooth wake cancelled by disconnect",
-            )
-        }
-        stopDemoSlowMotionForDisconnect()
-        stopDemoFineRateForDisconnect()
-        val activeFastJogLease = fastJogLease
-        fastJogLease = null
-        fastJogJob?.cancel()
-        fastJogJob = null
-        if (activeFastJogLease != null) {
-            runBlocking { fastJogController.release(activeFastJogLease) }
-        }
-        sessionTearingDown = true
-        saveMarkerJob?.cancel()
-        saveMarkerJob = null
-        programmeConfirmation?.complete(null)
-        programmeConfirmation = null
-        observationExecutor?.abandon("session disconnected")
-        observationExecutor = null
-        observationProgrammeActive = false
-        observationProgrammeState = dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle
         pollJob?.cancel()
         captureEventJob?.cancel()
         cameraAttachmentPollJob?.cancel()
-        cameraRefreshJob?.cancel()
-        cameraRefreshJob = null
-        cameraAuxiliaryRefreshJob?.cancel()
-        cameraAuxiliaryRefreshJob = null
         // 3c.5: if a reconnect was in flight, tear it down too so the
         // spinner does not stay up after the user navigates away.
         connectJob?.cancel()
         // Tear down the simulated mount's private reader scope so the
         // long-lived reader coroutine does not keep the dispatcher alive
         // past the lifetime of this view model.
-        demoConnectJob?.cancel()
-        demoConnectJob = null
         runCatching { demoSim?.shutdown() }
         demoSim = null
         // 3b.5-BUG (3e follow-up): _reconnecting is a "connect lifecycle"
@@ -1984,34 +1142,9 @@ class AppViewModel(
         // not call disconnect() and has its own explicit reset.
         stopAutoLevelAsync()
         cancelHelpersJobs()
-        previewRequested = false
-        previewFrameJob?.cancel()
-        previewFrameJob = null
-        previewAnalysisJob?.cancel()
-        previewAnalysisJob = null
         runCatching { preview.stop() }
         previewFrame = null
-        previewPixelAnalysis = null
-        previewFrameReceivedAtMs = null
-        endpointHealth = EndpointHealth.disconnected()
 
-        alignmentJob?.cancel()
-        alignmentJob = null
-        alignmentMotionLease?.let { lease ->
-            runBlocking { motionSupervisor.stop(lease, MotionStopReason.DISCONNECT) }
-        }
-        alignmentMotionLease = null
-        val activeGotoLease = gotoMotionLease
-        if (activeGotoLease != null) {
-            runBlocking { motionSupervisor.stop(activeGotoLease, MotionStopReason.DISCONNECT) }
-        }
-        // A GoTo coroutine can still be queued before it acquires its shared
-        // lease. Cancel it unconditionally; otherwise disconnect would leave
-        // a stale 519 write and an in-progress UI state behind.
-        slewJob?.cancel()
-        slewJob = null
-        gotoMotionLease = null
-        slewInProgress = false
         session?.let { runBlocking { it.disconnect() } }
         session = null
         controller = null
@@ -2042,124 +1175,17 @@ class AppViewModel(
         exAxisState = null
         cameraInfo = null
         cameraAttachment = null
-        cameraReadbackAtMs = null
-        cameraReadbackStatuses = emptyMap()
-        cameraAuxiliaryReadback = CameraAuxiliaryReadback()
-        cameraAuxiliaryReadbackAtMs = null
-        focusStatus = null
-        videoRecording = null
         deviceInfo = null
         temperature = null
         captureState = null
         // #60: a capture in flight at disconnect time is abandoned — drop the
         // watchdog and reset the phase so a stale "Busy" / "Failed" doesn't
         // linger into the next session.
-        captureDispatchJob?.cancel()
-        captureDispatchJob = null
-        bulbStopJob?.cancel()
-        bulbStopJob = null
-        astroWebUiCaptureJob?.cancel()
-        astroWebUiCaptureJob = null
-        astroWebUiBulbStopJob?.cancel()
-        astroWebUiBulbStopJob = null
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
-        captureKind = null
-        captureSource = null
-        captureEvidence.clear()
-        pendingCapturePublication = null
-        lastCapturePublication = null
-        captureTimeline = emptyList()
-        astroWebUiCaptureActive = false
-        astroWebUiCaptureDispatching = false
-        astroWebUiBulbActive = false
-        astroWebUiBulbStopQueued = false
-        astroWebUiCaptureStatus = null
-        fileList = null
-        astroMediaJob?.cancel()
-        astroMediaJob = null
-        astroMediaItems = null
-        astroMediaPreview = null
-        astroMediaCategory = null
-        astroMediaState = AstroMediaState.Idle
-        astroMediaExportJob?.cancel()
-        astroMediaExportController.reset()
-        astroMediaExportState = AstroMediaExportState.Idle
-        supportBundleExportJob?.cancel()
-        supportBundleExportJob = null
-        supportBundleExportController.reset()
-        supportBundleExportState = SupportBundleExportState.Idle
-        astroWebUiStatusJob?.cancel()
-        astroWebUiStatusJob = null
-        astroWebUiStatusPollJob?.cancel()
-        astroWebUiStatusPollJob = null
-        astroWebUiStatus = AstroWebUiStatusState.Idle
-        astroWebUiGuideJob?.cancel()
-        astroWebUiGuideJob = null
-        astroWebUiGuidePollJob?.cancel()
-        astroWebUiGuidePollJob = null
-        astroWebUiGuide = AstroWebUiGuideUiState.Idle
-        astroWebUiAutofocusJob?.cancel()
-        astroWebUiAutofocusJob = null
-        astroWebUiAutofocusPollJob?.cancel()
-        astroWebUiAutofocusPollJob = null
-        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Idle
-        astroWebUiFocalJob?.cancel()
-        astroWebUiFocalJob = null
-        astroWebUiFocal = AstroWebUiFocalUiState.Idle
-        astroWebUiLimitsJob?.cancel()
-        astroWebUiLimitsJob = null
-        astroWebUiLimits = AstroWebUiLimitsUiState.Idle
-        astroWebUiKeepWifiJob?.cancel()
-        astroWebUiKeepWifiJob = null
-        astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Idle
-        astroWebUiWifiJob?.cancel()
-        astroWebUiWifiJob = null
-        astroWebUiWifi = AstroWebUiWifiUiState.Idle
-        astroWebUiLinkJob?.cancel()
-        astroWebUiLinkJob = null
-        astroWebUiLink = AstroWebUiLinkUiState.Idle
-        astroWebUiTargetJob?.cancel()
-        astroWebUiTargetJob = null
-        astroWebUiTarget = AstroWebUiTargetUiState.Idle
-        astroWebUiSolveJob?.cancel()
-        astroWebUiSolveJob = null
-        astroWebUiSolveControlJob?.cancel()
-        astroWebUiSolveControlJob = null
-        astroWebUiSolveControl = AstroWebUiSolveControlUiState.Idle
-        astroWebUiSolvePollJob?.cancel()
-        astroWebUiSolvePollJob = null
-        astroWebUiSolve = AstroWebUiSolveUiState.Idle
-        astroWebUiRunStateJob?.cancel()
-        astroWebUiRunStateJob = null
-        astroWebUiRunStatePollJob?.cancel()
-        astroWebUiRunStatePollJob = null
-        astroWebUiRunState = AstroWebUiRunStateUiState.Idle
-        astroWebUiSessionControlJob?.cancel()
-        astroWebUiSessionControlJob = null
-        astroWebUiSessionControl = AstroWebUiSessionControlState.Idle
-        astroWebUiSiteJob?.cancel()
-        astroWebUiSiteJob = null
-        astroWebUiSite = AstroWebUiSiteState.Idle
-        astroWebUiSiteWriteJob?.cancel()
-        astroWebUiSiteWriteJob = null
-        astroWebUiSiteWrite = AstroWebUiSiteWriteState.Idle
-        astroWebUiProgrammeJob?.cancel()
-        astroWebUiProgrammeJob = null
-        astroWebUiProgrammePollJob?.cancel()
-        astroWebUiProgrammePollJob = null
-        astroWebUiProgrammeControlJob?.cancel()
-        astroWebUiProgrammeControlJob = null
-        astroWebUiProgrammeStartJob?.cancel()
-        astroWebUiProgrammeStartJob = null
-        astroWebUiProgramme = AstroWebUiProgrammeState.Idle
-        astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Idle
-        astroWebUiAstroCaptureJob?.cancel()
-        astroWebUiAstroCaptureJob = null
-        astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Idle
-        astroWebUiSunState = AstroWebUiSunState.Idle
-        astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Idle
+        captureSawLifecycle = false
+        captureSawFile = false
         captureWorkloadsSuspended = false
         cameraPollingSuspended = false
         restorePreviewAfterCapture = false
@@ -2169,7 +1195,6 @@ class AppViewModel(
         // belong to this VM, and the controller's stop() is idempotent.
         stopAutoLevelAsync()
         _lastSolveResult.value = null
-        targetSelected = false
         // Clear the VR marker bus too so a stale solve doesn't linger
         // on the headset after the user disconnects.
         MarkerStateBus.reset()
@@ -2197,13 +1222,11 @@ class AppViewModel(
             // surrender to the connect's terminal message on the
             // _reconnecting gate added in [wake].
             if (!statusMessage.startsWith("Could not save updated host:") &&
-                !_waking.value &&
-                !wakeWasActive
+                !_waking.value
             ) {
                 statusMessage = "Disconnected"
             }
         }
-        sessionTearingDown = false
     }
 
     /**
@@ -2216,69 +1239,31 @@ class AppViewModel(
         // NOT [port]: passing the control port here sends the MJPEG HTTP
         // request to polestar_app, where it is rejected as an unknown control
         // frame (issue #74).
-        // Replacing a stream must also replace its frame collector. The
-        // transport is independent from the control socket, but the decoder
-        // belongs to this Preview workflow and must not outlive it.
-        previewFrameJob?.cancel()
-        previewFrameJob = null
-        previewAnalysisJob?.cancel()
-        previewAnalysisJob = null
-        previewPixelAnalysis = null
-        previewFrameReceivedAtMs = null
-        if (demoMode) {
-            // Demo preview is deliberately local and synthetic. It exercises
-            // the same frame collector and presentation analysis without
-            // opening a second network transport or implying camera evidence.
-            preview.publishSyntheticForDemo(DEMO_PREVIEW_PNG)
-            setPreviewHealth(EndpointService.REACHABLE)
-        } else {
-            try {
-                preview.start(host, previewPort)
-            } catch (e: Throwable) {
-                // 3e E2: PreviewController.start may throw if the host is
-                // unresolvable or the port is closed. Surface as a status
-                // message and skip the collector  - the rest of the post-
-                // connect setup (polling, capture polling) will still
-                // continue. Without this, the connect() success branch
-                // catches it at the outer layer, but a cleaner message
-                // here helps the user debug a misconfigured port.
-                val failure = e.message ?: e::class.simpleName ?: "preview start failed"
-                setPreviewHealth(EndpointService.UNREACHABLE, failure)
-                statusMessage = "Preview unavailable: $failure"
-                return
-            }
-            setPreviewHealth(EndpointService.UNKNOWN)
+        try {
+            preview.start(host, previewPort)
+        } catch (e: Throwable) {
+            // 3e E2: PreviewController.start may throw if the host is
+            // unresolvable or the port is closed. Surface as a status
+            // message and skip the collector — the rest of the post-
+            // connect setup (polling, capture polling) will still
+            // continue. Without this, the connect() success branch
+            // catches it at the outer layer, but a cleaner message
+            // here helps the user debug a misconfigured port.
+            statusMessage = "Preview unavailable: ${e.message ?: e::class.simpleName}"
+            return
         }
-        previewFrameJob = scope.launch {
+        scope.launch {
             preview.bytes.collect { jpeg ->
                 if (jpeg == null) {
                     previewFrame = null
-                    previewAnalysisJob?.cancel()
-                    previewAnalysisJob = null
-                    previewPixelAnalysis = null
-                    previewFrameReceivedAtMs = null
                     return@collect
                 }
-                setPreviewHealth(EndpointService.REACHABLE)
-                previewFrameReceivedAtMs = SystemMillis.now()
                 // Drop-on-late: if the user closes the pane, the next
                 // decode will simply replace a stale bitmap.
                 val decoded = withContext(Dispatchers.Default) {
                     runCatching { decodeJpegToImageBitmap(jpeg) }
                 }
-                decoded.getOrNull()?.let { image ->
-                    previewFrame = image
-                    // Do not queue one pixel read per MJPEG frame. If an
-                    // analysis is still running, the next frame will be
-                    // offered after it completes and the displayed bitmap
-                    // remains independent of this optional presentation aid.
-                    if (previewAnalysisJob?.isActive != true) {
-                        previewAnalysisJob = scope.launch(Dispatchers.Default) {
-                            val result = runCatching { PreviewPixelAnalyzer.analyze(image) }.getOrNull()
-                            if (isActive) previewPixelAnalysis = result
-                        }
-                    }
-                }
+                decoded.getOrNull()?.let { previewFrame = it }
             }
         }
 
@@ -2309,10 +1294,7 @@ class AppViewModel(
                 coroutineScope {
                     launch {
                         when (val r = s.request(284, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { MountState.fromFrame284(it) }) {
-                            is MountSession.CmdResult.Ok -> {
-                                mount = r.value
-                                updateDemoFineRateContext()
-                            }
+                            is MountSession.CmdResult.Ok -> mount = r.value
                             is MountSession.CmdResult.Timeout -> {}
                             is MountSession.CmdResult.ProtocolError -> statusMessage = "Error: ${r.message}"
                         }
@@ -2324,13 +1306,7 @@ class AppViewModel(
                         }
                     }
                 }
-                delay(
-                    PosePollPolicy.delayMs(
-                        tracking = mount.tracking == true,
-                        motionOwned = motionSupervisor.state.value is MotionState.Owned,
-                        slewInProgress = slewInProgress,
-                    ),
-                )
+                delay(1000)
             }
         }
     }
@@ -2341,14 +1317,6 @@ class AppViewModel(
         captureEventJob = scope.launch {
             s.frames.collect { frame -> frame?.let(::onCaptureFrame) }
         }
-    }
-
-    private fun appendCaptureTimeline(stage: CaptureTimelineStage, detail: String) {
-        captureTimeline = (captureTimeline + CaptureTimelineEntry(stage, detail)).takeLast(20)
-    }
-
-    private fun beginCaptureTimeline(detail: String) {
-        captureTimeline = listOf(CaptureTimelineEntry(CaptureTimelineStage.REQUESTED, detail))
     }
 
     private fun onCaptureFrame(frame: ResponseParser.Frame) {
@@ -2365,23 +1333,14 @@ class AppViewModel(
                 // Idle alone is not evidence that this shutter began. Require
                 // a post-request non-idle lifecycle state before accepting a
                 // subsequent file notification as correlated.
-                if (captureEvidence.observeLifecycle(state)) {
-                    appendCaptureTimeline(CaptureTimelineStage.ACTIVE, "state $state")
-                }
+                if (state != 0) captureSawLifecycle = true
                 capturePhase = CapturePhase.Busy
                 completeCaptureIfCorrelated()
             }
             Codes.FILE_DOWNLOAD_DATA -> {
                 val path = frame["path"]?.trim().orEmpty()
-                if (captureEvidence.observePublication(path, frame.int("type"), frame["size"]?.trim()?.toLongOrNull())) {
-                    captureEvidence.publication?.let { publication ->
-                        pendingCapturePublication = CapturePublication(
-                            path = publication.path,
-                            type = publication.type,
-                            sizeBytes = publication.sizeBytes,
-                        )
-                        appendCaptureTimeline(CaptureTimelineStage.PUBLISHED, publication.path)
-                    }
+                if (path.isNotEmpty() && captureSawLifecycle) {
+                    captureSawFile = true
                     completeCaptureIfCorrelated()
                 }
             }
@@ -2389,71 +1348,27 @@ class AppViewModel(
     }
 
     private fun completeCaptureIfCorrelated() {
-        if (!captureEvidence.isConfirmed) return
+        if (!captureSawLifecycle || !captureSawFile) return
         captureWatchdogJob?.cancel()
-        val confirmedProgrammePublication = captureEvidence.publication
-        pendingCapturePublication?.let { lastCapturePublication = it }
-        pendingCapturePublication = null
-        appendCaptureTimeline(CaptureTimelineStage.CONFIRMED, "lifecycle + file evidence")
-        astroWebUiCaptureActive = false
-        astroWebUiCaptureDispatching = false
-        astroWebUiBulbActive = false
-        astroWebUiBulbStopQueued = false
         captureWatchdogJob = null
-        // §6: while a sequence or observation programme is driving captures,
-        // this correlated completion releases the current step without
-        // restoring preview ownership between steps.
+        // §6: while a sequence is driving captures, this correlated completion
         // confirms the current shot. Release the engine's in-flight shutter so
         // it advances to the next shot (or completes). A single-shot capture
         // has no engine, so markShotDone() is a harmless no-op there.
-        if (sequenceActive || observationProgrammeActive) {
-            if (sequenceActive) intervalometer?.markShotDone()
-            programmeConfirmation?.complete(confirmedProgrammePublication)
-            // The programme bridge may not have reached awaitConfirmation yet
-            // when both evidence frames arrive. Keep the completed deferred
-            // discoverable until awaitObservationConfirmation consumes it;
-            // clearing it here creates a false OutcomeUnknown race.
-            if (!observationProgrammeActive) programmeConfirmation = null
-            // The executor starts the next programme step by calling begin();
-            // keep the confirmed evidence intact until its bridge consumes it.
-            if (sequenceActive) {
-                captureEvidence.resetForNext()
-                capturePhase = CapturePhase.Requested
-            } else {
-                capturePhase = CapturePhase.Completed
-            }
+        if (sequenceActive) {
+            intervalometer?.markShotDone()
+            // Keep the capture-event observer active for the *next* shot: reset
+            // the per-shot evidence flags and return the phase to Requested so
+            // the next shutter's 264/773 frames are still processed. The engine
+            // paces shots by its interval, so no per-shot watchdog is needed.
+            captureSawLifecycle = false
+            captureSawFile = false
+            capturePhase = CapturePhase.Requested
         } else {
             capturePhase = CapturePhase.Completed
         }
         statusMessage = "Capture completed"
-        captureKind = null
-        captureSource = null
-        if (!sequenceActive) restoreCaptureWorkloads()
-    }
-
-    /** Open preview only while the user is in the Preview workflow. */
-    fun enterPreview() {
-        if (session == null || captureWorkloadsSuspended) return
-        // The Preview pane may recompose or be opened repeatedly. Treat the
-        // first entry as ownership acquisition and keep it idempotent while
-        // the collector is alive; an explicit Error is the one case where a
-        // repeated entry is allowed to retry the stream.
-        previewRequested = true
-        if (previewFrameJob?.isActive == true && preview.state.value !is PreviewController.State.Error) return
-        startPreview()
-    }
-
-    /** Release this app's preview connection when leaving the Preview workflow. */
-    fun leavePreview() {
-        previewRequested = false
-        previewFrameJob?.cancel()
-        previewFrameJob = null
-        previewAnalysisJob?.cancel()
-        previewAnalysisJob = null
-        preview.stop()
-        previewFrame = null
-        previewPixelAnalysis = null
-        previewFrameReceivedAtMs = null
+        restoreCaptureWorkloads()
     }
 
     private suspend fun suspendCaptureWorkloads() {
@@ -2463,18 +1378,10 @@ class AppViewModel(
         // Let a request already inside the 800 ms poll window finish before
         // issuing camera-preview or shutter commands on the shared socket.
         delay(POLL_REQUEST_TIMEOUT_MS + 50)
-        restorePreviewAfterCapture = previewRequested && (
-            preview.state.value is PreviewController.State.Streaming ||
-                preview.state.value is PreviewController.State.Connecting
-        )
-        previewFrameJob?.cancel()
-        previewFrameJob = null
-        previewAnalysisJob?.cancel()
-        previewAnalysisJob = null
+        restorePreviewAfterCapture = preview.state.value is PreviewController.State.Streaming ||
+            preview.state.value is PreviewController.State.Connecting
         preview.stop()
         previewFrame = null
-        previewPixelAnalysis = null
-        previewFrameReceivedAtMs = null
         if (restorePreviewAfterCapture) {
             // Best effort: the transport is already closed, so even a firmware
             // timeout cannot leave a second 8080 owner in this process.
@@ -2496,28 +1403,25 @@ class AppViewModel(
     }
 
     /**
-     * One code-286 snapshot on connect. Repeating it every five seconds made
-     * OpenPolaris a continuous second camera client (and differs from the
-     * otherwise stable Benro-Connect-only workload). The mount re-detects USB
-     * on its own schedule; let the user request a fresh snapshot explicitly.
+     * 5 s poll for code 286 (CAM_INFO / camera attachment). Kept off the 1 Hz
+     * pose poll and the capture-event observer so a slow/missing 286 reply
+     * cannot stall either. The firmware only re-detects a USB camera on its
+     * own schedule, so this is a read-only status poll: it tells the UI
+     * whether the mount sees a camera at all (state -5 = none), which
+     * explains both the "unavailable" camera steppers and a dead 8080 MJPEG
+     * stream.
      */
     private fun startCameraAttachmentPolling(s: MountSession) {
         cameraAttachmentPollJob?.cancel()
         cameraAttachmentPollJob = scope.launch {
-            if (!cameraPollingSuspended) {
-                when (val r = s.request(Codes.CAM_INFO, timeoutMs = POLL_REQUEST_TIMEOUT_MS) { CommandTable.CAM_INFO.parse!!(it) }) {
+            while (isActive) {
+                when (val r = s.request(Codes.CAM_INFO) { CommandTable.CAM_INFO.parse!!(it) }) {
                     is MountSession.CmdResult.Ok -> r.value?.let { cameraAttachment = it }
                     else -> {} // Timeout / ProtocolError: keep last good value
                 }
+                delay(5000)
             }
         }
-    }
-
-    /** Explicitly refresh the camera identity after the user changes its power/USB state. */
-    fun refreshCameraAttachment() {
-        val s = session ?: return
-        if (cameraPollingSuspended) return
-        startCameraAttachmentPolling(s)
     }
 
     // ---- post-connect burst --------------------------------------------
@@ -2627,777 +1531,30 @@ class AppViewModel(
      */
     var trackingRate by mutableStateOf(TrackingRate.DEFAULT)
 
-    fun startTracking() = scope.launch {
-        if (!stopSlowMotionForModeChange()) return@launch
-        controller?.start(trackingRate)
-        updateDemoFineRateContext()
-    }
-
-    fun stopTracking() = scope.launch {
-        val slowStopped = stopSlowMotionForModeChange()
-        if (demoMode) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
-        controller?.stop()
-        if (!slowStopped) {
-            statusMessage = "Tracking stopped; slow-motion recovery is still required"
-        }
-        updateDemoFineRateContext()
-    }
-
-    fun toggleHalfSpeed(on: Boolean) = scope.launch {
-        if (!stopSlowMotionForModeChange()) return@launch
-        if (demoMode && on) stopDemoFineRateNow(MotionStopReason.MODE_CHANGE)
-        controller?.setHalfSpeed(on)
-        updateDemoFineRateContext()
-    }
+    fun startTracking() = scope.launch { controller?.start(trackingRate) }
+    fun stopTracking() = scope.launch { controller?.stop() }
+    fun toggleHalfSpeed(on: Boolean) = scope.launch { controller?.setHalfSpeed(on) }
     fun enableAhrs(on: Boolean) = scope.launch { controller?.enableAhrs(on) }
-    /** Refresh the simulator's fine-rate safety contract without manufacturing a live solve. */
-    private fun updateDemoFineRateContext() {
-        val sim = demoSim
-        val solveEvidence = demoMode && demoFineRateRehearsalEvidence
-        val owner = motionSupervisor.state.value
-        val ownerAvailable = owner == MotionState.Idle ||
-            (owner is MotionState.Owned && owner.lease == demoFineRateLease)
-        demoFineRate.updateContext(
-            RateAdjustContext(
-                connected = demoMode && sim != null && session != null,
-                trackingConfirmed = demoMode && sim?.tracking == true,
-                halfSpeedEnabled = demoMode && sim?.halfSpeed == true,
-                exclusiveMotionAvailable = ownerAvailable,
-                solutionAgeMs = if (solveEvidence) 0L else null,
-                solutionConfidence = if (solveEvidence) 0.90 else null,
-                solutionRotationDegrees = if (solveEvidence) 0.0 else null,
-            ),
-        )
-    }
-
-    /** Arm only synthetic solve evidence for the simulator rehearsal. */
-    fun prepareDemoFineRate() {
-        if (!demoMode) {
-            statusMessage = "Fine correction rehearsal is available only in Demo mode"
-            return
-        }
-        demoFineRate.setCapability(demoFineRateCapability)
-        demoFineRateRehearsalEvidence = true
-        updateDemoFineRateContext()
-        statusMessage = if (demoSim?.tracking == true) {
-            "Demo fine correction ready (synthetic solve evidence; no hardware command)"
-        } else {
-            "Demo solve rehearsal prepared; start tracking before applying fine correction"
-        }
-    }
-
-    /** Apply one bounded logical fine-rate request and retain the shared owner lease. */
-    fun demoFineRateApply(axis: RateAxis, direction: Int) {
-        if (!demoMode) {
-            statusMessage = "Fine-rate transport is not qualified for live hardware"
-            return
-        }
-        if (direction !in -1..1 || direction == 0) {
-            statusMessage = "Invalid Demo fine-rate direction"
-            return
-        }
-        val amount = 0.1 * direction
-        demoFineRateApplyTargets(
-            m1Pan = if (axis == RateAxis.M1_PAN) amount else 0.0,
-            m2Tilt = if (axis == RateAxis.M2_TILT) amount else 0.0,
-            m3Rotation = if (axis == RateAxis.M3_ROTATION) amount else 0.0,
-            statusLabel = "${axis.name} ${if (direction > 0) "A" else "B"} · 0.1°/s",
-        )
-    }
-
-    /**
-     * Apply a complete multi-axis logical fine-rate request.
-     *
-     * Draft values remain in the UI until this method is called. Validation is
-     * repeated here before taking the shared motion lease, so malformed or
-     * out-of-range mobile input cannot reserve the mount owner.
-     */
-    fun demoFineRateApplyTargets(
-        m1Pan: Double,
-        m2Tilt: Double,
-        m3Rotation: Double,
-        statusLabel: String = "M1 ${formatDemoRate(m1Pan)} · M2 ${formatDemoRate(m2Tilt)} · M3 ${formatDemoRate(m3Rotation)}",
-    ) {
-        if (!demoMode) {
-            statusMessage = "Fine-rate transport is not qualified for live hardware"
-            return
-        }
-        if (demoFineRateJob?.isActive == true) return
-        demoFineRateJob = scope.launch {
-            try {
-                updateDemoFineRateContext()
-                val ready = demoFineRate.state.value as? RateAdjustState.Ready
-                if (ready == null) {
-                    statusMessage = "Fine correction unavailable: ${demoFineRateStateReason()}"
-                    return@launch
-                }
-                val request = RateAdjustRequest(
-                    baseProfile = TrackingRate.SIDEREAL,
-                    m1Pan = m1Pan,
-                    m2Tilt = m2Tilt,
-                    m3Rotation = m3Rotation,
-                    version = demoFineRateVersion + 1,
-                    capability = ready.capability.identity,
-                )
-                val validation = ready.capability.validate(request)
-                if (validation != null) {
-                    statusMessage = "Fine correction rejected: ${validation}"
-                    return@launch
-                }
-                val lease = when (val acquired = motionSupervisor.acquire(MotionOwner.TRACKING_CORRECTION)) {
-                    is MotionAcquireResult.Granted -> acquired.lease
-                    is MotionAcquireResult.Busy -> {
-                        statusMessage = "Fine correction blocked by ${acquired.active.owner.name.lowercase()}"
-                        return@launch
-                    }
-                    is MotionAcquireResult.Blocked -> {
-                        statusMessage = "Fine correction blocked: ${acquired.reason}"
-                        return@launch
-                    }
-                }
-                demoFineRateLease = lease
-                demoFineRateVersion = request.version
-                when (val result = demoFineRate.apply(request)) {
-                    is RateCommandResult.Accepted -> {
-                        statusMessage = "Demo fine correction active: ${statusLabel} (no hardware command)"
-                    }
-                    is RateCommandResult.Rejected -> {
-                        demoFineRateLease = null
-                        motionSupervisor.stop(lease, MotionStopReason.RELEASE)
-                        statusMessage = "Fine correction rejected: ${result.reason}"
-                    }
-                    is RateCommandResult.Unknown -> {
-                        statusMessage = "Fine correction stop/recovery required: ${result.reason}"
-                    }
-                }
-            } finally {
-                if (demoFineRateJob === currentCoroutineContext()[Job]) {
-                    demoFineRateJob = null
-                }
-            }
-        }
-    }
-
-    private fun formatDemoRate(value: Double): String =
-        if (value == 0.0) "0.0°/s" else "${value}°/s"
-
-    /** Stop logical fine correction before releasing its shared motion owner. */
-    fun demoFineRateStop() {
-        if (!demoMode) {
-            statusMessage = "Fine-rate transport is not qualified for live hardware"
-            return
-        }
-        scope.launch { stopDemoFineRateNow(MotionStopReason.RELEASE) }
-    }
-
-    private fun demoFineRateStateReason(): String = when (val state = demoFineRate.state.value) {
-        is RateAdjustState.Unavailable -> state.reason
-        is RateAdjustState.Faulted -> state.reason
-        is RateAdjustState.Stale -> state.reason
-        is RateAdjustState.Applying -> "request is still being acknowledged"
-        is RateAdjustState.Active -> "an explicit stop is required before another request"
-        is RateAdjustState.Ready -> "ready"
-    }
-
-    private suspend fun stopDemoFineRateNow(reason: MotionStopReason): RateCommandResult {
-        val applyJob = demoFineRateJob
-        demoFineRateJob = null
-        applyJob?.cancelAndJoin()
-        val result = demoFineRate.stopCorrection()
-        val lease = demoFineRateLease
-        if (lease != null && result is RateCommandResult.Accepted) {
-            when (val ownerResult = motionSupervisor.stop(lease, reason)) {
-                MotionStopResult.Stopped -> demoFineRateLease = null
-                MotionStopResult.Rejected -> statusMessage = "Fine correction owner release was rejected"
-                is MotionStopResult.Unknown -> statusMessage = "Fine correction owner stop unknown: ${ownerResult.reason}"
-            }
-        }
-        updateDemoFineRateContext()
-        if (result is RateCommandResult.Unknown) {
-            statusMessage = "Fine correction stop outcome unknown: ${result.reason}"
-        }
-        return result
-    }
-
-    /** Disconnect boundary for the logical rate owner; no automatic retry. */
-    private fun stopDemoFineRateForDisconnect() {
-        runBlocking {
-            demoFineRateJob?.cancelAndJoin()
-            demoFineRateJob = null
-            demoFineRate.onDisconnected()
-            demoFineRateLease?.let { lease ->
-                if (motionSupervisor.stop(lease, MotionStopReason.DISCONNECT) is MotionStopResult.Stopped) {
-                    demoFineRateLease = null
-                }
-            }
-        }
-        demoFineRateRehearsalEvidence = false
-        demoFineRate.setCapability(null)
-    }
-
-    /**
-     * A tracking/half-rate mode change is a physical-motion boundary. SLOW
-     * must settle first; a direct 531/536 write cannot be allowed to race a
-     * live 532/533/534 hold. An ambiguous stop leaves the shared supervisor
-     * faulted and blocks the mode change until explicit recovery.
-     */
-    private suspend fun stopSlowMotionForModeChange(): Boolean {
-        demoSlowMotionStopJob?.let { pending ->
-            if (pending !== currentCoroutineContext()[Job]) pending.join()
-        }
-
-        val owner = motionSupervisor.state.value
-        val lease = demoSlowMotionLease
-        val slowOwnerActive = lease != null ||
-            (owner as? MotionState.Owned)?.lease?.owner == MotionOwner.SLOW_MOVE
-        if (!slowOwnerActive) return true
-
-        if (lease == null) {
-            statusMessage = "Slow-motion owner has no recoverable lease; reconnect and recover before changing mode"
-            return false
-        }
-
-        val previous = demoSlowMotionJob
-        demoSlowMotionJob = null
-        previous?.cancelAndJoin()
-
-        return when (val result = demoSlowMotion.release(lease)) {
-            SlowMotionActionResult.Stopped -> {
-                demoSlowMotionLease = null
-                slowMotionDemoState = slowMotionDemoState.copy(
-                    running = false,
-                    direction = 0,
-                    level = 0,
-                )
-                true
-            }
-            is SlowMotionActionResult.Unknown -> {
-                statusMessage = "Slow-motion stop outcome unknown: " + result.reason
-                false
-            }
-            else -> {
-                statusMessage = "Slow-motion stop was not confirmed"
-                false
-            }
-        }
-    }
-
-    /** Capture/programme state that must prevent a new SLOW hold. */
-    private fun slowMotionAdmissionBlocker(): String? = when {
-        capturePhase is CapturePhase.Requested ||
-            capturePhase is CapturePhase.Busy ||
-            capturePhase is CapturePhase.OutcomeUnknown ||
-            astroWebUiCaptureDispatching ||
-            astroWebUiCaptureActive ->
-            "Capture is active or unresolved; settle it before moving the mount"
-        sequenceActive || observationProgrammeActive ->
-            "Capture programme is active; stop it before moving the mount"
-        videoRecording == true ->
-            "Video is recording; stop it before moving the mount"
-        else -> null
-    }
-
-    /** Camera/programme starts must not race a currently-held SLOW owner. */
-    private fun blockCaptureDuringSlowMotion(): Boolean {
-        val owner = (motionSupervisor.state.value as? MotionState.Owned)?.lease?.owner
-        if (owner != MotionOwner.SLOW_MOVE) return false
-        statusMessage = "Stop slow motion before starting a capture or programme"
-        return true
-    }
-
-    /** Start one logical SLOW direction in Demo or qualified live mode. */
-    private fun liveSlowMotionReady(): Boolean =
-        !demoMode && session != null && slowMotionCapabilityRecord.liveReady
-
-    fun demoSlowMotionStart(axis: RateAxis, direction: Int, level: Int) {
-        slowMotionAdmissionBlocker()?.let {
-            statusMessage = it
-            return
-        }
-        if (!demoMode && !liveSlowMotionReady()) {
-            statusMessage = "Slow-motion transport is not qualified for live hardware"
-            return
-        }
-        if (direction !in -1..1 || direction == 0 || level !in 1..5) {
-            statusMessage = "Invalid Demo slow-motion request"
-            return
-        }
-
-        val previous = demoSlowMotionJob
-        val pendingStop = demoSlowMotionStopJob
-        // Start the owner acquisition at the input boundary. This prevents a
-        // queued coroutine from losing a very short touch/key hold before it
-        // has established the shared lease.
-        demoSlowMotionJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
-            // A release requested by the previous press/release cycle owns
-            // the same SLOW controller. Finish that boundary before a new
-            // direction can acquire it again.
-            pendingStop?.join()
-            previous?.cancelAndJoin()
-            demoSlowMotionLease?.let { lease ->
-                when (demoSlowMotion.state.value) {
-                    is dev.openpolaris.core.domain.SlowMotionState.Armed ->
-                        demoSlowMotion.release(lease)
-                    is dev.openpolaris.core.domain.SlowMotionState.Holding ->
-                        demoSlowMotion.release(lease)
-                    is dev.openpolaris.core.domain.SlowMotionState.Faulted -> {
-                        statusMessage = "Slow-motion blocked: explicit recovery is required"
-                        return@launch
-                    }
-                    else -> Unit
-                }
-            }
-            demoSlowMotionLease = null
-
-            val lease = when (val acquired = demoSlowMotion.acquire()) {
-                is SlowMotionAcquireResult.Granted -> acquired.lease
-                is SlowMotionAcquireResult.Busy ->
-                    return@launch.also { statusMessage = "Slow-motion owner is busy" }
-                is SlowMotionAcquireResult.Blocked ->
-                    return@launch.also { statusMessage = "Slow-motion blocked: ${acquired.reason}" }
-            }
-            val calibration = SlowMotionCalibration.REFERENCE.levels.getValue(level)
-            val rate = ((calibration.stateOneRate + calibration.stateTwoRate) / 2.0) * direction
-            val targets = RateAxis.entries.associateWith { candidate ->
-                if (candidate == axis) SlowMotionTarget(rate, hold = true)
-                else SlowMotionTarget(0.0, hold = false)
-            }
-            val now = slowMotionNow().coerceAtLeast(0L)
-            if (demoSlowMotion.start(lease, targets, now) != SlowMotionActionResult.Started) {
-                demoSlowMotion.release(lease)
-                statusMessage = "Slow-motion plan was rejected"
-                return@launch
-            }
-            demoSlowMotionLease = lease
-            demoSlowMotion.tick(lease, now)
-            val initialEvents = demoSlowMotionTransport.drainEvents()
-            slowMotionDemoState = SlowMotionDemoSnapshot(
-                running = true,
-                axis = axis,
-                direction = direction,
-                level = level,
-                lastEvents = initialEvents.takeLast(8),
-            )
-            statusMessage = if (demoMode) {
-                "Demo slow motion: ${slowMotionDemoState.label} (logical owner active; no hardware command)"
-            } else {
-                "Qualified slow motion active: ${slowMotionDemoState.label}"
-            }
-
-            while (isActive && (demoMode || liveSlowMotionReady()) && demoSlowMotionLease == lease) {
-                delay(50L)
-                val tickNow = slowMotionNow().coerceAtLeast(now)
-                val renewed = demoSlowMotion.renew(lease, tickNow)
-                if (renewed != SlowMotionActionResult.Renewed) {
-                    slowMotionDemoState = slowMotionDemoState.copy(
-                        running = false,
-                        direction = 0,
-                        level = 0,
-                    )
-                    demoSlowMotionLease = null
-                    break
-                }
-                val result = demoSlowMotion.tick(lease, tickNow)
-                val events = demoSlowMotionTransport.drainEvents()
-                if (events.isNotEmpty()) {
-                    slowMotionDemoState = slowMotionDemoState.copy(
-                        lastEvents = (slowMotionDemoState.lastEvents + events).takeLast(8),
-                    )
-                }
-                if (result is SlowMotionActionResult.Unknown ||
-                    result == SlowMotionActionResult.Rejected
-                ) {
-                    slowMotionDemoState = slowMotionDemoState.copy(
-                        running = false,
-                        direction = 0,
-                        level = 0,
-                    )
-                    demoSlowMotionLease = null
-                    break
-                }
-            }
-        }
-    }
-
-    /**
-     * Stop the logical Demo or qualified live SLOW session through the shared
-     * owner. The UI only asserts/relinquishes the hold; it does not own a
-     * repeat timer.
-     */
-    fun demoSlowMotionStop() {
-        if (!demoMode && !liveSlowMotionReady()) {
-            statusMessage = "Slow-motion transport is not qualified for live hardware"
-            return
-        }
-        if (demoSlowMotionStopJob?.isActive == true) return
-        val stopJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
-            try {
-                val result = stopDemoSlowMotionNow(MotionStopReason.RELEASE)
-                if (result is SlowMotionActionResult.Unknown) {
-                    statusMessage = "Demo slow-motion stop outcome unknown: " + result.reason
-                }
-                val stops = RateAxis.entries.map { axis ->
-                    SlowScheduleCommand(axis, dev.openpolaris.core.domain.SlowScheduleKind.STOP)
-                }
-                slowMotionDemoState = slowMotionDemoState.copy(
-                    running = false,
-                    direction = 0,
-                    level = 0,
-                    lastEvents = stops,
-                )
-                if (result == SlowMotionActionResult.Stopped) {
-                    statusMessage = if (demoMode) {
-                        "Demo slow motion stopped (" + stops.size + " logical stop transitions)"
-                    } else {
-                        "Qualified slow motion stopped"
-                    }
-                }
-            } finally {
-                if (demoSlowMotionStopJob === currentCoroutineContext()[Job]) {
-                    demoSlowMotionStopJob = null
-                }
-            }
-        }
-        demoSlowMotionStopJob = stopJob
-        stopJob.start()
-    }
-
-    /** Stop SLOW and retain a fault lease when the physical outcome is unknown. */
-    private suspend fun stopDemoSlowMotionNow(reason: MotionStopReason): SlowMotionActionResult {
-        val previous = demoSlowMotionJob
-        demoSlowMotionJob = null
-        previous?.cancelAndJoin()
-
-        val lease = demoSlowMotionLease
-        if (lease == null) {
-            return SlowMotionActionResult.Stopped
-        }
-
-        val result = demoSlowMotion.release(lease, reason)
-        slowMotionDemoState = slowMotionDemoState.copy(
-            running = false,
-            direction = 0,
-            level = 0,
-        )
-        if (result == SlowMotionActionResult.Stopped) {
-            demoSlowMotionLease = null
-        }
-        return result
-    }
-
-    /** Explicit recovery after reconnect and operator confirmation of a stopped head. */
-    fun recoverSlowMotionAfterReconnect() {
-        val lease = demoSlowMotionLease
-        if (!slowMotionStateIsFaulted() || lease == null) {
-            statusMessage = "No recoverable slow-motion fault is owned by this session"
-            return
-        }
-        if (session == null || !mount.connected) {
-            statusMessage = "Reconnect and confirm the mount is stopped before recovery"
-            return
-        }
-        scope.launch {
-            if (demoSlowMotion.recoverAfterReconnect(lease)) {
-                demoSlowMotionLease = null
-                demoSlowMotionJob = null
-                slowMotionDemoState = SlowMotionDemoSnapshot()
-                statusMessage = "Slow-motion fault cleared after explicit recovery"
-            } else {
-                statusMessage = "Slow-motion recovery lease no longer matches this session"
-            }
-        }
-    }
-
-    /**
-     * Disconnect/background teardown for the Demo owner. A live adapter must
-     * use the same boundary with a physical stop proof before reconnecting.
-     */
-    private fun stopDemoSlowMotionForDisconnect() {
-        val previous = demoSlowMotionJob
-        demoSlowMotionJob = null
-        previous?.cancel()
-        demoSlowMotionStopJob?.cancel()
-        demoSlowMotionStopJob = null
-        val lease = demoSlowMotionLease
-        demoSlowMotionLease = null
-        if (lease != null) {
-            // Disconnect is a hard session boundary. The Demo transport is
-            // local today, but this synchronous owner release preserves the
-            // same stop-before-reconnect contract required by a future
-            // qualified physical adapter and prevents a queued stop job from
-            // publishing stale status after disconnect.
-            runBlocking {
-                when (demoSlowMotion.state.value) {
-                    is dev.openpolaris.core.domain.SlowMotionState.Holding ->
-                        demoSlowMotion.onDisconnected(lease)
-                    is dev.openpolaris.core.domain.SlowMotionState.Armed ->
-                        demoSlowMotion.release(lease)
-                    else -> Unit
-                }
-            }
-        }
-        slowMotionDemoState = SlowMotionDemoSnapshot()
-    }
-
-    private suspend fun startFastJogInternal(code: Int): FastJogLease? {
-        if (controller == null || session == null) {
-            statusMessage = "Not connected"
-            return null
-        }
-        // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513-516
-        // duration jog is honoured while tracking is running. Preserve the
-        // source behaviour but surface the condition instead of hiding it.
+    fun jog(code: Int) = scope.launch {
+        val c = controller ?: run { statusMessage = "Not connected"; return@launch }
+        // Live-verified 2026-09-16 (Polaris, FW 6.0.0.54): the 513–516 jog
+        // commands are only honoured while tracking is running — with 531
+        // state:0 the firmware accepts the frame but the mount does not move,
+        // which is exactly Benro Connect's behaviour (its rocker operates in
+        // track mode). Surface that instead of a silent no-op.
         if (mount.tracking == false) {
-            statusMessage = "Jog sent - tracking is off, so the mount may not move"
+            statusMessage = "Jog sent — tracking is off, so the mount will not move (start Tracking first)"
         }
-        return when (val acquired = fastJogController.acquire(code)) {
-            is FastJogAcquireResult.Granted -> {
-                fastJogLease = acquired.lease
-                when (val started = fastJogController.start(acquired.lease, nowMs())) {
-                    FastJogActionResult.Accepted -> acquired.lease
-                    FastJogActionResult.Rejected -> {
-                        when (val stop = fastJogController.release(acquired.lease)) {
-                            FastJogActionResult.Stopped -> statusMessage = "Fast jog start rejected and stopped"
-                            is FastJogActionResult.Unknown -> statusMessage = stop.reason
-                            else -> statusMessage = "Fast jog start rejected; stop outcome unknown"
-                        }
-                        fastJogLease = null
-                        null
-                    }
-                    is FastJogActionResult.Unknown -> {
-                        fastJogLease = acquired.lease
-                        statusMessage = started.reason
-                        null
-                    }
-                    else -> {
-                        fastJogLease = null
-                        statusMessage = "Fast jog did not start"
-                        null
-                    }
-                }
-            }
-            is FastJogAcquireResult.Busy -> {
-                statusMessage = "Motion busy: " + (acquired.owner?.name ?: "fast jog")
-                null
-            }
-            is FastJogAcquireResult.Blocked -> {
-                statusMessage = "Motion blocked: " + acquired.reason
-                null
-            }
-        }
-    }
-
-    fun startFastJog(code: Int) {
-        if (fastJogJob?.isActive == true) return
-        fastJogJob = scope.launch {
-            val lease = startFastJogInternal(code) ?: return@launch
-            while (isActive && fastJogLease == lease) {
-                delay(50L)
-                when (val result = fastJogController.tick(lease, nowMs())) {
-                    FastJogActionResult.Accepted,
-                    FastJogActionResult.NotDue -> Unit
-                    FastJogActionResult.Stopped -> {
-                        fastJogLease = null
-                        statusMessage = "Fast jog lease expired and stopped"
-                        break
-                    }
-                    FastJogActionResult.Rejected -> {
-                        fastJogLease = null
-                        statusMessage = "Fast jog beat rejected"
-                        break
-                    }
-                    is FastJogActionResult.Unknown -> {
-                        fastJogLease = null
-                        statusMessage = result.reason
-                        break
-                    }
-                }
-            }
-        }
-    }
-
-    fun stopFastJog() {
-        val lease = fastJogLease ?: return
-        val motionSession = session
-        // Keep the lease visible until the asynchronous release has either
-        // settled or been taken over by disconnect(). Clearing it before the
-        // coroutine runs lets disconnect miss the physical stop boundary.
-        fastJogJob?.cancel()
-        fastJogJob = null
-        scope.launch {
-            // A queued release from an old session must not use the replacement
-            // session or publish a terminal status after disconnect.
-            if (motionSession == null ||
-                session !== motionSession ||
-                sessionTearingDown
-            ) {
-                return@launch
-            }
-            val result = fastJogController.release(lease)
-            if (session !== motionSession || sessionTearingDown) {
-                return@launch
-            }
-            if (fastJogLease == lease) {
-                fastJogLease = null
-            }
-            when (result) {
-                FastJogActionResult.Stopped -> statusMessage = "Fast jog stopped"
-                FastJogActionResult.Rejected -> statusMessage = "Fast jog stop rejected"
-                is FastJogActionResult.Unknown -> statusMessage = result.reason
-                else -> statusMessage = "Fast jog stop not confirmed"
-            }
-        }
-    }
-
-    /** Explicit operator recovery after the mount is reconnected and confirmed stopped. */
-    fun recoverFastJogAfterReconnect() {
-        if (session == null || !mount.connected) {
-            statusMessage = "Reconnect and confirm the mount is stopped before recovery"
-            return
-        }
-        scope.launch {
-            fastJogController.recoverAfterReconnect()
-            fastJogLease = null
-            fastJogJob = null
-            statusMessage = "Fast jog motion fault cleared after explicit recovery"
-        }
-    }
-
-    /**
-     * Highest-priority common stop for the Motion dock. It settles the active
-     * controller before clearing its local lease; an unknown result remains a
-     * visible fault and is never converted into idle.
-     */
-    fun emergencyStopMotion() {
-        fastJogJob?.cancel()
-        fastJogJob = null
-        val motionSession = session
-        scope.launch {
-            // A queued STOP ALL from a torn-down session must not inspect the
-            // replacement/idle supervisor and publish a misleading terminal
-            // status. Disconnect itself owns the synchronous lease boundary.
-            if (motionSession != null &&
-                (session !== motionSession || sessionTearingDown)
-            ) {
-                return@launch
-            }
-            when (val state = motionSupervisor.state.value) {
-                MotionState.Idle -> statusMessage = "No active motion owner"
-                is MotionState.Faulted -> {
-                    statusMessage = "Motion stop already faulted: " + state.reason
-                }
-                is MotionState.Owned -> {
-                    when (state.lease.owner) {
-                        MotionOwner.FAST_JOG -> {
-                            val lease = fastJogLease
-                            if (lease == null) {
-                                reportEmergencyStop(motionSupervisor.emergencyStop())
-                            } else {
-                                when (val result = fastJogController.emergencyStop(lease)) {
-                                    FastJogActionResult.Stopped -> {
-                                        fastJogLease = null
-                                        statusMessage = "Emergency stop sent"
-                                    }
-                                    is FastJogActionResult.Unknown -> statusMessage = result.reason
-                                    else -> statusMessage = "Fast jog emergency stop not confirmed"
-                                }
-                            }
-                        }
-                        MotionOwner.SLOW_MOVE -> {
-                            val lease = demoSlowMotionLease
-                            if (lease == null) {
-                                reportEmergencyStop(motionSupervisor.emergencyStop())
-                            } else {
-                                when (val result = demoSlowMotion.emergencyStop(lease)) {
-                                    SlowMotionActionResult.Stopped -> {
-                                        demoSlowMotionLease = null
-                                        slowMotionDemoState = slowMotionDemoState.copy(
-                                            running = false,
-                                            direction = 0,
-                                            level = 0,
-                                        )
-                                        statusMessage = "Emergency stop sent"
-                                    }
-                                    is SlowMotionActionResult.Unknown -> statusMessage = result.reason
-                                    else -> statusMessage = "Slow-motion emergency stop not confirmed"
-                                }
-                            }
-                        }
-                        MotionOwner.TRACKING_CORRECTION -> {
-                            val result = stopDemoFineRateNow(MotionStopReason.EMERGENCY)
-                            if (result is RateCommandResult.Accepted) {
-                                statusMessage = "Fine correction emergency stop sent"
-                            }
-                        }
-                        MotionOwner.GOTO,
-                        MotionOwner.ALIGNMENT -> {
-                            val result = motionSupervisor.emergencyStop()
-                            if (result is MotionStopResult.Unknown) {
-                                statusMessage = "Emergency stop outcome unknown: " + result.reason
-                            } else {
-                                gotoMotionLease = null
-                                alignmentMotionLease = null
-                                slewJob?.cancelAndJoin()
-                                slewJob = null
-                                alignmentJob?.cancelAndJoin()
-                                alignmentJob = null
-                                slewInProgress = false
-                                statusMessage = "Emergency stop sent"
-                            }
-                        }
-                        else -> reportEmergencyStop(motionSupervisor.emergencyStop())
-                    }
-                }
-            }
-        }
-    }
-
-    private fun reportEmergencyStop(result: MotionStopResult) {
-        statusMessage = when (result) {
-            MotionStopResult.Stopped -> "Emergency stop sent"
-            MotionStopResult.Rejected -> "Emergency stop rejected"
-            is MotionStopResult.Unknown -> "Emergency stop outcome unknown: " + result.reason
-        }
-    }
-
-    /** Compatibility one-shot: one bounded source beat followed by stop. */
-    fun jog(code: Int) {
-        startFastJog(code)
-        scope.launch {
-            delay(500L)
-            stopFastJog()
-        }
+        c.jog(code)
     }
 
     var gotoAz by mutableStateOf("0.0")
     var gotoAlt by mutableStateOf("0.0")
-    /** True after the user has submitted or solved a target in this session. */
-    var targetSelected by mutableStateOf(false)
-        private set
 
     // ---- observer location & RA/Dec goto ---------------------------------
 
     var latDeg by mutableStateOf("51.5")
     var lngEastDeg by mutableStateOf("-0.12")
-    private var observerLocationPersistence: ((Double, Double) -> Unit)? = null
-
-    /**
-     * Install the host-owned preference sink. The callback receives only a
-     * complete, range-validated observer location; transient invalid text
-     * entered into either field is never persisted.
-     */
-    internal fun setObserverLocationPersistence(callback: ((Double, Double) -> Unit)?) {
-        observerLocationPersistence = callback
-    }
-
-    /** Restore a previously validated location without writing it back. */
-    internal fun restoreObserverLocation(latitudeDeg: Double?, longitudeDeg: Double?) {
-        if (latitudeDeg == null || longitudeDeg == null) return
-        if (!latitudeDeg.isFinite() || latitudeDeg !in -90.0..90.0) return
-        if (!longitudeDeg.isFinite() || longitudeDeg !in -180.0..180.0) return
-        latDeg = latitudeDeg.toString()
-        lngEastDeg = longitudeDeg.toString()
-    }
 
     /** When true, Slew converts RA/Dec (J2000) to az/alt using location + clock. */
     var raDecMode: Boolean by mutableStateOf(false)
@@ -3411,34 +1568,17 @@ class AppViewModel(
      */
     var advancedMode by mutableStateOf(false)
 
-    fun updateLat(v: String) {
-        latDeg = v
-        persistObserverLocationIfValid()
-    }
-
-    fun updateLng(v: String) {
-        lngEastDeg = v
-        persistObserverLocationIfValid()
-    }
-
-    private fun persistObserverLocationIfValid() {
-        parsedLocation()?.let { (latitude, longitude) ->
-            observerLocationPersistence?.invoke(latitude, longitude)
-        }
-    }
+    fun updateLat(v: String) { latDeg = v }
+    fun updateLng(v: String) { lngEastDeg = v }
     @JvmName("toggleRaDecMode")
     fun setRaDecMode(on: Boolean) { raDecMode = on }
     fun updateRa(v: String) { gotoRa = v }
     fun updateDec(v: String) { gotoDec = v }
 
-    val observerLocationReady: Boolean
-        get() = parsedLocation() != null
-
     private fun parsedLocation(): Pair<Double, Double>? {
         val lat = latDeg.toDoubleOrNull() ?: return null
         val lng = lngEastDeg.toDoubleOrNull() ?: return null
-        if (!lat.isFinite() || lat !in -90.0..90.0) return null
-        if (!lng.isFinite() || lng !in -180.0..180.0) return null
+        if (lat < -90 || lat > 90) return null
         return lat to lng
     }
 
@@ -3453,8 +1593,6 @@ class AppViewModel(
 
     /** Handle to the in-flight arrival-aware slew coroutine, for [cancelSlew]. */
     private var slewJob: Job? = null
-    /** Shared owner lease for a live GoTo operation. */
-    private var gotoMotionLease: dev.openpolaris.core.domain.MotionLease? = null
 
     /**
      * Slew to entered coordinates and await arrival (code 519 + 517 poll).
@@ -3468,18 +1606,29 @@ class AppViewModel(
         if (slewInProgress) return
         val s = session ?: run { statusMessage = "Not connected"; return }
         val c = GoToController(s, controller ?: TrackingController(s))
-        val target: Pair<Double, Double>
-        val targetLabel: String
         if (raDecMode) {
             val loc = parsedLocation() ?: run { statusMessage = "Invalid latitude/longitude"; return }
             val ra = AstroMath.parseRa(gotoRa) ?: run { statusMessage = "Invalid RA (use HH MM SS or H.h)"; return }
-            val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use DD MM SS or D.d)"; return }
+            val dec = AstroMath.parseDec(gotoDec) ?: run { statusMessage = "Invalid Dec (use ±DD MM SS or ±D.d)"; return }
             val altAz = AstroMath.toHorizontalAt(ra, dec, loc.first, loc.second, AstroMath.julianDateNow())
-            target = altAz.azimuthDeg to altAz.altitudeDeg
-            targetLabel = "RA $gotoRa Dec $gotoDec (az %.1f deg, alt %.1f deg)".format(
-                altAz.azimuthDeg,
-                altAz.altitudeDeg,
-            )
+            slewInProgress = true
+            slewJob = scope.launch {
+                try {
+                    val arrived = c.goToAzAlt(altAz.azimuthDeg, altAz.altitudeDeg)
+                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
+                        statusMessage = if (arrived) {
+                            "Arrived at RA $gotoRa Dec $gotoDec (az %.1f°, alt %.1f°)".format(
+                                altAz.azimuthDeg, altAz.altitudeDeg,
+                            )
+                        } else {
+                            "Slew to RA $gotoRa Dec $gotoDec timed out — mount not yet at target"
+                        }
+                    }
+                } finally {
+                    slewInProgress = false
+                    slewJob = null
+                }
+            }
         } else {
             val az = gotoAz.toDoubleOrNull()
             val alt = gotoAlt.toDoubleOrNull()
@@ -3487,47 +1636,21 @@ class AppViewModel(
                 statusMessage = "Invalid coordinates"
                 return
             }
-            target = az to alt
-            targetLabel = "az $az deg, alt $alt deg"
-        }
-        targetSelected = true
-        slewInProgress = true
-        slewJob = scope.launch {
-            val acquired = motionSupervisor.acquire(MotionOwner.GOTO)
-            val lease = when (acquired) {
-                is MotionAcquireResult.Granted -> acquired.lease
-                is MotionAcquireResult.Busy -> {
-                    statusMessage = "Slew blocked by ${acquired.active.owner.name.lowercase().replace('_', ' ')}"
+            slewInProgress = true
+            slewJob = scope.launch {
+                try {
+                    val arrived = c.goToAzAlt(az, alt)
+                    if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
+                        statusMessage = if (arrived) {
+                            "Arrived at az $az°, alt $alt°"
+                        } else {
+                            "Slew to az $az°, alt $alt° timed out — mount not yet at target"
+                        }
+                    }
+                } finally {
                     slewInProgress = false
                     slewJob = null
-                    return@launch
                 }
-                is MotionAcquireResult.Blocked -> {
-                    statusMessage = "Slew blocked: ${acquired.reason}"
-                    slewInProgress = false
-                    slewJob = null
-                    return@launch
-                }
-            }
-            gotoMotionLease = lease
-            var terminalMessage: String? = null
-            try {
-                val arrived = c.goToAzAlt(target.first, target.second)
-                terminalMessage = if (arrived) {
-                    "Arrived at $targetLabel"
-                } else {
-                    "Slew to $targetLabel timed out - mount not yet at target"
-                }
-            } finally {
-                val stopResult = motionSupervisor.stop(lease, MotionStopReason.RELEASE)
-                if (gotoMotionLease == lease) gotoMotionLease = null
-                if (stopResult is MotionStopResult.Unknown) {
-                    statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
-                } else if (isActive && terminalMessage != null) {
-                    statusMessage = terminalMessage
-                }
-                slewInProgress = false
-                slewJob = null
             }
         }
     }
@@ -3537,38 +1660,15 @@ class AppViewModel(
      * the arrival poll so its terminal status write cannot clobber the
      * "Slew cancelled" line. Idempotent when no slew is in flight.
      */
-    fun cancelSlew(): Job {
-        val motionSession = session
-        return scope.launch {
-            // Cancellation is a session-owned UI action. A queued cancel from
-            // a disconnected session must not inspect replacement motion state
-            // or publish a terminal status after teardown.
-            if (motionSession != null &&
-                (session !== motionSession || sessionTearingDown)
-            ) {
-                return@launch
-            }
-            val lease = gotoMotionLease
-            if (lease != null) {
-                val stopResult = motionSupervisor.stop(lease, MotionStopReason.EMERGENCY)
-                if (motionSession != null &&
-                    (session !== motionSession || sessionTearingDown)
-                ) {
-                    return@launch
-                }
-                if (stopResult is MotionStopResult.Unknown) {
-                    statusMessage = "Slew stop outcome unknown: ${stopResult.reason}"
-                } else {
-                    statusMessage = "Slew cancelled"
-                }
-            } else {
-                statusMessage = "Slew cancelled"
-            }
-            slewJob?.cancelAndJoin()
-            gotoMotionLease = null
-            slewJob = null
-            slewInProgress = false
+    fun cancelSlew() = scope.launch {
+        val s = session
+        if (s != null) {
+            runCatching { GoToController(s, controller ?: TrackingController(s)).cancelGoto() }
         }
+        slewJob?.cancel()
+        slewJob = null
+        slewInProgress = false
+        statusMessage = "Slew cancelled"
     }
 
     // ---- session persistence + reconnect prompt (issue #27) ----------------
@@ -3714,7 +1814,6 @@ class AppViewModel(
                     // honest age, and the status message can mention the
                     // match quality. See issue #13.
                     _lastSolveResult.value = result
-                    targetSelected = true
                     // Push the same value to the process-wide bus so the
                     // VR marker (a separate Android Activity with no
                     // reference to this AppViewModel) updates on a
@@ -3757,7 +1856,6 @@ class AppViewModel(
     internal fun testInstallCameraAndIntervalometer(s: MountSession) {
         this.cameraController = CameraController(s)
         this.intervalometer = createIntervalometer()
-        this.observationExecutor = createObservationProgrammeExecutor()
     }
 
     /**
@@ -3832,50 +1930,23 @@ class AppViewModel(
         val c = alignmentController ?: run { statusMessage = "Not connected"; return }
         val pos = position ?: run { statusMessage = "No mount position yet"; return }
         val loc = parsedLocation() ?: run { statusMessage = "Set a valid observer location first"; return }
-        alignmentJob?.cancel()
-        alignmentJob = scope.launch {
-            val acquired = motionSupervisor.acquire(MotionOwner.ALIGNMENT)
-            val lease = when (acquired) {
-                is MotionAcquireResult.Granted -> acquired.lease
-                is MotionAcquireResult.Busy -> {
-                    statusMessage = "Motion busy: " + acquired.active.owner.name.lowercase()
-                    return@launch
-                }
-                is MotionAcquireResult.Blocked -> {
-                    statusMessage = "Motion blocked: " + acquired.reason
-                    return@launch
-                }
-            }
-            alignmentMotionLease = lease
-            try {
-                c.submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
-                // Record the selected star's identity (if any) with the
-                // az/alt it was centred on, so the history is explicit.
-                val rec = selectedAlignmentStar?.copy(
-                    azDeg = pos.yaw.toDouble(),
-                    altDeg = pos.pitch.toDouble(),
-                ) ?: AlignmentStarRecord(
-                    designation = "star-" + (c.starCount - 1),
-                    raDeg = 0.0,
-                    decDeg = 0.0,
-                    azDeg = pos.yaw.toDouble(),
-                    altDeg = pos.pitch.toDouble(),
-                )
-                _recordedAlignmentStars.add(rec)
-                alignmentStars = c.starCount
-                statusMessage = "Alignment star " + c.starCount + " recorded (" + rec.designation + ")"
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                statusMessage = "Alignment failed: " + (error.message ?: "unknown error")
-            } finally {
-                withContext(kotlinx.coroutines.NonCancellable) {
-                    val stopped = motionSupervisor.stop(lease, MotionStopReason.RELEASE)
-                    if (stopped is MotionStopResult.Unknown) {
-                        statusMessage = "Alignment stop outcome unknown: " + stopped.reason
-                    }
-                    alignmentMotionLease = null
-                }
-            }
+        scope.launch {
+            c.submitStar(pos.yaw.toDouble(), pos.pitch.toDouble(), loc.first, loc.second)
+            // Record the selected star's identity (if any) with the az/alt
+            // it was centred on, so the history is explicit and visible.
+            val rec = selectedAlignmentStar?.copy(
+                azDeg = pos.yaw.toDouble(),
+                altDeg = pos.pitch.toDouble(),
+            ) ?: AlignmentStarRecord(
+                designation = "star-${c.starCount - 1}",
+                raDeg = 0.0,
+                decDeg = 0.0,
+                azDeg = pos.yaw.toDouble(),
+                altDeg = pos.pitch.toDouble(),
+            )
+            _recordedAlignmentStars.add(rec)
+            alignmentStars = c.starCount
+            statusMessage = "Alignment star ${c.starCount} recorded (${rec.designation})"
         }
     }
 
@@ -4083,47 +2154,6 @@ class AppViewModel(
     var camera by mutableStateOf(dev.openpolaris.core.domain.CameraController.Params())
         private set
 
-    /** Time of the last explicit dynamic camera-parameter readback. */
-    var cameraReadbackAtMs by mutableStateOf<Long?>(null)
-        private set
-
-    /**
-     * Per-field result from the last refresh. A failed refresh never erases a
-     * last-known-good value, but the field status remains visible to the UI.
-     */
-    var cameraReadbackStatuses by mutableStateOf<Map<String, CameraController.InfoStatus>>(emptyMap())
-        private set
-
-    data class CameraAuxiliaryReadback(
-        val imageFormat: CameraController.CameraParamResult? = null,
-        val controlMode: CameraController.CameraParamResult? = null,
-        val exposureTime: CameraController.CameraParamResult? = null,
-        val intervalType: CameraController.CameraParamResult? = null,
-    )
-
-    var cameraAuxiliaryReadback by mutableStateOf(CameraAuxiliaryReadback())
-        private set
-
-    var cameraAuxiliaryReadbackAtMs by mutableStateOf<Long?>(null)
-        private set
-
-    val cameraAuxiliaryReadbackAgeText: String
-        get() = cameraAuxiliaryReadbackAtMs?.let {
-            val ageSeconds = (nowMs() - it).coerceAtLeast(0L) / 1_000L
-            if (ageSeconds == 0L) "just now" else "${ageSeconds}s ago"
-        } ?: "not read"
-
-    var focusStatus by mutableStateOf<String?>(null)
-        private set
-    var videoRecording by mutableStateOf<Boolean?>(null)
-        private set
-
-    val cameraReadbackAgeText: String
-        get() = cameraReadbackAtMs?.let {
-            val ageSeconds = (nowMs() - it).coerceAtLeast(0L) / 1_000L
-            if (ageSeconds == 0L) "just now" else "${ageSeconds}s ago"
-        } ?: "not read"
-
     private var cameraController: dev.openpolaris.core.domain.CameraController? = null
 
     // §6 (handover step 7): the typed intervalometer / capture-sequence engine.
@@ -4135,17 +2165,10 @@ class AppViewModel(
     // observer (see [completeCaptureIfCorrelated]) which calls
     // [dev.openpolaris.core.domain.IntervalometerController.markShotDone].
     private var intervalometer: dev.openpolaris.core.domain.IntervalometerController? = null
-    private var observationExecutor: dev.openpolaris.core.domain.ObservationProgrammeExecutor? = null
 
     /** Live intervalometer state for the UI (mirrors [intervalometer].state). */
     var sequenceState: dev.openpolaris.core.domain.IntervalometerController.State by mutableStateOf(
         dev.openpolaris.core.domain.IntervalometerController.State.Idle
-    )
-        private set
-
-    /** Programme state is separate from the legacy intervalometer state. */
-    var observationProgrammeState: dev.openpolaris.core.domain.ObservationProgrammeExecutor.State by mutableStateOf(
-        dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle,
     )
         private set
 
@@ -4161,16 +2184,6 @@ class AppViewModel(
         return dev.openpolaris.core.domain.IntervalometerController(
             camera = cam,
             scope = scope,
-            beforeCapture = {
-                val ownerSession = session
-                if (ownerSession == null || !ownsSession(ownerSession) || cameraController !== cam) {
-                    throw IllegalStateException("capture session changed before sequence shutter")
-                }
-                verifyCaptureReadiness(ownerSession, cam)?.let { reason ->
-                    throw IllegalStateException("camera readiness failed: $reason")
-                }
-                suspendCaptureWorkloads()
-            },
             onStateChange = { s ->
                 sequenceState = s
                 // A shutter may still be in flight while Running (between shots)
@@ -4179,189 +2192,11 @@ class AppViewModel(
                 // into markShotDone() after the sequence has ended.
                 sequenceActive = when (s) {
                     is dev.openpolaris.core.domain.IntervalometerController.State.Running,
-                    is dev.openpolaris.core.domain.IntervalometerController.State.Paused,
-                    is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown -> true
+                    is dev.openpolaris.core.domain.IntervalometerController.State.Paused -> true
                     else -> false
                 }
-                when (s) {
-                    is dev.openpolaris.core.domain.IntervalometerController.State.Completed -> {
-                        capturePhase = CapturePhase.Completed
-                        restoreCaptureWorkloads()
-                    }
-                    is dev.openpolaris.core.domain.IntervalometerController.State.OutcomeUnknown -> {
-                        capturePhase = CapturePhase.OutcomeUnknown(s.reason)
-                        statusMessage = "Sequence outcome unknown — check the card and reconnect before another shutter"
-                    }
-                    is dev.openpolaris.core.domain.IntervalometerController.State.Failed -> {
-                        statusMessage = "Sequence failed: ${s.reason}"
-                        if (capturePhase !is CapturePhase.Requested && capturePhase !is CapturePhase.Busy) restoreCaptureWorkloads()
-                    }
-                    is dev.openpolaris.core.domain.IntervalometerController.State.Stopped -> {
-                        if (capturePhase !is CapturePhase.Requested && capturePhase !is CapturePhase.Busy) restoreCaptureWorkloads()
-                    }
-                    else -> Unit
-                }
             },
         )
-    }
-
-    private val observationOwner = object : dev.openpolaris.core.domain.ObservationProgrammeExecutor.OwnerLease {
-        override fun acquire(): Boolean {
-            if (observationProgrammeActive || sequenceActive) return false
-            if (session == null || cameraController == null) return false
-            if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy || capturePhase is CapturePhase.OutcomeUnknown) return false
-            if (videoRecording == true) return false
-            if (!cameraAttachmentAllowsCommand()) return false
-            observationProgrammeActive = true
-            return true
-        }
-
-        override fun release() {
-            observationProgrammeActive = false
-            programmeConfirmation?.cancel()
-            programmeConfirmation = null
-            if (!sessionTearingDown) restoreCaptureWorkloads()
-        }
-    }
-
-    private val observationCaptureBridge = dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge(
-        evidence = captureEvidence,
-        trigger = ::triggerObservationProgrammeStep,
-        awaitConfirmation = ::awaitObservationConfirmation,
-    )
-
-    private fun createObservationProgrammeExecutor(): dev.openpolaris.core.domain.ObservationProgrammeExecutor =
-        dev.openpolaris.core.domain.ObservationProgrammeExecutor(
-            scope = scope,
-            owner = observationOwner,
-            onStateChange = { state ->
-                observationProgrammeState = state
-                when (state) {
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Running ->
-                        statusMessage = "Programme running: ${state.completedSteps}/${state.plan.captureCount}"
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Paused ->
-                        statusMessage = "Programme paused: ${state.completedSteps}/${state.plan.captureCount}"
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Completed ->
-                        statusMessage = "Programme completed: ${state.completedSteps} captures"
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Stopped ->
-                        statusMessage = "Programme stopped after ${state.completedSteps} captures"
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Failed ->
-                        statusMessage = "Programme failed: ${state.reason}"
-                    is dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.OutcomeUnknown ->
-                        statusMessage = "Programme outcome unknown — reconnect before another shutter"
-                    dev.openpolaris.core.domain.ObservationProgrammeExecutor.State.Idle -> Unit
-                }
-            },
-            executeStep = observationCaptureBridge::execute,
-        )
-
-    /**
-     * A qualified first execution path for a planner-produced lapse. HDR,
-     * focus-stack and panorama plans remain preview-only until their exposure
-     * and motion contracts are separately qualified.
-     */
-    fun startObservationProgramme(plan: dev.openpolaris.core.domain.ObservationProgrammePlanner.Plan): Boolean {
-        if (blockCaptureDuringSlowMotion()) return false
-        val requiresExtraCapability =
-            plan.kind != dev.openpolaris.core.domain.ObservationProgrammePlanner.Kind.LAPSE ||
-                plan.steps.any {
-                    it.exposureIndex != null ||
-                        it.focusPosition != null ||
-                        it.yawOffsetDeg != null ||
-                        it.pitchOffsetDeg != null
-                }
-        if (requiresExtraCapability && !demoMode) {
-            statusMessage = "Only a fixed-exposure lapse is qualified for execution"
-            return false
-        }
-        if (observationExecutor == null || cameraController == null || session == null) {
-            statusMessage = "Not connected"
-            return false
-        }
-        if (sequenceActive) {
-            statusMessage = "Capture sequence in progress — stop it first"
-            return false
-        }
-        if (videoRecording == true) {
-            statusMessage = "Stop video before starting a programme"
-            return false
-        }
-        if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy || capturePhase is CapturePhase.OutcomeUnknown) {
-            statusMessage = "Capture outcome is not clear — wait or reconnect"
-            return false
-        }
-        beginCaptureTimeline("Programme requested: ${plan.captureCount} captures")
-        return observationExecutor!!.start(plan).also { started ->
-            if (!started) statusMessage = "Programme owner is busy or unavailable"
-        }
-    }
-
-    fun pauseObservationProgramme() {
-        observationExecutor?.pause()
-    }
-
-    fun resumeObservationProgramme(): Boolean = observationExecutor?.resume() == true
-
-    fun stopObservationProgramme() {
-        observationExecutor?.stop()
-    }
-
-    private suspend fun triggerObservationProgrammeStep(
-        step: dev.openpolaris.core.domain.ObservationProgrammePlanner.Step,
-    ): dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult {
-        val camera = cameraController
-            ?: return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("camera is not connected")
-        if (!cameraAttachmentAllowsCommand()) {
-            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("camera attachment is not confirmed")
-        }
-        if (videoRecording == true) {
-            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("video is recording")
-        }
-        if (sequenceActive) {
-            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("another capture sequence owns the shutter")
-        }
-        val ownerSession = session
-            ?: return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected("capture session is not connected")
-        val readinessFailure = verifyCaptureReadiness(ownerSession, camera)
-        if (readinessFailure != null) {
-            return dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Rejected(
-                "camera readiness failed: $readinessFailure",
-            )
-        }
-        capturePhase = CapturePhase.Requested
-        pendingCapturePublication = null
-        programmeConfirmation = CompletableDeferred()
-        beginCaptureTimeline("Programme step ${step.ordinal}: ${step.label}")
-        suspendCaptureWorkloads()
-        return try {
-            camera.capture()
-            statusMessage = if (demoMode) {
-                "Demo programme step sent: " + step.label + " (metadata rehearsal)"
-            } else {
-                "Programme step sent: " + step.label
-            }
-            dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.Accepted
-        } catch (error: Throwable) {
-            val reason = error.message ?: "programme shutter dispatch failed"
-            captureEvidence.unknown(reason)
-            capturePhase = CapturePhase.OutcomeUnknown(reason)
-            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-            dev.openpolaris.core.domain.ObservationProgrammeCaptureBridge.TriggerResult.OutcomeUnknown(reason)
-        }
-    }
-
-    private suspend fun awaitObservationConfirmation(): CaptureEvidenceGate.Publication? {
-        val confirmation = programmeConfirmation ?: return null
-        val publication = withTimeoutOrNull(CAPTURE_TIMEOUT_MS) { confirmation.await() }
-        if (publication == null && !confirmation.isCompleted) {
-            val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
-            captureEvidence.unknown(reason)
-            capturePhase = CapturePhase.OutcomeUnknown(reason)
-            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-            statusMessage = "Programme outcome unknown — check the card before another shutter"
-        }
-        programmeConfirmation = null
-        return publication
     }
 
     /**
@@ -4372,23 +2207,9 @@ class AppViewModel(
      * Returns false (and reports why) when no session / camera is attached.
      */
     fun startSequence(shotCount: Int, intervalMs: Long, preDelayMs: Long = 0L): Boolean {
-        if (blockCaptureDuringSlowMotion()) return false
         val engine = intervalometer
         if (engine == null || cameraController == null) {
             statusMessage = "Not connected"
-            return false
-        }
-        if (observationProgrammeActive) {
-            statusMessage = "Observation programme in progress — stop it first"
-            return false
-        }
-        if (!cameraAttachmentAllowsCommand()) return false
-        if (videoRecording == true) {
-            statusMessage = "Stop video before starting a still capture sequence"
-            return false
-        }
-        if (capturePhase !is CapturePhase.Idle && capturePhase !is CapturePhase.Completed && capturePhase !is CapturePhase.Failed) {
-            statusMessage = "Capture outcome is not clear — reconnect before another shutter"
             return false
         }
         val plan = dev.openpolaris.core.domain.IntervalometerController.SequencePlan(
@@ -4396,14 +2217,7 @@ class AppViewModel(
             intervalMs = intervalMs,
             preDelayMs = preDelayMs,
         )
-        val previousPhase = capturePhase
-        captureEvidence.begin()
-        pendingCapturePublication = null
-        beginCaptureTimeline("Sequence requested: $shotCount shots")
-        capturePhase = CapturePhase.Requested
         if (!engine.start(plan)) {
-            capturePhase = previousPhase
-            appendCaptureTimeline(CaptureTimelineStage.FAILED, "sequence already running")
             statusMessage = "Sequence already running"
             return false
         }
@@ -4411,6 +2225,9 @@ class AppViewModel(
         // Put the capture-event observer in its active state so the first shot's
         // 264/773 frames are processed; [completeCaptureIfCorrelated] keeps it
         // active between subsequent shots.
+        captureSawLifecycle = false
+        captureSawFile = false
+        capturePhase = CapturePhase.Requested
         statusMessage = "Sequence started: $shotCount shots @ ${intervalMs} ms"
         return true
     }
@@ -4424,8 +2241,8 @@ class AppViewModel(
     fun resumeSequence() {
         // Re-arm the capture-event observer for the next shot (a pause may have
         // left the phase in a terminal state after the last completed shot).
-        captureEvidence.begin()
-        pendingCapturePublication = null
+        captureSawLifecycle = false
+        captureSawFile = false
         capturePhase = CapturePhase.Requested
         intervalometer?.resume()
     }
@@ -4445,190 +2262,39 @@ class AppViewModel(
     }
 
     fun refreshCamera() {
-        val ownerSession = session
-        val ownerController = cameraController
-        if (ownerController == null || ownerSession == null) {
-            statusMessage = "Not connected"
-            return
-        }
-        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
+        val controller = cameraController
+        if (controller == null) { statusMessage = "Not connected"; return }
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
-        if (cameraRefreshJob?.isActive == true) {
-            statusMessage = "Camera parameter refresh already in progress"
-            return
-        }
-        cameraRefreshJob = scope.launch {
-            val iso = ownerController.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
-            val wb = ownerController.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
-            val ev = ownerController.queryBenroInfo(Codes.BenroCamera.GET_EV_INFO, "ev")
-            val shutter = ownerController.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
-            val aperture = ownerController.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
-            if (!ownsSession(ownerSession)) return@launch
-
-            fun usable(info: CameraController.Info): Boolean =
-                info.status == CameraController.InfoStatus.VALID
-
-            val current = camera
-            camera = current.copy(
-                isoIndex = if (usable(iso)) iso.index else current.isoIndex,
-                wbIndex = if (usable(wb)) wb.index else current.wbIndex,
-                evIndex = if (usable(ev)) ev.index else current.evIndex,
-                shutterIndex = if (usable(shutter)) shutter.index else current.shutterIndex,
-                fNumIndex = if (usable(aperture)) aperture.index else current.fNumIndex,
-                isoOptions = if (usable(iso) && iso.options.isNotEmpty()) iso.options else current.isoOptions,
-                wbOptions = if (usable(wb) && wb.options.isNotEmpty()) wb.options else current.wbOptions,
-                evOptions = if (usable(ev) && ev.options.isNotEmpty()) ev.options else current.evOptions,
-                shutterOptions = if (usable(shutter) && shutter.options.isNotEmpty()) shutter.options else current.shutterOptions,
-                fNumOptions = if (usable(aperture) && aperture.options.isNotEmpty()) aperture.options else current.fNumOptions,
+        scope.launch {
+            val iso = controller.queryBenroInfo(Codes.BenroCamera.GET_ISO_INFO, "iso")
+            val wb = controller.queryBenroInfo(Codes.BenroCamera.GET_WB_INFO, "wb")
+            val ev = controller.queryBenroInfo(Codes.BenroCamera.GET_EV_INFO, "ev")
+            val shutter = controller.queryBenroInfo(Codes.BenroCamera.GET_SHUTTER_INFO, "shutter")
+            val aperture = controller.queryBenroInfo(Codes.BenroCamera.GET_FNUM_INFO, "fNum")
+            camera = camera.copy(
+                isoIndex = iso.index,
+                wbIndex = wb.index,
+                evIndex = ev.index,
+                shutterIndex = shutter.index,
+                fNumIndex = aperture.index,
+                isoOptions = iso.options,
+                wbOptions = wb.options,
+                evOptions = ev.options,
+                shutterOptions = shutter.options,
+                fNumOptions = aperture.options,
             )
-            cameraReadbackStatuses = mapOf(
-                "ISO" to iso.status,
-                "WB" to wb.status,
-                "EV" to ev.status,
-                "Shutter" to shutter.status,
-                "Aperture" to aperture.status,
-            )
-            if (listOf(iso, wb, ev, shutter, aperture).any(::usable)) {
-                cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
-            }
             val readings = listOf(
-                "ISO[265]=${iso.raw.ifBlank { "<empty>" }} (${iso.status.name.lowercase()})",
-                "WB[266]=${wb.raw.ifBlank { "<empty>" }} (${wb.status.name.lowercase()})",
-                "EV[267]=${ev.raw.ifBlank { "<empty>" }} (${ev.status.name.lowercase()})",
-                "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }} (${shutter.status.name.lowercase()})",
-                "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }} (${aperture.status.name.lowercase()})",
+                "ISO[265]=${iso.raw.ifBlank { "<empty>" }}",
+                "WB[266]=${wb.raw.ifBlank { "<empty>" }}",
+                "EV[267]=${ev.raw.ifBlank { "<empty>" }}",
+                "Shutter[268]=${shutter.raw.ifBlank { "<empty>" }}",
+                "Aperture[275]=${aperture.raw.ifBlank { "<empty>" }}",
             )
-            statusMessage = if (demoMode) {
-                "Demo camera readback ready: " + shutter.raw.ifBlank { "unknown" }
-            } else {
-                readings.joinToString(" | ")
-            }
+            statusMessage = readings.joinToString(" | ")
         }
-    }
-
-    /**
-     * Read the source-aligned task-3 camera values without enabling any write.
-     * These routes are intentionally explicit because some firmware exposes
-     * only the primary INFO registry; a missing auxiliary response is shown as
-     * unavailable and never replaces the primary camera readback.
-     */
-    fun refreshCameraAuxiliary() {
-        val ownerSession = session
-        val ownerController = cameraController
-        if (ownerController == null || ownerSession == null) {
-            statusMessage = "Not connected"
-            return
-        }
-        if (!FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
-            statusMessage = "Enable Camera qualification mode in Settings first"
-            return
-        }
-        if (cameraAuxiliaryRefreshJob?.isActive == true) {
-            statusMessage = "Auxiliary camera readback already in progress"
-            return
-        }
-        cameraAuxiliaryRefreshJob = scope.launch {
-            val imageFormat = ownerController.queryImageFormat()
-            val controlMode = ownerController.queryControlMode()
-            val exposureTime = ownerController.queryExposureTime()
-            val intervalType = ownerController.queryIntervalType()
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            cameraAuxiliaryReadback = CameraAuxiliaryReadback(
-                imageFormat = imageFormat,
-                controlMode = controlMode,
-                exposureTime = exposureTime,
-                intervalType = intervalType,
-            )
-            cameraAuxiliaryReadbackAtMs = nowMs().coerceAtLeast(0L)
-            statusMessage = if (demoMode) {
-                "Demo auxiliary camera readback ready"
-            } else {
-                "Auxiliary camera readback complete"
-            }
-        }
-    }
-
-    private fun cameraAttachmentAllowsCommand(): Boolean {
-        val attachment = cameraAttachment
-        if (attachment == null) {
-            statusMessage = "Camera status not verified — camera command blocked"
-            return false
-        }
-        if (!attachment.isAttached) {
-            statusMessage = "No camera detected — camera command blocked"
-            return false
-        }
-        return true
-    }
-
-    /**
-     * Fresh capture admission check. Camera INFO values are not cached for a
-     * release decision: a late same-code frame can otherwise make a later
-     * shutter look ready when the camera has actually disappeared or changed
-     * mode. MountSession quarantines timed-out response codes until reconnect.
-     */
-    private suspend fun verifyCaptureReadiness(
-        ownerSession: MountSession,
-        ownerController: CameraController,
-        requiredMode: dev.openpolaris.core.domain.CameraReleaseMode? = null,
-    ): String? {
-        val attachmentResult = ownerSession.request(
-            code = Codes.CAM_INFO,
-            timeoutMs = CAMERA_READINESS_TIMEOUT_MS,
-            quarantineOnTimeout = true,
-        ) { CommandTable.CAM_INFO.parse!!(it) }
-        when (attachmentResult) {
-            is MountSession.CmdResult.Ok -> {
-                val attachment = attachmentResult.value
-                cameraAttachment = attachment
-                if (!attachment.isAttached) {
-                    return "no camera detected by the mount"
-                }
-            }
-            is MountSession.CmdResult.Timeout ->
-                return "camera readiness check timed out"
-            is MountSession.CmdResult.ProtocolError ->
-                return "camera readiness unavailable: ${attachmentResult.message}"
-        }
-
-        val shutter = ownerController.queryBenroInfo(
-            Codes.BenroCamera.GET_SHUTTER_INFO,
-            "shutter",
-        )
-        cameraReadbackStatuses = cameraReadbackStatuses + ("Shutter" to shutter.status)
-        val shutterIndex = shutter.index
-        if (shutter.status != CameraController.InfoStatus.VALID ||
-            shutterIndex == null ||
-            shutter.options.isEmpty() ||
-            shutterIndex !in shutter.options.indices
-        ) {
-            return "camera shutter readback unavailable (${shutter.status.name.lowercase()})"
-        }
-
-        camera = camera.copy(
-            shutterIndex = shutterIndex,
-            shutterOptions = shutter.options,
-        )
-        cameraReadbackAtMs = nowMs().coerceAtLeast(0L)
-        val observedMode = dev.openpolaris.core.domain.CameraReleaseMode.fromOption(
-            shutter.options[shutterIndex],
-        )
-        if (requiredMode != null && observedMode != requiredMode) {
-            return "camera is not in ${requiredMode.label} mode (fresh readback: ${observedMode.label})"
-        }
-        return null
-    }
-
-    private fun failCaptureAdmission(reason: String) {
-        captureKind = null
-        captureSource = null
-        captureEvidence.fail(reason)
-        capturePhase = CapturePhase.Failed(reason)
-        appendCaptureTimeline(CaptureTimelineStage.FAILED, "Capture blocked: $reason")
-        statusMessage = "Capture blocked: $reason"
-        restoreCaptureWorkloads()
     }
 
     private fun rejectUnverifiedCameraWrite() {
@@ -4638,100 +2304,21 @@ class AppViewModel(
     fun setImgSize(index: Int) = rejectUnverifiedCameraWrite()
     fun setImgFmt(index: Int) = rejectUnverifiedCameraWrite()
     fun setColor(index: Int) = rejectUnverifiedCameraWrite()
-    fun setShutter(index: Int) {
-        val option = camera.shutterOptions.getOrNull(index)?.trim()?.lowercase()
-        qualifyCameraSetting(
-            "Shutter",
-            Codes.BenroCamera.GET_SHUTTER_INFO,
-            Codes.BenroCamera.SET_SHUTTER,
-            "shutter",
-            index,
-            rebindForBulb = option == "bulb" || option == "b",
-        )
-    }
+    fun setShutter(index: Int) = qualifyCameraSetting("Shutter", Codes.BenroCamera.GET_SHUTTER_INFO, Codes.BenroCamera.SET_SHUTTER, "shutter", index)
     fun setCaptureMode(index: Int) = rejectUnverifiedCameraWrite()
     fun setIso(index: Int) = qualifyCameraSetting("ISO", Codes.BenroCamera.GET_ISO_INFO, Codes.BenroCamera.SET_ISO, "iso", index)
     fun setWb(index: Int) = qualifyCameraSetting("WB", Codes.BenroCamera.GET_WB_INFO, Codes.BenroCamera.SET_WB, "wb", index)
     fun setFNum(index: Int) = qualifyCameraSetting("Aperture", Codes.BenroCamera.GET_FNUM_INFO, Codes.BenroCamera.SET_FNUM, "fNum", index)
     fun setEv(index: Int) = qualifyCameraSetting("EV", Codes.BenroCamera.GET_EV_INFO, Codes.BenroCamera.SET_EV, "ev", index)
 
-    /** One discrete, source-aligned manual-focus adjustment. The live gate is
-     * deliberately separate from [experimentalCamera] because the field sign
-     * and repeat/stop behaviour need named-camera qualification. */
-    fun adjustFocusNear(fast: Boolean = false) = dispatchFocusAdjustment(near = true, fast = fast)
-    fun adjustFocusFar(fast: Boolean = false) = dispatchFocusAdjustment(near = false, fast = fast)
-
-    private fun dispatchFocusAdjustment(near: Boolean, fast: Boolean) {
+    private fun qualifyCameraSetting(label: String, infoCode: Int, setCode: Int, key: String, index: Int) {
         val controller = cameraController
         if (controller == null) { statusMessage = "Not connected"; return }
-        if (!cameraAttachmentAllowsCommand()) return
-        if ((!FeatureFlags.isEnabled("experimentalCamera") ||
-            !FeatureFlags.isEnabled("cameraFocusControl")) && !demoMode
-        ) {
-            statusMessage = "Manual focus is read-only until camera direction is qualified"
-            return
-        }
-        scope.launch {
-            val result = if (near) controller.adjustManualFocusNear(fast)
-            else controller.adjustManualFocusFar(fast)
-            focusStatus = if (result.accepted) {
-                "${if (near) "Near" else "Far"} focus acknowledged${if (fast) " (fast)" else ""}"
-            } else {
-                "Focus not confirmed: ${result.error ?: result.raw ?: "no acknowledgement"}"
-            }
-            statusMessage = focusStatus.orEmpty()
-        }
-    }
-
-    /** Start/stop video using the source-aligned 263 state echo. */
-    fun setVideoRecording(recording: Boolean) {
-        val controller = cameraController
-        if (controller == null) { statusMessage = "Not connected"; return }
-        if (!cameraAttachmentAllowsCommand()) return
-        if ((!FeatureFlags.isEnabled("experimentalCamera") ||
-            !FeatureFlags.isEnabled("cameraVideo")) && !demoMode
-        ) {
-            statusMessage = "Video control is read-only until its camera lifecycle is qualified"
-            return
-        }
-        if (sequenceActive || capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-            statusMessage = "Stop the active capture workflow before changing video"
-            return
-        }
-        scope.launch {
-            val result = controller.setVideoRecordStatus(recording)
-            if (result.accepted) {
-                videoRecording = recording
-                statusMessage = if (recording) "Video recording started" else "Video recording stopped"
-            } else {
-                statusMessage = "Video ${if (recording) "start" else "stop"} not confirmed: ${result.error ?: result.raw ?: "no state echo"}"
-            }
-        }
-    }
-
-    private fun qualifyCameraSetting(
-        label: String,
-        infoCode: Int,
-        setCode: Int,
-        key: String,
-        index: Int,
-        rebindForBulb: Boolean = false,
-    ) {
-        val controller = cameraController
-        if (controller == null) { statusMessage = "Not connected"; return }
-        if (!cameraAttachmentAllowsCommand()) return
-        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera") && !demoMode) {
+        if (!dev.openpolaris.core.config.FeatureFlags.isEnabled("experimentalCamera")) {
             statusMessage = "Enable Camera qualification mode in Settings first"
             return
         }
         scope.launch {
-            if (rebindForBulb && !demoMode) {
-                statusMessage = "Reconnecting camera for Bulb mode…"
-                if (!controller.rebindForModeTransition()) {
-                    statusMessage = "Bulb mode rebind failed; shutter write blocked"
-                    return@launch
-                }
-            }
             val result = controller.qualifyBenroSetting(label, infoCode, setCode, key, index)
             if (result.verified) {
                 camera = when (label) {
@@ -4758,19 +2345,11 @@ class AppViewModel(
      * [OutcomeUnknown] if correlated lifecycle/file evidence never arrives.
      */
     fun capture() {
-        if (blockCaptureDuringSlowMotion()) return
-        val ownerSession = session
-        val ownerController = cameraController
-        if (ownerSession == null || ownerController == null) { statusMessage = "Not connected"; return }
-        if (!cameraAttachmentAllowsCommand()) return
-        if (videoRecording == true) {
-            statusMessage = "Stop video before a still capture"
-            return
-        }
+        if (cameraController == null) { statusMessage = "Not connected"; return }
         // §6: a running/paused sequence owns the shutter — a manual single-shot
         // press would race the engine's next trigger. Stop the sequence first.
-        if (sequenceActive || observationProgrammeActive) {
-            statusMessage = "Capture programme in progress — stop it before a single shot"
+        if (sequenceActive) {
+            statusMessage = "Capture sequence in progress — stop it before a single shot"
             return
         }
         // Debounce: ignore a second shutter press while a capture is pending,
@@ -4784,135 +2363,45 @@ class AppViewModel(
             statusMessage = "Capture in progress — wait for it to finish"
             return
         }
-        captureDispatchJob = scope.launch {
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            val admissionFailure = verifyCaptureReadiness(ownerSession, ownerController)
-            if (admissionFailure != null) {
-                failCaptureAdmission(admissionFailure)
-                return@launch
-            }
-            captureKind = CaptureKind.NORMAL
-            captureSource = CaptureSource.NATIVE
+        scope.launch {
             capturePhase = CapturePhase.Requested
-            captureEvidence.begin()
-            pendingCapturePublication = null
-            beginCaptureTimeline("Still release sent")
+            captureSawLifecycle = false
+            captureSawFile = false
             suspendCaptureWorkloads()
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            ownerController.capture()
+            cameraController?.capture()
             statusMessage = "Capture sent"
             captureWatchdogJob?.cancel()
             captureWatchdogJob = scope.launch {
                 delay(CAPTURE_TIMEOUT_MS)
                 if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    val reason = "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
-                    captureEvidence.unknown(reason)
-                    capturePhase = CapturePhase.OutcomeUnknown(reason)
-                    appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
+                    capturePhase = CapturePhase.OutcomeUnknown(
+                        "timeout: missing correlated 264 lifecycle and/or 773 file event after ${CAPTURE_TIMEOUT_MS / 1000}s"
+                    )
                     statusMessage = "Capture outcome unknown — check the card before another shutter"
-                    // Keep camera-backed work suspended until explicit session
-                    // recovery; the camera may still be processing the shot.
+                    restoreCaptureWorkloads()
                 }
             }
         }
     }
 
-    /** Trigger a Benro-compatible Bulb exposure from the Manual camera pane. */
-    fun captureBulb(seconds: Int) {
-        if (blockCaptureDuringSlowMotion()) return
-        if (seconds <= 0) { statusMessage = "Bulb duration must be positive"; return }
-        val ownerSession = session
-        val ownerController = cameraController
-        if (ownerSession == null || ownerController == null) { statusMessage = "Not connected"; return }
-        if (!cameraAttachmentAllowsCommand()) return
-        if (videoRecording == true) {
-            statusMessage = "Stop video before a Bulb capture"
-            return
-        }
-        if (sequenceActive || observationProgrammeActive) { statusMessage = "Capture programme in progress — stop it first"; return }
-        val phase = capturePhase
-        if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
-            statusMessage = "Capture in progress — wait for it to finish"; return
-        }
-        captureDispatchJob = scope.launch {
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            val admissionFailure = verifyCaptureReadiness(
-                ownerSession,
-                ownerController,
-                requiredMode = dev.openpolaris.core.domain.CameraReleaseMode.BULB,
-            )
-            if (admissionFailure != null) {
-                failCaptureAdmission(admissionFailure)
-                return@launch
-            }
-            captureKind = CaptureKind.BULB
-            captureSource = CaptureSource.NATIVE
-            capturePhase = CapturePhase.Requested
-            captureEvidence.begin()
-            pendingCapturePublication = null
-            beginCaptureTimeline("Bulb release sent")
-            suspendCaptureWorkloads()
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            val result = ownerController.captureBulb(seconds)
-            if (!result.accepted) {
-                val reason = result.error ?: result.raw ?: "no explicit state:1 acknowledgement"
-                captureEvidence.fail(reason)
-                captureKind = null
-                captureSource = null
-                capturePhase = CapturePhase.Failed("Bulb command rejected: $reason")
-                appendCaptureTimeline(CaptureTimelineStage.FAILED, "Bulb command rejected: $reason")
-                statusMessage = "Bulb command rejected: $reason"
-                restoreCaptureWorkloads()
-                return@launch
-            }
-            statusMessage = "Bulb capture sent (${seconds}s)"
-            captureWatchdogJob?.cancel()
-            captureWatchdogJob = scope.launch {
-                delay(maxOf(CAPTURE_TIMEOUT_MS, seconds * 1000L + 15_000L))
-                if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                    val reason = "timeout: missing correlated Bulb lifecycle/file event"
-                    captureEvidence.unknown(reason)
-                    capturePhase = CapturePhase.OutcomeUnknown(reason)
-                    appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                    statusMessage = "Bulb outcome unknown — check the card before another shutter"
-                }
-            }
-        }
-    }
-
-    /** Request the matching 264 state-0 edge for an active native Bulb capture. */
-    fun stopBulb() {
-        val phase = capturePhase
-        if (!nativeBulbCaptureActive ||
-            (phase !is CapturePhase.Requested && phase !is CapturePhase.Busy)
-        ) {
-            statusMessage = "No native Bulb capture is active"
-            return
-        }
-        val controller = cameraController
-        if (controller == null) {
-            captureEvidence.unknown("camera disconnected while stopping Bulb")
-            capturePhase = CapturePhase.OutcomeUnknown("camera disconnected while stopping Bulb")
-            statusMessage = "Bulb outcome unknown — camera disconnected"
-            return
-        }
-        bulbStopJob = scope.launch {
-            val result = controller.stopBulb()
-            if (result.accepted) {
-                statusMessage = "Bulb stop sent; waiting for the image"
+    /**
+     * Trigger the camera's panoramic-capture workflow (code 271, Benro
+     * `SP_PANORAMIC`). The payload contract is UNVERIFIED — see
+     * [dev.openpolaris.core.domain.CameraController.sendPanorama]. The raw
+     * reply is surfaced in [statusMessage] so the operator can see whether
+     * the camera acknowledged it.
+     */
+    fun panorama() {
+        val controller = cameraController ?: run { statusMessage = "Not connected"; return }
+        scope.launch {
+            statusMessage = "Panorama: sending…"
+            val raw = controller.sendPanorama()
+            statusMessage = if (raw == "TIMEOUT") {
+                "Panorama: no reply (timeout)"
             } else {
-                val reason = "Bulb stop was not acknowledged: ${result.error ?: result.raw ?: "unknown"}"
-                captureEvidence.unknown(reason)
-                capturePhase = CapturePhase.OutcomeUnknown(reason)
-                appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                statusMessage = "Bulb stop not confirmed — check the card before another shutter"
+                "Panorama: $raw"
             }
         }
-    }
-
-    /** Test seam for capture/SLOW admission state-machine coverage. */
-    internal fun testSetCapturePhaseForSafety(phase: CapturePhase) {
-        capturePhase = phase
     }
 
     /** #90 test seam: drive a parsed unsolicited frame without a live device. */
@@ -4923,17 +2412,9 @@ class AppViewModel(
         captureWatchdogJob?.cancel()
         captureWatchdogJob = null
         capturePhase = CapturePhase.Idle
-        captureKind = null
-        captureSource = null
-        captureEvidence.clear()
-        pendingCapturePublication = null
-        captureTimeline = emptyList()
+        captureSawLifecycle = false
+        captureSawFile = false
         restoreCaptureWorkloads()
-    }
-
-    /** Test seam for a positively observed camera release-mode readback. */
-    internal fun testSetCameraParams(params: dev.openpolaris.core.domain.CameraController.Params) {
-        camera = params
     }
 
     // ---- catalog & comets (Tonight pane) ----------------------------------
@@ -5086,115 +2567,6 @@ class AppViewModel(
     var fileListPage by mutableStateOf(0)
         private set
 
-    /** Optional source-aligned Astro WebUI media surface; native 770 remains separate. */
-    var astroMediaItems by mutableStateOf<List<AstroMediaItem>?>(null)
-        private set
-    var astroMediaState by mutableStateOf<AstroMediaState>(AstroMediaState.Idle)
-        private set
-    var astroMediaPreview by mutableStateOf<AstroMediaPreview?>(null)
-        private set
-    var astroMediaCategory by mutableStateOf<String?>(null)
-        private set
-    var astroMediaExportState by mutableStateOf<AstroMediaExportState>(AstroMediaExportState.Idle)
-        private set
-    var astroWebUiStatus by mutableStateOf<AstroWebUiStatusState>(AstroWebUiStatusState.Idle)
-        private set
-    var astroWebUiGuide by mutableStateOf<AstroWebUiGuideUiState>(AstroWebUiGuideUiState.Idle)
-        private set
-    var astroWebUiAutofocus by mutableStateOf<AstroWebUiAutofocusUiState>(AstroWebUiAutofocusUiState.Idle)
-        private set
-    var astroWebUiFocal by mutableStateOf<AstroWebUiFocalUiState>(AstroWebUiFocalUiState.Idle)
-        private set
-    var astroWebUiLimits by mutableStateOf<AstroWebUiLimitsUiState>(AstroWebUiLimitsUiState.Idle)
-        private set
-    var astroWebUiKeepWifi by mutableStateOf<AstroWebUiKeepWifiUiState>(AstroWebUiKeepWifiUiState.Idle)
-        private set
-    var astroWebUiWifi by mutableStateOf<AstroWebUiWifiUiState>(AstroWebUiWifiUiState.Idle)
-        private set
-    var astroWebUiLink by mutableStateOf<AstroWebUiLinkUiState>(AstroWebUiLinkUiState.Idle)
-        private set
-    var astroWebUiTarget by mutableStateOf<AstroWebUiTargetUiState>(AstroWebUiTargetUiState.Idle)
-        private set
-    var astroWebUiSolve by mutableStateOf<AstroWebUiSolveUiState>(AstroWebUiSolveUiState.Idle)
-        private set
-    var astroWebUiSolveControl by mutableStateOf<AstroWebUiSolveControlUiState>(AstroWebUiSolveControlUiState.Idle)
-        private set
-    var astroWebUiRunState by mutableStateOf<AstroWebUiRunStateUiState>(AstroWebUiRunStateUiState.Idle)
-        private set
-    var astroWebUiSessionControl by mutableStateOf<AstroWebUiSessionControlState>(
-        AstroWebUiSessionControlState.Idle,
-    )
-        private set
-    var astroWebUiSite by mutableStateOf<AstroWebUiSiteState>(AstroWebUiSiteState.Idle)
-        private set
-    var astroWebUiSiteWrite by mutableStateOf<AstroWebUiSiteWriteState>(AstroWebUiSiteWriteState.Idle)
-        private set
-    var astroWebUiProgramme by mutableStateOf<AstroWebUiProgrammeState>(AstroWebUiProgrammeState.Idle)
-        private set
-    var astroWebUiProgrammeStartState by mutableStateOf<AstroWebUiProgrammeStartState>(
-        AstroWebUiProgrammeStartState.Idle,
-    )
-        private set
-    var astroWebUiAstroCapture by mutableStateOf<AstroWebUiAstroCaptureState>(
-        AstroWebUiAstroCaptureState.Idle,
-    )
-        private set
-    var astroWebUiSunState by mutableStateOf<AstroWebUiSunState>(AstroWebUiSunState.Idle)
-        private set
-    var astroWebUiMotionProgrammeState by mutableStateOf<AstroWebUiMotionProgrammeState>(
-        AstroWebUiMotionProgrammeState.Idle,
-    )
-        private set
-    private val astroMediaExportController = AstroMediaExportController(astroMediaExportSink)
-    private var astroMediaJob: Job? = null
-    private var astroWebUiStatusJob: Job? = null
-    private var astroWebUiStatusPollJob: Job? = null
-    private var astroWebUiGuideJob: Job? = null
-    private var astroWebUiGuidePollJob: Job? = null
-    private var astroWebUiAutofocusJob: Job? = null
-    private var astroWebUiAutofocusPollJob: Job? = null
-    private var astroWebUiFocalJob: Job? = null
-    private var astroWebUiLimitsJob: Job? = null
-    private var astroWebUiKeepWifiJob: Job? = null
-    private var astroWebUiWifiJob: Job? = null
-    private var astroWebUiLinkJob: Job? = null
-    private var astroWebUiTargetJob: Job? = null
-    private var astroWebUiSolveJob: Job? = null
-    private var astroWebUiSolveControlJob: Job? = null
-    private var astroWebUiSolvePollJob: Job? = null
-    private var astroWebUiRunStateJob: Job? = null
-    private var astroWebUiRunStatePollJob: Job? = null
-    private var astroWebUiSessionControlJob: Job? = null
-    private var astroWebUiSiteJob: Job? = null
-    private var astroWebUiSiteWriteJob: Job? = null
-    private var astroWebUiProgrammeJob: Job? = null
-    private var astroWebUiProgrammePollJob: Job? = null
-    private var astroWebUiProgrammeControlJob: Job? = null
-    private var astroWebUiProgrammeStartJob: Job? = null
-    private var astroWebUiAstroCaptureJob: Job? = null
-    private var astroWebUiSunJob: Job? = null
-    private var astroWebUiMotionProgrammeJob: Job? = null
-    private val astroWebUiStatusReadMutex = Mutex()
-    private val astroWebUiGuideReadMutex = Mutex()
-    private val astroWebUiAutofocusReadMutex = Mutex()
-    private val astroWebUiFocalReadMutex = Mutex()
-    private val astroWebUiLimitsReadMutex = Mutex()
-    private val astroWebUiKeepWifiReadMutex = Mutex()
-    private val astroWebUiWifiReadMutex = Mutex()
-    private val astroWebUiLinkReadMutex = Mutex()
-    private val astroWebUiSolveReadMutex = Mutex()
-    private val astroWebUiRunStateReadMutex = Mutex()
-    private val astroWebUiProgrammeReadMutex = Mutex()
-    private var astroMediaExportJob: Job? = null
-
-    /** True only while an asynchronous action still belongs to this mount session. */
-    private fun ownsSession(owner: MountSession?): Boolean =
-        owner != null && session === owner && !sessionTearingDown
-
-    fun selectAstroMediaCategory(category: String?) {
-        astroMediaCategory = category
-    }
-
     fun setFileType(t: Int) { fileListType = t }
     fun setFilePage(p: Int) { fileListPage = p.coerceAtLeast(0) }
 
@@ -5202,1947 +2574,10 @@ class AppViewModel(
         if (!FeatureFlags.isEnabled("fileManager")) { statusMessage = "File manager disabled by config"; return@launch }
         val s = session ?: return@launch
         runCatching {
-            val r = s.request<FileList>(
-                Codes.FILE_LIST,
-                CommandTable.FILE_LIST.payload(CommandTable.FileListRequest(fileListType, fileListPage)),
-            ) { f ->
-                FileList.fromFrame(f)
-            }
+            val r = s.request<FileList>(Codes.FILE_LIST) { f -> FileList.fromFrame(f) }
             if (r is MountSession.CmdResult.Ok) {
                 fileList = r.value
                 statusMessage = "File list: ${r.value?.files?.size ?: 0} file(s)"
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiStatus(announce: Boolean) {
-        astroWebUiStatusReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiStatus")) {
-                astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiStatus = AstroWebUiStatusState.Failed(
-                    "Connect to a mount before reading its Astro WebUI status",
-                )
-                return@withLock
-            }
-            astroWebUiStatus = AstroWebUiStatusState.Loading
-            val result = astroWebUiStatusClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiStatusResult.Success -> {
-                    astroWebUiStatus = AstroWebUiStatusState.Ready(result.status)
-                    if (announce) {
-                        statusMessage = if (result.status.active) {
-                            "Astro WebUI reports Astro mode active"
-                        } else {
-                            "Astro WebUI reports Astro mode inactive"
-                        }
-                    }
-                }
-                is AstroWebUiStatusResult.Failure -> {
-                    astroWebUiStatus = AstroWebUiStatusState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiStatus() {
-        astroWebUiStatusJob?.cancel()
-        astroWebUiStatusJob = scope.launch {
-            readAstroWebUiStatus(announce = true)
-        }
-    }
-
-    /**
-     * Mirror Astro WebUI's visible Astro-tab polling contract: the resident
-     * status is refreshed every two seconds while the mission surface is
-     * visible. The poller performs only GET /api/astro reads and is stopped
-     * with the owning Compose surface.
-     */
-    fun startAstroWebUiStatusPolling() {
-        astroWebUiStatusPollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiStatus")) {
-            astroWebUiStatus = AstroWebUiStatusState.Failed("Astro WebUI status disabled by config")
-            return
-        }
-        astroWebUiStatusPollJob = scope.launch {
-            while (isActive) {
-                readAstroWebUiStatus(announce = false)
-                delay(2_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiStatusPolling() {
-        astroWebUiStatusPollJob?.cancel()
-        astroWebUiStatusPollJob = null
-    }
-
-    private suspend fun readAstroWebUiGuide(announce: Boolean) {
-        astroWebUiGuideReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiGuideStatus")) {
-                astroWebUiGuide = AstroWebUiGuideUiState.Failed("Astro WebUI guide status disabled by config")
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiGuide = AstroWebUiGuideUiState.Failed(
-                    "Connect to a mount before reading its Astro WebUI guide state",
-                )
-                return@withLock
-            }
-            astroWebUiGuide = AstroWebUiGuideUiState.Loading
-            val result = astroWebUiGuideClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiGuideResult.Success -> {
-                    astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI guide state refreshed"
-                }
-                is AstroWebUiGuideResult.Failure -> {
-                    astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-                is AstroWebUiGuideResult.Accepted -> Unit
-            }
-        }
-    }
-
-    fun refreshAstroWebUiGuide() {
-        astroWebUiGuideJob?.cancel()
-        astroWebUiGuideJob = scope.launch {
-            readAstroWebUiGuide(announce = true)
-        }
-    }
-
-    fun startAstroWebUiGuidePolling() {
-        astroWebUiGuidePollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiGuideStatus")) {
-            astroWebUiGuide = AstroWebUiGuideUiState.Failed("Astro WebUI guide status disabled by config")
-            return
-        }
-        astroWebUiGuidePollJob = scope.launch {
-            while (isActive) {
-                readAstroWebUiGuide(announce = false)
-                delay(2_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiGuidePolling() {
-        astroWebUiGuidePollJob?.cancel()
-        astroWebUiGuidePollJob = null
-    }
-
-    fun setAstroWebUiGuiding(running: Boolean) {
-        astroWebUiGuideJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiGuiding")) {
-            astroWebUiGuide = AstroWebUiGuideUiState.Failed(
-                "Astro WebUI guiding writes are disabled until solve, ownership and recovery are qualified",
-            )
-            statusMessage = "Astro WebUI guiding writes are disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiGuide = AstroWebUiGuideUiState.Failed(
-                "Connect to a mount before changing Astro WebUI guiding",
-            )
-            statusMessage = "Connect to a mount before changing Astro WebUI guiding"
-            return
-        }
-        astroWebUiGuide = AstroWebUiGuideUiState.Loading
-        astroWebUiGuideJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiGuideClient.setRunning(host, previewPort, running)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiGuideResult.Failure(error.message ?: "Astro WebUI guide change failed")
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiGuideResult.Accepted -> {
-                    astroWebUiGuide = AstroWebUiGuideUiState.Accepted(result.running)
-                    statusMessage = "Astro WebUI guide change accepted; confirming by readback"
-                    readAstroWebUiGuide(announce = false)
-                }
-                is AstroWebUiGuideResult.Success -> astroWebUiGuide = AstroWebUiGuideUiState.Ready(result.state)
-                is AstroWebUiGuideResult.Failure -> {
-                    astroWebUiGuide = AstroWebUiGuideUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun previewAstroWebUiGoto(request: AstroWebUiGotoRequest) {
-        astroWebUiTargetJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiTargetPreview")) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Astro WebUI GoTo preview is disabled by config",
-            )
-            statusMessage = "Astro WebUI GoTo preview is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Connect to a mount before previewing an Astro WebUI GoTo",
-            )
-            statusMessage = "Connect to a mount before previewing an Astro WebUI GoTo"
-            return
-        }
-        astroWebUiTarget = AstroWebUiTargetUiState.Loading
-        astroWebUiTargetJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiTargetClient.previewGoto(host, previewPort, request)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI GoTo preview failed")
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiTargetResult.GotoPreview -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Preview(result.request)
-                    statusMessage = "GoTo preview ready; confirmation is still required"
-                }
-                is AstroWebUiTargetResult.Failure -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-                else -> Unit
-            }
-        }
-    }
-
-    fun startAstroWebUiGoto(request: AstroWebUiGotoRequest) {
-        astroWebUiTargetJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiTargetWrites")) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Astro WebUI GoTo writes are disabled until motion and recovery qualification",
-            )
-            statusMessage = "Astro WebUI GoTo writes are disabled by config"
-            return
-        }
-        if ((astroWebUiTarget as? AstroWebUiTargetUiState.Preview)?.request != request) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Preview this exact target before starting the GoTo",
-            )
-            statusMessage = "Preview this exact target before starting the GoTo"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Connect to a mount before starting an Astro WebUI GoTo",
-            )
-            statusMessage = "Connect to a mount before starting an Astro WebUI GoTo"
-            return
-        }
-        astroWebUiTarget = AstroWebUiTargetUiState.Loading
-        astroWebUiTargetJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiTargetClient.startGoto(host, previewPort, request)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI GoTo failed")
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiTargetResult.GotoAccepted -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Accepted("GoTo")
-                    statusMessage = "Astro WebUI GoTo accepted; resident status remains authoritative"
-                    refreshAstroWebUiStatus()
-                }
-                is AstroWebUiTargetResult.Failure -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-                else -> Unit
-            }
-        }
-    }
-
-    fun alignAstroWebUiCompass(request: AstroWebUiAlignRequest) {
-        astroWebUiTargetJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiTargetWrites")) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Astro WebUI compass alignment is disabled until alignment and recovery qualification",
-            )
-            statusMessage = "Astro WebUI compass alignment is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiTarget = AstroWebUiTargetUiState.Failed(
-                "Connect to a mount before compass alignment",
-            )
-            statusMessage = "Connect to a mount before compass alignment"
-            return
-        }
-        astroWebUiTarget = AstroWebUiTargetUiState.Loading
-        astroWebUiTargetJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiTargetClient.align(host, previewPort, request)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiTargetResult.Failure(error.message ?: "Astro WebUI compass alignment failed")
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiTargetResult.AlignmentAccepted -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Accepted("compass alignment")
-                    statusMessage = "Compass alignment accepted; resident status remains authoritative"
-                    refreshAstroWebUiStatus()
-                }
-                is AstroWebUiTargetResult.Failure -> {
-                    astroWebUiTarget = AstroWebUiTargetUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-                else -> Unit
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiWifi(announce: Boolean) {
-        astroWebUiWifiReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiWifiStatus")) {
-                astroWebUiWifi = AstroWebUiWifiUiState.Failed(
-                    "Astro WebUI Wi-Fi status disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiWifi = AstroWebUiWifiUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI Wi-Fi state",
-                )
-                return@withLock
-            }
-            astroWebUiWifi = AstroWebUiWifiUiState.Loading
-            val result = astroWebUiWifiClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiWifiResult.Success -> {
-                    astroWebUiWifi = AstroWebUiWifiUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI Wi-Fi state refreshed"
-                }
-                is AstroWebUiWifiResult.Failure -> {
-                    astroWebUiWifi = AstroWebUiWifiUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiWifi() {
-        astroWebUiWifiJob?.cancel()
-        astroWebUiWifiJob = scope.launch {
-            readAstroWebUiWifi(announce = true)
-        }
-    }
-
-    private suspend fun readAstroWebUiLink(announce: Boolean) {
-        astroWebUiLinkReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiLinkStatus")) {
-                astroWebUiLink = AstroWebUiLinkUiState.Failed("Astro WebUI link telemetry disabled by config")
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiLink = AstroWebUiLinkUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI link telemetry",
-                )
-                return@withLock
-            }
-            astroWebUiLink = AstroWebUiLinkUiState.Loading
-            val result = astroWebUiLinkClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiLinkResult.Success -> {
-                    astroWebUiLink = AstroWebUiLinkUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI control-link telemetry refreshed"
-                }
-                is AstroWebUiLinkResult.Failure -> {
-                    astroWebUiLink = AstroWebUiLinkUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiLink() {
-        astroWebUiLinkJob?.cancel()
-        astroWebUiLinkJob = scope.launch {
-            readAstroWebUiLink(announce = true)
-        }
-    }
-
-    private suspend fun readAstroWebUiKeepWifi(announce: Boolean) {
-        astroWebUiKeepWifiReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiKeepWifiStatus")) {
-                astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
-                    "Astro WebUI keep-Wi-Fi status disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI keep-Wi-Fi state",
-                )
-                return@withLock
-            }
-            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Loading
-            val result = astroWebUiKeepWifiClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiKeepWifiResult.Success -> {
-                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI keep-Wi-Fi state refreshed"
-                }
-                is AstroWebUiKeepWifiResult.Accepted -> Unit
-                is AstroWebUiKeepWifiResult.Failure -> {
-                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiKeepWifi() {
-        astroWebUiKeepWifiJob?.cancel()
-        astroWebUiKeepWifiJob = scope.launch {
-            readAstroWebUiKeepWifi(announce = true)
-        }
-    }
-
-    fun setAstroWebUiKeepWifi(enabled: Boolean, forced: Boolean) {
-        astroWebUiKeepWifiJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiKeepWifiWrite")) {
-            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
-                "Astro WebUI keep-Wi-Fi writes are disabled until recovery qualification",
-            )
-            statusMessage = "Astro WebUI keep-Wi-Fi writes are disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(
-                "Connect to a mount before changing Astro WebUI keep-Wi-Fi",
-            )
-            statusMessage = "Connect to a mount before changing Astro WebUI keep-Wi-Fi"
-            return
-        }
-        astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Loading
-        astroWebUiKeepWifiJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiKeepWifiClient.set(host, previewPort, enabled, forced)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiKeepWifiResult.Failure(
-                    error.message ?: "Astro WebUI keep-Wi-Fi change failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiKeepWifiResult.Accepted -> {
-                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Accepted(result.enabled, result.forced)
-                    statusMessage = "Astro WebUI keep-Wi-Fi change accepted; confirming by readback"
-                    readAstroWebUiKeepWifi(announce = false)
-                }
-                is AstroWebUiKeepWifiResult.Success -> astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Ready(result.state)
-                is AstroWebUiKeepWifiResult.Failure -> {
-                    astroWebUiKeepWifi = AstroWebUiKeepWifiUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiLimits(announce: Boolean) {
-        astroWebUiLimitsReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiLimitsStatus")) {
-                astroWebUiLimits = AstroWebUiLimitsUiState.Failed(
-                    "Astro WebUI travel-limit status disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiLimits = AstroWebUiLimitsUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI travel-limit state",
-                )
-                return@withLock
-            }
-            astroWebUiLimits = AstroWebUiLimitsUiState.Loading
-            val result = astroWebUiLimitsClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiLimitsResult.Success -> {
-                    astroWebUiLimits = AstroWebUiLimitsUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI travel-limit state refreshed"
-                }
-                is AstroWebUiLimitsResult.Failure -> {
-                    astroWebUiLimits = AstroWebUiLimitsUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiLimits() {
-        astroWebUiLimitsJob?.cancel()
-        astroWebUiLimitsJob = scope.launch {
-            readAstroWebUiLimits(announce = true)
-        }
-    }
-
-    private suspend fun readAstroWebUiFocal(announce: Boolean) {
-        astroWebUiFocalReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiFocalStatus")) {
-                astroWebUiFocal = AstroWebUiFocalUiState.Failed(
-                    "Astro WebUI focal status disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiFocal = AstroWebUiFocalUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI focal state",
-                )
-                return@withLock
-            }
-            astroWebUiFocal = AstroWebUiFocalUiState.Loading
-            val result = astroWebUiFocalClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiFocalResult.Success -> {
-                    astroWebUiFocal = AstroWebUiFocalUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI focal state refreshed"
-                }
-                is AstroWebUiFocalResult.Failure -> {
-                    astroWebUiFocal = AstroWebUiFocalUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-                is AstroWebUiFocalResult.Accepted -> Unit
-            }
-        }
-    }
-
-    fun refreshAstroWebUiFocal() {
-        astroWebUiFocalJob?.cancel()
-        astroWebUiFocalJob = scope.launch {
-            readAstroWebUiFocal(announce = true)
-        }
-    }
-
-    fun setAstroWebUiFocalOverride(focalMm: Double?) {
-        astroWebUiFocalJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiFocalWrite")) {
-            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
-                "Astro WebUI focal writes are disabled until solve and recovery qualification",
-            )
-            statusMessage = "Astro WebUI focal writes are disabled by config"
-            return
-        }
-        if (focalMm != null && (focalMm.isNaN() || focalMm.isInfinite() || focalMm !in 1.0..100_000.0)) {
-            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
-                "Focal override must be 1-100000 mm, or auto",
-            )
-            statusMessage = "Focal override is out of range"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiFocal = AstroWebUiFocalUiState.Failed(
-                "Connect to a mount before changing Astro WebUI focal override",
-            )
-            statusMessage = "Connect to a mount before changing Astro WebUI focal override"
-            return
-        }
-        astroWebUiFocal = AstroWebUiFocalUiState.Loading
-        astroWebUiFocalJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiFocalClient.setOverride(host, previewPort, focalMm)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiFocalResult.Failure(
-                    error.message ?: "Astro WebUI focal change failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiFocalResult.Accepted -> {
-                    astroWebUiFocal = AstroWebUiFocalUiState.Accepted(result.focalMm)
-                    statusMessage = "Astro WebUI focal change accepted; confirming by readback"
-                    readAstroWebUiFocal(announce = false)
-                }
-                is AstroWebUiFocalResult.Success -> astroWebUiFocal = AstroWebUiFocalUiState.Ready(result.state)
-                is AstroWebUiFocalResult.Failure -> {
-                    astroWebUiFocal = AstroWebUiFocalUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiAutofocus(announce: Boolean) {
-        astroWebUiAutofocusReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiAutofocusStatus")) {
-                astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                    "Astro WebUI autofocus status disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI autofocus",
-                )
-                return@withLock
-            }
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
-            val result = astroWebUiAutofocusClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiAutofocusResult.Success -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI autofocus state refreshed"
-                }
-                is AstroWebUiAutofocusResult.Failure -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-                is AstroWebUiAutofocusResult.Accepted -> Unit
-            }
-        }
-    }
-
-    fun refreshAstroWebUiAutofocus() {
-        astroWebUiAutofocusJob?.cancel()
-        astroWebUiAutofocusJob = scope.launch {
-            readAstroWebUiAutofocus(announce = true)
-        }
-    }
-
-    fun startAstroWebUiAutofocusPolling() {
-        astroWebUiAutofocusPollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiAutofocusStatus")) {
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                "Astro WebUI autofocus status disabled by config",
-            )
-            return
-        }
-        astroWebUiAutofocusPollJob = scope.launch {
-            while (isActive) {
-                readAstroWebUiAutofocus(announce = false)
-                delay(2_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiAutofocusPolling() {
-        astroWebUiAutofocusPollJob?.cancel()
-        astroWebUiAutofocusPollJob = null
-    }
-
-    fun startAstroWebUiAutofocus(parameters: AstroWebUiAutofocusParameters) {
-        runAstroWebUiAutofocusWrite("start", parameters)
-    }
-
-    fun stopAstroWebUiAutofocus() {
-        astroWebUiAutofocusJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiAutofocus")) {
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                "Astro WebUI autofocus is disabled until camera, focus and recovery qualification",
-            )
-            statusMessage = "Astro WebUI autofocus is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                "Connect to a mount before stopping Astro WebUI autofocus",
-            )
-            statusMessage = "Connect to a mount before stopping Astro WebUI autofocus"
-            return
-        }
-        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
-        astroWebUiAutofocusJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiAutofocusClient.stop(host, previewPort)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiAutofocusResult.Failure(
-                    error.message ?: "Astro WebUI autofocus stop failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiAutofocusResult.Accepted -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Accepted(result.action)
-                    statusMessage = "Astro WebUI autofocus stop accepted; confirming by readback"
-                    readAstroWebUiAutofocus(announce = false)
-                }
-                is AstroWebUiAutofocusResult.Success -> astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
-                is AstroWebUiAutofocusResult.Failure -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private fun runAstroWebUiAutofocusWrite(
-        action: String,
-        parameters: AstroWebUiAutofocusParameters,
-    ) {
-        astroWebUiAutofocusJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiAutofocus")) {
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                "Astro WebUI autofocus is disabled until camera, focus and recovery qualification",
-            )
-            statusMessage = "Astro WebUI autofocus is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(
-                "Connect to a mount before starting Astro WebUI autofocus",
-            )
-            statusMessage = "Connect to a mount before starting Astro WebUI autofocus"
-            return
-        }
-        astroWebUiAutofocus = AstroWebUiAutofocusUiState.Loading
-        astroWebUiAutofocusJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiAutofocusClient.start(host, previewPort, parameters)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiAutofocusResult.Failure(
-                    error.message ?: "Astro WebUI autofocus $action failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiAutofocusResult.Accepted -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Accepted(result.action)
-                    statusMessage = "Astro WebUI autofocus start accepted; progress is read back from the resident job"
-                    readAstroWebUiAutofocus(announce = false)
-                }
-                is AstroWebUiAutofocusResult.Success -> astroWebUiAutofocus = AstroWebUiAutofocusUiState.Ready(result.state)
-                is AstroWebUiAutofocusResult.Failure -> {
-                    astroWebUiAutofocus = AstroWebUiAutofocusUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiSolve(announce: Boolean) {
-        astroWebUiSolveReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiSolveStatus")) {
-                astroWebUiSolve = AstroWebUiSolveUiState.Failed("Astro WebUI solve status disabled by config")
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiSolve = AstroWebUiSolveUiState.Failed(
-                    "Connect to a mount before reading its Astro WebUI solve state",
-                )
-                return@withLock
-            }
-            astroWebUiSolve = AstroWebUiSolveUiState.Loading
-            val result = astroWebUiSolveClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiSolveResult.Success -> {
-                    astroWebUiSolve = AstroWebUiSolveUiState.Ready(result.state)
-                    if (announce) statusMessage = "Astro WebUI solve state refreshed"
-                }
-                is AstroWebUiSolveResult.Failure -> {
-                    astroWebUiSolve = AstroWebUiSolveUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiSolve() {
-        astroWebUiSolveJob?.cancel()
-        astroWebUiSolveJob = scope.launch {
-            readAstroWebUiSolve(announce = true)
-        }
-    }
-
-    /** Poll the source-aligned solve files only while the Mission surface owns the read. */
-    fun startAstroWebUiSolvePolling() {
-        astroWebUiSolvePollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiSolveStatus")) {
-            astroWebUiSolve = AstroWebUiSolveUiState.Failed("Astro WebUI solve status disabled by config")
-            return
-        }
-        astroWebUiSolvePollJob = scope.launch {
-            while (isActive) {
-                readAstroWebUiSolve(announce = false)
-                delay(2_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiSolvePolling() {
-        astroWebUiSolvePollJob?.cancel()
-        astroWebUiSolvePollJob = null
-    }
-
-    private fun runAstroWebUiSolveControl(action: String, block: suspend (String, Int) -> AstroWebUiSolveControlResult) {
-        astroWebUiSolveControlJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiSolveControls")) {
-            astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
-                "Astro WebUI solve controls are disabled until solver and alignment recovery are qualified",
-            )
-            statusMessage = "Astro WebUI solve controls remain disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
-                "Connect to a mount before using Astro WebUI solve controls",
-            )
-            statusMessage = "Connect to a mount before using Astro WebUI solve controls"
-            return
-        }
-        astroWebUiSolveControl = AstroWebUiSolveControlUiState.Loading
-        astroWebUiSolveControlJob = scope.launch {
-            val result = try {
-                block(host, previewPort)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiSolveControlResult.Failure(
-                    error.message ?: "Astro WebUI solve $action failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiSolveControlResult.Started -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted("Solve ${result.request.mode.wireValue} started")
-                    statusMessage = "Astro WebUI solve started; resident run state remains authoritative"
-                    refreshAstroWebUiSolve()
-                }
-                is AstroWebUiSolveControlResult.AlreadyRunning -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(
-                        result.reason + (result.elapsedSeconds?.let { " (${it}s elapsed)" } ?: ""),
-                    )
-                    statusMessage = result.reason
-                }
-                is AstroWebUiSolveControlResult.Applied -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted(
-                        "Last solution applied (${result.ageSeconds}s old)",
-                    )
-                    statusMessage = "Astro WebUI last solution applied; verify mount telemetry"
-                    refreshAstroWebUiSolve()
-                }
-                AstroWebUiSolveControlResult.Cancelled -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Accepted("Solve cancelled")
-                    statusMessage = "Astro WebUI solve cancelled"
-                    refreshAstroWebUiSolve()
-                }
-                is AstroWebUiSolveControlResult.NothingToCancel -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-                is AstroWebUiSolveControlResult.Failure -> {
-                    astroWebUiSolveControl = AstroWebUiSolveControlUiState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun startAstroWebUiSolve(mode: AstroWebUiSolveMode, apply: Boolean = false) =
-        runAstroWebUiSolveControl("start") { host, port ->
-            astroWebUiSolveControlClient.start(host, port, AstroWebUiSolveRequest(mode, apply))
-        }
-
-    fun applyAstroWebUiSolve() =
-        runAstroWebUiSolveControl("apply") { host, port ->
-            astroWebUiSolveControlClient.apply(host, port)
-        }
-
-    fun cancelAstroWebUiSolve() =
-        runAstroWebUiSolveControl("cancel") { host, port ->
-            astroWebUiSolveControlClient.cancel(host, port)
-        }
-
-    private suspend fun readAstroWebUiRunState(readMount: Boolean, announce: Boolean) {
-        astroWebUiRunStateReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiRunState")) {
-                astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
-                    "Astro WebUI run state disabled by config",
-                )
-                return@withLock
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
-                    "Connect to a mount before reading Astro WebUI run state",
-                )
-                return@withLock
-            }
-            astroWebUiRunState = AstroWebUiRunStateUiState.Loading
-            val result = astroWebUiRunStateClient.read(host, previewPort, readMount)
-            if (!ownsSession(ownerSession)) return@withLock
-            when (result) {
-                is AstroWebUiRunStateResult.Success -> {
-                    astroWebUiRunState = AstroWebUiRunStateUiState.Ready(result.state)
-                    if (announce) {
-                        statusMessage = if (readMount) {
-                            "Astro WebUI mount position read"
-                        } else {
-                            "Astro WebUI run state refreshed"
-                        }
-                    }
-                }
-                is AstroWebUiRunStateResult.Failure -> {
-                    astroWebUiRunState = AstroWebUiRunStateUiState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroWebUiRunState() {
-        astroWebUiRunStateJob?.cancel()
-        astroWebUiRunStateJob = scope.launch {
-            readAstroWebUiRunState(readMount = false, announce = true)
-        }
-    }
-
-    fun readAstroWebUiMountPosition() {
-        astroWebUiRunStateJob?.cancel()
-        astroWebUiRunStateJob = scope.launch {
-            readAstroWebUiRunState(readMount = true, announce = true)
-        }
-    }
-
-    /** Poll file/log-backed state only; mount=1 remains explicit-action-only. */
-    fun startAstroWebUiRunStatePolling() {
-        astroWebUiRunStatePollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiRunState")) {
-            astroWebUiRunState = AstroWebUiRunStateUiState.Failed(
-                "Astro WebUI run state disabled by config",
-            )
-            return
-        }
-        astroWebUiRunStatePollJob = scope.launch {
-            while (isActive) {
-                readAstroWebUiRunState(readMount = false, announce = false)
-                delay(2_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiRunStatePolling() {
-        astroWebUiRunStatePollJob?.cancel()
-        astroWebUiRunStatePollJob = null
-    }
-
-    private fun runAstroWebUiSessionControl(
-        action: String,
-        requiresMotionBoundary: Boolean = false,
-        request: suspend (AstroWebUiSessionControlClient) -> AstroWebUiSessionControlResult,
-    ) {
-        if (astroWebUiSessionControl is AstroWebUiSessionControlState.Working) return
-        val ownerSession = session
-        astroWebUiSessionControlJob?.cancel()
-        astroWebUiSessionControlJob = scope.launch {
-            if (!FeatureFlags.isEnabled("astroWebUiSessionControls")) {
-                astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(
-                    "Astro WebUI session controls are disabled by config",
-                )
-                return@launch
-            }
-            if (ownerSession == null) {
-                astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(
-                    "Connect to a mount before changing its Astro WebUI session",
-                )
-                return@launch
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            if (requiresMotionBoundary && !stopSlowMotionForModeChange()) return@launch
-            astroWebUiSessionControl = AstroWebUiSessionControlState.Working(action)
-            val result = request(astroWebUiSessionControlClient)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiSessionControlResult.Accepted -> {
-                    astroWebUiSessionControl = AstroWebUiSessionControlState.Accepted(result.action)
-                    statusMessage = "Astro WebUI " + result.action + " request accepted; confirming by status read"
-                    readAstroWebUiStatus(announce = false)
-                }
-                is AstroWebUiSessionControlResult.Failure -> {
-                    astroWebUiSessionControl = AstroWebUiSessionControlState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun enterAstroWebUi() {
-        runAstroWebUiSessionControl("enter") { client ->
-            client.enter(host, previewPort)
-        }
-    }
-
-    fun leaveAstroWebUi() {
-        runAstroWebUiSessionControl("leave", requiresMotionBoundary = true) { client ->
-            client.leave(host, previewPort)
-        }
-    }
-
-    fun setAstroWebUiTracking(request: AstroWebUiTrackRequest) {
-        runAstroWebUiSessionControl(
-            if (request.on) "start tracking" else "stop tracking",
-            requiresMotionBoundary = true,
-        ) { client ->
-            client.setTracking(host, previewPort, request)
-        }
-    }
-
-    fun refreshAstroWebUiSite() {
-        astroWebUiSiteJob?.cancel()
-        astroWebUiSiteJob = scope.launch {
-            if (!FeatureFlags.isEnabled("astroWebUiSite")) {
-                astroWebUiSite = AstroWebUiSiteState.Failed("Astro WebUI site disabled by config")
-                return@launch
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiSite = AstroWebUiSiteState.Failed("Connect to a mount before reading its Astro WebUI site")
-                return@launch
-            }
-            astroWebUiSite = AstroWebUiSiteState.Loading
-            val result = astroWebUiSiteClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiSiteResult.Success -> {
-                    astroWebUiSite = AstroWebUiSiteState.Ready(result.site)
-                    statusMessage = if (result.site.havePosition) {
-                        "Astro WebUI site loaded"
-                    } else {
-                        "Astro WebUI has no saved observing site"
-                    }
-                }
-                is AstroWebUiSiteResult.Failure -> {
-                    astroWebUiSite = AstroWebUiSiteState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun saveAstroWebUiSite() {
-        if (!FeatureFlags.isEnabled("astroWebUiSiteWrite")) {
-            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
-                "Astro WebUI site writes are disabled until mutation and recovery are qualified",
-            )
-            statusMessage = "Astro WebUI site save is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
-                "Connect to a mount before saving its Astro WebUI site",
-            )
-            statusMessage = "Connect to a mount before saving the Astro WebUI site"
-            return
-        }
-        val (latitude, longitude) = parsedLocation() ?: run {
-            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(
-                "Enter a valid observer latitude and longitude first",
-            )
-            statusMessage = "Enter a valid observer latitude and longitude first"
-            return
-        }
-        if (astroWebUiSiteWriteJob?.isActive == true) return
-
-        astroWebUiSiteWriteJob = scope.launch {
-            astroWebUiSiteWrite = AstroWebUiSiteWriteState.Working(latitude, longitude)
-            val result = try {
-                astroWebUiSiteControlClient.save(
-                    host,
-                    previewPort,
-                    AstroWebUiSiteWriteRequest(latitude, longitude),
-                )
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiSiteWriteResult.Failure(
-                    error.message ?: "Astro WebUI site save failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiSiteWriteResult.Accepted -> {
-                    astroWebUiSiteWrite = AstroWebUiSiteWriteState.Accepted(result.site)
-                    statusMessage = "Astro WebUI site save accepted; confirming by readback"
-                    refreshAstroWebUiSite()
-                }
-                is AstroWebUiSiteWriteResult.Failure -> {
-                    astroWebUiSiteWrite = AstroWebUiSiteWriteState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private suspend fun readAstroWebUiProgramme(announce: Boolean): Boolean =
-        astroWebUiProgrammeReadMutex.withLock {
-            if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
-                astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
-                return@withLock false
-            }
-            val ownerSession = session
-            if (ownerSession == null) {
-                astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Connect to a mount before reading its Astro WebUI programme status")
-                return@withLock false
-            }
-            astroWebUiProgramme = AstroWebUiProgrammeState.Loading
-            val result = astroWebUiProgrammeClient.read(host, previewPort)
-            if (!ownsSession(ownerSession)) return@withLock false
-            when (result) {
-                is AstroWebUiProgrammeResult.Success -> {
-                    astroWebUiProgramme = AstroWebUiProgrammeState.Ready(result.programme)
-                    if (announce) {
-                        statusMessage = if (result.programme.kind == "none") {
-                            "Astro WebUI has no programme running"
-                        } else {
-                            "Astro WebUI programme: " + result.programme.kind
-                        }
-                    }
-                    result.programme.kind != "none"
-                }
-                is AstroWebUiProgrammeResult.Failure -> {
-                    astroWebUiProgramme = AstroWebUiProgrammeState.Failed(result.reason)
-                    if (announce) statusMessage = result.reason
-                    false
-                }
-            }
-        }
-
-    fun refreshAstroWebUiProgramme() {
-        astroWebUiProgrammeJob?.cancel()
-        astroWebUiProgrammeJob = scope.launch {
-            readAstroWebUiProgramme(announce = true)
-        }
-    }
-
-    /**
-     * Mirror Astro WebUI's visible-programme polling contract: idle reads are
-     * quiet, while a resident run is refreshed once per second. The poller is
-     * owned by the Mission sheet and performs only GET /api/prog reads.
-     */
-    fun startAstroWebUiProgrammePolling() {
-        astroWebUiProgrammePollJob?.cancel()
-        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStatus")) {
-            astroWebUiProgramme = AstroWebUiProgrammeState.Failed("Astro WebUI programme status disabled by config")
-            return
-        }
-        astroWebUiProgrammePollJob = scope.launch {
-            while (isActive) {
-                val running = readAstroWebUiProgramme(announce = false)
-                delay(if (running) 1_000L else 4_000L)
-            }
-        }
-    }
-
-    fun stopAstroWebUiProgrammePolling() {
-        astroWebUiProgrammePollJob?.cancel()
-        astroWebUiProgrammePollJob = null
-    }
-
-    fun cancelAstroWebUiProgramme() {
-        runAstroWebUiProgrammeControl("cancel") { client ->
-            client.cancel(host, previewPort)
-        }
-    }
-
-    fun setAstroWebUiPanoramaInterval(seconds: Int) {
-        runAstroWebUiProgrammeControl("panorama interval update") { client ->
-            client.setPanoramaInterval(host, previewPort, seconds)
-        }
-    }
-
-    fun toggleAstroWebUiPanoramaPause() {
-        val programme = (astroWebUiProgramme as? AstroWebUiProgrammeState.Ready)?.programme
-        val paused = programme?.paused
-        if (programme?.kind != "panorama" || paused == null) {
-            statusMessage = "Panorama pause state is not positively observed"
-            return
-        }
-        val desired = !paused
-        runAstroWebUiProgrammeControl(if (desired) "pause" else "resume") { client ->
-            client.setPanoramaPaused(host, previewPort, desired)
-        }
-    }
-
-    fun startAstroWebUiLapse(parameters: AstroWebUiLapseParameters) {
-        runAstroWebUiProgrammeStart("timelapse start") { client ->
-            client.startLapse(host, previewPort, parameters)
-        }
-    }
-
-    /**
-     * Start the source-specific in-head Astro capture route. The HTTP
-     * acknowledgement only proves that the resident programme was accepted;
-     * /api/prog remains the authority for the run after this returns.
-     */
-    fun startAstroWebUiAstroCapture(parameters: AstroWebUiAstroCaptureParameters) {
-        if (blockCaptureDuringSlowMotion()) return
-        if (!FeatureFlags.isEnabled("astroWebUiAstroCapture")) {
-            astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(
-                "Astro WebUI in-head capture is disabled until route, recovery and physical shutter/mount qualification",
-            )
-            statusMessage = "Astro WebUI in-head capture is disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(
-                "Connect to a mount before starting Astro WebUI in-head capture",
-            )
-            statusMessage = "Connect to a mount before starting Astro WebUI in-head capture"
-            return
-        }
-        if (astroWebUiAstroCaptureJob?.isActive == true) {
-            statusMessage = "An Astro WebUI in-head capture request is already in progress"
-            return
-        }
-        astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Loading
-        astroWebUiAstroCaptureJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                astroWebUiAstroCaptureClient.start(host, previewPort, parameters)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiAstroCaptureResult.Failure(
-                    error.message ?: "Astro WebUI in-head capture failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiAstroCaptureResult.Accepted -> {
-                    astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Accepted(result.programme)
-                    statusMessage = "Astro WebUI in-head capture accepted; /api/prog remains authoritative"
-                    readAstroWebUiProgramme(announce = false)
-                }
-                is AstroWebUiAstroCaptureResult.Failure -> {
-                    astroWebUiAstroCapture = AstroWebUiAstroCaptureState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun previewAstroWebUiPanorama(parameters: AstroWebUiPanoramaParameters) {
-        runAstroWebUiProgrammeStart("panorama preview") { client ->
-            client.previewPanorama(host, previewPort, parameters)
-        }
-    }
-
-    fun startAstroWebUiPanorama(parameters: AstroWebUiPanoramaParameters) {
-        runAstroWebUiProgrammeStart("panorama start") { client ->
-            client.startPanorama(host, previewPort, parameters)
-        }
-    }
-
-    fun previewAstroWebUiHdr(parameters: AstroWebUiHdrParameters) {
-        runAstroWebUiProgrammeStart("HDR preview") { client ->
-            client.previewHdr(host, previewPort, parameters)
-        }
-    }
-
-    fun startAstroWebUiHdr(parameters: AstroWebUiHdrParameters) {
-        runAstroWebUiProgrammeStart("HDR start") { client ->
-            client.startHdr(host, previewPort, parameters)
-        }
-    }
-
-    fun validateAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
-        runAstroWebUiProgrammeStart("focus validation") { client ->
-            client.validateFocus(host, previewPort, parameters)
-        }
-    }
-
-    fun previewAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
-        runAstroWebUiProgrammeStart("focus preview") { client ->
-            client.previewFocus(host, previewPort, parameters)
-        }
-    }
-
-    fun startAstroWebUiFocus(parameters: AstroWebUiFocusParameters) {
-        runAstroWebUiProgrammeStart("focus start") { client ->
-            client.startFocus(host, previewPort, parameters)
-        }
-    }
-
-    fun addAstroWebUiPlcKey(request: AstroWebUiPlcKeyRequest) =
-        runAstroWebUiMotionProgramme("add PLC keyframe") { client ->
-            client.addPlcKey(host, previewPort, request)
-        }
-
-    fun clearAstroWebUiPlcKeys() =
-        runAstroWebUiMotionProgramme("clear PLC keyframes") { client ->
-            client.clearPlcKeys(host, previewPort)
-        }
-
-    fun previewAstroWebUiPlc(parameters: AstroWebUiPlcParameters) =
-        runAstroWebUiMotionProgramme("PLC preview") { client ->
-            client.previewPlc(host, previewPort, parameters)
-        }
-
-    fun startAstroWebUiPlc(parameters: AstroWebUiPlcParameters) =
-        runAstroWebUiMotionProgramme("PLC start") { client ->
-            client.startPlc(host, previewPort, parameters)
-        }
-
-    fun addAstroWebUiPathWaypoint(request: AstroWebUiPathWaypointRequest) =
-        runAstroWebUiMotionProgramme("add path-lapse waypoint") { client ->
-            client.addPathWaypoint(host, previewPort, request)
-        }
-
-    fun clearAstroWebUiPathWaypoints() =
-        runAstroWebUiMotionProgramme("clear path-lapse waypoints") { client ->
-            client.clearPathWaypoints(host, previewPort)
-        }
-
-    fun previewAstroWebUiPathLapse(parameters: AstroWebUiPathLapseParameters) =
-        runAstroWebUiMotionProgramme("path-lapse preview") { client ->
-            client.previewPathLapse(host, previewPort, parameters)
-        }
-
-    fun startAstroWebUiPathLapse(parameters: AstroWebUiPathLapseParameters) =
-        runAstroWebUiMotionProgramme("path-lapse start") { client ->
-            client.startPathLapse(host, previewPort, parameters)
-        }
-
-    fun previewAstroWebUiGrail(parameters: AstroWebUiGrailParameters) =
-        runAstroWebUiMotionProgramme("Holy Grail preview") { client ->
-            client.previewGrail(host, previewPort, parameters)
-        }
-
-    fun applyAstroWebUiGrail(parameters: AstroWebUiGrailParameters) =
-        runAstroWebUiMotionProgramme("Holy Grail apply") { client ->
-            client.applyGrail(host, previewPort, parameters)
-        }
-
-    fun disableAstroWebUiGrail() =
-        runAstroWebUiMotionProgramme("Holy Grail disable") { client ->
-            client.disableGrail(host, previewPort)
-        }
-
-    fun refreshAstroWebUiGrailStatus() =
-        runAstroWebUiMotionProgramme("Holy Grail status") { client ->
-            client.grailStatus(host, previewPort)
-        }
-
-    private fun runAstroWebUiMotionProgramme(
-        action: String,
-        request: suspend (AstroWebUiMotionProgrammeClient) -> AstroWebUiMotionProgrammeResult,
-    ) {
-        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
-            astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(
-                "Extended Astro WebUI programmes are disabled until named-head qualification",
-            )
-            statusMessage = "Extended Astro WebUI programmes are disabled by config"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(
-                "Connect to a mount before using an extended Astro WebUI programme",
-            )
-            statusMessage = "Connect to a mount before using an extended Astro WebUI programme"
-            return
-        }
-        if (astroWebUiMotionProgrammeJob?.isActive == true) {
-            statusMessage = "An extended Astro WebUI programme request is already in progress"
-            return
-        }
-        astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Loading(action)
-        astroWebUiMotionProgrammeJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                request(astroWebUiMotionProgrammeClient)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiMotionProgrammeResult.Failure(
-                    error.message ?: "Astro WebUI $action failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiMotionProgrammeResult.Count ->
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Count(action, result.count)
-                is AstroWebUiMotionProgrammeResult.Preview ->
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Preview(action, result.frame, result.count, result.inferred)
-                AstroWebUiMotionProgrammeResult.Accepted -> {
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Accepted(action)
-                    readAstroWebUiProgramme(announce = false)
-                }
-                is AstroWebUiMotionProgrammeResult.Disabled ->
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Disabled(result.enabled)
-                is AstroWebUiMotionProgrammeResult.Status ->
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Status(result.enabled, result.brightness)
-                is AstroWebUiMotionProgrammeResult.Failure ->
-                    astroWebUiMotionProgrammeState = AstroWebUiMotionProgrammeState.Failed(result.reason)
-            }
-            if (result !is AstroWebUiMotionProgrammeResult.Failure) {
-                statusMessage = "Astro WebUI $action completed at the HTTP/protocol layer; physical completion remains status-gated"
-            }
-        }
-    }
-
-    fun previewAstroWebUiSun(parameters: AstroWebUiSunParameters) {
-        runAstroWebUiSunProgramme("sun programme preview", confirm = false) { client ->
-            client.preview(host, previewPort, parameters)
-        }
-    }
-
-    fun startAstroWebUiSun(parameters: AstroWebUiSunParameters) {
-        runAstroWebUiSunProgramme("sun programme start", confirm = true) { client ->
-            client.start(host, previewPort, parameters)
-        }
-    }
-
-    private fun runAstroWebUiSunProgramme(
-        action: String,
-        confirm: Boolean,
-        request: suspend (AstroWebUiSunProgrammeClient) -> AstroWebUiSunResult,
-    ) {
-        if (confirm && blockCaptureDuringSlowMotion()) return
-        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
-            astroWebUiSunState = AstroWebUiSunState.Failed(
-                "Astro WebUI programme starts are disabled until named-head qualification",
-            )
-            statusMessage = "Astro WebUI programme starts are disabled until named-head qualification"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiSunState = AstroWebUiSunState.Failed(
-                "Connect to a mount before starting an Astro WebUI solar programme",
-            )
-            statusMessage = "Connect to a mount before starting an Astro WebUI solar programme"
-            return
-        }
-        if (astroWebUiSunJob?.isActive == true) {
-            statusMessage = "An Astro WebUI solar programme request is already in progress"
-            return
-        }
-        astroWebUiSunState = AstroWebUiSunState.Loading
-        astroWebUiSunJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = try {
-                request(astroWebUiSunProgrammeClient)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                AstroWebUiSunResult.Failure(
-                    error.message ?: "Astro WebUI solar programme failed",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiSunResult.Preview -> {
-                    astroWebUiSunState = AstroWebUiSunState.Preview(result.frame)
-                    statusMessage = "Astro WebUI solar programme preview ready; no run was started"
-                }
-                AstroWebUiSunResult.Accepted -> {
-                    astroWebUiSunState = AstroWebUiSunState.Accepted
-                    statusMessage = "Astro WebUI solar programme accepted; confirming through programme status"
-                    readAstroWebUiProgramme(announce = false)
-                }
-                is AstroWebUiSunResult.Failure -> {
-                    astroWebUiSunState = AstroWebUiSunState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private fun runAstroWebUiProgrammeStart(
-        action: String,
-        request: suspend (AstroWebUiProgrammeStartClient) -> AstroWebUiProgrammeStartResult,
-    ) {
-        if (blockCaptureDuringSlowMotion()) return
-        if (!FeatureFlags.isEnabled("astroWebUiProgrammeStarts")) {
-            astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
-                "Astro WebUI programme starts are disabled until named-head qualification",
-            )
-            statusMessage = "Astro WebUI programme starts are disabled until named-head qualification"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(
-                "Connect to a mount before starting an Astro WebUI programme",
-            )
-            statusMessage = "Connect to a mount before starting an Astro WebUI programme"
-            return
-        }
-        if (astroWebUiProgrammeStartJob?.isActive == true) {
-            statusMessage = "An Astro WebUI programme request is already in progress"
-            return
-        }
-        astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Loading
-        astroWebUiProgrammeStartJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = request(astroWebUiProgrammeStartClient)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiProgrammeStartResult.Preview -> {
-                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Preview(result)
-                    statusMessage = "Astro WebUI $action is ready; no programme was started"
-                }
-                is AstroWebUiProgrammeStartResult.Accepted -> {
-                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Accepted(result.kind)
-                    statusMessage = "Astro WebUI $action accepted; confirming through programme status"
-                    readAstroWebUiProgramme(announce = false)
-                }
-                is AstroWebUiProgrammeStartResult.Failure -> {
-                    astroWebUiProgrammeStartState = AstroWebUiProgrammeStartState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    private fun runAstroWebUiProgrammeControl(
-        action: String,
-        request: suspend (AstroWebUiProgrammeControlClient) -> AstroWebUiProgrammeControlResult,
-    ) {
-        if (!FeatureFlags.isEnabled("astroWebUiProgrammeControls")) {
-            statusMessage = "Astro WebUI programme controls are disabled until write-route qualification"
-            return
-        }
-        val ownerSession = session
-        if (ownerSession == null) {
-            statusMessage = "Connect to a mount before controlling an Astro WebUI programme"
-            return
-        }
-        if (astroWebUiProgrammeControlJob?.isActive == true) {
-            statusMessage = "An Astro WebUI programme control request is already in progress"
-            return
-        }
-        astroWebUiProgrammeControlJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = request(astroWebUiProgrammeControlClient)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                AstroWebUiProgrammeControlResult.Accepted -> {
-                    statusMessage = "Astro WebUI " + action + " request accepted; confirming by status poll"
-                    readAstroWebUiProgramme(announce = false)
-                }
-                is AstroWebUiProgrammeControlResult.Failure -> {
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun refreshAstroMedia() {
-        astroMediaExportJob?.cancel()
-        astroMediaExportController.reset()
-        astroMediaExportState = AstroMediaExportState.Idle
-        val ownerSession = session
-        astroMediaJob?.cancel()
-        astroMediaJob = scope.launch {
-            if (ownerSession == null) {
-                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
-                return@launch
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
-                astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
-                return@launch
-            }
-            astroMediaState = AstroMediaState.LoadingList
-            astroMediaPreview = null
-            val result = astroWebUiMediaClient.list(host, previewPort)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroMediaListResult.Success -> {
-                    astroMediaItems = result.items
-                    astroMediaState = AstroMediaState.Ready(result.reportedCount)
-                    statusMessage = "Astro WebUI gallery: ${result.items.size} item(s)"
-                }
-                is AstroMediaListResult.Failure -> {
-                    astroMediaItems = null
-                    astroMediaState = AstroMediaState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun loadAstroMedia(path: String, kind: AstroMediaTransferKind) {
-        astroMediaExportJob?.cancel()
-        astroMediaExportController.reset()
-        astroMediaExportState = AstroMediaExportState.Idle
-        val ownerSession = session
-        astroMediaJob?.cancel()
-        astroMediaJob = scope.launch {
-            if (ownerSession == null) {
-                astroMediaState = AstroMediaState.Failed("Connect to a mount before reading its Astro WebUI")
-                return@launch
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
-                astroMediaState = AstroMediaState.Failed("Astro WebUI gallery disabled by config")
-                return@launch
-            }
-            astroMediaState = AstroMediaState.LoadingItem(path, kind)
-            val result = astroWebUiMediaClient.fetch(host, previewPort, path, kind)
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroMediaFetchResult.Success -> {
-                    astroMediaPreview = AstroMediaPreview(path, kind, result.bytes, result.contentType)
-                    astroMediaState = AstroMediaState.Ready(astroMediaItems?.size ?: 0)
-                    statusMessage = "Astro WebUI ${kind.name.lowercase()}: ${result.bytes.size} bytes"
-                }
-                is AstroMediaFetchResult.Failure -> {
-                    astroMediaState = AstroMediaState.Failed(result.reason)
-                    statusMessage = result.reason
-                }
-            }
-        }
-    }
-
-    fun exportAstroMedia(destination: AstroMediaExportDestination) {
-        if (!FeatureFlags.isEnabled("astroWebUiMedia")) {
-            astroMediaExportState = AstroMediaExportState.Failed(null, "Astro WebUI gallery disabled by config")
-            statusMessage = "Astro WebUI gallery disabled by config"
-            return
-        }
-        val preview = astroMediaPreview
-        if (preview == null) {
-            astroMediaExportState = AstroMediaExportState.Failed(null, "Load a full Astro WebUI image before exporting")
-            statusMessage = "Load a full Astro WebUI image before exporting"
-            return
-        }
-        astroMediaExportJob?.cancel()
-        if (!astroMediaExportController.prepare(preview, destination)) {
-            astroMediaExportState = astroMediaExportController.state.value
-            statusMessage = (astroMediaExportState as? AstroMediaExportState.Failed)?.reason.orEmpty()
-            return
-        }
-        astroMediaExportState = astroMediaExportController.state.value
-        val bytes = preview.bytes.copyOf()
-        astroMediaExportJob = scope.launch {
-            val result = astroMediaExportController.export(bytes)
-            astroMediaExportState = result
-            statusMessage = when (result) {
-                is AstroMediaExportState.Complete -> "Astro media export complete (" + result.bytesStored + " bytes)"
-                is AstroMediaExportState.Failed -> result.reason
-                else -> "Astro media export in progress"
-            }
-        }
-    }
-
-    /**
-     * Prepare and save a redacted support snapshot. The platform chooser is
-     * explicit and the export contains only observed state; it never performs
-     * a fresh mount request or includes credentials/raw camera bytes.
-     */
-    fun exportSupportBundle(versionLabel: String? = null) {
-        supportBundleExportJob?.cancel()
-        val attachment = cameraAttachment
-        val cameraSummary = attachment?.let {
-            if (it.isAttached) {
-                listOfNotNull(it.manufacturer, it.model).joinToString(" ").ifBlank { "Attached camera" }
-            } else {
-                "No camera attached (state " + (it.state ?: "unknown") + ")"
-            }
-        }
-        val storageSummary = sdStatus?.let { status ->
-            if (status.present) {
-                (status.freeMb ?: "?").toString() + " MB free / " +
-                    (status.totalMb ?: "?") + " MB"
-            } else {
-                "Not present"
-            }
-        }
-        val captureSummary = when (val phase = capturePhase) {
-            CapturePhase.Idle -> "Idle"
-            CapturePhase.Requested -> "Requested"
-            CapturePhase.Busy -> "Camera active"
-            CapturePhase.Completed -> "Confirmed: lifecycle + file publication"
-            is CapturePhase.OutcomeUnknown -> "Outcome unknown: " + phase.reason
-            is CapturePhase.Failed -> "Failed: " + phase.reason
-        }
-        val snapshot = SupportBundleSnapshot(
-            appBuild = versionLabel,
-            generatedAtEpochMs = SystemMillis.now().coerceAtLeast(0L),
-            endpointKind = endpointHealth.profile?.kind?.name,
-            controlPort = endpointHealth.profile?.address?.controlPort,
-            previewPort = endpointHealth.profile?.address?.previewPort,
-            routePhase = endpointHealth.phase.name,
-            controlService = endpointHealth.control.name,
-            previewService = endpointHealth.preview.name,
-            lastFailure = endpointHealth.lastFailure,
-            mountConnected = mount.connected,
-            firmware = firmwareVersion ?: deviceInfo?.software,
-            hardware = deviceInfo?.hardware,
-            camera = cameraSummary,
-            storage = storageSummary,
-            capture = captureSummary,
-            slowMotionLiveReady = slowMotionCapabilityRecord.liveReady,
-            slowMotionBlockers = slowMotionCapabilityRecord.blockers,
-            rawFrameLoggingEnabled = FeatureFlags.isEnabled("rawFrameLog"),
-            captureTimeline = captureTimeline.takeLast(20).map {
-                SupportBundleTimelineEntry(it.stage.label, it.detail)
-            },
-            publication = lastCapturePublication?.let {
-                SupportBundlePublication(
-                    basename = it.path.substringAfterLast('/').substringAfterLast('\\'),
-                    type = it.type,
-                    sizeBytes = it.sizeBytes,
-                )
-            },
-        )
-        if (!supportBundleExportController.prepare(snapshot)) {
-            supportBundleExportState = supportBundleExportController.state
-            statusMessage = (supportBundleExportState as? SupportBundleExportState.Failed)?.reason
-                ?: "Support bundle could not be prepared"
-            return
-        }
-        supportBundleExportState = supportBundleExportController.state
-        supportBundleExportJob = scope.launch {
-            val ready = supportBundleExportController.state as? SupportBundleExportState.Ready
-            if (ready != null) {
-                supportBundleExportState = SupportBundleExportState.Exporting(ready.request)
-            }
-            val result = supportBundleExportController.export()
-            supportBundleExportState = result
-            statusMessage = when (result) {
-                is SupportBundleExportState.Complete -> "Support bundle saved"
-                is SupportBundleExportState.Failed -> result.reason
-                else -> "Support bundle save in progress"
-            }
-        }
-    }
-
-    /** True while a feature-gated Astro WebUI shutter is awaiting evidence. */
-    var astroWebUiCaptureActive by mutableStateOf(false)
-        private set
-    /** True while the M/B HTTP bridge request is being dispatched. */
-    var astroWebUiCaptureDispatching by mutableStateOf(false)
-        private set
-    var astroWebUiBulbActive by mutableStateOf(false)
-        private set
-    /** Prevents a second B stop write while the first stop awaits evidence. */
-    var astroWebUiBulbStopQueued by mutableStateOf(false)
-        private set
-    var astroWebUiCaptureStatus by mutableStateOf<String?>(null)
-        private set
-
-    /**
-     * Dispatch one Astro WebUI M/B release through the resident HTTP bridge.
-     * The feature is deliberately separate from native capture: a positive
-     * HTTP result only queues 264, so the shared capture evidence observer and
-     * watchdog remain the sole completion authority.
-     */
-    fun captureAstroWebUi(mode: dev.openpolaris.core.domain.CameraReleaseMode, bulbSeconds: Int = 0) {
-        if (blockCaptureDuringSlowMotion()) return
-        if (!FeatureFlags.isEnabled("astroWebUiCapture")) {
-            astroWebUiCaptureStatus = "Astro WebUI shutter is disabled until lifecycle qualification"
-            statusMessage = astroWebUiCaptureStatus.orEmpty()
-            return
-        }
-        val ownerSession = session
-        val ownerController = cameraController
-        if (ownerSession == null || ownerController == null) {
-            statusMessage = "Connect a mount and camera before using Astro WebUI capture"
-            return
-        }
-        if (!cameraAttachmentAllowsCommand()) return
-        val observed = camera.shutterIndex?.let { camera.shutterOptions.getOrNull(it)?.trim() }
-        val observedMode = dev.openpolaris.core.domain.CameraReleaseMode.fromOption(observed)
-        if (observedMode != mode) {
-            statusMessage = "Astro WebUI capture requires verified ${mode.label} readback (observed ${observedMode.label})"
-            return
-        }
-        if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB && bulbSeconds <= 0) {
-            statusMessage = "Bulb duration must be positive"
-            return
-        }
-        if (videoRecording == true) {
-            statusMessage = "Stop video before an Astro WebUI still"
-            return
-        }
-        if (sequenceActive || observationProgrammeActive) {
-            statusMessage = "Capture programme in progress — stop it before a single shot"
-            return
-        }
-        val phase = capturePhase
-        if (phase !is CapturePhase.Idle && phase !is CapturePhase.Completed && phase !is CapturePhase.Failed) {
-            statusMessage = "Capture in progress — wait for it to finish"
-            return
-        }
-        astroWebUiCaptureDispatching = true
-        capturePhase = CapturePhase.Requested
-        captureEvidence.begin()
-        pendingCapturePublication = null
-        astroWebUiCaptureActive = false
-        astroWebUiBulbActive = false
-        astroWebUiBulbStopQueued = false
-        astroWebUiCaptureJob?.cancel()
-        astroWebUiCaptureJob = scope.launch {
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            val admissionFailure = verifyCaptureReadiness(
-                ownerSession,
-                ownerController,
-                requiredMode = mode,
-            )
-            if (admissionFailure != null) {
-                captureEvidence.fail(admissionFailure)
-                captureKind = null
-                captureSource = null
-                capturePhase = CapturePhase.Failed(admissionFailure)
-                astroWebUiCaptureStatus = "Astro WebUI capture blocked: $admissionFailure"
-                appendCaptureTimeline(CaptureTimelineStage.FAILED, admissionFailure)
-                statusMessage = astroWebUiCaptureStatus.orEmpty()
-                astroWebUiCaptureDispatching = false
-                restoreCaptureWorkloads()
-                return@launch
-            }
-            beginCaptureTimeline("Astro WebUI ${mode.label} release queued")
-            suspendCaptureWorkloads()
-            if (!ownsSession(ownerSession) || cameraController !== ownerController) return@launch
-            val result = runCatching {
-                astroWebUiCaptureClient.dispatch(host, previewPort, mode, bulbSeconds)
-            }.getOrElse { error ->
-                AstroWebUiCaptureResult.Failed(
-                    "Astro WebUI dispatch failed: " +
-                        (error.message ?: error::class.simpleName ?: "unknown error"),
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiCaptureResult.Queued -> {
-                    captureKind = if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB) {
-                        CaptureKind.BULB
-                    } else {
-                        CaptureKind.NORMAL
-                    }
-                    captureSource = CaptureSource.ASTRO_WEB_UI
-                    astroWebUiCaptureDispatching = false
-                    astroWebUiCaptureActive = true
-                    astroWebUiBulbActive = mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB
-                    astroWebUiCaptureStatus = "HTTP bridge accepted 264; waiting for camera lifecycle and file evidence"
-                    statusMessage = astroWebUiCaptureStatus.orEmpty()
-                    captureWatchdogJob?.cancel()
-                    captureWatchdogJob = scope.launch {
-                        delay(if (mode == dev.openpolaris.core.domain.CameraReleaseMode.BULB) {
-                            maxOf(CAPTURE_TIMEOUT_MS, bulbSeconds * 1000L + 15_000L)
-                        } else CAPTURE_TIMEOUT_MS)
-                        if (!ownsSession(ownerSession)) return@launch
-                        if (capturePhase is CapturePhase.Requested || capturePhase is CapturePhase.Busy) {
-                            val reason = "timeout: Astro WebUI queue accepted but correlated 264 lifecycle and/or 773 file evidence is missing"
-                            captureEvidence.unknown(reason)
-                            capturePhase = CapturePhase.OutcomeUnknown(reason)
-                            captureKind = null
-                            captureSource = null
-                            astroWebUiCaptureActive = false
-                            astroWebUiCaptureDispatching = false
-                            astroWebUiBulbActive = false
-                            astroWebUiBulbStopQueued = false
-                            appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                            statusMessage = "Astro WebUI outcome unknown — check the card before another shutter"
-                        }
-                    }
-                }
-                is AstroWebUiCaptureResult.Failed -> {
-                    captureEvidence.fail(result.reason)
-                    captureKind = null
-                    captureSource = null
-                    capturePhase = CapturePhase.Failed(result.reason)
-                    astroWebUiCaptureActive = false
-                    astroWebUiCaptureDispatching = false
-                    astroWebUiBulbActive = false
-                    astroWebUiBulbStopQueued = false
-                    astroWebUiCaptureStatus = "Astro WebUI dispatch failed: " + result.reason
-                    appendCaptureTimeline(CaptureTimelineStage.FAILED, result.reason)
-                    statusMessage = astroWebUiCaptureStatus.orEmpty()
-                    restoreCaptureWorkloads()
-                }
-                is AstroWebUiCaptureResult.Stopped -> Unit
-            }
-        }
-    }
-
-    fun stopAstroWebUiBulb() {
-        if (!astroWebUiBulbActive) {
-            statusMessage = "No Astro WebUI Bulb capture is active"
-            return
-        }
-        if (astroWebUiBulbStopQueued) {
-            statusMessage = "Astro WebUI Bulb stop already queued; waiting for evidence"
-            return
-        }
-        astroWebUiBulbStopQueued = true
-        val ownerSession = session
-        astroWebUiBulbStopJob?.cancel()
-        astroWebUiBulbStopJob = scope.launch {
-            if (!ownsSession(ownerSession)) return@launch
-            val result = runCatching {
-                astroWebUiCaptureClient.stop(host, previewPort)
-            }.getOrElse { error ->
-                AstroWebUiCaptureResult.Failed(
-                    error.message ?: error::class.simpleName ?: "unknown stop error",
-                )
-            }
-            if (!ownsSession(ownerSession)) return@launch
-            when (result) {
-                is AstroWebUiCaptureResult.Stopped -> {
-                    astroWebUiCaptureStatus = "Astro WebUI Bulb stop queued; waiting for file evidence"
-                    statusMessage = astroWebUiCaptureStatus.orEmpty()
-                }
-                is AstroWebUiCaptureResult.Failed -> {
-                    val reason = "Astro WebUI Bulb stop failed: " + result.reason
-                    captureEvidence.unknown(reason)
-                    capturePhase = CapturePhase.OutcomeUnknown(reason)
-                    astroWebUiCaptureActive = false
-                    astroWebUiCaptureDispatching = false
-                    astroWebUiBulbActive = false
-                    appendCaptureTimeline(CaptureTimelineStage.UNKNOWN, reason)
-                    statusMessage = "Astro WebUI stop outcome unknown - check the card"
-                }
-                is AstroWebUiCaptureResult.Queued -> Unit
             }
         }
     }
@@ -7583,9 +3018,6 @@ class AppViewModel(
          * pipeline instead of leaving the UI stuck on "Busy" forever.
          */
         private const val CAPTURE_TIMEOUT_MS: Long = 15_000L
-
-        /** Fresh camera identity/release-mode admission budget before any 264 write. */
-        private const val CAMERA_READINESS_TIMEOUT_MS: Long = 4_000L
 
         /**
          * #89: per-request timeout for the 1 Hz 284/517 pose poll. The

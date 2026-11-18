@@ -3,12 +3,9 @@
 package dev.openpolaris.core.domain
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -19,77 +16,54 @@ import kotlin.test.assertTrue
 class IntervalometerControllerTest {
 
     private fun newRig(
-        controllerScope: CoroutineScope,
-        readerScope: CoroutineScope,
+        scope: CoroutineScope,
     ): Triple<FakeConnection, MountSession, IntervalometerController> {
         val conn = FakeConnection()
-        val session = MountSession({ conn }, readerScope = readerScope)
+        val session = MountSession({ conn }, readerScope = scope)
         val camera = CameraController(session)
-        return Triple(conn, session, IntervalometerController(camera, controllerScope))
+        return Triple(conn, session, IntervalometerController(camera, scope))
     }
 
     @Test
     fun `plan validation rejects zero or negative shot count`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertThrows<IllegalArgumentException> {
             IntervalometerController.SequencePlan(shotCount = 0, intervalMs = 1000)
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertThrows<IllegalArgumentException> {
             IntervalometerController.SequencePlan(shotCount = -1, intervalMs = 1000)
         }
     }
 
     @Test
     fun `plan validation rejects negative interval or pre-delay`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertThrows<IllegalArgumentException> {
             IntervalometerController.SequencePlan(shotCount = 3, intervalMs = -1)
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertThrows<IllegalArgumentException> {
             IntervalometerController.SequencePlan(shotCount = 3, intervalMs = 1000, preDelayMs = -5)
         }
     }
 
     @Test
-    fun `totalDurationMs is preDelay plus gaps between shots`() {
+    fun `totalDurationMs is preDelay + interval * shotCount`() {
         val plan = IntervalometerController.SequencePlan(
             shotCount = 4,
             intervalMs = 30_000,
             preDelayMs = 5_000,
         )
-        assertEquals(95_000L, plan.totalDurationMs)
-    }
-
-    @Test
-    fun `pre-delay elapses before first shutter`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
-        session.connect()
-        assertTrue(c.start(IntervalometerController.SequencePlan(1, intervalMs = 0, preDelayMs = 5_000)))
-
-        runCurrent()
-        assertEquals(0, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
-        advanceTimeBy(4_999)
-        assertEquals(0, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
-        advanceTimeBy(1)
-        runCurrent()
-        assertEquals(1, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
-
-        c.stop()
-        session.disconnect()
+        assertEquals(125_000L, plan.totalDurationMs)
     }
 
     @Test
     fun `start runs all shots and reaches Completed`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         val plan = IntervalometerController.SequencePlan(shotCount = 3, intervalMs = 1000)
         assertTrue(c.start(plan))
 
-        repeat(3) {
-            runCurrent()
-            c.markShotDone()
-            advanceTimeBy(1_000)
-        }
-        runCurrent()
+        // Advance virtual time past all intervals.
+        kotlinx.coroutines.test.advanceUntilIdle()
 
         val s = c.state
         assertTrue(s is IntervalometerController.State.Completed, "expected Completed, got $s")
@@ -106,7 +80,7 @@ class IntervalometerControllerTest {
 
     @Test
     fun `start is a no-op when already running`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         val plan = IntervalometerController.SequencePlan(shotCount = 2, intervalMs = 1000)
@@ -118,28 +92,21 @@ class IntervalometerControllerTest {
 
     @Test
     fun `pause stops the sequence and resume continues from the next shot`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         val plan = IntervalometerController.SequencePlan(shotCount = 4, intervalMs = 1000)
         assertTrue(c.start(plan))
 
-        // Let shot 1 fire, then pause before confirmation.
-        runCurrent()
+        // Let shot 1 fire, then pause.
+        kotlinx.coroutines.test.advanceTimeBy(500)
         c.pause()
         assertTrue(c.state is IntervalometerController.State.Paused)
-        assertTrue(c.hasInFlightShot)
 
-        // Resume must wait for shot 1 rather than sending it again.
+        // Resume: should continue from shot 2 onward.
         c.resume()
         assertTrue(c.state is IntervalometerController.State.Running)
-        runCurrent()
-        assertEquals(1, conn.written.map { it.decodeToString() }.count { it.contains("&264&") })
-        repeat(4) {
-            c.markShotDone()
-            advanceTimeBy(1_000)
-            runCurrent()
-        }
+        kotlinx.coroutines.test.advanceUntilIdle()
 
         val s = c.state
         assertTrue(s is IntervalometerController.State.Completed, "expected Completed, got $s")
@@ -155,17 +122,17 @@ class IntervalometerControllerTest {
 
     @Test
     fun `stop halts the sequence early`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         val plan = IntervalometerController.SequencePlan(shotCount = 5, intervalMs = 1000)
         assertTrue(c.start(plan))
 
         // Let shot 1 fire, then stop.
-        runCurrent()
+        kotlinx.coroutines.test.advanceTimeBy(500)
         c.stop()
         assertTrue(c.state is IntervalometerController.State.Stopped)
-        assertEquals(0, (c.state as IntervalometerController.State.Stopped).completedShots)
+        assertEquals(1, (c.state as IntervalometerController.State.Stopped).completedShots)
         assertFalse(c.hasInFlightShot)
 
         // Only 1 capture frame was written.
@@ -178,7 +145,7 @@ class IntervalometerControllerTest {
 
     @Test
     fun `pause and stop are idempotent from terminal states`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         // From Idle: pause/stop are no-ops.
@@ -192,19 +159,18 @@ class IntervalometerControllerTest {
 
     @Test
     fun `markShotDone clears the in-flight flag`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         val plan = IntervalometerController.SequencePlan(shotCount = 2, intervalMs = 1000)
         assertTrue(c.start(plan))
 
         // Let shot 1 fire; the in-flight flag should be true.
-        runCurrent()
+        kotlinx.coroutines.test.advanceTimeBy(500)
         assertTrue(c.hasInFlightShot)
 
         // Progress observer confirms completion.
         c.markShotDone()
-        runCurrent()
         assertFalse(c.hasInFlightShot)
 
         session.disconnect()
@@ -212,7 +178,7 @@ class IntervalometerControllerTest {
 
     @Test
     fun `exposure index is set before each capture`() = runTest {
-        val (conn, session, c) = newRig(backgroundScope, backgroundScope)
+        val (conn, session, c) = newRig(backgroundScope)
         session.connect()
 
         // Script a 299 EX_TIME reply so the set succeeds.
@@ -224,12 +190,7 @@ class IntervalometerControllerTest {
             exposureIndex = 7,
         )
         assertTrue(c.start(plan))
-        repeat(2) {
-            runCurrent()
-            c.markShotDone()
-            advanceTimeBy(1_000)
-        }
-        runCurrent()
+        kotlinx.coroutines.test.advanceUntilIdle()
 
         // Each shot should have a 299 EX_TIME write before its 264 capture.
         val frames = conn.written.map { it.decodeToString() }

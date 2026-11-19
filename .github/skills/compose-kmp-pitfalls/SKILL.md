@@ -7,6 +7,8 @@ description: Compose Multiplatform / Kotlin Multiplatform specific pitfalls — 
 
 A collection of non-obvious defects that compiled and even passed unit tests, but only manifested in real Android Compose layouts or in specific KMP test runners.
 
+Run these checks from the checkout root. For shared and desktop behavior use the CI tasks `./gradlew :shared:jvmTest :composeApp:jvmTest`. For Android-specific actuals, use the Android test task listed by the current checkout and reproduce UI sizing and lifecycle problems on a designated emulator or test device. Record the selected target and build.
+
 ## 1. KMP `expect/actual` test resolution: `commonTest` ≠ `jvmTest`
 
 In a Kotlin Multiplatform project, tests in `commonTest` resolve `expect` declarations to whichever actual the **test runner's host platform** uses — not necessarily JVM. In OpenPolaris:
@@ -128,6 +130,6 @@ setContent {
 }
 ```
 
-The key insight is that the bridge lives in `commonMain` and is process-scoped, so it survives both rotation (no activity lifecycle tie) and process death would be the only reset path. It also makes the state machine testable from `commonTest` — see [PickerBridgeTest.kt](/home/ian/Documents/VSCodeProjects/OpenPolaris/shared/src/commonTest/kotlin/dev/openpolaris/core/io/PickerBridgeTest.kt) for 13 unit tests pinning the begin/in-flight/result/consume contract.
+The key insight is that the bridge lives in `commonMain` and is process-scoped, so it survives both rotation (no activity lifecycle tie) and process death would be the only reset path. It also makes the state machine testable from `commonTest` — see [PickerBridgeTest.kt](../../../shared/src/commonTest/kotlin/dev/openpolaris/core/io/PickerBridgeTest.kt) for 13 unit tests pinning the begin/in-flight/result/consume contract.
 
 **Test guard pattern:** any time a `MainActivity`-lifecycle-bound resource is used to bridge into a `ViewModel`, ask "what happens between `onDestroy` and the new `onCreate`?" If the answer is "the resource is recreated empty", you have a rotation-drop bug.

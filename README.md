@@ -21,6 +21,11 @@ but disabled for v2.
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech stack (Kotlin Multiplatform + Compose), module layout, key design decisions, testing strategy |
 | [PLAN.md](docs/PLAN.md) | Phased project plan with hardware-validated gates G0–G3, effort estimates, risk register |
 
+Project test procedures are available directly from the checkout for any agent
+or contributor. Use [Demo mode](.github/skills/openpolaris-demo-mode/SKILL.md),
+[runtime reproduction](.github/skills/take-the-user-seriously/SKILL.md) or
+[platform-specific checks](.github/skills/compose-kmp-pitfalls/SKILL.md).
+
 ## Why replica-first?
 
 The stock app is both our specification and our test oracle: every screen mirrors a
